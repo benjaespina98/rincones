@@ -13,14 +13,23 @@ const initialState = {
   direccion: "",
   latitud: "",
   longitud: "",
-  imagenes: "",
   rating: "",
+};
+
+const readFileAsDataUrl = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
+    reader.readAsDataURL(file);
+  });
 };
 
 const AgregarLugarPage = () => {
   const [formData, setFormData] = useState(initialState);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { recargar } = useLugares();
@@ -36,6 +45,37 @@ const AgregarLugarPage = () => {
       latitud: lat.toFixed(6),
       longitud: lng.toFixed(6),
     }));
+  };
+
+  const handleFileChange = async (event) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const tooLarge = files.find((file) => file.size > 2 * 1024 * 1024);
+    if (tooLarge) {
+      setError("Cada imagen debe pesar menos de 2MB.");
+      return;
+    }
+
+    if (uploadedImages.length + files.length > 4) {
+      setError("Puedes subir hasta 4 imagenes por lugar.");
+      return;
+    }
+
+    try {
+      setError("");
+      const asDataUrls = await Promise.all(files.map((file) => readFileAsDataUrl(file)));
+      setUploadedImages((prev) => [...prev, ...asDataUrls].slice(0, 4));
+    } catch {
+      setError("No se pudieron procesar las imagenes seleccionadas.");
+    }
+  };
+
+  const removeUploadedImage = (indexToRemove) => {
+    setUploadedImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const validateForm = () => {
@@ -72,24 +112,8 @@ const AgregarLugarPage = () => {
       errors.push("El rating debe estar entre 0 y 5.");
     }
 
-    if (formData.imagenes.trim()) {
-      const imagenes = formData.imagenes
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      const invalid = imagenes.find((url) => {
-        try {
-          new URL(url);
-          return false;
-        } catch {
-          return true;
-        }
-      });
-
-      if (invalid) {
-        errors.push("Todas las imagenes deben ser URLs validas.");
-      }
+    if (uploadedImages.length === 0) {
+      errors.push("Agrega al menos una imagen desde tu dispositivo.");
     }
 
     setValidationErrors(errors);
@@ -113,10 +137,7 @@ const AgregarLugarPage = () => {
         latitud: Number(formData.latitud),
         longitud: Number(formData.longitud),
       },
-      imagenes: formData.imagenes
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      imagenes: uploadedImages,
       rating: Number(formData.rating || 0),
     };
 
@@ -161,8 +182,8 @@ const AgregarLugarPage = () => {
           Categoria
           <select name="categoria" value={formData.categoria} onChange={handleChange}>
             {categorias.map((categoria) => (
-              <option key={categoria} value={categoria}>
-                {categoria}
+              <option key={categoria.value} value={categoria.value}>
+                {categoria.label}
               </option>
             ))}
           </select>
@@ -186,7 +207,7 @@ const AgregarLugarPage = () => {
               step="any"
               name="latitud"
               value={formData.latitud}
-              onChange={handleChange}
+              readOnly
               required
             />
           </label>
@@ -197,7 +218,7 @@ const AgregarLugarPage = () => {
               step="any"
               name="longitud"
               value={formData.longitud}
-              onChange={handleChange}
+              readOnly
               required
             />
           </label>
@@ -210,9 +231,22 @@ const AgregarLugarPage = () => {
         />
 
         <label>
-          Imagenes (URLs separadas por coma)
-          <input name="imagenes" value={formData.imagenes} onChange={handleChange} />
+          Imagenes desde tu dispositivo
+          <input type="file" accept="image/*" multiple onChange={handleFileChange} />
         </label>
+
+        {uploadedImages.length > 0 && (
+          <div className="uploaded-grid">
+            {uploadedImages.map((image, index) => (
+              <div key={`${image.slice(0, 20)}-${index}`} className="uploaded-item">
+                <img src={image} alt={`preview-${index + 1}`} />
+                <button type="button" className="button button--danger" onClick={() => removeUploadedImage(index)}>
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <label>
           Rating

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import MapaLugares from "../components/MapaLugares";
 import { getLugarById } from "../services/lugaresApi";
+import { formatearCategoria } from "../utils/categorias";
 
 const LugarDetallePage = () => {
   const { id } = useParams();
@@ -43,10 +44,10 @@ const LugarDetallePage = () => {
       <h1>{lugar.nombre}</h1>
       <p className="lead">{lugar.descripcion}</p>
       <div className="detail-meta">
-        <span>Categoria: {lugar.categoria}</span>
-        <span>Ciudad: {lugar.ciudad}</span>
-        <span>Direccion: {lugar.direccion}</span>
-        <span>Rating: {Number(lugar.rating || 0).toFixed(1)}</span>
+        <span className="info-chip">Categoría: {formatearCategoria(lugar.categoria)}</span>
+        <span className="info-chip">Ciudad: {lugar.ciudad}</span>
+        <span className="info-chip">Dirección: {lugar.direccion}</span>
+        <span className="info-chip">Rating: {Number(lugar.rating || 0).toFixed(1)}</span>
       </div>
 
       {lugar.imagenes?.length > 0 && (

@@ -6,10 +6,14 @@ const HomePage = () => {
 
   return (
     <section>
-      <h1>Descubri rincones unicos en Argentina</h1>
-      <p className="lead">
-        Explora rios, montanas, bares, cafeterias, restaurantes, miradores y lugares turisticos recomendados por la comunidad.
-      </p>
+      <header className="page-header">
+        <span className="page-kicker">Plataforma de recomendaciones</span>
+        <h1>Descubrí rincones únicos en Argentina</h1>
+        <p className="lead">
+          Explora ríos, montañas, bares, cafeterías, restaurantes, miradores y lugares turísticos recomendados.
+        </p>
+        <div className="info-chip">{lugares.length} lugares publicados</div>
+      </header>
 
       {loading && <p>Cargando lugares...</p>}
       {error && <p className="error-text">{error}</p>}

@@ -14,6 +14,12 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ message: "Parametro invalido" });
   }
 
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      message: "Las imagenes pesan demasiado. Prueba con archivos mas chicos.",
+    });
+  }
+
   const statusCode = err.statusCode || 500;
 
   return res.status(statusCode).json({
