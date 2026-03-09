@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 
+const categoriasValidas = [
+  "rio",
+  "montana",
+  "bar",
+  "cafeteria",
+  "restaurante",
+  "mirador",
+  "turistico",
+];
+
 const lugarSchema = new mongoose.Schema(
   {
     nombre: {
@@ -17,6 +27,10 @@ const lugarSchema = new mongoose.Schema(
       required: [true, "La categoria es obligatoria"],
       trim: true,
       lowercase: true,
+      enum: {
+        values: categoriasValidas,
+        message: "Categoria invalida",
+      },
     },
     ciudad: {
       type: String,
@@ -32,10 +46,14 @@ const lugarSchema = new mongoose.Schema(
       latitud: {
         type: Number,
         required: [true, "La latitud es obligatoria"],
+        min: [-90, "La latitud debe estar entre -90 y 90"],
+        max: [90, "La latitud debe estar entre -90 y 90"],
       },
       longitud: {
         type: Number,
         required: [true, "La longitud es obligatoria"],
+        min: [-180, "La longitud debe estar entre -180 y 180"],
+        max: [180, "La longitud debe estar entre -180 y 180"],
       },
     },
     imagenes: {
