@@ -1,8 +1,11 @@
 const dotenv = require("dotenv");
+const path = require("path");
 const app = require("../src/app");
 const connectToDatabase = require("../src/config/db");
 
-dotenv.config();
+dotenv.config({
+  path: path.resolve(__dirname, "../.env"),
+});
 
 module.exports = async (req, res) => {
   try {

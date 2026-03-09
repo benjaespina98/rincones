@@ -7,8 +7,12 @@ const ExplorarPage = () => {
 
   return (
     <section>
-      <h1>Explorar lugares</h1>
-      <p className="lead">Filtra visualmente los puntos cargados y mira su ubicacion en el mapa.</p>
+      <header className="page-header page-header--compact">
+        <span className="page-kicker">Mapa interactivo</span>
+        <h1>Explorar lugares</h1>
+        <p className="lead">Filtra visualmente los puntos cargados y mira su ubicación en el mapa.</p>
+        <div className="info-chip">{lugares.length} resultados</div>
+      </header>
 
       {loading && <p>Cargando lugares...</p>}
       {error && <p className="error-text">{error}</p>}

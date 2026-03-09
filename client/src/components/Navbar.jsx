@@ -1,17 +1,21 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const links = [
   { to: "/", label: "Inicio" },
   { to: "/explorar", label: "Explorar" },
-  { to: "/agregar", label: "Agregar lugar" },
 ];
 
 const Navbar = () => {
+  const { isAdmin } = useAuth();
+
+  const allLinks = isAdmin ? [...links, { to: "/agregar", label: "Agregar lugar" }] : links;
+
   return (
     <header className="navbar">
       <div className="navbar__brand">Rincones</div>
       <nav className="navbar__nav">
-        {links.map((link) => (
+        {allLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
