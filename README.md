@@ -43,6 +43,7 @@ Backend ([server/.env.example](server/.env.example)):
 ```
 PORT=4000
 MONGODB_URI=mongodb://127.0.0.1:27017/rincones
+MONGODB_DB_NAME=rincones
 ```
 
 Frontend ([client/.env.example](client/.env.example)):
@@ -116,7 +117,7 @@ Backend local: http://localhost:4000/api
 2. Crear usuario de base de datos.
 3. Habilitar acceso de red para tu IP o 0.0.0.0/0 en pruebas.
 4. Copiar connection string de Atlas y reemplazar `MONGODB_URI`.
-5. En Vercel (proyecto backend `server`), crear variable de entorno `MONGODB_URI` con esa URI.
+5. En Vercel (proyecto backend `server`), crear variables de entorno `MONGODB_URI` y `MONGODB_DB_NAME` (ejemplo: `rincones`).
 6. En Vercel (proyecto frontend `client`), crear variable `VITE_API_URL` apuntando al dominio del backend, por ejemplo: `https://tu-back.vercel.app/api`.
 7. Redeploy de ambos proyectos.
 
