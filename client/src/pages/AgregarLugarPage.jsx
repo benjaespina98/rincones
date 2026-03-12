@@ -4,6 +4,7 @@ import { createLugar } from "../services/lugaresApi";
 import { categorias } from "../utils/categorias";
 import { useLugares } from "../hooks/useLugares";
 import MapPicker from "../components/MapPicker";
+import StarRating from "../components/StarRating";
 
 const initialState = {
   nombre: "",
@@ -16,7 +17,7 @@ const initialState = {
   telefono: "",
   instagram: "",
   sitioWeb: "",
-  rating: "",
+  rating: "4",
 };
 
 const readFileAsDataUrl = (file) => {
@@ -42,11 +43,15 @@ const AgregarLugarPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleMapSelect = ({ lat, lng }) => {
+  const handleMapSelect = ({ lat, lng, direccion, source }) => {
     setFormData((prev) => ({
       ...prev,
       latitud: lat.toFixed(6),
       longitud: lng.toFixed(6),
+      direccion:
+        direccion && (source === "search" || !prev.direccion.trim())
+          ? direccion
+          : prev.direccion,
     }));
   };
 
@@ -111,8 +116,8 @@ const AgregarLugarPage = () => {
       errors.push("La longitud debe estar entre -180 y 180.");
     }
 
-    if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
-      errors.push("El rating debe estar entre 0 y 5.");
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      errors.push("El rating debe estar entre 1 y 5.");
     }
 
     if (formData.telefono.trim() && !/^[+\d\s()-]{7,20}$/.test(formData.telefono.trim())) {
@@ -188,7 +193,7 @@ const AgregarLugarPage = () => {
   return (
     <section>
       <h1>Agregar nuevo lugar</h1>
-      <p className="lead">Carga un rincon para que otras personas puedan descubrirlo.</p>
+      <p className="lead">Carga un rincón para que otras personas puedan descubrirlo.</p>
 
       <form className="place-form" onSubmit={handleSubmit}>
         <div className="form-section">
@@ -199,12 +204,12 @@ const AgregarLugarPage = () => {
         </label>
 
         <label>
-          Descripcion
+          Descripción
           <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} required rows={4} />
         </label>
 
         <label>
-          Categoria
+          Categoría
           <select name="categoria" value={formData.categoria} onChange={handleChange}>
             {categorias.map((categoria) => (
               <option key={categoria.value} value={categoria.value}>
@@ -220,13 +225,20 @@ const AgregarLugarPage = () => {
         </label>
 
         <label>
-          Direccion
-          <input name="direccion" value={formData.direccion} onChange={handleChange} required />
+          Dirección
+          <input
+            name="direccion"
+            value={formData.direccion}
+            onChange={handleChange}
+            required
+            placeholder="Se completa al buscar en el mapa"
+          />
+          <small className="map-help">Buscá en el mapa y tomamos dirección + coordenadas automáticamente.</small>
         </label>
         </div>
 
         <div className="form-section">
-          <h2 className="form-section__title">Ubicacion</h2>
+          <h2 className="form-section__title">Ubicación</h2>
         <div className="grid-two">
           <label>
             Latitud
@@ -262,7 +274,7 @@ const AgregarLugarPage = () => {
         <div className="form-section">
           <h2 className="form-section__title">Multimedia y contacto</h2>
         <label>
-          Imagenes desde tu dispositivo
+          Imágenes desde tu dispositivo
           <input type="file" accept="image/*" multiple onChange={handleFileChange} />
         </label>
 
@@ -281,39 +293,57 @@ const AgregarLugarPage = () => {
 
         <div className="grid-two">
           <label>
-            Telefono (opcional)
-            <input
-              name="telefono"
-              value={formData.telefono}
-              onChange={handleChange}
-              placeholder="+54 11 1234 5678"
-            />
+            Teléfono (opcional)
+            <div className="contact-input">
+              <span aria-hidden="true">📞</span>
+              <input
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                placeholder="+54 11 1234 5678"
+              />
+            </div>
           </label>
 
           <label>
             Instagram (opcional)
-            <input
-              name="instagram"
-              value={formData.instagram}
-              onChange={handleChange}
-              placeholder="@cuenta o https://instagram.com/..."
-            />
+            <div className="contact-input">
+              <span aria-hidden="true">📸</span>
+              <input
+                name="instagram"
+                value={formData.instagram}
+                onChange={handleChange}
+                placeholder="@cuenta o https://instagram.com/..."
+              />
+            </div>
           </label>
         </div>
 
         <label>
           Sitio web (opcional)
-          <input
-            name="sitioWeb"
-            value={formData.sitioWeb}
-            onChange={handleChange}
-            placeholder="https://tusitio.com"
-          />
+          <div className="contact-input">
+            <span aria-hidden="true">🌐</span>
+            <input
+              name="sitioWeb"
+              value={formData.sitioWeb}
+              onChange={handleChange}
+              placeholder="https://tusitio.com"
+            />
+          </div>
         </label>
 
         <label>
           Rating
-          <input type="number" min="0" max="5" step="0.1" name="rating" value={formData.rating} onChange={handleChange} />
+          <div className="rating-combo">
+            <select name="rating" value={formData.rating} onChange={handleChange}>
+              <option value="1">1 estrella</option>
+              <option value="2">2 estrellas</option>
+              <option value="3">3 estrellas</option>
+              <option value="4">4 estrellas</option>
+              <option value="5">5 estrellas</option>
+            </select>
+            <StarRating value={Number(formData.rating || 0)} size="sm" />
+          </div>
         </label>
         </div>
 

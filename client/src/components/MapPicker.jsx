@@ -7,7 +7,11 @@ const defaultCenter = [-34.6037, -58.3816];
 const ClickHandler = ({ onSelect }) => {
   useMapEvents({
     click(event) {
-      onSelect(event.latlng);
+      onSelect({
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+        source: "map",
+      });
     },
   });
 
@@ -78,7 +82,11 @@ const MapPicker = ({ latitud, longitud, onSelect }) => {
     }
 
     setTarget(found);
-    onSelect(found);
+    onSelect({
+      ...found,
+      direccion: suggestion.nombre || query,
+      source: "search",
+    });
     setQuery(suggestion.nombre || query);
     setSuggestions([]);
     setSearchError("");
@@ -87,7 +95,7 @@ const MapPicker = ({ latitud, longitud, onSelect }) => {
   const handleSearch = async () => {
     const normalized = query.trim();
     if (!normalized) {
-      setSearchError("Escribe una direccion o lugar para buscar.");
+      setSearchError("Escribe una dirección o lugar para buscar.");
       return;
     }
 
@@ -103,13 +111,13 @@ const MapPicker = ({ latitud, longitud, onSelect }) => {
 
       const primary = response.data?.data;
       if (!primary) {
-        setSearchError("No encontramos resultados para esa busqueda.");
+        setSearchError("No encontramos resultados para esa búsqueda.");
         return;
       }
 
       applySuggestion(primary);
     } catch {
-      setSearchError("No se pudo encontrar esa ubicacion. Proba con una direccion mas precisa.");
+      setSearchError("No se pudo encontrar esa ubicación. Probá con una dirección más precisa.");
     } finally {
       setSearching(false);
     }
@@ -141,7 +149,7 @@ const MapPicker = ({ latitud, longitud, onSelect }) => {
       </div>
 
       {suggestions.length > 0 && (
-        <ul className="map-suggestions" role="listbox" aria-label="Sugerencias de ubicacion">
+        <ul className="map-suggestions" role="listbox" aria-label="Sugerencias de ubicación">
           {suggestions.map((item, index) => (
             <li key={`${item.nombre}-${index}`}>
               <button type="button" onClick={() => applySuggestion(item)}>
@@ -163,7 +171,7 @@ const MapPicker = ({ latitud, longitud, onSelect }) => {
       </MapContainer>
 
       {searchError && <p className="error-text">{searchError}</p>}
-      <p className="map-help">Hace click en el mapa para definir la ubicacion exacta.</p>
+      <p className="map-help">Hacé click en el mapa para definir la ubicación exacta.</p>
     </div>
   );
 };

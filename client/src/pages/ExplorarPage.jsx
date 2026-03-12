@@ -4,9 +4,11 @@ import MapaLugares from "../components/MapaLugares";
 import { useLugares } from "../hooks/useLugares";
 import { haversineDistanceKm } from "../utils/geo";
 import { categorias } from "../utils/categorias";
+import { getSuggestedCategories, rankLugaresBySmartQuery } from "../utils/busquedaInteligente";
 
 const ExplorarPage = () => {
   const { lugares, loading, error } = useLugares();
+  const [smartQuery, setSmartQuery] = useState("");
   const [cityQuery, setCityQuery] = useState("");
   const [categoriaQuery, setCategoriaQuery] = useState("all");
   const [userCoords, setUserCoords] = useState(null);
@@ -16,7 +18,7 @@ const ExplorarPage = () => {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGeoError("Tu navegador no soporta geolocalizacion.");
+      setGeoError("Tu navegador no soporta geolocalización.");
       return;
     }
 
@@ -29,14 +31,20 @@ const ExplorarPage = () => {
         setUseNearby(true);
       },
       () => {
-        setGeoError("No se pudo obtener tu ubicacion.");
+        setGeoError("No se pudo obtener tu ubicación.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);
 
+  const suggestedCategorias = useMemo(() => getSuggestedCategories(smartQuery), [smartQuery]);
+
   const lugaresFiltrados = useMemo(() => {
     let list = [...lugares];
+
+    if (smartQuery.trim()) {
+      list = rankLugaresBySmartQuery(list, smartQuery);
+    }
 
     if (cityQuery.trim()) {
       const normalized = cityQuery.trim().toLowerCase();
@@ -61,15 +69,42 @@ const ExplorarPage = () => {
     }
 
     return list;
-  }, [lugares, cityQuery, categoriaQuery, useNearby, userCoords, radiusKm]);
+  }, [lugares, smartQuery, cityQuery, categoriaQuery, useNearby, userCoords, radiusKm]);
 
   return (
     <section>
-      <header className="page-header page-header--compact">
-        <span className="page-kicker">Mapa interactivo</span>
-        <h1>Explorar lugares</h1>
-        <p className="lead">Filtra por ciudad o cercanía a tu ubicación para descubrir lugares relevantes.</p>
-        <div className="info-chip">{lugaresFiltrados.length} resultados</div>
+      <header className="page-header search-hero">
+        <span className="page-kicker">Rincones de la comunidad</span>
+        <h1>Lugares cargados por admins</h1>
+        <p className="lead">
+          Acá ves los lugares ya curados por el equipo. Podés filtrarlos por ciudad, categoría o cercanía.
+        </p>
+
+        <label className="search-hero__input-wrap">
+          <input
+            value={smartQuery}
+            onChange={(event) => setSmartQuery(event.target.value)}
+            placeholder="Buscar entre lugares cargados por la comunidad"
+          />
+        </label>
+
+        <div className="search-hero__meta">
+          <div className="info-chip">{lugaresFiltrados.length} resultados</div>
+          {(cityQuery || categoriaQuery !== "all" || useNearby) && (
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={() => {
+                setCityQuery("");
+                setCategoriaQuery("all");
+                setUseNearby(false);
+                setRadiusKm(120);
+              }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="explore-filters">
@@ -83,7 +118,7 @@ const ExplorarPage = () => {
         </label>
 
         <label>
-          Categoria
+          Categoría
           <select value={categoriaQuery} onChange={(event) => setCategoriaQuery(event.target.value)}>
             <option value="all">Todas</option>
             {categorias.map((categoria) => (
@@ -119,6 +154,31 @@ const ExplorarPage = () => {
           </label>
         )}
       </div>
+
+      {!!suggestedCategorias.length && (
+        <div className="ai-suggestions">
+          <span className="ai-suggestions__label">Sugerencias IA</span>
+          <div className="ai-suggestions__chips">
+            {suggestedCategorias.map((categoriaValue) => {
+              const categoria = categorias.find((item) => item.value === categoriaValue);
+              if (!categoria) {
+                return null;
+              }
+
+              return (
+                <button
+                  key={categoria.value}
+                  type="button"
+                  className={`ai-chip ${categoriaQuery === categoria.value ? "ai-chip--active" : ""}`}
+                  onClick={() => setCategoriaQuery(categoria.value)}
+                >
+                  {categoria.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {geoError && <p className="error-text">{geoError}</p>}
 

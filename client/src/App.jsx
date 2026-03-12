@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import HomePage from "./pages/HomePage";
+import DescubrirPage from "./pages/DescubrirPage";
 import ExplorarPage from "./pages/ExplorarPage";
 import LugarDetallePage from "./pages/LugarDetallePage";
 import AgregarLugarPage from "./pages/AgregarLugarPage";
@@ -14,8 +14,9 @@ function App() {
       <Navbar />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/explorar" element={<ExplorarPage />} />
+          <Route path="/" element={<DescubrirPage />} />
+          <Route path="/comunidad" element={<ExplorarPage />} />
+          <Route path="/explorar" element={<Navigate to="/comunidad" replace />} />
           <Route path="/lugares/:id" element={<LugarDetallePage />} />
           <Route
             path="/agregar"
