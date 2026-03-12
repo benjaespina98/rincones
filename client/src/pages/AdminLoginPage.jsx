@@ -33,11 +33,11 @@ const buildLogSummary = (log) => {
   const nombreLugar = log.after?.nombre || log.before?.nombre || "Lugar";
 
   if (log.action === "create") {
-    return `Se creo ${nombreLugar}.`;
+    return `Se creó ${nombreLugar}.`;
   }
 
   if (log.action === "delete") {
-    return `Se elimino ${nombreLugar}.`;
+    return `Se eliminó ${nombreLugar}.`;
   }
 
   if (log.action === "update") {
@@ -48,7 +48,7 @@ const buildLogSummary = (log) => {
     }
 
     const visibleFields = changed.slice(0, 4).join(", ");
-    const suffix = changed.length > 4 ? ` y ${changed.length - 4} mas` : "";
+    const suffix = changed.length > 4 ? ` y ${changed.length - 4} más` : "";
     return `Campos modificados: ${visibleFields}${suffix}.`;
   }
 
@@ -66,11 +66,13 @@ const AdminLoginPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
   const [selectedLugarId, setSelectedLugarId] = useState("");
   const [editData, setEditData] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const nextPath = location.state?.from || "/agregar";
+  const logPreview = logs.slice(0, 3);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -198,7 +200,7 @@ const AdminLoginPage = () => {
     return (
       <section className="panel-card">
         <h1>Panel admin</h1>
-        <p className="lead">Sesion iniciada como {user?.email}.</p>
+        <p className="lead">Sesión iniciada como {user?.email}.</p>
         <div className="admin-actions">
           <button className="button" type="button" onClick={() => navigate("/agregar")}>
             Ir a agregar lugar
@@ -232,23 +234,46 @@ const AdminLoginPage = () => {
           </div>
 
           <div className="admin-panel">
-            <h2>Actividad reciente</h2>
-            <div className="admin-log-list">
-              {!logs.length && <p className="map-help">Todavia no hay movimientos registrados.</p>}
-              {logs.map((log) => (
-                <article key={log._id} className="admin-log-item">
-                  <div className="admin-log-item__head">
+            <div className="admin-panel__head">
+              <h2>Actividad reciente</h2>
+              <button className="button button--ghost" type="button" onClick={() => setShowLogs((prev) => !prev)}>
+                {showLogs ? "Ocultar" : "Abrir"}
+              </button>
+            </div>
+
+            {!showLogs && (
+              <div className="admin-log-preview">
+                {!logPreview.length && <p className="map-help">Sin actividad reciente.</p>}
+                {logPreview.map((log) => (
+                  <article key={log._id} className="admin-log-preview__item">
                     <span className={`admin-log-badge admin-log-badge--${log.action}`}>
                       {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
                     </span>
+                    <strong>{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
                     <small>{new Date(log.createdAt).toLocaleString()}</small>
-                  </div>
-                  <strong className="admin-log-item__title">{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
-                  <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
-                  <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            {showLogs && (
+              <div className="admin-log-list">
+                {!logs.length && <p className="map-help">Todavía no hay movimientos registrados.</p>}
+                {logs.map((log) => (
+                  <article key={log._id} className="admin-log-item">
+                    <div className="admin-log-item__head">
+                      <span className={`admin-log-badge admin-log-badge--${log.action}`}>
+                        {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
+                      </span>
+                      <small>{new Date(log.createdAt).toLocaleString()}</small>
+                    </div>
+                    <strong className="admin-log-item__title">{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
+                    <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
+                    <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -332,7 +357,7 @@ const AdminLoginPage = () => {
         </label>
 
         <label>
-          Contrasena
+          Contraseña
           <input
             type="password"
             value={password}

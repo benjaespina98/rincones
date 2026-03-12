@@ -16,7 +16,7 @@ const ExplorarPage = () => {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGeoError("Tu navegador no soporta geolocalizacion.");
+      setGeoError("Tu navegador no soporta geolocalización.");
       return;
     }
 
@@ -29,7 +29,7 @@ const ExplorarPage = () => {
         setUseNearby(true);
       },
       () => {
-        setGeoError("No se pudo obtener tu ubicacion.");
+        setGeoError("No se pudo obtener tu ubicación.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -83,7 +83,7 @@ const ExplorarPage = () => {
         </label>
 
         <label>
-          Categoria
+          Categoría
           <select value={categoriaQuery} onChange={(event) => setCategoriaQuery(event.target.value)}>
             <option value="all">Todas</option>
             {categorias.map((categoria) => (
