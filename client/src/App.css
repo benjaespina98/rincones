@@ -313,7 +313,7 @@
 
 .explore-filters {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.85rem;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -499,17 +499,67 @@
 
 .admin-log-item {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.35rem;
 }
 
-.admin-log-item span {
+.admin-log-item__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-log-item__title {
+  margin: 0;
+  color: #dce8f3;
+  font-size: 0.95rem;
+}
+
+.admin-log-item__meta {
   color: #a8bfd2;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 .admin-log-item small {
   color: #8da1b0;
   font-size: 0.78rem;
+}
+
+.admin-log-item__summary {
+  margin: 0;
+  color: #90a6b8;
+  font-size: 0.83rem;
+  line-height: 1.35;
+}
+
+.admin-log-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.18rem 0.52rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.admin-log-badge--create {
+  background: #193525;
+  border-color: #2d7a4c;
+  color: #9bf0be;
+}
+
+.admin-log-badge--update {
+  background: #2f2f18;
+  border-color: #8d7d28;
+  color: #f5db72;
+}
+
+.admin-log-badge--delete {
+  background: #3a1f1f;
+  border-color: #8a3f3f;
+  color: #f3a5a5;
 }
 
 @media (max-width: 768px) {

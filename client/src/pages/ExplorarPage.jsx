@@ -3,10 +3,12 @@ import ListaLugares from "../components/ListaLugares";
 import MapaLugares from "../components/MapaLugares";
 import { useLugares } from "../hooks/useLugares";
 import { haversineDistanceKm } from "../utils/geo";
+import { categorias } from "../utils/categorias";
 
 const ExplorarPage = () => {
   const { lugares, loading, error } = useLugares();
   const [cityQuery, setCityQuery] = useState("");
+  const [categoriaQuery, setCategoriaQuery] = useState("all");
   const [userCoords, setUserCoords] = useState(null);
   const [geoError, setGeoError] = useState("");
   const [useNearby, setUseNearby] = useState(false);
@@ -41,6 +43,10 @@ const ExplorarPage = () => {
       list = list.filter((lugar) => String(lugar.ciudad || "").toLowerCase().includes(normalized));
     }
 
+    if (categoriaQuery !== "all") {
+      list = list.filter((lugar) => String(lugar.categoria || "").toLowerCase() === categoriaQuery);
+    }
+
     if (useNearby && userCoords) {
       list = list
         .map((lugar) => ({
@@ -55,7 +61,7 @@ const ExplorarPage = () => {
     }
 
     return list;
-  }, [lugares, cityQuery, useNearby, userCoords, radiusKm]);
+  }, [lugares, cityQuery, categoriaQuery, useNearby, userCoords, radiusKm]);
 
   return (
     <section>
@@ -74,6 +80,18 @@ const ExplorarPage = () => {
             onChange={(event) => setCityQuery(event.target.value)}
             placeholder="Buscar por ciudad"
           />
+        </label>
+
+        <label>
+          Categoria
+          <select value={categoriaQuery} onChange={(event) => setCategoriaQuery(event.target.value)}>
+            <option value="all">Todas</option>
+            {categorias.map((categoria) => (
+              <option key={categoria.value} value={categoria.value}>
+                {categoria.label}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="toggle-control">
