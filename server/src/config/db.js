@@ -14,19 +14,22 @@ const connectToDatabase = async () => {
   }
 
   const mongoUri = process.env.MONGODB_URI;
+  const databaseName = String(process.env.MONGODB_DB_NAME || "").trim();
 
   if (!mongoUri) {
     throw new Error("Falta la variable MONGODB_URI en el archivo .env");
   }
 
   connectPromise = mongoose.connect(mongoUri, {
+    ...(databaseName ? { dbName: databaseName } : {}),
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
   });
 
   try {
     await connectPromise;
-    console.log("MongoDB conectado");
+    const activeDbName = mongoose.connection?.name || databaseName || "(default)";
+    console.log(`MongoDB conectado (${activeDbName})`);
   } catch (error) {
     connectPromise = null;
     throw error;
