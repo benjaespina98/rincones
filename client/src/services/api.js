@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const fallbackApiUrl = import.meta.env.PROD
+  ? "https://rincones-api.vercel.app/api"
+  : "http://localhost:4000/api";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api",
+  baseURL: import.meta.env.VITE_API_URL || fallbackApiUrl,
   headers: {
     "Content-Type": "application/json",
   },
