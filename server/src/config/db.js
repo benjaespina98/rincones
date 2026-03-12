@@ -1,9 +1,15 @@
 const mongoose = require("mongoose");
 
-let isConnected = false;
+let connectPromise = null;
 
 const connectToDatabase = async () => {
-  if (isConnected) {
+  // 1 = connected, 2 = connecting, 0 = disconnected, 3 = disconnecting
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (mongoose.connection.readyState === 2 && connectPromise) {
+    await connectPromise;
     return mongoose.connection;
   }
 
@@ -13,9 +19,18 @@ const connectToDatabase = async () => {
     throw new Error("Falta la variable MONGODB_URI en el archivo .env");
   }
 
-  await mongoose.connect(mongoUri);
-  isConnected = true;
-  console.log("MongoDB conectado");
+  connectPromise = mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+  });
+
+  try {
+    await connectPromise;
+    console.log("MongoDB conectado");
+  } catch (error) {
+    connectPromise = null;
+    throw error;
+  }
 
   return mongoose.connection;
 };
