@@ -6,6 +6,55 @@ import { deleteLugar, updateLugar } from "../services/lugaresApi";
 import { getChangeLogs } from "../services/adminApi";
 import { categorias } from "../utils/categorias";
 
+const ACTION_LABELS = {
+  create: "Creado",
+  update: "Actualizado",
+  delete: "Eliminado",
+};
+
+const getChangedFields = (before, after) => {
+  if (!before || !after) {
+    return [];
+  }
+
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const skip = new Set(["_id", "creadoEn", "imagenesCount"]);
+
+  return [...keys].filter((key) => {
+    if (skip.has(key)) {
+      return false;
+    }
+
+    return JSON.stringify(before[key]) !== JSON.stringify(after[key]);
+  });
+};
+
+const buildLogSummary = (log) => {
+  const nombreLugar = log.after?.nombre || log.before?.nombre || "Lugar";
+
+  if (log.action === "create") {
+    return `Se creo ${nombreLugar}.`;
+  }
+
+  if (log.action === "delete") {
+    return `Se elimino ${nombreLugar}.`;
+  }
+
+  if (log.action === "update") {
+    const changed = getChangedFields(log.before, log.after);
+
+    if (!changed.length) {
+      return "Se guardaron cambios.";
+    }
+
+    const visibleFields = changed.slice(0, 4).join(", ");
+    const suffix = changed.length > 4 ? ` y ${changed.length - 4} mas` : "";
+    return `Campos modificados: ${visibleFields}${suffix}.`;
+  }
+
+  return "";
+};
+
 const AdminLoginPage = () => {
   const { login, isAdmin, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -185,11 +234,18 @@ const AdminLoginPage = () => {
           <div className="admin-panel">
             <h2>Actividad reciente</h2>
             <div className="admin-log-list">
+              {!logs.length && <p className="map-help">Todavia no hay movimientos registrados.</p>}
               {logs.map((log) => (
                 <article key={log._id} className="admin-log-item">
-                  <strong>{log.action.toUpperCase()}</strong>
-                  <span>{log.actor?.email || "admin"}</span>
-                  <small>{new Date(log.createdAt).toLocaleString()}</small>
+                  <div className="admin-log-item__head">
+                    <span className={`admin-log-badge admin-log-badge--${log.action}`}>
+                      {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
+                    </span>
+                    <small>{new Date(log.createdAt).toLocaleString()}</small>
+                  </div>
+                  <strong className="admin-log-item__title">{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
+                  <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
+                  <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
                 </article>
               ))}
             </div>
