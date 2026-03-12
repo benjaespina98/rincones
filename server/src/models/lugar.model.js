@@ -60,6 +60,20 @@ const lugarSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    contacto: {
+      telefono: {
+        type: String,
+        trim: true,
+      },
+      instagram: {
+        type: String,
+        trim: true,
+      },
+      sitioWeb: {
+        type: String,
+        trim: true,
+      },
+    },
     rating: {
       type: Number,
       min: 0,
