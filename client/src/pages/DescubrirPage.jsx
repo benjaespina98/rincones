@@ -318,7 +318,7 @@ const DescubrirPage = () => {
             const isCommunity = String(item.fuente || "").toLowerCase().includes("comunidad");
 
             return (
-            <article key={item.id} className="external-card">
+            <article key={item.id} className={`external-card ${item.foto ? "" : "external-card--no-image"}`}>
               <div className="external-card__image-wrap">
                 {item.foto ? (
                   <img src={item.foto} alt={item.nombre} className="external-card__image" loading="lazy" />
@@ -328,7 +328,6 @@ const DescubrirPage = () => {
                       <span className="external-card__placeholder-icon">{visual.icon}</span>
                       <strong>{visual.label}</strong>
                     </div>
-                    <span className="external-card__placeholder-tag">Sin foto</span>
                   </div>
                 )}
               </div>

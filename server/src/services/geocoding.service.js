@@ -77,6 +77,11 @@ const CATEGORIA_SELECTORS = {
   turistico: ['["tourism"~"attraction|museum|gallery|theme_park"]'],
 };
 
+const DEFAULT_DISCOVER_SELECTORS = [
+  '["amenity"~"bar|pub|restaurant|cafe"]',
+  '["tourism"~"attraction|viewpoint|museum"]',
+];
+
 const INTENT_KEYWORDS = {
   rio: ["rio", "río", "costanera", "balneario", "laguna", "pesca", "mate"],
   montana: ["montana", "montaña", "cerro", "trekking", "sendero"],
@@ -129,6 +134,50 @@ const getDiscoverQualityScore = (place) => {
 };
 
 const isCommunitySource = (place) => normalizeText(place?.fuente).includes("comunidad");
+
+const getSelectorsFromIntent = ({ normalizedCategoria, wantedCategories }) => {
+  if (normalizedCategoria && normalizedCategoria !== "all") {
+    return CATEGORIA_SELECTORS[normalizedCategoria] || DEFAULT_DISCOVER_SELECTORS;
+  }
+
+  if (wantedCategories?.size) {
+    const intentSelectors = [...wantedCategories].flatMap((cat) => CATEGORIA_SELECTORS[cat] || []);
+    if (intentSelectors.length) {
+      return [...new Set(intentSelectors)];
+    }
+  }
+
+  return DEFAULT_DISCOVER_SELECTORS;
+};
+
+const fetchOverpassElements = async ({ centerLat, centerLng, radiusMeters, selectors, limit }) => {
+  const selectorQuery = selectors
+    .map(
+      (selector) =>
+        `node(around:${radiusMeters},${centerLat},${centerLng})${selector};\n  way(around:${radiusMeters},${centerLat},${centerLng})${selector};\n  relation(around:${radiusMeters},${centerLat},${centerLng})${selector};`
+    )
+    .join("\n  ");
+
+  const overpassQuery = `[out:json][timeout:20];\n(\n  ${selectorQuery}\n);\nout center ${limit};`;
+
+  const response = await fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=UTF-8",
+      "User-Agent": "rincones-app/1.0 (discover-service)",
+    },
+    body: overpassQuery,
+  });
+
+  if (!response.ok) {
+    const error = new Error("No se pudo consultar lugares externos");
+    error.statusCode = 502;
+    throw error;
+  }
+
+  const data = await response.json();
+  return Array.isArray(data.elements) ? data.elements : [];
+};
 
 const isLikelyDuplicatePlace = (candidate, existing) => {
   const candidateName = normalizeText(candidate.nombre);
@@ -267,7 +316,7 @@ const scorePlace = ({ query, wantedCategories, itemCategoria, tags, nombre, dire
     if (wantedCategories.has(itemCategoria)) {
       score += 14;
     } else {
-      score -= 5;
+      score -= 14;
     }
   }
 
@@ -346,38 +395,11 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
   const normalizedCategoria = normalizeCategoria(categoria);
   const hasQuery = normalizeText(query).length > 0;
   const wantedCategories = inferWantedCategories(query, categoria);
-  const selectors = CATEGORIA_SELECTORS[normalizedCategoria] || [
-    '["amenity"~"bar|pub|restaurant|cafe"]',
-    '["tourism"~"attraction|viewpoint|museum"]',
-  ];
+  const strictIntent = wantedCategories.size > 0;
+  const selectors = getSelectorsFromIntent({ normalizedCategoria, wantedCategories });
 
-  const selectorQuery = selectors
-    .map(
-      (selector) =>
-        `node(around:${aroundRadiusMeters},${centerLat},${centerLng})${selector};\n  way(around:${aroundRadiusMeters},${centerLat},${centerLng})${selector};\n  relation(around:${aroundRadiusMeters},${centerLat},${centerLng})${selector};`
-    )
-    .join("\n  ");
-
-  const overpassQuery = `[out:json][timeout:20];\n(\n  ${selectorQuery}\n);\nout center ${safeLimit};`;
-
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=UTF-8",
-      "User-Agent": "rincones-app/1.0 (discover-service)",
-    },
-    body: overpassQuery,
-  });
-
-  if (!response.ok) {
-    const error = new Error("No se pudo consultar lugares externos");
-    error.statusCode = 502;
-    throw error;
-  }
-
-  const data = await response.json();
-
-  const externalResults = (Array.isArray(data.elements) ? data.elements : [])
+  const toExternalResults = (elements = []) =>
+    elements
     .map((element) => {
       const elLat = Number(element.lat ?? element.center?.lat);
       const elLng = Number(element.lon ?? element.center?.lon);
@@ -436,6 +458,16 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
     })
     .map(({ _tags, ...item }) => item);
 
+  const initialElements = await fetchOverpassElements({
+    centerLat,
+    centerLng,
+    radiusMeters: aroundRadiusMeters,
+    selectors,
+    limit: safeLimit,
+  });
+
+  const externalResults = toExternalResults(initialElements);
+
   const normalizedZona = normalizeText(zona);
   const communityMaxDistanceKm = Math.max(safeRadiusKm * 1.5, hasCoords ? 10 : 18);
 
@@ -445,6 +477,10 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
     .map((lugar) => {
       const itemCategoria = normalizeCategoria(lugar.categoria);
       if (normalizedCategoria && normalizedCategoria !== "all" && itemCategoria !== normalizedCategoria) {
+        return null;
+      }
+
+      if (strictIntent && !wantedCategories.has(itemCategoria)) {
         return null;
       }
 
@@ -543,6 +579,13 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
       const minScore = item.fuente === "Comunidad Rincones" ? 4 : 7;
       return item.relevancia >= minScore;
     })
+    .filter((item) => {
+      if (!strictIntent) {
+        return true;
+      }
+
+      return wantedCategories.has(normalizeCategoria(item.categoria));
+    })
     .sort((a, b) => {
       const relevanceDelta = Number(b.relevancia || 0) - Number(a.relevancia || 0);
 
@@ -564,6 +607,66 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
       return aDistance - bDistance;
     })
     .slice(0, safeLimit);
+
+  if (results.length === 0) {
+    const expandedRadiusMeters = Math.round(Math.max(safeRadiusKm, hasCoords ? 20 : 45) * 1000);
+    const fallbackElements = await fetchOverpassElements({
+      centerLat,
+      centerLng,
+      radiusMeters: expandedRadiusMeters,
+      selectors,
+      limit: safeLimit,
+    });
+
+    const fallbackExternal = toExternalResults(fallbackElements)
+      .filter((item) => {
+        if (!strictIntent) {
+          return true;
+        }
+
+        return wantedCategories.has(normalizeCategoria(item.categoria));
+      })
+      .filter((item) => item.relevancia >= (hasQuery ? 3 : 0));
+
+    const fallbackResults = [...communityResults, ...fallbackExternal]
+      .reduce((acc, item) => {
+        const duplicateIndex = acc.findIndex((existing) => isLikelyDuplicatePlace(item, existing));
+        if (duplicateIndex === -1) {
+          acc.push(item);
+          return acc;
+        }
+
+        const currentScore = getDiscoverQualityScore(item);
+        const existingScore = getDiscoverQualityScore(acc[duplicateIndex]);
+        if (currentScore > existingScore) {
+          acc[duplicateIndex] = item;
+        }
+
+        return acc;
+      }, [])
+      .sort((a, b) => {
+        if (b.relevancia !== a.relevancia) {
+          return b.relevancia - a.relevancia;
+        }
+
+        const aDistance = Number.isFinite(a.distanciaKm) ? a.distanciaKm : 999;
+        const bDistance = Number.isFinite(b.distanciaKm) ? b.distanciaKm : 999;
+        return aDistance - bDistance;
+      })
+      .slice(0, safeLimit);
+
+    const payload = {
+      location,
+      results: fallbackResults,
+    };
+
+    discoverCache.set(cacheKey, {
+      createdAt: Date.now(),
+      payload,
+    });
+
+    return payload;
+  }
 
   const payload = {
     location,

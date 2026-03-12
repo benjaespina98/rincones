@@ -366,20 +366,20 @@
 
 .external-card__image--placeholder {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+  justify-content: flex-start;
+  align-items: center;
   background:
     radial-gradient(circle at 22% 18%, rgba(138, 109, 230, 0.28), transparent 48%),
     linear-gradient(135deg, #171d33, #0f1630 60%, #0b1430);
   color: #e0d2ff;
   font-size: 1rem;
-  padding: 0.62rem;
+  padding: 0.52rem 0.58rem;
 }
 
 .external-card__placeholder-main {
-  display: grid;
-  gap: 0.2rem;
-  align-items: end;
+  display: inline-flex;
+  gap: 0.42rem;
+  align-items: center;
 }
 
 .external-card__placeholder-main strong {
@@ -408,6 +408,14 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #af9fe3;
+}
+
+.external-card--no-image .external-card__image-wrap {
+  border-color: #4f4580;
+}
+
+.external-card--no-image .external-card__image {
+  height: 70px;
 }
 
 .external-card p {
