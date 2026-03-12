@@ -128,6 +128,8 @@ const getDiscoverQualityScore = (place) => {
   return score;
 };
 
+const isCommunitySource = (place) => normalizeText(place?.fuente).includes("comunidad");
+
 const isLikelyDuplicatePlace = (candidate, existing) => {
   const candidateName = normalizeText(candidate.nombre);
   const existingName = normalizeText(existing.nombre);
@@ -542,8 +544,19 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
       return item.relevancia >= minScore;
     })
     .sort((a, b) => {
-      if (b.relevancia !== a.relevancia) {
-        return b.relevancia - a.relevancia;
+      const relevanceDelta = Number(b.relevancia || 0) - Number(a.relevancia || 0);
+
+      // If both places are similarly relevant, prioritize community content for product identity.
+      if (Math.abs(relevanceDelta) <= 2) {
+        const aCommunity = isCommunitySource(a);
+        const bCommunity = isCommunitySource(b);
+        if (aCommunity !== bCommunity) {
+          return bCommunity ? 1 : -1;
+        }
+      }
+
+      if (relevanceDelta !== 0) {
+        return relevanceDelta;
       }
 
       const aDistance = Number.isFinite(a.distanciaKm) ? a.distanciaKm : 999;
