@@ -12,6 +12,15 @@ const isNonEmptyString = (value, min = 1) => {
   return typeof value === "string" && value.trim().length >= min;
 };
 
+const isValidUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 const normalizeCategoria = (value = "") =>
   String(value)
     .trim()
@@ -20,7 +29,7 @@ const normalizeCategoria = (value = "") =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const validateLugarPayload = (req, res, next) => {
-  const { nombre, descripcion, categoria, ciudad, direccion, ubicacion, imagenes, rating } = req.body;
+  const { nombre, descripcion, categoria, ciudad, direccion, ubicacion, imagenes, rating, contacto } = req.body;
   const errors = [];
 
   if (!isNonEmptyString(nombre, 3)) {
@@ -69,6 +78,28 @@ const validateLugarPayload = (req, res, next) => {
     }
   }
 
+  const telefono = String(contacto?.telefono || "").trim();
+  const instagramRaw = String(contacto?.instagram || "").trim();
+  const sitioWeb = String(contacto?.sitioWeb || "").trim();
+
+  if (telefono && !/^[+\d\s()-]{7,20}$/.test(telefono)) {
+    errors.push("Telefono invalido. Usa solo numeros, espacios y +.-() ");
+  }
+
+  if (instagramRaw) {
+    const normalizedInstagram = instagramRaw.replace(/^@/, "");
+    const isInstagramHandle = /^[a-zA-Z0-9._]{1,30}$/.test(normalizedInstagram);
+    const isInstagramUrl = isValidUrl(instagramRaw) && instagramRaw.includes("instagram.com");
+
+    if (!isInstagramHandle && !isInstagramUrl) {
+      errors.push("Instagram invalido. Usa @usuario o URL de Instagram.");
+    }
+  }
+
+  if (sitioWeb && !isValidUrl(sitioWeb)) {
+    errors.push("Sitio web invalido. Debe comenzar con http:// o https://");
+  }
+
   if (errors.length > 0) {
     return res.status(400).json({
       message: "Error de validacion",
@@ -88,6 +119,11 @@ const validateLugarPayload = (req, res, next) => {
       longitud: lng,
     },
     imagenes: Array.isArray(imagenes) ? imagenes.filter(Boolean) : [],
+    contacto: {
+      telefono: telefono || undefined,
+      instagram: instagramRaw || undefined,
+      sitioWeb: sitioWeb || undefined,
+    },
     rating: normalizedRating,
   };
 

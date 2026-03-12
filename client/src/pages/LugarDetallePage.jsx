@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import MapaLugares from "../components/MapaLugares";
 import { getLugarById } from "../services/lugaresApi";
 import { formatearCategoria } from "../utils/categorias";
+import StarRating from "../components/StarRating";
 
 const LugarDetallePage = () => {
   const { id } = useParams();
@@ -39,6 +40,12 @@ const LugarDetallePage = () => {
     return <p className="error-text">Lugar no encontrado.</p>;
   }
 
+  const instagramHref = lugar.contacto?.instagram
+    ? lugar.contacto.instagram.startsWith("http")
+      ? lugar.contacto.instagram
+      : `https://instagram.com/${lugar.contacto.instagram.replace(/^@/, "")}`
+    : "";
+
   return (
     <section className="detail-page">
       <h1>{lugar.nombre}</h1>
@@ -47,8 +54,31 @@ const LugarDetallePage = () => {
         <span className="info-chip">Categoría: {formatearCategoria(lugar.categoria)}</span>
         <span className="info-chip">Ciudad: {lugar.ciudad}</span>
         <span className="info-chip">Dirección: {lugar.direccion}</span>
-        <span className="info-chip">Rating: {Number(lugar.rating || 0).toFixed(1)}</span>
+        <span className="info-chip">Rating: <StarRating value={lugar.rating || 0} size="sm" /></span>
       </div>
+
+      {(lugar.contacto?.telefono || lugar.contacto?.instagram || lugar.contacto?.sitioWeb) && (
+        <div className="detail-contact">
+          <h2>Contacto</h2>
+          <div className="detail-contact__grid">
+            {lugar.contacto?.telefono && (
+              <a href={`tel:${lugar.contacto.telefono}`} className="info-chip">
+                Telefono: {lugar.contacto.telefono}
+              </a>
+            )}
+            {lugar.contacto?.instagram && (
+              <a href={instagramHref} target="_blank" rel="noreferrer" className="info-chip">
+                Instagram: {lugar.contacto.instagram}
+              </a>
+            )}
+            {lugar.contacto?.sitioWeb && (
+              <a href={lugar.contacto.sitioWeb} target="_blank" rel="noreferrer" className="info-chip">
+                Sitio web
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {lugar.imagenes?.length > 0 && (
         <div className="detail-gallery">

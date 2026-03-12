@@ -13,6 +13,9 @@ const initialState = {
   direccion: "",
   latitud: "",
   longitud: "",
+  telefono: "",
+  instagram: "",
+  sitioWeb: "",
   rating: "",
 };
 
@@ -112,6 +115,21 @@ const AgregarLugarPage = () => {
       errors.push("El rating debe estar entre 0 y 5.");
     }
 
+    if (formData.telefono.trim() && !/^[+\d\s()-]{7,20}$/.test(formData.telefono.trim())) {
+      errors.push("Telefono invalido. Usa solo numeros, espacios y +.-() ");
+    }
+
+    if (formData.sitioWeb.trim()) {
+      try {
+        const parsed = new URL(formData.sitioWeb.trim());
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          errors.push("Sitio web invalido. Debe comenzar con http:// o https://");
+        }
+      } catch {
+        errors.push("Sitio web invalido. Debe comenzar con http:// o https://");
+      }
+    }
+
     if (uploadedImages.length === 0) {
       errors.push("Agrega al menos una imagen desde tu dispositivo.");
     }
@@ -138,6 +156,11 @@ const AgregarLugarPage = () => {
         longitud: Number(formData.longitud),
       },
       imagenes: uploadedImages,
+      contacto: {
+        telefono: formData.telefono.trim() || undefined,
+        instagram: formData.instagram.trim() || undefined,
+        sitioWeb: formData.sitioWeb.trim() || undefined,
+      },
       rating: Number(formData.rating || 0),
     };
 
@@ -168,6 +191,8 @@ const AgregarLugarPage = () => {
       <p className="lead">Carga un rincon para que otras personas puedan descubrirlo.</p>
 
       <form className="place-form" onSubmit={handleSubmit}>
+        <div className="form-section">
+          <h2 className="form-section__title">Datos principales</h2>
         <label>
           Nombre
           <input name="nombre" value={formData.nombre} onChange={handleChange} required />
@@ -198,7 +223,10 @@ const AgregarLugarPage = () => {
           Direccion
           <input name="direccion" value={formData.direccion} onChange={handleChange} required />
         </label>
+        </div>
 
+        <div className="form-section">
+          <h2 className="form-section__title">Ubicacion</h2>
         <div className="grid-two">
           <label>
             Latitud
@@ -229,7 +257,10 @@ const AgregarLugarPage = () => {
           longitud={Number(formData.longitud)}
           onSelect={handleMapSelect}
         />
+        </div>
 
+        <div className="form-section">
+          <h2 className="form-section__title">Multimedia y contacto</h2>
         <label>
           Imagenes desde tu dispositivo
           <input type="file" accept="image/*" multiple onChange={handleFileChange} />
@@ -248,10 +279,43 @@ const AgregarLugarPage = () => {
           </div>
         )}
 
+        <div className="grid-two">
+          <label>
+            Telefono (opcional)
+            <input
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
+              placeholder="+54 11 1234 5678"
+            />
+          </label>
+
+          <label>
+            Instagram (opcional)
+            <input
+              name="instagram"
+              value={formData.instagram}
+              onChange={handleChange}
+              placeholder="@cuenta o https://instagram.com/..."
+            />
+          </label>
+        </div>
+
+        <label>
+          Sitio web (opcional)
+          <input
+            name="sitioWeb"
+            value={formData.sitioWeb}
+            onChange={handleChange}
+            placeholder="https://tusitio.com"
+          />
+        </label>
+
         <label>
           Rating
           <input type="number" min="0" max="5" step="0.1" name="rating" value={formData.rating} onChange={handleChange} />
         </label>
+        </div>
 
         {validationErrors.length > 0 && (
           <div className="error-box">
