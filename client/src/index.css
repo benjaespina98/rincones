@@ -1,10 +1,11 @@
 :root {
-  --bg: #0f141a;
-  --bg-soft: #16212c;
-  --text: #e9f1f8;
-  --accent: #ff9a3d;
-  --accent-soft: #ff9a3d;
-  --line: #2f465a;
+  --bg: #070914;
+  --bg-soft: #10162a;
+  --text: #edf0ff;
+  --muted: #a9b1d0;
+  --accent: #7b67c7;
+  --accent-soft: #9f8ce3;
+  --line: #3b3f66;
 }
 
 * {
@@ -14,11 +15,12 @@
 body {
   margin: 0;
   min-width: 320px;
-  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: "Plus Jakarta Sans", "Manrope", "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top right, rgba(55, 95, 129, 0.32) 0%, transparent 42%),
-    radial-gradient(circle at bottom left, rgba(255, 154, 61, 0.11) 0%, transparent 36%),
+    radial-gradient(circle at 84% 8%, rgba(126, 97, 206, 0.26) 0%, transparent 38%),
+    radial-gradient(circle at 8% 88%, rgba(70, 106, 192, 0.2) 0%, transparent 34%),
+    linear-gradient(180deg, #050712 0%, #080b17 100%),
     var(--bg);
 }
 
@@ -31,5 +33,5 @@ h1,
 h2,
 h3 {
   margin-top: 0;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
 }
