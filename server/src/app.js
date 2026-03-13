@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 
 const lugaresRoutes = require("./routes/lugares.routes");
+const placesRoutes = require("./routes/places.routes");
 const geocodingRoutes = require("./routes/geocoding.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
@@ -65,6 +66,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/geocode", geocodingRoutes);
+app.use("/api/places", placesRoutes);
 app.use("/api/lugares", lugaresRoutes);
 
 app.use((req, res) => {

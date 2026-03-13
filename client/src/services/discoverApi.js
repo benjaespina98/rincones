@@ -25,6 +25,7 @@ export const discoverExternalPlaces = async ({
     places: data.data || [],
     location: data.location || null,
     source: data.source || "",
+    meta: data.meta || {},
   };
 };
 
@@ -37,4 +38,28 @@ export const reverseDiscoverLocation = async ({ lat, lng }) => {
   });
 
   return data.data;
+};
+
+export const askDiscoverAssistant = async ({
+  message,
+  zona,
+  categoria,
+  lat,
+  lng,
+  radiusKm,
+  candidates,
+  context,
+}) => {
+  const { data } = await api.post("/geocode/chat", {
+    message,
+    zona,
+    categoria,
+    lat,
+    lng,
+    radiusKm,
+    candidates,
+    context,
+  });
+
+  return data.data || {};
 };

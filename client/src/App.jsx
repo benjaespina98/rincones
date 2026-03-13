@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import DescubrirPage from "./pages/DescubrirPage";
 import ExplorarPage from "./pages/ExplorarPage";
+import PlacesMapPage from "./pages/PlacesMapPage";
 import LugarDetallePage from "./pages/LugarDetallePage";
 import AgregarLugarPage from "./pages/AgregarLugarPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -15,6 +16,7 @@ function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<DescubrirPage />} />
+          <Route path="/mapa" element={<PlacesMapPage />} />
           <Route path="/comunidad" element={<ExplorarPage />} />
           <Route path="/explorar" element={<Navigate to="/comunidad" replace />} />
           <Route path="/lugares/:id" element={<LugarDetallePage />} />

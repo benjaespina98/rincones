@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const links = [
   { to: "/", label: "Descubrir" },
+  { to: "/mapa", label: "Mapa" },
   { to: "/comunidad", label: "Comunidad" },
 ];
 
