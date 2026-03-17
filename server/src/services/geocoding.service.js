@@ -1,4 +1,5 @@
 const Lugar = require("../models/lugar.model");
+const placesService = require("./places.service");
 
 const NOMINATIM_TIMEOUT_MS = Number(process.env.NOMINATIM_TIMEOUT_MS || 7000);
 const OVERPASS_TIMEOUT_MS = Number(process.env.OVERPASS_TIMEOUT_MS || 6500);
@@ -112,6 +113,11 @@ const GOOGLE_PLACES_ENABLED = String(process.env.GOOGLE_PLACES_ENABLED || "false
 const GOOGLE_PLACES_API_KEY = String(process.env.GOOGLE_PLACES_API_KEY || "").trim();
 const GOOGLE_PLACES_TIMEOUT_MS = Number(process.env.GOOGLE_PLACES_TIMEOUT_MS || 7000);
 const WIKIPEDIA_TIMEOUT_MS = Number(process.env.WIKIPEDIA_TIMEOUT_MS || 4500);
+const DEFAULT_FALLBACK_CENTER = {
+  latitud: -31.4201,
+  longitud: -64.1888,
+  nombre: "Argentina",
+};
 
 const CATEGORIA_SELECTORS = {
   rio: ['["natural"="water"]', '["waterway"~"river|stream"]'],
@@ -823,7 +829,54 @@ const inferWantedCategories = (query, categoria) => {
   return wanted;
 };
 
-const scorePlace = ({ query, wantedCategories, itemCategoria, tags, nombre, direccion, foto, instagram, distanceKm }) => {
+const inferIntentSignal = (query, categoria) => {
+  const normalizedCategoria = normalizeCategoria(categoria);
+  const wantedCategories = inferWantedCategories(query, categoria);
+  const normalizedQuery = normalizeText(query);
+
+  if (normalizedCategoria && normalizedCategoria !== "all") {
+    return {
+      wantedCategories,
+      strongIntent: true,
+    };
+  }
+
+  if (!normalizedQuery || wantedCategories.size === 0) {
+    return {
+      wantedCategories,
+      strongIntent: false,
+    };
+  }
+
+  const keywordHits = [...wantedCategories].reduce((acc, cat) => {
+    const keywords = Array.isArray(INTENT_KEYWORDS[cat]) ? INTENT_KEYWORDS[cat] : [];
+    const hasHit = keywords.some((word) => normalizedQuery.includes(normalizeText(word)));
+    return acc + (hasHit ? 1 : 0);
+  }, 0);
+
+  return {
+    wantedCategories,
+    strongIntent: keywordHits >= 1,
+  };
+};
+
+const hasDirectQueryMatch = ({ query, item }) => {
+  const tokens = tokenize(query).filter((token) => token.length >= 3);
+  if (!tokens.length) {
+    return false;
+  }
+
+  const searchableText = normalizeText([
+    item?.nombre,
+    item?.direccion,
+    item?.ciudad,
+    item?.categoria,
+  ].filter(Boolean).join(" "));
+
+  return tokens.some((token) => searchableText.includes(token));
+};
+
+const scorePlace = ({ query, wantedCategories, itemCategoria, tags, nombre, direccion, foto, instagram, distanceKm, strictIntent }) => {
   const normalizedQuery = normalizeText(query);
   const queryTokens = tokenize(query);
   const baseText = normalizeText([
@@ -849,9 +902,9 @@ const scorePlace = ({ query, wantedCategories, itemCategoria, tags, nombre, dire
 
   if (wantedCategories.size > 0) {
     if (wantedCategories.has(itemCategoria)) {
-      score += 14;
+      score += strictIntent ? 18 : 14;
     } else {
-      score -= 14;
+      score -= strictIntent ? 26 : 14;
     }
   }
 
@@ -882,6 +935,102 @@ const scorePlace = ({ query, wantedCategories, itemCategoria, tags, nombre, dire
   return {
     score,
     ratingAproximado: Number(ratingAproximado.toFixed(1)),
+  };
+};
+
+const normalizeAggregatedSource = (source = "") => {
+  const normalized = normalizeText(source);
+
+  if (normalized === "community" || normalized.startsWith("community-fallback")) {
+    return "Comunidad Rincones";
+  }
+  if (normalized === "foursquare") {
+    return "Foursquare";
+  }
+  if (normalized === "google-places") {
+    return "Google Places";
+  }
+  if (normalized === "cache") {
+    return "Cache multicapa";
+  }
+  if (normalized === "openstreetmap" || normalized === "osm-fallback") {
+    return "OpenStreetMap";
+  }
+
+  return source || "Fuentes externas";
+};
+
+const getSourceReliabilityBoost = (source = "") => {
+  const normalized = normalizeText(source);
+
+  if (normalized === "foursquare") return 9;
+  if (normalized === "google-places") return 8;
+  if (normalized === "community" || normalized.startsWith("community-fallback")) return 7;
+  if (normalized === "cache") return 5;
+  if (normalized === "openstreetmap" || normalized === "osm-fallback") return 4;
+
+  return 3;
+};
+
+const mapAggregatedPlaceToDiscover = ({ place, location, query, wantedCategories, centerLat, centerLng }) => {
+  const nombre = String(place?.name || "").trim();
+  const latitud = Number(place?.latitude);
+  const longitud = Number(place?.longitude);
+
+  if (!nombre || !Number.isFinite(latitud) || !Number.isFinite(longitud)) {
+    return null;
+  }
+
+  const itemCategoria = normalizeCategoria(place?.category) || "turistico";
+  const distanciaKm = Number.isFinite(Number(place?.distance))
+    ? Number((Number(place.distance) / 1000).toFixed(1))
+    : Number(distanceInKm(Number(centerLat), Number(centerLng), latitud, longitud).toFixed(1));
+  const scoreData = scorePlace({
+    query,
+    wantedCategories,
+    itemCategoria,
+    strictIntent: wantedCategories.size > 0,
+    tags: {
+      amenity: itemCategoria,
+      tourism: itemCategoria,
+      description: place?.rawCategory || "",
+      website: "",
+      phone: "",
+    },
+    nombre,
+    direccion: String(place?.address || "").trim(),
+    foto: "",
+    instagram: "",
+    distanceKm: distanciaKm,
+  });
+  const source = String(place?.source || "");
+  const ratingFromProvider = Number(place?.rating);
+  const ratingAproximado = Number.isFinite(ratingFromProvider)
+    ? Number(Math.max(0, Math.min(5, ratingFromProvider)).toFixed(1))
+    : scoreData.ratingAproximado;
+
+  return {
+    id: `agg-${source || "external"}-${String(place?.id || `${latitud}-${longitud}`)}`,
+    nombre,
+    categoria: itemCategoria,
+    ciudad: location?.nombre || "",
+    direccion: String(place?.address || "").trim(),
+    distanciaKm,
+    ubicacion: {
+      latitud,
+      longitud,
+    },
+    contacto: {
+      telefono: "",
+      sitioWeb: "",
+      instagram: "",
+      instagramUrl: "",
+    },
+    foto: "",
+    fuente: normalizeAggregatedSource(source),
+    osmUrl: "",
+    ratingAproximado,
+    relevancia: scoreData.score + getSourceReliabilityBoost(source),
   };
 };
 
@@ -929,21 +1078,25 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
     }
 
     if (!locationResult?.data) {
-      return {
-        location: null,
-        results: [],
+      centerLat = Number(DEFAULT_FALLBACK_CENTER.latitud);
+      centerLng = Number(DEFAULT_FALLBACK_CENTER.longitud);
+      location = {
+        latitud: centerLat,
+        longitud: centerLng,
+        nombre: zona || DEFAULT_FALLBACK_CENTER.nombre,
       };
+    } else {
+      centerLat = Number(locationResult.data.latitud);
+      centerLng = Number(locationResult.data.longitud);
+      location = locationResult.data;
     }
-
-    centerLat = Number(locationResult.data.latitud);
-    centerLng = Number(locationResult.data.longitud);
-    location = locationResult.data;
   }
 
   const normalizedCategoria = normalizeCategoria(categoria);
   const hasQuery = normalizeText(query).length > 0;
-  const wantedCategories = inferWantedCategories(query, categoria);
-  const strictIntent = wantedCategories.size > 0;
+  const intentSignal = inferIntentSignal(query, categoria);
+  const wantedCategories = intentSignal.wantedCategories;
+  const strictIntent = Boolean(intentSignal.strongIntent && wantedCategories.size > 0);
   const enableWikipedia = shouldUseWikipediaForQuery({ normalizedCategoria, query, wantedCategories });
   const selectors = getSelectorsFromIntent({ normalizedCategoria, wantedCategories });
 
@@ -987,6 +1140,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
         query,
         wantedCategories,
         itemCategoria: item.categoria,
+        strictIntent,
         tags: item._tags || {},
         nombre: item.nombre,
         direccion: item.direccion,
@@ -1043,15 +1197,38 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
     radiusKm: safeRadiusKm,
     limit: safeLimit,
   });
+  const aggregatorPromise = placesService
+    .getNearbyPlaces({
+      lat: centerLat,
+      lng: centerLng,
+      radius: aroundRadiusMeters,
+      category: normalizedCategoria || "all",
+    })
+    .catch(() => null);
 
-  const [initialElements, wikipediaExternal, googleExternal] = await Promise.all([
+  const [initialElements, wikipediaExternal, googleExternal, aggregatedNearby] = await Promise.all([
     overpassPromise,
     wikipediaPromise,
     googlePromise,
+    aggregatorPromise,
   ]);
 
   const externalResults = toExternalResults(initialElements);
-  const nominatimExternal = externalResults.length + wikipediaExternal.length + googleExternal.length >= Math.ceil(safeLimit * 0.6)
+  const aggregatedExternal = Array.isArray(aggregatedNearby?.places)
+    ? aggregatedNearby.places
+      .map((place) =>
+        mapAggregatedPlaceToDiscover({
+          place,
+          location,
+          query,
+          wantedCategories,
+          centerLat,
+          centerLng,
+        })
+      )
+      .filter(Boolean)
+    : [];
+  const nominatimExternal = aggregatedExternal.length + externalResults.length + wikipediaExternal.length + googleExternal.length >= Math.ceil(safeLimit * 0.6)
     ? []
     : await nominatimPromise;
 
@@ -1096,6 +1273,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
         query,
         wantedCategories,
         itemCategoria,
+        strictIntent,
         tags: {
           amenity: itemCategoria,
           tourism: itemCategoria,
@@ -1142,7 +1320,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
     })
     .filter(Boolean);
 
-  let rankedResults = [...communityResults, ...externalResults, ...wikipediaExternal, ...googleExternal, ...nominatimExternal]
+  let rankedResults = [...communityResults, ...aggregatedExternal, ...externalResults, ...wikipediaExternal, ...googleExternal, ...nominatimExternal]
     .reduce((acc, item) => {
       const duplicateIndex = acc.findIndex((existing) => isLikelyDuplicatePlace(item, existing));
       if (duplicateIndex === -1) {
@@ -1171,7 +1349,13 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
         return true;
       }
 
-      return wantedCategories.has(normalizeCategoria(item.categoria));
+      const normalizedItemCategory = normalizeCategoria(item.categoria);
+      if (wantedCategories.has(normalizedItemCategory)) {
+        return true;
+      }
+
+      // Keep only very strong lexical matches as exceptions.
+      return Number(item.relevancia || 0) >= 20 && hasDirectQueryMatch({ query, item });
     })
     .sort((a, b) => {
       const relevanceDelta = Number(b.relevancia || 0) - Number(a.relevancia || 0);
@@ -1309,6 +1493,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
           query,
           wantedCategories,
           itemCategoria,
+          strictIntent,
           tags: {
             amenity: itemCategoria,
             tourism: itemCategoria,
@@ -1351,7 +1536,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
       .sort((a, b) => Number(b.relevancia || 0) - Number(a.relevancia || 0))
       .slice(0, safeLimit);
 
-    const fallbackRanked = [...communityResults, ...fallbackExternal, ...fallbackNominatim, ...fallbackWikipedia, ...fallbackGoogle, ...emergencyCommunityResults]
+    const fallbackRanked = [...communityResults, ...aggregatedExternal, ...fallbackExternal, ...fallbackNominatim, ...fallbackWikipedia, ...fallbackGoogle, ...emergencyCommunityResults]
       .reduce((acc, item) => {
         const duplicateIndex = acc.findIndex((existing) => isLikelyDuplicatePlace(item, existing));
         if (duplicateIndex === -1) {
@@ -1398,6 +1583,15 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
         sourceBreakdown: fallbackSourceBreakdown,
         aiReranked: fallbackAiPass.aiReranked,
         aiProvider: fallbackAiPass.aiProvider,
+        fallbackUsed: true,
+        sourcesTried: [
+          "Comunidad Rincones",
+          "OpenStreetMap",
+          "OpenStreetMap Nominatim",
+          "Wikipedia",
+          "Google Places",
+          "Foursquare",
+        ],
       },
     };
 
@@ -1417,6 +1611,15 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
       sourceBreakdown,
       aiReranked: aiPass.aiReranked,
       aiProvider: aiPass.aiProvider,
+      fallbackUsed: false,
+      sourcesTried: [
+        "Comunidad Rincones",
+        "OpenStreetMap",
+        "OpenStreetMap Nominatim",
+        "Wikipedia",
+        "Google Places",
+        "Foursquare",
+      ],
     },
   };
 

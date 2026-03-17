@@ -6,11 +6,9 @@ import StarRating from "../components/StarRating";
 
 const QUICK_PROMPTS = [
   { text: "Ríos tranquilos para pasar la tarde", categoria: "rio" },
-  { text: "Bares", categoria: "bar" },
-  { text: "Cafeterías", categoria: "cafeteria" },
-  { text: "Restaurantes", categoria: "restaurante" },
-  { text: "Birra artesanal", categoria: "bar" },
-  { text: "Bares de vermú", categoria: "bar" },
+  { text: "Bares con patio", categoria: "bar" },
+  { text: "Cafeterías para merendar", categoria: "cafeteria" },
+  { text: "Restaurantes recomendados", categoria: "restaurante" },
 ];
 
 const CATEGORY_VISUALS = {
@@ -488,7 +486,7 @@ const DescubrirPage = () => {
       {!loading && !error && results.length > 0 && (
         <p className="map-help discover-location-status">
           Fuentes: {sourceLabels || "Fuentes públicas"}
-          {discoverMeta?.aiReranked ? " · Ranking IA activo" : " · Ranking heurístico"}
+          {discoverMeta?.fallbackUsed ? " · Cobertura ampliada" : discoverMeta?.aiReranked ? " · Ranking IA activo" : " · Ranking heurístico"}
         </p>
       )}
 
