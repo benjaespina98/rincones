@@ -49,6 +49,17 @@ const setAuthCookie = (res, token) => {
   });
 };
 
+const buildAuthResponse = (user, token) => ({
+  data: {
+    user: {
+      id: String(user._id),
+      email: user.email,
+      role: user.role,
+    },
+    token,
+  },
+});
+
 const login = async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -84,13 +95,7 @@ const login = async (req, res, next) => {
     setAuthCookie(res, token);
 
     return res.status(200).json({
-      data: {
-        user: {
-          id: String(user._id),
-          email: user.email,
-          role: user.role,
-        },
-      },
+      ...buildAuthResponse(user, token),
     });
   } catch (error) {
     return next(error);
@@ -184,13 +189,7 @@ const register = async (req, res, next) => {
     setAuthCookie(res, token);
 
     return res.status(201).json({
-      data: {
-        user: {
-          id: String(user._id),
-          email: user.email,
-          role: user.role,
-        },
-      },
+      ...buildAuthResponse(user, token),
     });
   } catch (error) {
     return next(error);
