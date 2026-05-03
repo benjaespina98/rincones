@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import api from "../services/api";
 
 const LabelScanner = ({ onCapture }) => {
   const inputRef = useRef(null);
@@ -61,17 +62,10 @@ const LabelScanner = ({ onCapture }) => {
         form.append("file", blob, "capture.jpg");
       }
 
-      const resp = await fetch("/api/labels/analyze", {
-        method: "POST",
-        body: form,
+      const { data: body } = await api.post("/labels/analyze", form, {
+        timeout: 30000,
       });
 
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.message || "Error en análisis servidor");
-      }
-
-      const body = await resp.json();
       setServerAnalysis(body.data || null);
     } catch (e) {
       setServerAnalysis({ error: String(e.message || e) });

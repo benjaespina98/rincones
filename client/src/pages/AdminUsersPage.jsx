@@ -3,7 +3,7 @@ import { getUsers, updateUserRole } from "../services/adminApi";
 import { useToast } from "../hooks/useToast";
 import "./styles/AdminUsersPage.css";
 
-const AdminUsersPage = () => {
+const AdminUsersPage = ({ embedded = false }) => {
   const showToast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,11 +64,13 @@ const AdminUsersPage = () => {
   };
 
   return (
-    <div className="admin-users-page">
-      <div className="admin-header">
-        <h1>Gestión de Usuarios</h1>
-        <p className="user-count">Total: {pagination.total} usuarios</p>
-      </div>
+    <div className={`admin-users-page ${embedded ? "admin-users-page--embedded" : ""}`.trim()}>
+      {!embedded && (
+        <div className="admin-header">
+          <h1>Gestión de Usuarios</h1>
+          <p className="user-count">Total: {pagination.total} usuarios</p>
+        </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
 

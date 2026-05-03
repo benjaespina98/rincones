@@ -299,7 +299,7 @@ const AdminLoginPage = () => {
           {/* Usuarios Tab */}
           {activeTab === "usuarios" && (
             <section className="admin-section">
-              <AdminUsersPage />
+              <AdminUsersPage embedded />
             </section>
           )}
 
