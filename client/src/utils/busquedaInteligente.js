@@ -11,6 +11,11 @@ const tokenize = (value = "") =>
     .filter((token) => token.length > 1);
 
 const INTENT_RULES = {
+  vinoteca: ["vinoteca", "vinos", "cava", "botella", "sommelier"],
+  winebar: ["wine bar", "bar de vinos", "copas", "vino por copa", "after office"],
+  degustacion: ["degustacion", "degustación", "cata", "tasting", "maridaje", "flight"],
+  bodega: ["bodega", "viñedo", "vinedo", "enoturismo", "tour del vino"],
+  feria_vino: ["feria", "festival de vino", "evento de vino", "expo vino"],
   rio: ["rio", "río", "costanera", "balneario", "laguna", "playa", "pesca", "mate"],
   bar: ["bar", "birra", "cerveza", "pub", "coctel", "cocktail", "trago"],
   restaurante: ["restaurante", "comida", "almuerzo", "cena", "parrilla", "pizzeria", "pizza", "hamburguesa"],

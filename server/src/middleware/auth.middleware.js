@@ -13,13 +13,22 @@ const getJwtSecret = () => {
 };
 
 const authenticate = (req, res, next) => {
-  const authHeader = String(req.headers.authorization || "");
+  let token = null;
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Token requerido" });
+  // Método 1: Leer del Authorization header (Bearer token)
+  const authHeader = String(req.headers.authorization || "");
+  if (authHeader.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
   }
 
-  const token = authHeader.slice(7);
+  // Método 2: Leer de la cookie httpOnly (método seguro)
+  if (!token && req.cookies?.authToken) {
+    token = req.cookies.authToken;
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: "Token requerido" });
+  }
 
   try {
     const payload = jwt.verify(token, getJwtSecret());
@@ -36,7 +45,11 @@ const authenticate = (req, res, next) => {
 
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
-    return res.status(403).json({ message: "Acceso denegado" });
+    return res.status(403).json({ 
+      message: "Acceso denegado. Se requieren permisos de administrador.",
+      requiredRole: "admin",
+      userRole: req.user?.role,
+    });
   }
 
   return next();

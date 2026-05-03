@@ -1,14 +1,44 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
 
 const lugaresRoutes = require("./routes/lugares.routes");
 const placesRoutes = require("./routes/places.routes");
 const geocodingRoutes = require("./routes/geocoding.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
+const labelsRoutes = require("./routes/labels.routes");
+const winesRoutes = require("./routes/wines.routes");
+const usersRoutes = require("./routes/users.routes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
+
+// Security: HTTP Headers
+app.use(helmet());
+
+// Security: Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo 100 requests por IP
+  message: "Demasiadas solicitudes, intenta más tarde",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Aplicar rate limiting más estricto a login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 intentos de login
+  message: "Demasiados intentos de login, intenta en 15 minutos",
+  skipSuccessfulRequests: true, // no contar requests exitosos
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 
 const parseAllowedOrigins = () => {
   const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
@@ -21,6 +51,9 @@ const parseAllowedOrigins = () => {
     "http://127.0.0.1:5173",
     "http://localhost:4173",
     "http://127.0.0.1:4173",
+    "http://localhost:5177",
+    "http://localhost:5176",
+    "http://localhost:5175",
     ...configuredOrigins,
   ]);
 };
@@ -45,10 +78,12 @@ const corsOptions = {
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true, // Permitir cookies
 };
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+app.use(cookieParser()); // Parsear cookies
 app.use(express.json({ limit: "12mb" }));
 
 app.get("/", (req, res) => {
@@ -63,11 +98,15 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/geocode", geocodingRoutes);
 app.use("/api/places", placesRoutes);
 app.use("/api/lugares", lugaresRoutes);
+app.use("/api/labels", labelsRoutes);
+app.use("/api/wines", winesRoutes);
+app.use("/api/users", usersRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });

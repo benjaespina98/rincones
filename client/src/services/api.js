@@ -10,9 +10,12 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Permitir envío automático de cookies (httpOnly)
 });
 
 api.interceptors.request.use((config) => {
+  // Fallback: si hay token en localStorage, agregarlo al header
+  // (para compatibilidad, pero el método seguro es via httpOnly cookies)
   const token = localStorage.getItem("rincones_admin_token");
 
   if (token) {

@@ -1,4 +1,9 @@
 const categoriasValidas = [
+  "vinoteca",
+  "winebar",
+  "degustacion",
+  "bodega",
+  "feria_vino",
   "rio",
   "montana",
   "bar",
@@ -21,6 +26,24 @@ const isValidUrl = (value) => {
   }
 };
 
+const isValidWhatsapp = (value = "") => {
+  const normalized = String(value).trim();
+  if (!normalized) {
+    return false;
+  }
+
+  const compactPhone = normalized.replace(/[\s()-]/g, "");
+  if (/^\+?\d{7,18}$/.test(compactPhone)) {
+    return true;
+  }
+
+  if (isValidUrl(normalized)) {
+    return /wa\.me|api\.whatsapp\.com|whatsapp\.com/i.test(normalized);
+  }
+
+  return false;
+};
+
 const normalizeCategoria = (value = "") =>
   String(value)
     .trim()
@@ -29,7 +52,7 @@ const normalizeCategoria = (value = "") =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const validateLugarPayload = (req, res, next) => {
-  const { nombre, descripcion, categoria, ciudad, direccion, ubicacion, imagenes, rating, contacto } = req.body;
+  const { nombre, descripcion, categoria, ciudad, direccion, ubicacion, imagenes, rating, contacto, operativa } = req.body;
   const errors = [];
 
   if (!isNonEmptyString(nombre, 3)) {
@@ -100,6 +123,55 @@ const validateLugarPayload = (req, res, next) => {
     errors.push("Sitio web invalido. Debe comenzar con http:// o https://");
   }
 
+  const eventoFechaRaw = String(operativa?.eventoFecha || "").trim();
+  const cuposRaw = operativa?.cuposDisponibles;
+  const precioPorCopaRaw = operativa?.precioPorCopa;
+  const reservaUrlRaw = String(operativa?.reservaUrl || "").trim();
+  const reservaWhatsappRaw = String(operativa?.reservaWhatsapp || "").trim();
+  const horarioHoyRaw = String(operativa?.horarioHoy || "").trim();
+
+  let eventoFecha = undefined;
+  if (eventoFechaRaw) {
+    const parsedDate = new Date(eventoFechaRaw);
+    if (Number.isNaN(parsedDate.getTime())) {
+      errors.push("Fecha de evento invalida.");
+    } else {
+      eventoFecha = parsedDate;
+    }
+  }
+
+  let cuposDisponibles = undefined;
+  if (cuposRaw !== undefined && cuposRaw !== null && String(cuposRaw).trim() !== "") {
+    const parsed = Number(cuposRaw);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      errors.push("Cupos disponibles debe ser un numero entero mayor o igual a 0.");
+    } else {
+      cuposDisponibles = parsed;
+    }
+  }
+
+  let precioPorCopa = undefined;
+  if (precioPorCopaRaw !== undefined && precioPorCopaRaw !== null && String(precioPorCopaRaw).trim() !== "") {
+    const parsed = Number(precioPorCopaRaw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      errors.push("Precio por copa invalido.");
+    } else {
+      precioPorCopa = Number(parsed.toFixed(2));
+    }
+  }
+
+  if (reservaUrlRaw && !isValidUrl(reservaUrlRaw)) {
+    errors.push("Reserva URL invalida. Debe comenzar con http:// o https://");
+  }
+
+  if (reservaWhatsappRaw && !isValidWhatsapp(reservaWhatsappRaw)) {
+    errors.push("Reserva WhatsApp invalido. Usa telefono o enlace de WhatsApp.");
+  }
+
+  if (horarioHoyRaw && (horarioHoyRaw.length < 3 || horarioHoyRaw.length > 90)) {
+    errors.push("Horario de hoy invalido. Debe tener entre 3 y 90 caracteres.");
+  }
+
   if (errors.length > 0) {
     return res.status(400).json({
       message: "Error de validacion",
@@ -123,6 +195,14 @@ const validateLugarPayload = (req, res, next) => {
       telefono: telefono || undefined,
       instagram: instagramRaw || undefined,
       sitioWeb: sitioWeb || undefined,
+    },
+    operativa: {
+      eventoFecha,
+      cuposDisponibles,
+      precioPorCopa,
+      reservaUrl: reservaUrlRaw || undefined,
+      reservaWhatsapp: reservaWhatsappRaw || undefined,
+      horarioHoy: horarioHoyRaw || undefined,
     },
     rating: normalizedRating,
   };
