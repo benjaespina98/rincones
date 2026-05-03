@@ -1,0 +1,206 @@
+.landing {
+  display: grid;
+  gap: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
+/* Hero Section */
+.landing__hero {
+  background: linear-gradient(135deg, rgba(138, 109, 230, 0.2), rgba(15, 18, 32, 0.5));
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-2xl);
+  padding: clamp(var(--space-2xl), 5vw, 4rem);
+  text-align: center;
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  backdrop-filter: blur(10px);
+}
+
+.landing__hero-content {
+  display: grid;
+  gap: var(--space-lg);
+  max-width: 600px;
+}
+
+.landing__hero h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing__tagline {
+  margin: 0;
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.landing__description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Features Section */
+.landing__features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.landing__feature-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-md);
+  transition: all var(--transition-smooth);
+}
+
+.landing__feature-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.landing__feature-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.landing__feature-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.landing__feature-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.landing__feature-card .button {
+  width: 100%;
+  justify-content: center;
+}
+
+/* How It Works */
+.landing__how-it-works {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.landing__how-it-works h2 {
+  margin: 0;
+  text-align: center;
+}
+
+.landing__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-lg);
+}
+
+.landing__step {
+  display: grid;
+  gap: var(--space-md);
+  text-align: center;
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.landing__step-number {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background: linear-gradient(135deg, var(--accent), #6e58bf);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.landing__step h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.landing__step p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* CTA Section */
+.landing__cta {
+  background: linear-gradient(135deg, rgba(138, 109, 230, 0.15), rgba(15, 18, 32, 0.6));
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+  display: grid;
+  gap: var(--space-lg);
+  place-items: center;
+}
+
+.landing__cta h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 5vw, 2.3rem);
+}
+
+.landing__cta p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 400px;
+}
+
+.landing__cta .button {
+  min-height: 50px;
+  padding: 0 var(--space-lg);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .landing {
+    gap: var(--space-xl);
+  }
+
+  .landing__hero {
+    min-height: 250px;
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .landing__hero h1 {
+    font-size: 2rem;
+  }
+
+  .landing__features {
+    grid-template-columns: 1fr;
+  }
+
+  .landing__steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .landing__cta {
+    padding: var(--space-xl) var(--space-md);
+  }
+}

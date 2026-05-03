@@ -74,17 +74,17 @@ const ExplorarPage = () => {
   return (
     <section>
       <header className="page-header search-hero">
-        <span className="page-kicker">Rincones de la comunidad</span>
-        <h1>Lugares cargados por admins</h1>
+        <span className="page-kicker">Comunidad del vino</span>
+        <h1>Lugares y experiencias cargadas por admins</h1>
         <p className="lead">
-          Acá ves los lugares ya curados por el equipo. Podés filtrarlos por ciudad, categoría o cercanía.
+          Acá ves vinotecas, wine bars, bodegas y degustaciones curadas por el equipo. Podés filtrar por ciudad, categoría o cercanía.
         </p>
 
         <label className="search-hero__input-wrap">
           <input
             value={smartQuery}
             onChange={(event) => setSmartQuery(event.target.value)}
-            placeholder="Buscar entre lugares cargados por la comunidad"
+            placeholder="Buscar entre lugares y experiencias de vino"
           />
         </label>
 

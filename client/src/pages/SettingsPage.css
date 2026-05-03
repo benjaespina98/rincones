@@ -1,0 +1,228 @@
+.settings-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding: var(--space-lg) 0 var(--space-2xl);
+}
+
+.settings-page__container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* Header */
+.settings-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.settings-header h1 {
+  font-size: 28px;
+  margin: 0 0 var(--space-xs) 0;
+  color: var(--text);
+}
+
+.settings-header p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Sections */
+.settings-section {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+}
+
+.settings-section h2 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  padding: var(--space-lg) var(--space-lg) 0;
+  font-weight: 600;
+  display: none;
+}
+
+.settings-section:first-child h2 {
+  display: block;
+}
+
+/* Items */
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: var(--space-lg);
+}
+
+.settings-item--no-border {
+  border-bottom: none;
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item__label {
+  flex: 1;
+}
+
+.settings-label-main {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: var(--space-xs);
+}
+
+.settings-label-sub {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* Theme Selector */
+.theme-selector {
+  display: flex;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.theme-option {
+  flex: 1;
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.theme-option:hover {
+  border-color: rgba(138, 109, 230, 0.3);
+  background: rgba(138, 109, 230, 0.05);
+}
+
+.theme-option--active {
+  background: linear-gradient(135deg, rgba(138, 109, 230, 0.2), rgba(165, 141, 244, 0.1));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.theme-option__icon {
+  font-size: 24px;
+}
+
+.theme-option__label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Select */
+.settings-select {
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.settings-select:hover {
+  border-color: rgba(138, 109, 230, 0.3);
+  background: rgba(138, 109, 230, 0.05);
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(138, 109, 230, 0.1);
+}
+
+/* Toggle */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 50px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  flex-shrink: 0;
+}
+
+.toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.toggle--on {
+  background: var(--accent);
+}
+
+.toggle__circle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: left var(--transition-fast);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle--on .toggle__circle {
+  left: calc(100% - 26px);
+}
+
+/* Actions */
+.settings-actions {
+  margin-top: var(--space-2xl);
+  display: flex;
+  gap: var(--space-md);
+}
+
+.settings-actions button {
+  flex: 1;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .settings-page {
+    padding: var(--space-lg) 0;
+  }
+
+  .settings-header h1 {
+    font-size: 24px;
+  }
+
+  .settings-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .theme-selector {
+    width: 100%;
+  }
+
+  .settings-select {
+    width: 100%;
+  }
+}

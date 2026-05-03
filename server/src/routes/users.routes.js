@@ -1,0 +1,148 @@
+const express = require("express");
+const router = express.Router();
+const { authenticate } = require("../middleware/auth.middleware");
+const User = require("../models/user.model");
+
+// GET /api/users/profile - Obtener perfil del usuario actual
+router.get("/profile", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-passwordHash");
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        city: user.city || "",
+        country: user.country || "",
+        bio: user.bio || "",
+        avatar: user.avatar || "",
+        preferences: user.preferences || {},
+        stats: user.stats || {},
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/users/profile - Actualizar perfil del usuario
+router.put("/profile", authenticate, async (req, res) => {
+  try {
+    const { firstName, lastName, city, country, bio, avatar, theme, language, notifications } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    // Actualizar campos de perfil
+    if (firstName !== undefined) user.firstName = firstName.trim();
+    if (lastName !== undefined) user.lastName = lastName.trim();
+    if (city !== undefined) user.city = city.trim();
+    if (country !== undefined) user.country = country.trim();
+    if (bio !== undefined) user.bio = bio.trim();
+    if (avatar !== undefined) user.avatar = avatar;
+
+    // Actualizar preferencias
+    if (theme !== undefined) user.preferences.theme = theme;
+    if (language !== undefined) user.preferences.language = language;
+    if (notifications !== undefined) {
+      user.preferences.notifications = {
+        ...user.preferences.notifications,
+        ...notifications,
+      };
+    }
+
+    user.updatedAt = new Date();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Perfil actualizado",
+      data: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        city: user.city,
+        country: user.country,
+        bio: user.bio,
+        avatar: user.avatar,
+        preferences: user.preferences,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/users/password - Cambiar contraseña
+router.put("/password", authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Contraseña actual y nueva requeridas" });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    // Verificar contraseña actual
+    const isPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, error: "Contraseña actual incorrecta" });
+    }
+
+    // Actualizar contraseña
+    user.passwordHash = await user.hashPassword(newPassword);
+    user.updatedAt = new Date();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Contraseña actualizada",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/users/stats - Obtener estadísticas del usuario
+router.get("/stats", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    res.json({
+      success: true,
+      data: user.stats || {
+        winesCount: 0,
+        tastedWines: 0,
+        averageRating: 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+module.exports = router;

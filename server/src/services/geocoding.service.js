@@ -120,6 +120,11 @@ const DEFAULT_FALLBACK_CENTER = {
 };
 
 const CATEGORIA_SELECTORS = {
+  vinoteca: ['["shop"~"wine|alcohol"]'],
+  winebar: ['["amenity"="bar"]', '["amenity"="pub"]'],
+  degustacion: ['["tourism"="attraction"]', '["amenity"="restaurant"]'],
+  bodega: ['["craft"="winery"]', '["tourism"="attraction"]'],
+  feria_vino: ['["amenity"="marketplace"]', '["tourism"="attraction"]'],
   rio: ['["natural"="water"]', '["waterway"~"river|stream"]'],
   montana: ['["natural"="peak"]', '["natural"="cliff"]'],
   bar: ['["amenity"="bar"]', '["amenity"="pub"]'],
@@ -130,11 +135,17 @@ const CATEGORIA_SELECTORS = {
 };
 
 const DEFAULT_DISCOVER_SELECTORS = [
+  '["shop"~"wine|alcohol"]',
   '["amenity"~"bar|pub|restaurant|cafe"]',
   '["tourism"~"attraction|viewpoint|museum"]',
 ];
 
 const INTENT_KEYWORDS = {
+  vinoteca: ["vinoteca", "vinos", "botella", "cava", "wine shop"],
+  winebar: ["wine bar", "bar de vinos", "vino por copa", "copas", "after office"],
+  degustacion: ["degustacion", "degustación", "cata", "maridaje", "tasting", "flight"],
+  bodega: ["bodega", "vinedo", "viñedo", "enoturismo", "tour del vino"],
+  feria_vino: ["feria de vino", "festival del vino", "expo vino", "evento de vino"],
   rio: ["rio", "río", "costanera", "balneario", "laguna", "pesca", "mate"],
   montana: ["montana", "montaña", "cerro", "trekking", "sendero"],
   bar: ["bar", "birra", "cerveza", "vermú", "vermu", "trago", "coctel", "cocktail", "pub"],
@@ -203,12 +214,12 @@ const getSelectorsFromIntent = ({ normalizedCategoria, wantedCategories }) => {
 };
 
 const shouldUseWikipediaForQuery = ({ normalizedCategoria, query, wantedCategories }) => {
-  if (normalizedCategoria === "bar" || normalizedCategoria === "cafeteria" || normalizedCategoria === "restaurante") {
+  if (["bar", "cafeteria", "restaurante", "vinoteca", "winebar", "degustacion"].includes(normalizedCategoria)) {
     return false;
   }
 
   if (wantedCategories?.size) {
-    const hasFoodOrNightlife = ["bar", "cafeteria", "restaurante"].some((cat) => wantedCategories.has(cat));
+    const hasFoodOrNightlife = ["bar", "cafeteria", "restaurante", "vinoteca", "winebar", "degustacion"].some((cat) => wantedCategories.has(cat));
     const hasNatureOrTourism = ["rio", "montana", "mirador", "turistico"].some((cat) => wantedCategories.has(cat));
     if (hasFoodOrNightlife && !hasNatureOrTourism) {
       return false;
@@ -502,6 +513,7 @@ const categoriaToGoogleType = (categoria = "") => {
 const inferCategoriaFromGoogleTypes = (types = []) => {
   const normalizedTypes = Array.isArray(types) ? types.map((item) => normalizeText(item)) : [];
 
+  if (normalizedTypes.includes("liquor_store")) return "vinoteca";
   if (normalizedTypes.includes("cafe")) return "cafeteria";
   if (normalizedTypes.includes("restaurant") || normalizedTypes.includes("meal_takeaway")) return "restaurante";
   if (normalizedTypes.includes("bar") || normalizedTypes.includes("night_club")) return "bar";
@@ -751,7 +763,12 @@ const inferCategoria = (tags = {}) => {
   const tourism = String(tags.tourism || "").toLowerCase();
   const natural = String(tags.natural || "").toLowerCase();
   const waterway = String(tags.waterway || "").toLowerCase();
+  const shop = String(tags.shop || "").toLowerCase();
+  const craft = String(tags.craft || "").toLowerCase();
 
+  if (["wine", "alcohol"].includes(shop)) return "vinoteca";
+  if (craft === "winery") return "bodega";
+  if (amenity === "bar" && String(tags["drink:wine"] || "").toLowerCase() === "yes") return "winebar";
   if (["bar", "pub"].includes(amenity)) return "bar";
   if (amenity === "cafe") return "cafeteria";
   if (["restaurant", "fast_food"].includes(amenity)) return "restaurante";
@@ -774,6 +791,29 @@ const buildInstagramUrl = (value = "") => {
 
   const handle = raw.replace(/^@/, "").trim();
   return handle ? `https://instagram.com/${handle}` : "";
+};
+
+const normalizeOperativaData = (operativa = {}) => {
+  const eventoDate = operativa?.eventoFecha ? new Date(operativa.eventoFecha) : null;
+  const eventoFecha = eventoDate && !Number.isNaN(eventoDate.getTime()) ? eventoDate.toISOString() : "";
+  const cuposDisponibles = Number(operativa?.cuposDisponibles);
+  const precioPorCopa = Number(operativa?.precioPorCopa);
+  const reservaUrl = String(operativa?.reservaUrl || "").trim();
+  const reservaWhatsapp = String(operativa?.reservaWhatsapp || "").trim();
+  const horarioHoy = String(operativa?.horarioHoy || "").trim();
+
+  if (!eventoFecha && !Number.isFinite(cuposDisponibles) && !Number.isFinite(precioPorCopa) && !reservaUrl && !reservaWhatsapp && !horarioHoy) {
+    return null;
+  }
+
+  return {
+    eventoFecha: eventoFecha || "",
+    cuposDisponibles: Number.isFinite(cuposDisponibles) ? cuposDisponibles : null,
+    precioPorCopa: Number.isFinite(precioPorCopa) ? precioPorCopa : null,
+    reservaUrl,
+    reservaWhatsapp,
+    horarioHoy,
+  };
 };
 
 const buildAddress = (tags = {}) => {
@@ -1314,6 +1354,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
         foto,
         fuente: "Comunidad Rincones",
         osmUrl: "",
+        operativa: normalizeOperativaData(lugar.operativa),
         ratingAproximado,
         relevancia: scoreData.score + 2,
       };
@@ -1528,6 +1569,7 @@ const discoverPlaces = async ({ query, zona = "", categoria = "all", limit = 20,
           foto,
           fuente: "Comunidad Rincones",
           osmUrl: "",
+          operativa: normalizeOperativaData(lugar.operativa),
           ratingAproximado: scoreData.ratingAproximado,
           relevancia: scoreData.score + 1,
         };

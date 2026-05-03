@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const categoriasValidas = [
+  "vinoteca",
+  "winebar",
+  "degustacion",
+  "bodega",
+  "feria_vino",
   "rio",
   "montana",
   "bar",
@@ -70,6 +75,31 @@ const lugarSchema = new mongoose.Schema(
         trim: true,
       },
       sitioWeb: {
+        type: String,
+        trim: true,
+      },
+    },
+    operativa: {
+      eventoFecha: {
+        type: Date,
+      },
+      cuposDisponibles: {
+        type: Number,
+        min: 0,
+      },
+      precioPorCopa: {
+        type: Number,
+        min: 0,
+      },
+      reservaUrl: {
+        type: String,
+        trim: true,
+      },
+      reservaWhatsapp: {
+        type: String,
+        trim: true,
+      },
+      horarioHoy: {
         type: String,
         trim: true,
       },

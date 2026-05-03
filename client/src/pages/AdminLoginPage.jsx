@@ -5,6 +5,8 @@ import { useLugares } from "../hooks/useLugares";
 import { deleteLugar, updateLugar } from "../services/lugaresApi";
 import { getChangeLogs } from "../services/adminApi";
 import { categorias } from "../utils/categorias";
+import AdminUsersPage from "./AdminUsersPage";
+import "./styles/AdminLoginPage.css";
 
 const ACTION_LABELS = {
   create: "Creado",
@@ -70,6 +72,7 @@ const AdminLoginPage = () => {
   const [selectedLugarId, setSelectedLugarId] = useState("");
   const [editData, setEditData] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [activeTab, setActiveTab] = useState("lugares");
 
   const nextPath = location.state?.from || "/agregar";
   const logPreview = logs.slice(0, 3);
@@ -198,100 +201,176 @@ const AdminLoginPage = () => {
 
   if (isAdmin) {
     return (
-      <section className="panel-card">
-        <h1>Panel admin</h1>
-        <p className="lead">Sesión iniciada como {user?.email}.</p>
-        <div className="admin-actions">
-          <button className="button" type="button" onClick={() => navigate("/agregar")}>
-            Ir a agregar lugar
-          </button>
-          <button className="button button--danger" type="button" onClick={logout}>
-            Cerrar sesion
-          </button>
-        </div>
-
-        <div className="admin-grid">
-          <div className="admin-panel">
-            <h2>Lugares publicados</h2>
-            <div className="admin-list">
-              {lugares.map((lugar) => (
-                <article key={lugar._id} className="admin-item">
-                  <div>
-                    <strong>{lugar.nombre}</strong>
-                    <p>{lugar.ciudad}</p>
-                  </div>
-                  <div className="admin-item__actions">
-                    <button className="button" type="button" onClick={() => setSelectedLugarId(lugar._id)}>
-                      Editar
-                    </button>
-                    <button className="button button--danger" type="button" onClick={() => handleDelete(lugar._id)}>
-                      Eliminar
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+      <div className="admin-dashboard">
+        {/* Header */}
+        <section className="admin-dashboard__header">
+          <div className="admin-dashboard__header-content">
+            <h1>Panel Admin</h1>
+            <p className="admin-user-info">
+              Sesión iniciada como <strong>{user?.email}</strong>
+            </p>
           </div>
+          <button className="button button--danger" type="button" onClick={logout}>
+            Cerrar sesión
+          </button>
+        </section>
 
-          <div className="admin-panel">
-            <div className="admin-panel__head">
-              <h2>Actividad reciente</h2>
-              <button className="button button--ghost" type="button" onClick={() => setShowLogs((prev) => !prev)}>
-                {showLogs ? "Ocultar" : "Abrir"}
-              </button>
-            </div>
+        {/* Tabs Navigation */}
+        <nav className="admin-tabs">
+          <button
+            className={`admin-tab ${activeTab === "lugares" ? "active" : ""}`}
+            onClick={() => setActiveTab("lugares")}
+            type="button"
+          >
+            📍 Lugares ({lugares.length})
+          </button>
+          <button
+            className={`admin-tab ${activeTab === "usuarios" ? "active" : ""}`}
+            onClick={() => setActiveTab("usuarios")}
+            type="button"
+          >
+            👥 Usuarios
+          </button>
+          <button
+            className={`admin-tab ${activeTab === "actividad" ? "active" : ""}`}
+            onClick={() => setActiveTab("actividad")}
+            type="button"
+          >
+            📊 Actividad
+          </button>
+        </nav>
 
-            {!showLogs && (
-              <div className="admin-log-preview">
-                {!logPreview.length && <p className="map-help">Sin actividad reciente.</p>}
-                {logPreview.map((log) => (
-                  <article key={log._id} className="admin-log-preview__item">
-                    <span className={`admin-log-badge admin-log-badge--${log.action}`}>
-                      {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
-                    </span>
-                    <strong>{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
-                    <small>{new Date(log.createdAt).toLocaleString()}</small>
-                  </article>
-                ))}
+        {/* Tab Content */}
+        <div className="admin-content">
+          {/* Lugares Tab */}
+          {activeTab === "lugares" && (
+            <section className="admin-section">
+              <div className="admin-section__header">
+                <h2>Lugares publicados</h2>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => navigate("/agregar")}
+                >
+                  + Agregar lugar
+                </button>
               </div>
-            )}
 
-            {showLogs && (
+              <div className="admin-grid">
+                <div className="admin-panel">
+                  <div className="admin-list">
+                    {lugares.length === 0 ? (
+                      <p className="empty-message">No hay lugares publicados aún</p>
+                    ) : (
+                      lugares.map((lugar) => (
+                        <article key={lugar._id} className="admin-item">
+                          <div>
+                            <strong>{lugar.nombre}</strong>
+                            <p>{lugar.ciudad}</p>
+                            <span className="place-category">
+                              {categorias.find((c) => c.value === lugar.categoria)?.label}
+                            </span>
+                          </div>
+                          <div className="admin-item__actions">
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={() => setSelectedLugarId(lugar._id)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="button button--danger"
+                              type="button"
+                              onClick={() => handleDelete(lugar._id)}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Usuarios Tab */}
+          {activeTab === "usuarios" && (
+            <section className="admin-section">
+              <AdminUsersPage />
+            </section>
+          )}
+
+          {/* Actividad Tab */}
+          {activeTab === "actividad" && (
+            <section className="admin-section">
+              <div className="admin-section__header">
+                <h2>Actividad reciente</h2>
+              </div>
+
               <div className="admin-log-list">
-                {!logs.length && <p className="map-help">Todavía no hay movimientos registrados.</p>}
+                {!logs.length && (
+                  <p className="empty-message">Todavía no hay movimientos registrados.</p>
+                )}
                 {logs.map((log) => (
                   <article key={log._id} className="admin-log-item">
                     <div className="admin-log-item__head">
-                      <span className={`admin-log-badge admin-log-badge--${log.action}`}>
+                      <span
+                        className={`admin-log-badge admin-log-badge--${log.action}`}
+                      >
                         {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
                       </span>
-                      <small>{new Date(log.createdAt).toLocaleString()}</small>
+                      <small>
+                        {new Date(log.createdAt).toLocaleString("es-AR")}
+                      </small>
                     </div>
-                    <strong className="admin-log-item__title">{log.after?.nombre || log.before?.nombre || "Lugar"}</strong>
-                    <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
+                    <strong className="admin-log-item__title">
+                      {log.after?.nombre || log.before?.nombre || "Lugar"}
+                    </strong>
+                    <span className="admin-log-item__meta">
+                      Por {log.actor?.email || "admin"}
+                    </span>
                     <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
                   </article>
                 ))}
               </div>
-            )}
-          </div>
+            </section>
+          )}
         </div>
 
+        {/* Edit Form */}
         {selectedLugar && editData && (
           <form className="place-form panel-card" onSubmit={handleSaveEdit}>
             <h2>Editar lugar</h2>
 
             <label>
               Nombre
-              <input name="nombre" value={editData.nombre} onChange={handleEditChange} required />
+              <input
+                name="nombre"
+                value={editData.nombre}
+                onChange={handleEditChange}
+                required
+              />
             </label>
             <label>
               Descripcion
-              <textarea name="descripcion" value={editData.descripcion} onChange={handleEditChange} rows={4} required />
+              <textarea
+                name="descripcion"
+                value={editData.descripcion}
+                onChange={handleEditChange}
+                rows={4}
+                required
+              />
             </label>
             <label>
               Categoria
-              <select name="categoria" value={editData.categoria} onChange={handleEditChange}>
+              <select
+                name="categoria"
+                value={editData.categoria}
+                onChange={handleEditChange}
+              >
                 {categorias.map((categoria) => (
                   <option key={categoria.value} value={categoria.value}>
                     {categoria.label}
@@ -302,40 +381,84 @@ const AdminLoginPage = () => {
             <div className="grid-two">
               <label>
                 Ciudad
-                <input name="ciudad" value={editData.ciudad} onChange={handleEditChange} required />
+                <input
+                  name="ciudad"
+                  value={editData.ciudad}
+                  onChange={handleEditChange}
+                  required
+                />
               </label>
               <label>
                 Direccion
-                <input name="direccion" value={editData.direccion} onChange={handleEditChange} required />
+                <input
+                  name="direccion"
+                  value={editData.direccion}
+                  onChange={handleEditChange}
+                  required
+                />
               </label>
             </div>
             <div className="grid-two">
               <label>
                 Telefono
-                <input name="telefono" value={editData.telefono} onChange={handleEditChange} />
+                <input
+                  name="telefono"
+                  value={editData.telefono}
+                  onChange={handleEditChange}
+                />
               </label>
               <label>
                 Instagram
-                <input name="instagram" value={editData.instagram} onChange={handleEditChange} />
+                <input
+                  name="instagram"
+                  value={editData.instagram}
+                  onChange={handleEditChange}
+                />
               </label>
             </div>
             <label>
               Sitio web
-              <input name="sitioWeb" value={editData.sitioWeb} onChange={handleEditChange} />
+              <input
+                name="sitioWeb"
+                value={editData.sitioWeb}
+                onChange={handleEditChange}
+              />
             </label>
             <label>
               Rating
-              <input type="number" min="0" max="5" step="0.1" name="rating" value={editData.rating} onChange={handleEditChange} />
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                name="rating"
+                value={editData.rating}
+                onChange={handleEditChange}
+              />
             </label>
 
-            <button className="button" type="submit" disabled={savingEdit}>
-              {savingEdit ? "Guardando..." : "Guardar cambios"}
-            </button>
+            <div className="form-actions">
+              <button
+                className="button"
+                type="submit"
+                disabled={savingEdit}
+              >
+                {savingEdit ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                className="button button--ghost"
+                type="button"
+                onClick={() => setSelectedLugarId("")}
+                disabled={savingEdit}
+              >
+                Cancelar
+              </button>
+            </div>
           </form>
         )}
 
         {error && <p className="error-text">{error}</p>}
-      </section>
+      </div>
     );
   }
 

@@ -13,6 +13,11 @@ const GOOGLE_PLACES_API_KEY = String(process.env.GOOGLE_PLACES_API_KEY || "").tr
 const GOOGLE_PLACES_TIMEOUT_MS = Number(process.env.GOOGLE_PLACES_TIMEOUT_MS || 7000);
 
 const CATEGORY_TO_FSQ = {
+  vinoteca: "17069,13032",
+  winebar: "13003,13065",
+  degustacion: "10000,13065",
+  bodega: "10000",
+  feria_vino: "10000",
   cafe: "13032",
   cafeteria: "13032",
   restaurant: "13065",
@@ -29,6 +34,24 @@ const CATEGORY_TO_FSQ = {
 
 const CATEGORY_ALIASES = {
   all: "all",
+  vinoteca: "vinoteca",
+  vinotecas: "vinoteca",
+  winebar: "winebar",
+  "wine-bar": "winebar",
+  winebars: "winebar",
+  "bar de vinos": "winebar",
+  degustacion: "degustacion",
+  degustaciones: "degustacion",
+  cata: "degustacion",
+  tasting: "degustacion",
+  bodega: "bodega",
+  bodegas: "bodega",
+  vinedo: "bodega",
+  vinedos: "bodega",
+  vineria: "vinoteca",
+  feria_vino: "feria_vino",
+  "feria-vino": "feria_vino",
+  feria: "feria_vino",
   cafe: "cafeteria",
   cafes: "cafeteria",
   coffee: "cafeteria",
@@ -91,6 +114,10 @@ const mapFoursquareCategory = (categories = []) => {
   const primary = categories[0]?.name || "";
   const value = normalizeText(primary);
 
+  if (value.includes("wine shop") || value.includes("liquor")) return "vinoteca";
+  if (value.includes("wine bar")) return "winebar";
+  if (value.includes("winery") || value.includes("vineyard")) return "bodega";
+  if (value.includes("tasting")) return "degustacion";
   if (value.includes("cafe") || value.includes("coffee")) return "cafeteria";
   if (value.includes("restaurant") || value.includes("food")) return "restaurante";
   if (value.includes("bar") || value.includes("pub") || value.includes("beer")) return "bar";
@@ -114,6 +141,16 @@ const getOverpassSelectors = (category) => {
   const normalized = normalizeCategory(category);
 
   switch (normalized) {
+    case "vinoteca":
+      return ['["shop"~"wine|alcohol"]'];
+    case "winebar":
+      return ['["amenity"="bar"]', '["amenity"="pub"]'];
+    case "degustacion":
+      return ['["tourism"="attraction"]', '["amenity"="restaurant"]'];
+    case "bodega":
+      return ['["craft"="winery"]', '["tourism"="attraction"]'];
+    case "feria_vino":
+      return ['["amenity"="marketplace"]', '["tourism"="attraction"]'];
     case "cafeteria":
       return ['["amenity"="cafe"]'];
     case "restaurante":
@@ -137,8 +174,13 @@ const inferCategoryFromTags = (tags = {}) => {
   const tourism = normalizeText(tags.tourism || "");
   const natural = normalizeText(tags.natural || "");
   const waterway = normalizeText(tags.waterway || "");
+  const shop = normalizeText(tags.shop || "");
+  const craft = normalizeText(tags.craft || "");
 
+  if (["wine", "alcohol"].includes(shop)) return "vinoteca";
+  if (craft === "winery") return "bodega";
   if (amenity === "cafe") return "cafeteria";
+  if (amenity === "bar" && normalizeText(tags["drink:wine"] || "") === "yes") return "winebar";
   if (["restaurant", "fast_food"].includes(amenity)) return "restaurante";
   if (["bar", "pub"].includes(amenity)) return "bar";
   if (tourism === "viewpoint") return "mirador";
@@ -339,6 +381,16 @@ const categoriaToGoogleType = (category = "") => {
   const normalized = normalizeCategory(category);
 
   switch (normalized) {
+    case "vinoteca":
+      return "liquor_store";
+    case "winebar":
+      return "bar";
+    case "degustacion":
+      return "restaurant";
+    case "bodega":
+      return "tourist_attraction";
+    case "feria_vino":
+      return "tourist_attraction";
     case "cafeteria":
       return "cafe";
     case "restaurante":
@@ -357,6 +409,7 @@ const categoriaToGoogleType = (category = "") => {
 const inferCategoryFromGoogleTypes = (types = []) => {
   const normalized = Array.isArray(types) ? types.map((item) => normalizeText(item)) : [];
 
+  if (normalized.includes("liquor_store")) return "vinoteca";
   if (normalized.includes("cafe")) return "cafeteria";
   if (normalized.includes("restaurant") || normalized.includes("meal_takeaway")) return "restaurante";
   if (normalized.includes("bar") || normalized.includes("night_club")) return "bar";

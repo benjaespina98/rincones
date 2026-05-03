@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // Autenticación
     email: {
       type: String,
       required: [true, "El email es obligatorio"],
@@ -11,15 +12,72 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, "La contrasena es obligatoria"],
+      required: [true, "La contraseña es obligatoria"],
       select: false,
     },
     role: {
       type: String,
-      enum: ["admin"],
-      default: "admin",
+      enum: ["user", "admin"],
+      default: "user",
     },
-    creadoEn: {
+
+    // Perfil de usuario
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      trim: true,
+    },
+    country: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    avatar: {
+      type: String, // URL de foto de perfil
+    },
+
+    // Preferencias
+    preferences: {
+      theme: {
+        type: String,
+        enum: ["light", "dark"],
+        default: "dark",
+      },
+      language: {
+        type: String,
+        enum: ["es", "en"],
+        default: "es",
+      },
+      notifications: {
+        email: { type: Boolean, default: true },
+        suggestions: { type: Boolean, default: true },
+      },
+    },
+
+    // Estadísticas
+    stats: {
+      winesCount: { type: Number, default: 0 },
+      tastedWines: { type: Number, default: 0 },
+      averageRating: { type: Number, default: 0, min: 0, max: 5 },
+    },
+
+    // Timestamps
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedAt: {
       type: Date,
       default: Date.now,
     },
@@ -28,5 +86,17 @@ const userSchema = new mongoose.Schema(
     versionKey: false,
   }
 );
+
+// Métodos de instancia
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  const bcrypt = require("bcryptjs");
+  return await bcrypt.compare(candidatePassword, this.passwordHash);
+};
+
+userSchema.methods.hashPassword = async function (password) {
+  const bcrypt = require("bcryptjs");
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
+};
 
 module.exports = mongoose.model("User", userSchema);

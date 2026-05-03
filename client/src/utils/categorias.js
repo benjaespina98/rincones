@@ -1,4 +1,9 @@
 export const categorias = [
+  { value: "vinoteca", label: "Vinoteca" },
+  { value: "winebar", label: "Wine Bar" },
+  { value: "degustacion", label: "Degustación" },
+  { value: "bodega", label: "Bodega" },
+  { value: "feria_vino", label: "Feria de Vino" },
   { value: "rio", label: "Río" },
   { value: "montana", label: "Montaña" },
   { value: "bar", label: "Bar" },

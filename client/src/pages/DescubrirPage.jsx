@@ -3,15 +3,21 @@ import { askDiscoverAssistant, discoverExternalPlaces, reverseDiscoverLocation }
 import { formatearCategoria } from "../utils/categorias";
 import { useAuth } from "../hooks/useAuth";
 import StarRating from "../components/StarRating";
+import LabelScanner from "../components/LabelScanner";
 
 const QUICK_PROMPTS = [
-  { text: "Ríos tranquilos para pasar la tarde", categoria: "rio" },
-  { text: "Bares con patio", categoria: "bar" },
-  { text: "Cafeterías para merendar", categoria: "cafeteria" },
-  { text: "Restaurantes recomendados", categoria: "restaurante" },
+  { text: "Wine bars con copas por menos de 9000", categoria: "winebar" },
+  { text: "Vinotecas con buena selección de malbec", categoria: "vinoteca" },
+  { text: "Degustaciones para hoy a la noche", categoria: "degustacion" },
+  { text: "Bodegas para visitar cerca", categoria: "bodega" },
 ];
 
 const CATEGORY_VISUALS = {
+  vinoteca: { icon: "o", label: "Vinoteca" },
+  winebar: { icon: "*", label: "Wine Bar" },
+  degustacion: { icon: "+", label: "Degustación" },
+  bodega: { icon: "^", label: "Bodega" },
+  feria_vino: { icon: "#", label: "Feria" },
   rio: { icon: "~", label: "Naturaleza" },
   montana: { icon: "^", label: "Aventura" },
   bar: { icon: "*", label: "Noche" },
@@ -84,11 +90,56 @@ const shouldUseExtendedRadius = ({ categoria, query }) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
-  if (normalizedCategoria === "rio") {
+  if (["rio", "bodega"].includes(normalizedCategoria)) {
     return true;
   }
 
   return /(rio|río|laguna|arroyo|balneario|costanera|cascada|dique|embalse)/.test(normalizedQuery);
+};
+
+const SOMMELIER_OCCASIONS = [
+  { value: "cena-pareja", label: "Cena en pareja" },
+  { value: "amigos", label: "Salida con amigos" },
+  { value: "regalo", label: "Comprar para regalo" },
+  { value: "despues-oficina", label: "After office" },
+];
+
+const SOMMELIER_FOODS = [
+  { value: "carnes", label: "Carnes / parrilla", styleHint: "malbec" },
+  { value: "pastas", label: "Pastas", styleHint: "sangiovese" },
+  { value: "quesos", label: "Quesos y picada", styleHint: "pinot noir" },
+  { value: "pescados", label: "Pescados", styleHint: "chardonnay" },
+  { value: "sin-comida", label: "Sin comida (solo copas)", styleHint: "espumante" },
+];
+
+const SOMMELIER_BUDGETS = [
+  { value: "economico", label: "Económico", maxPrice: 9000 },
+  { value: "medio", label: "Medio", maxPrice: 18000 },
+  { value: "alto", label: "Alto", maxPrice: 32000 },
+];
+
+const SOMMELIER_OCCASION_TEXT = {
+  "cena-pareja": "ambiente íntimo",
+  amigos: "ambiente relajado para grupo",
+  regalo: "opciones de regalo con buena presentación",
+  "despues-oficina": "plan corto para after office",
+};
+
+const SOMMELIER_CATEGORY_BY_OCCASION = {
+  "cena-pareja": "winebar",
+  amigos: "degustacion",
+  regalo: "vinoteca",
+  "despues-oficina": "winebar",
+};
+
+const buildSommelierPrompt = ({ occasion, food, budget }) => {
+  const occasionText = SOMMELIER_OCCASION_TEXT[occasion] || "plan con vino";
+  const foodInfo = SOMMELIER_FOODS.find((item) => item.value === food);
+  const budgetInfo = SOMMELIER_BUDGETS.find((item) => item.value === budget);
+  const maridaje = foodInfo?.styleHint || "vino equilibrado";
+  const maxPrice = budgetInfo?.maxPrice || 18000;
+
+  return `Quiero ${occasionText}, opciones con ${maridaje}, presupuesto por persona hasta ${maxPrice}, con buena relación precio calidad.`;
 };
 
 const ZONA_PREFERENCE_KEY = "rincones_zona_preference";
@@ -119,7 +170,13 @@ const DescubrirPage = () => {
   const [assistantResult, setAssistantResult] = useState(null);
   const [resultView, setResultView] = useState("cards");
   const [visibleCount, setVisibleCount] = useState(6);
+  const [labelScans, setLabelScans] = useState([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [sommelierOpen, setSommelierOpen] = useState(false);
   const [brokenImages, setBrokenImages] = useState({});
+  const [sommelierOccasion, setSommelierOccasion] = useState("cena-pareja");
+  const [sommelierFood, setSommelierFood] = useState("carnes");
+  const [sommelierBudget, setSommelierBudget] = useState("medio");
   const resultsSectionRef = useRef(null);
   const requestTokenRef = useRef(0);
   const assistantContextRef = useRef({
@@ -148,6 +205,15 @@ const DescubrirPage = () => {
     } catch {
       // Ignore localStorage write errors.
     }
+  };
+
+  const handleLabelCapture = (data) => {
+    setLabelScans((prev) => [data, ...prev]);
+  };
+
+  const handleScannerCapture = (data) => {
+    handleLabelCapture(data);
+    setScannerOpen(false);
   };
 
   useEffect(() => {
@@ -372,6 +438,22 @@ const DescubrirPage = () => {
     setError("");
   };
 
+  const handleSommelierSearch = async () => {
+    const suggestedCategory = SOMMELIER_CATEGORY_BY_OCCASION[sommelierOccasion] || "winebar";
+    const sommelierPrompt = buildSommelierPrompt({
+      occasion: sommelierOccasion,
+      food: sommelierFood,
+      budget: sommelierBudget,
+    });
+
+    setQuery(sommelierPrompt);
+    setCategoria(suggestedCategory);
+    await performSearch({
+      query: sommelierPrompt,
+      categoria: suggestedCategory,
+    });
+  };
+
   const sourceLabels = Array.isArray(discoverMeta?.sourcesUsed) ? discoverMeta.sourcesUsed.join(" + ") : "";
 
   const toResultDomId = (id) => `discover-result-${String(id || "").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -402,8 +484,8 @@ const DescubrirPage = () => {
       <header className="discover-intro">
         <div className="discover-intro__row">
           <div>
-            <p className="discover-intro__hello">✦ Hola{user?.email ? `, ${user.email.split("@")[0]}` : ""}</p>
-            <h1>¿Por dónde empezamos?</h1>
+            <p className="discover-intro__hello">Buenas{user?.email ? `, ${user.email.split("@")[0]}` : ""}</p>
+            <h1>¿Qué estás buscando?</h1>
           </div>
 
           <div className="discover-intro__zone-tools" aria-label="Controles de zona">
@@ -447,14 +529,14 @@ const DescubrirPage = () => {
               onChange={(event) => {
                 setQuery(event.target.value);
               }}
-              placeholder="Preguntá por lugares: cafeterías cerca, bares con patio, ríos para mate..."
+              placeholder="Buscar bodegas, lugares, cafeterías..."
               aria-label="Buscar lugares en internet"
             />
             <button className="button button--violet" type="submit" disabled={loading}>
-              {loading ? "Buscando..." : "Buscar"}
+              {loading ? "..." : "Buscar"}
             </button>
             <button className="button button--ghost" type="button" onClick={handleClearSearch} disabled={!query && !results.length}>
-              Limpiar
+              ✖
             </button>
           </div>
 
@@ -469,11 +551,84 @@ const DescubrirPage = () => {
               className="discover-quick-chip"
               onClick={() => handleQuickPrompt(item)}
             >
+              {item.categoria === "winebar" && "🍷 "}
+              {item.categoria === "vinoteca" && "🍾 "}
+              {item.categoria === "degustacion" && "🍇 "}
+              {item.categoria === "bodega" && "🏘️ "}
               {item.text}
             </button>
           ))}
         </div>
+
+        <button 
+          className="button button--ghost sommelier-toggle" 
+          onClick={() => setSommelierOpen(!sommelierOpen)}
+        >
+          {sommelierOpen ? "Ocultar sommelier" : "✨ Ayuda del Sommelier"}
+        </button>
+
+        {sommelierOpen && (
+          <div className="discover-sommelier" aria-label="Mini sommelier">
+            <p className="map-help" style={{ marginTop: 0 }}>Encontrá tu vino ideal respondiendo esto:</p>
+
+          <div className="discover-sommelier__grid">
+            <label>
+              Ocasión
+              <select value={sommelierOccasion} onChange={(event) => setSommelierOccasion(event.target.value)}>
+                {SOMMELIER_OCCASIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Comida
+              <select value={sommelierFood} onChange={(event) => setSommelierFood(event.target.value)}>
+                {SOMMELIER_FOODS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Presupuesto
+              <select value={sommelierBudget} onChange={(event) => setSommelierBudget(event.target.value)}>
+                {SOMMELIER_BUDGETS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <button className="button button--primary" type="button" onClick={handleSommelierSearch} disabled={loading}>
+            {loading ? "Buscando..." : "Dame opciones"}
+          </button>
+        </div>
+        )}
       </section>
+
+      {/* Floating Scan Label CTA for Mobile */}
+      <button 
+        type="button" 
+        className="floating-scan-btn" 
+        onClick={() => setScannerOpen(true)}
+        aria-label="Escanear etiqueta de vino"
+      >
+        <span className="floating-scan-btn__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </span>
+        <span className="floating-scan-btn__label">Escanear</span>
+      </button>
 
       {error && <p className="error-text">{error}</p>}
 
@@ -722,6 +877,37 @@ const DescubrirPage = () => {
           <button type="button" className="button button--ghost" onClick={() => handleQuickPrompt(QUICK_PROMPTS[2])}>
             Probar "Cafeterías cerca"
           </button>
+        </div>
+      )}
+
+      {labelScans.length > 0 && (
+        <section className="label-scans-shell">
+          <h3>Etiquetas guardadas</h3>
+          <div className="label-scans-grid">
+            {labelScans.slice(0, 6).map((scan, i) => (
+              <div key={i} className="label-scan-card">
+                {scan.preview && <img src={scan.preview} alt={scan.filename || 'Etiqueta'} />}
+                <div>
+                  <strong>{scan.label || scan.filename || 'Etiqueta'}</strong>
+                  {scan.vintage && <small> · {scan.vintage}</small>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {scannerOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-sheet">
+            <header className="modal-sheet__header">
+              <strong>Escanear etiqueta</strong>
+              <button className="button button--ghost" onClick={() => setScannerOpen(false)}>Cerrar</button>
+            </header>
+            <div className="modal-sheet__body">
+              <LabelScanner onCapture={handleScannerCapture} />
+            </div>
+          </div>
         </div>
       )}
     </section>

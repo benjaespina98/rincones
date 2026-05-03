@@ -6,6 +6,21 @@ const AI_CHAT_TIMEOUT_MS = Number(process.env.AI_CHAT_TIMEOUT_MS || 9000);
 
 const CATEGORY_ALIASES = {
   all: "all",
+  vinoteca: "vinoteca",
+  vinotecas: "vinoteca",
+  winebar: "winebar",
+  "wine-bar": "winebar",
+  "bar de vinos": "winebar",
+  degustacion: "degustacion",
+  degustaciones: "degustacion",
+  cata: "degustacion",
+  tasting: "degustacion",
+  bodega: "bodega",
+  bodegas: "bodega",
+  vinedo: "bodega",
+  "viñedo": "bodega",
+  feria_vino: "feria_vino",
+  feria: "feria_vino",
   cafe: "cafeteria",
   cafeterias: "cafeteria",
   cafeteria: "cafeteria",
@@ -28,6 +43,11 @@ const CATEGORY_ALIASES = {
 };
 
 const INTENT_KEYWORDS = {
+  vinoteca: ["vinoteca", "vinos", "cava", "botella", "sommelier", "wine shop"],
+  winebar: ["wine bar", "bar de vinos", "vino por copa", "copas", "after office"],
+  degustacion: ["degustacion", "degustación", "cata", "tasting", "maridaje", "flight"],
+  bodega: ["bodega", "vinedo", "viñedo", "enoturismo", "tour del vino"],
+  feria_vino: ["feria de vino", "festival del vino", "expo vino", "evento de vino"],
   bar: ["bar", "birra", "cerveza", "vermu", "vermuth", "trago", "cocktail", "pub"],
   cafeteria: ["cafe", "café", "cafeteria", "cafetería", "merienda", "brunch"],
   restaurante: ["restaurante", "comida", "cena", "almuerzo", "pizza", "hamburguesa", "parrilla", "sushi"],
@@ -169,9 +189,9 @@ const heuristicAssistantAnswer = ({ message, results, context = {} }) => {
 
   if (!top.length) {
     return {
-      summary: "No encontré lugares sólidos para recomendar todavía. Probá cambiar zona o ampliar la intención (por ejemplo: ríos para pasar el día, cafeterías tranquilas).",
+      summary: "No encontré recomendaciones de vino sólidas todavía. Probá ajustar zona, estilo de vino o presupuesto para afinar el maridaje.",
       tips: [
-        "Usá una consulta más específica (ej: ríos con sombra, bares con patio).",
+        "Usá una consulta más específica (ej: wine bar para after office, vinoteca con malbec premium).",
         "Activá ubicación actual para mejorar relevancia geográfica.",
       ],
       picks: [],
