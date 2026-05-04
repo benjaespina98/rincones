@@ -420,3 +420,67 @@
     margin: 0 auto;
   }
 }
+
+/* Dark Theme Overrides */
+.body-page {
+  background: transparent;
+}
+
+.body-page .page-header {
+  background: linear-gradient(135deg, rgba(143, 96, 255, 0.45), rgba(70, 49, 146, 0.8));
+  border: 1px solid rgba(179, 150, 255, 0.35);
+  border-radius: 16px;
+  margin: 0.4rem 0.75rem 0;
+}
+
+.body-page .search-input,
+.body-page .filter-select,
+.body-page .sort-select {
+  background: rgba(22, 20, 45, 0.88);
+  border: 1px solid rgba(170, 141, 255, 0.24);
+  color: #f4efff;
+}
+
+.body-page .wine-card {
+  background: rgba(20, 18, 40, 0.94);
+  border: 1px solid rgba(163, 136, 245, 0.2);
+  box-shadow: 0 8px 20px rgba(2, 2, 10, 0.4);
+}
+
+.body-page .wine-image-wrapper {
+  background: linear-gradient(135deg, rgba(97, 69, 179, 0.4), rgba(31, 28, 65, 0.72));
+}
+
+.body-page .wine-name {
+  color: #f8f5ff;
+}
+
+.body-page .wine-region,
+.body-page .wine-qty,
+.body-page .empty-subtitle {
+  color: #b9abd9;
+}
+
+.body-page .wine-type,
+.body-page .wine-year {
+  background: rgba(130, 103, 206, 0.24);
+  color: #e7dcff;
+}
+
+.body-page .wine-actions {
+  border-top-color: rgba(160, 131, 242, 0.2);
+}
+
+.body-page .btn-icon,
+.body-page .btn-delete {
+  background: rgba(130, 105, 202, 0.2);
+  color: #eee7ff;
+}
+
+.body-page .btn-icon.active {
+  background: rgba(255, 101, 160, 0.23);
+}
+
+.body-page .empty-title {
+  color: #f4efff;
+}

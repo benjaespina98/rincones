@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
-import BottomTabNavigation from "./components/BottomTabNavigation";
+import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import BodyPage from "./pages/BodyPage";
 import SuggestionsPage from "./pages/SuggestionsPage";
 import ScanWinePage from "./pages/ScanWinePage";
@@ -22,6 +24,8 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/admin" element={<AdminLoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Private Routes with Bottom Tab Navigation */}
       
@@ -30,12 +34,20 @@ function App() {
         path="/"
         element={
           <PrivateRoute>
-            <div className="app-container">
-              <main className="app-content">
+            <AppLayout pageTitle="Mi Bodega">
                 <BodyPage />
-              </main>
-              <BottomTabNavigation />
-            </div>
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/favoritos"
+        element={
+          <PrivateRoute>
+            <AppLayout pageTitle="Favoritos">
+                <BodyPage initialFilter="favorites" />
+            </AppLayout>
           </PrivateRoute>
         }
       />
@@ -45,12 +57,9 @@ function App() {
         path="/explorar"
         element={
           <PrivateRoute>
-            <div className="app-container">
-              <main className="app-content">
+            <AppLayout pageTitle="Explorar">
                 <SuggestionsPage />
-              </main>
-              <BottomTabNavigation />
-            </div>
+            </AppLayout>
           </PrivateRoute>
         }
       />
@@ -60,12 +69,9 @@ function App() {
         path="/descubrir"
         element={
           <PrivateRoute>
-            <div className="app-container">
-              <main className="app-content">
+            <AppLayout pageTitle="Descubrir">
                 <ScanWinePage />
-              </main>
-              <BottomTabNavigation />
-            </div>
+            </AppLayout>
           </PrivateRoute>
         }
       />
@@ -75,12 +81,9 @@ function App() {
         path="/perfil"
         element={
           <PrivateRoute>
-            <div className="app-container">
-              <main className="app-content">
+            <AppLayout pageTitle="Perfil">
                 <ProfilePage />
-              </main>
-              <BottomTabNavigation />
-            </div>
+            </AppLayout>
           </PrivateRoute>
         }
       />

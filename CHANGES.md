@@ -1,5 +1,44 @@
 # 🍷 RINCONES - Nueva Estructura de la App
 
+## 🔐 Implementación Google OAuth 2.0 (Reciente)
+
+### Backend
+- ✅ Instalar Passport.js + estrategia de Google OAuth
+- ✅ Configurar express-session para manejo de sesiones
+- ✅ Actualizar modelo de usuario (googleId, googleToken)
+- ✅ Crear ruta OAuth: `GET /api/auth/google` y callback
+- ✅ CSRF protection con state validation
+- ✅ Generar JWT en callback y redirigir al frontend
+
+### Frontend
+- ✅ Crear componente `GoogleLoginButton`
+- ✅ Crear página `OAuthCallbackPage` para manejar callback
+- ✅ Agregar botón en LoginPage
+- ✅ Estilos para botón de Google con divider "O"
+- ✅ Manejo de token y autenticación automática
+
+### Seguridad
+- ✅ httpOnly cookies (no accesible desde JavaScript)
+- ✅ Secure flag en cookies (HTTPS en producción)
+- ✅ SameSite protection contra CSRF
+- ✅ State validation en callback
+- ✅ Rate limiting en login
+
+### Configuración Requerida
+Necesitas:
+1. **Google Client ID y Secret** (desde console.cloud.google.com)
+2. **Variables de entorno en `server/.env`:**
+   ```
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
+   SESSION_SECRET=generate-random-string
+   FRONTEND_URL=http://localhost:5173
+   ```
+3. Leer [OAUTH_SETUP.md](./OAUTH_SETUP.md) para instrucciones completas
+
+---
+
 ## Cambios Principales Realizados
 
 ### 1. **Claridad de Propósito**
