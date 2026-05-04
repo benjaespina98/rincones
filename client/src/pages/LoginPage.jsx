@@ -90,7 +90,10 @@ const LoginPage = () => {
 
         <div className="login-footer">
           <p>¿No tienes cuenta?</p>
-          <Link to="/register">Crear cuenta</Link>
+          <div style={{display:'flex', gap: '0.75rem', justifyContent: 'center'}}>
+            <Link to="/register">Crear cuenta</Link>
+            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+          </div>
         </div>
       </div>
     </div>

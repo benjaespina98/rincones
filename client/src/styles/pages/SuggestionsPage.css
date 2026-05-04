@@ -498,3 +498,57 @@
     font-size: 13px;
   }
 }
+
+/* Dark Theme Overrides */
+.suggestions-page {
+  background: transparent;
+}
+
+.suggestions-page .page-header {
+  background: linear-gradient(135deg, rgba(133, 92, 242, 0.5), rgba(63, 46, 145, 0.82));
+  border: 1px solid rgba(171, 140, 255, 0.3);
+  border-radius: 16px;
+  margin: 0.4rem 0.75rem 0;
+}
+
+.suggestions-page .suggestion-card {
+  background: rgba(20, 19, 43, 0.95);
+  border: 1px solid rgba(165, 138, 248, 0.2);
+}
+
+.suggestions-page .wine-image-wrapper,
+.suggestions-page .card-image {
+  background: linear-gradient(135deg, rgba(106, 78, 194, 0.42), rgba(41, 35, 83, 0.75));
+}
+
+.suggestions-page .wine-name,
+.suggestions-page .empty-title,
+.suggestions-page .card-content h3 {
+  color: #f6f3ff;
+}
+
+.suggestions-page .wine-region,
+.suggestions-page .empty-subtitle,
+.suggestions-page .card-region,
+.suggestions-page .card-reason {
+  color: #b8abd8;
+}
+
+.suggestions-page .wine-type,
+.suggestions-page .wine-year,
+.suggestions-page .wine-price,
+.suggestions-page .badge-type,
+.suggestions-page .badge-year {
+  background: rgba(130, 103, 206, 0.24);
+  color: #ece4ff;
+}
+
+.suggestions-page .btn-favorite {
+  background: rgba(134, 102, 231, 0.23);
+  color: #f2ecff;
+  border-color: rgba(182, 154, 255, 0.35);
+}
+
+.suggestions-page .btn-add {
+  background: linear-gradient(135deg, #8a5dff 0%, #5d46e8 100%);
+}

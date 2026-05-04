@@ -43,6 +43,15 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter específico para forgot-password (proteger abuso)
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // máximo 5 solicitudes por IP por hora
+  message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(limiter);
 
 const parseAllowedOrigins = () => {
@@ -104,6 +113,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth/login", loginLimiter);
+app.use("/api/auth/forgot-password", forgotLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/geocode", geocodingRoutes);

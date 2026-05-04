@@ -5,6 +5,9 @@
   background: var(--bg);
 }
 
+:root{
+}
+
 .app-shell {
   width: 100%;
   min-height: 100vh;
@@ -24,7 +27,7 @@
   flex: 1 1 auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 .app-main {
@@ -107,19 +110,6 @@
   background: rgba(138, 109, 230, 0.2);
   color: var(--accent);
   border-color: var(--accent);
-}
-
-/* Remove old bottom tabs styles */
-.bottom-tabs {
-  display: none !important;
-}
-
-.bottom-tab {
-  display: none !important;
-}
-
-.floating-scan-btn {
-  display: none !important;
 }
 
 /* Form Elements */

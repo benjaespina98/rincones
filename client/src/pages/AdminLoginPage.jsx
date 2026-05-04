@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useLugares } from "../hooks/useLugares";
-import { deleteLugar, updateLugar } from "../services/lugaresApi";
-import { getChangeLogs } from "../services/adminApi";
-import { categorias } from "../utils/categorias";
+import { getChangeLogs, getUsers } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
 import "./styles/AdminLoginPage.css";
 
@@ -14,25 +12,8 @@ const ACTION_LABELS = {
   delete: "Eliminado",
 };
 
-const getChangedFields = (before, after) => {
-  if (!before || !after) {
-    return [];
-  }
-
-  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
-  const skip = new Set(["_id", "creadoEn", "imagenesCount"]);
-
-  return [...keys].filter((key) => {
-    if (skip.has(key)) {
-      return false;
-    }
-
-    return JSON.stringify(before[key]) !== JSON.stringify(after[key]);
-  });
-};
-
 const buildLogSummary = (log) => {
-  const nombreLugar = log.after?.nombre || log.before?.nombre || "Lugar";
+  const nombreLugar = log.after?.nombre || log.before?.nombre || "Registro";
 
   if (log.action === "create") {
     return `Se creó ${nombreLugar}.`;
@@ -43,15 +24,7 @@ const buildLogSummary = (log) => {
   }
 
   if (log.action === "update") {
-    const changed = getChangedFields(log.before, log.after);
-
-    if (!changed.length) {
-      return "Se guardaron cambios.";
-    }
-
-    const visibleFields = changed.slice(0, 4).join(", ");
-    const suffix = changed.length > 4 ? ` y ${changed.length - 4} más` : "";
-    return `Campos modificados: ${visibleFields}${suffix}.`;
+    return "Se actualizaron datos del registro.";
   }
 
   return "";
@@ -61,127 +34,73 @@ const AdminLoginPage = () => {
   const { login, isAdmin, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lugares, recargar } = useLugares();
+  const { lugares } = useLugares();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [showLogs, setShowLogs] = useState(false);
-  const [selectedLugarId, setSelectedLugarId] = useState("");
-  const [editData, setEditData] = useState(null);
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [activeTab, setActiveTab] = useState("lugares");
+  const [usersSummary, setUsersSummary] = useState({
+    total: 0,
+    adminsInSample: 0,
+    sampleSize: 0,
+  });
+  const [activeTab, setActiveTab] = useState("resumen");
 
-  const nextPath = location.state?.from || "/agregar";
-  const logPreview = logs.slice(0, 3);
+  const nextPath = location.state?.from || "/admin";
 
   useEffect(() => {
     if (!isAdmin) {
       return;
     }
 
-    const loadLogs = async () => {
+    const loadDashboardData = async () => {
       try {
-        const data = await getChangeLogs(25);
-        setLogs(data);
+        setLoadingDashboard(true);
+        const [logsData, usersData] = await Promise.all([
+          getChangeLogs(60),
+          getUsers(1, 100),
+        ]);
+
+        const sampleUsers = usersData.data || [];
+        setLogs(logsData);
+        setUsersSummary({
+          total: usersData.pagination?.total || sampleUsers.length,
+          adminsInSample: sampleUsers.filter((item) => item.role === "admin").length,
+          sampleSize: sampleUsers.length,
+        });
       } catch {
         setLogs([]);
+        setUsersSummary({ total: 0, adminsInSample: 0, sampleSize: 0 });
+      } finally {
+        setLoadingDashboard(false);
       }
     };
 
-    loadLogs();
+    loadDashboardData();
   }, [isAdmin]);
 
-  const selectedLugar = useMemo(
-    () => lugares.find((item) => item._id === selectedLugarId) || null,
-    [lugares, selectedLugarId]
-  );
+  const metrics = useMemo(() => {
+    const now = Date.now();
+    const dayWindow = 24 * 60 * 60 * 1000;
+    const logsToday = logs.filter((item) => now - new Date(item.createdAt).getTime() <= dayWindow).length;
+    const createEvents = logs.filter((item) => item.action === "create").length;
+    const updateEvents = logs.filter((item) => item.action === "update").length;
+    const deleteEvents = logs.filter((item) => item.action === "delete").length;
 
-  useEffect(() => {
-    if (!selectedLugar) {
-      setEditData(null);
-      return;
-    }
-
-    setEditData({
-      nombre: selectedLugar.nombre || "",
-      descripcion: selectedLugar.descripcion || "",
-      categoria: selectedLugar.categoria || "rio",
-      ciudad: selectedLugar.ciudad || "",
-      direccion: selectedLugar.direccion || "",
-      rating: String(selectedLugar.rating ?? 0),
-      telefono: selectedLugar.contacto?.telefono || "",
-      instagram: selectedLugar.contacto?.instagram || "",
-      sitioWeb: selectedLugar.contacto?.sitioWeb || "",
-    });
-  }, [selectedLugar]);
-
-  const handleDelete = async (lugarId) => {
-    const confirmed = window.confirm("Estas seguro de eliminar este lugar?");
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await deleteLugar(lugarId);
-      await recargar();
-      const data = await getChangeLogs(25);
-      setLogs(data);
-      if (selectedLugarId === lugarId) {
-        setSelectedLugarId("");
-      }
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || "No se pudo eliminar el lugar");
-    }
-  };
-
-  const handleEditChange = (event) => {
-    const { name, value } = event.target;
-    setEditData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveEdit = async (event) => {
-    event.preventDefault();
-
-    if (!selectedLugar || !editData) {
-      return;
-    }
-
-    const payload = {
-      nombre: editData.nombre,
-      descripcion: editData.descripcion,
-      categoria: editData.categoria,
-      ciudad: editData.ciudad,
-      direccion: editData.direccion,
-      ubicacion: {
-        latitud: selectedLugar.ubicacion?.latitud,
-        longitud: selectedLugar.ubicacion?.longitud,
-      },
-      imagenes: selectedLugar.imagenes || [],
-      contacto: {
-        telefono: editData.telefono,
-        instagram: editData.instagram,
-        sitioWeb: editData.sitioWeb,
-      },
-      rating: Number(editData.rating || 0),
+    return {
+      totalPlaces: lugares.length,
+      totalUsers: usersSummary.total,
+      adminsInSample: usersSummary.adminsInSample,
+      sampleSize: usersSummary.sampleSize,
+      logsToday,
+      createEvents,
+      updateEvents,
+      deleteEvents,
     };
-
-    try {
-      setSavingEdit(true);
-      setError("");
-      await updateLugar(selectedLugar._id, payload);
-      await recargar();
-      const data = await getChangeLogs(25);
-      setLogs(data);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || "No se pudo actualizar el lugar");
-    } finally {
-      setSavingEdit(false);
-    }
-  };
+  }, [logs, lugares.length, usersSummary]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -201,300 +120,223 @@ const AdminLoginPage = () => {
 
   if (isAdmin) {
     return (
-      <div className="admin-dashboard">
-        {/* Header */}
-        <section className="admin-dashboard__header">
-          <div className="admin-dashboard__header-content">
-            <h1>Panel Admin</h1>
-            <p className="admin-user-info">
-              Sesión iniciada como <strong>{user?.email}</strong>
+      <div className="admin-shell">
+        <section className="admin-hero">
+          <div className="admin-hero__left">
+            <span className="admin-kicker">Panel de control</span>
+            <h1>Administración Rincones</h1>
+            <p>
+              Gestiona roles, monitorea actividad y entra a la experiencia completa de usuario.
             </p>
+            <small>Sesión activa: {user?.email}</small>
           </div>
-          <button className="button button--danger" type="button" onClick={logout}>
-            Cerrar sesión
-          </button>
+
+          <div className="admin-hero__actions">
+            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>Ver app usuario</button>
+            <button className="button button--danger" type="button" onClick={logout}>Cerrar sesión</button>
+          </div>
         </section>
 
-        {/* Tabs Navigation */}
-        <nav className="admin-tabs">
+        <nav className="admin-nav-tabs">
           <button
-            className={`admin-tab ${activeTab === "lugares" ? "active" : ""}`}
-            onClick={() => setActiveTab("lugares")}
+            className={`admin-nav-tab ${activeTab === "resumen" ? "active" : ""}`}
+            onClick={() => setActiveTab("resumen")}
             type="button"
           >
-            📍 Lugares ({lugares.length})
+            Resumen
           </button>
           <button
-            className={`admin-tab ${activeTab === "usuarios" ? "active" : ""}`}
-            onClick={() => setActiveTab("usuarios")}
+            className={`admin-nav-tab ${activeTab === "roles" ? "active" : ""}`}
+            onClick={() => setActiveTab("roles")}
             type="button"
           >
-            👥 Usuarios
+            Roles
           </button>
           <button
-            className={`admin-tab ${activeTab === "actividad" ? "active" : ""}`}
+            className={`admin-nav-tab ${activeTab === "actividad" ? "active" : ""}`}
             onClick={() => setActiveTab("actividad")}
             type="button"
           >
-            📊 Actividad
+            Logs
+          </button>
+          <button
+            className={`admin-nav-tab ${activeTab === "app" ? "active" : ""}`}
+            onClick={() => setActiveTab("app")}
+            type="button"
+          >
+            Vista App
           </button>
         </nav>
 
-        {/* Tab Content */}
-        <div className="admin-content">
-          {/* Lugares Tab */}
-          {activeTab === "lugares" && (
-            <section className="admin-section">
-              <div className="admin-section__header">
-                <h2>Lugares publicados</h2>
-                <button
-                  className="button"
-                  type="button"
-                  onClick={() => navigate("/agregar")}
-                >
-                  + Agregar lugar
-                </button>
-              </div>
+        <section className="admin-panel-surface">
+          {activeTab === "resumen" && (
+            <div className="admin-dashboard-grid">
+              <article className="admin-metric-card">
+                <span>Usuarios</span>
+                <strong>{metrics.totalUsers}</strong>
+                <small>Total en sistema</small>
+              </article>
 
-              <div className="admin-grid">
-                <div className="admin-panel">
-                  <div className="admin-list">
-                    {lugares.length === 0 ? (
-                      <p className="empty-message">No hay lugares publicados aún</p>
-                    ) : (
-                      lugares.map((lugar) => (
-                        <article key={lugar._id} className="admin-item">
-                          <div>
-                            <strong>{lugar.nombre}</strong>
-                            <p>{lugar.ciudad}</p>
-                            <span className="place-category">
-                              {categorias.find((c) => c.value === lugar.categoria)?.label}
-                            </span>
-                          </div>
-                          <div className="admin-item__actions">
-                            <button
-                              className="button"
-                              type="button"
-                              onClick={() => setSelectedLugarId(lugar._id)}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              className="button button--danger"
-                              type="button"
-                              onClick={() => handleDelete(lugar._id)}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </article>
-                      ))
-                    )}
-                  </div>
+              <article className="admin-metric-card">
+                <span>Lugares</span>
+                <strong>{metrics.totalPlaces}</strong>
+                <small>Publicados</small>
+              </article>
+
+              <article className="admin-metric-card">
+                <span>Eventos 24h</span>
+                <strong>{metrics.logsToday}</strong>
+                <small>Actividad reciente</small>
+              </article>
+
+              <article className="admin-metric-card">
+                <span>Admins detectados</span>
+                <strong>{metrics.adminsInSample}</strong>
+                <small>Muestra de {metrics.sampleSize} usuarios</small>
+              </article>
+
+              <article className="admin-wide-card">
+                <h2>Actividad por tipo</h2>
+                <div className="admin-chip-row">
+                  <span className="admin-chip">Creaciones: {metrics.createEvents}</span>
+                  <span className="admin-chip">Actualizaciones: {metrics.updateEvents}</span>
+                  <span className="admin-chip">Eliminaciones: {metrics.deleteEvents}</span>
                 </div>
-              </div>
-            </section>
+              </article>
+
+              <article className="admin-wide-card">
+                <h2>Acciones rápidas</h2>
+                <div className="admin-action-grid">
+                  <button className="button" type="button" onClick={() => setActiveTab("roles")}>Gestionar roles</button>
+                  <button className="button" type="button" onClick={() => setActiveTab("actividad")}>Revisar logs</button>
+                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Agregar lugar</button>
+                  <button className="button" type="button" onClick={() => setActiveTab("app")}>Abrir vista app</button>
+                </div>
+              </article>
+            </div>
           )}
 
-          {/* Usuarios Tab */}
-          {activeTab === "usuarios" && (
-            <section className="admin-section">
+          {activeTab === "roles" && (
+            <section>
+              <div className="admin-section-head">
+                <h2>Administración de roles</h2>
+                <p>Promueve o revoca permisos de administración en segundos.</p>
+              </div>
               <AdminUsersPage embedded />
             </section>
           )}
 
-          {/* Actividad Tab */}
           {activeTab === "actividad" && (
-            <section className="admin-section">
-              <div className="admin-section__header">
-                <h2>Actividad reciente</h2>
+            <section>
+              <div className="admin-section-head">
+                <h2>Registro de actividad</h2>
+                <p>Auditoría reciente de operaciones sobre lugares y usuarios.</p>
               </div>
 
-              <div className="admin-log-list">
-                {!logs.length && (
-                  <p className="empty-message">Todavía no hay movimientos registrados.</p>
-                )}
-                {logs.map((log) => (
-                  <article key={log._id} className="admin-log-item">
-                    <div className="admin-log-item__head">
-                      <span
-                        className={`admin-log-badge admin-log-badge--${log.action}`}
-                      >
-                        {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
-                      </span>
-                      <small>
-                        {new Date(log.createdAt).toLocaleString("es-AR")}
-                      </small>
-                    </div>
-                    <strong className="admin-log-item__title">
-                      {log.after?.nombre || log.before?.nombre || "Lugar"}
-                    </strong>
-                    <span className="admin-log-item__meta">
-                      Por {log.actor?.email || "admin"}
-                    </span>
-                    <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
-                  </article>
-                ))}
+              {loadingDashboard ? (
+                <p className="admin-empty-state">Cargando actividad...</p>
+              ) : !logs.length ? (
+                <p className="admin-empty-state">No hay movimientos registrados todavía.</p>
+              ) : (
+                <div className="admin-log-list">
+                  {logs.map((log) => (
+                    <article key={log._id} className="admin-log-item">
+                      <div className="admin-log-item__head">
+                        <span className={`admin-log-badge admin-log-badge--${log.action}`}>
+                          {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
+                        </span>
+                        <small>{new Date(log.createdAt).toLocaleString("es-AR")}</small>
+                      </div>
+                      <strong className="admin-log-item__title">
+                        {log.after?.nombre || log.before?.nombre || "Registro"}
+                      </strong>
+                      <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
+                      <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === "app" && (
+            <section>
+              <div className="admin-section-head">
+                <h2>Vista de usuario común</h2>
+                <p>
+                  Como admin también puedes navegar exactamente las secciones de usuario para revisar UX y contenido.
+                </p>
+              </div>
+
+              <div className="admin-view-grid">
+                <article className="admin-view-card">
+                  <h3>Mi Bodega</h3>
+                  <p>Gestiona colección y favoritos como usuario final.</p>
+                  <button className="button" type="button" onClick={() => navigate("/")}>Abrir bodega</button>
+                </article>
+
+                <article className="admin-view-card">
+                  <h3>Explorar</h3>
+                  <p>Revisa recomendaciones y tarjetas de sugerencias.</p>
+                  <button className="button" type="button" onClick={() => navigate("/explorar")}>Abrir explorar</button>
+                </article>
+
+                <article className="admin-view-card">
+                  <h3>Descubrir</h3>
+                  <p>Valida flujo de escaneo y alta de vinos.</p>
+                  <button className="button" type="button" onClick={() => navigate("/descubrir")}>Abrir descubrir</button>
+                </article>
+
+                <article className="admin-view-card">
+                  <h3>Perfil</h3>
+                  <p>Controla edición de perfil y cierre de sesión.</p>
+                  <button className="button" type="button" onClick={() => navigate("/perfil")}>Abrir perfil</button>
+                </article>
               </div>
             </section>
           )}
-        </div>
-
-        {/* Edit Form */}
-        {selectedLugar && editData && (
-          <form className="place-form panel-card" onSubmit={handleSaveEdit}>
-            <h2>Editar lugar</h2>
-
-            <label>
-              Nombre
-              <input
-                name="nombre"
-                value={editData.nombre}
-                onChange={handleEditChange}
-                required
-              />
-            </label>
-            <label>
-              Descripcion
-              <textarea
-                name="descripcion"
-                value={editData.descripcion}
-                onChange={handleEditChange}
-                rows={4}
-                required
-              />
-            </label>
-            <label>
-              Categoria
-              <select
-                name="categoria"
-                value={editData.categoria}
-                onChange={handleEditChange}
-              >
-                {categorias.map((categoria) => (
-                  <option key={categoria.value} value={categoria.value}>
-                    {categoria.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid-two">
-              <label>
-                Ciudad
-                <input
-                  name="ciudad"
-                  value={editData.ciudad}
-                  onChange={handleEditChange}
-                  required
-                />
-              </label>
-              <label>
-                Direccion
-                <input
-                  name="direccion"
-                  value={editData.direccion}
-                  onChange={handleEditChange}
-                  required
-                />
-              </label>
-            </div>
-            <div className="grid-two">
-              <label>
-                Telefono
-                <input
-                  name="telefono"
-                  value={editData.telefono}
-                  onChange={handleEditChange}
-                />
-              </label>
-              <label>
-                Instagram
-                <input
-                  name="instagram"
-                  value={editData.instagram}
-                  onChange={handleEditChange}
-                />
-              </label>
-            </div>
-            <label>
-              Sitio web
-              <input
-                name="sitioWeb"
-                value={editData.sitioWeb}
-                onChange={handleEditChange}
-              />
-            </label>
-            <label>
-              Rating
-              <input
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                name="rating"
-                value={editData.rating}
-                onChange={handleEditChange}
-              />
-            </label>
-
-            <div className="form-actions">
-              <button
-                className="button"
-                type="submit"
-                disabled={savingEdit}
-              >
-                {savingEdit ? "Guardando..." : "Guardar cambios"}
-              </button>
-              <button
-                className="button button--ghost"
-                type="button"
-                onClick={() => setSelectedLugarId("")}
-                disabled={savingEdit}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-
-        {error && <p className="error-text">{error}</p>}
+        </section>
       </div>
     );
   }
 
   return (
-    <section className="panel-card">
-      <span className="page-kicker">Acceso restringido</span>
-      <h1>Acceso admin</h1>
-      <p className="lead">Ingresa con usuario administrador para gestionar lugares.</p>
+    <section className="admin-login-screen">
+      <div className="admin-login-card">
+        <span className="admin-kicker">Acceso separado</span>
+        <h1>Ingreso Administrador</h1>
+        <p>
+          Este acceso está reservado para cuentas con rol <strong>admin</strong>.
+        </p>
 
-      <form className="place-form" onSubmit={handleSubmit}>
-        <label>
-          Email
+        <form className="admin-login-form" onSubmit={handleSubmit}>
+          <label htmlFor="admin-email">Email</label>
           <input
+            id="admin-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            placeholder="admin@rincones.app"
             required
           />
-        </label>
 
-        <label>
-          Contraseña
+          <label htmlFor="admin-password">Contraseña</label>
           <input
+            id="admin-password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
             required
           />
-        </label>
 
-        {error && <p className="error-text">{error}</p>}
+          {error && <p className="admin-error-text">{error}</p>}
 
-        <button className="button" type="submit" disabled={loading}>
-          {loading ? "Ingresando..." : "Ingresar"}
-        </button>
-      </form>
+          <button className="button button--primary admin-submit" type="submit" disabled={loading}>
+            {loading ? "Ingresando..." : "Ingresar al panel"}
+          </button>
+        </form>
+      </div>
     </section>
   );
 };

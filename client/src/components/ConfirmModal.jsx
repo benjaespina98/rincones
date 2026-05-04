@@ -28,6 +28,7 @@ export default function ConfirmModal({
             className="confirm-modal__cancel"
             onClick={onCancel}
             autoFocus
+            type="button"
           >
             {cancelText}
           </button>
@@ -36,6 +37,7 @@ export default function ConfirmModal({
               isDangerous ? "confirm-modal__confirm--danger" : ""
             }`}
             onClick={onConfirm}
+            type="button"
           >
             {confirmText}
           </button>

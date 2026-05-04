@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [initialFormData, setInitialFormData] = useState(null);
   const [stats, setStats] = useState({ winesCount: 0, tastedWines: 0, averageRating: 0 });
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
@@ -33,6 +35,7 @@ export default function ProfilePage() {
         if (!mounted) return;
         if (profile) {
           setFormData((prev) => ({ ...prev, ...profile }));
+          setInitialFormData((prev) => ({ ...prev, ...profile }));
         }
         if (userStats) setStats(userStats);
       } catch (err) {
@@ -52,15 +55,66 @@ export default function ProfilePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFormError("");
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validateProfile = () => {
+    const firstName = String(formData.firstName || "").trim();
+    const lastName = String(formData.lastName || "").trim();
+    const bio = String(formData.bio || "");
+
+    if (firstName.length < 2) {
+      return "El nombre debe tener al menos 2 caracteres.";
+    }
+
+    if (firstName.length > 40 || lastName.length > 40) {
+      return "Nombre y apellido deben tener hasta 40 caracteres.";
+    }
+
+    if (bio.length > 180) {
+      return "La bio puede tener hasta 180 caracteres.";
+    }
+
+    return "";
+  };
+
+  const hasChanges =
+    JSON.stringify({
+      firstName: formData.firstName || "",
+      lastName: formData.lastName || "",
+      city: formData.city || "",
+      country: formData.country || "",
+      bio: formData.bio || "",
+    }) !==
+    JSON.stringify({
+      firstName: initialFormData?.firstName || "",
+      lastName: initialFormData?.lastName || "",
+      city: initialFormData?.city || "",
+      country: initialFormData?.country || "",
+      bio: initialFormData?.bio || "",
+    });
+
   const handleSave = async () => {
+    const validationError = validateProfile();
+    if (validationError) {
+      setFormError(validationError);
+      showError?.(validationError);
+      return;
+    }
+
+    if (!hasChanges) {
+      showSuccess?.("No hay cambios para guardar");
+      setIsEditing(false);
+      return;
+    }
+
     try {
       setLoading(true);
       await updateProfile(formData);
       showSuccess?.("Perfil actualizado");
       setIsEditing(false);
+      setInitialFormData(formData);
     } catch (err) {
       showError?.("Error al actualizar el perfil");
       // eslint-disable-next-line no-console
@@ -158,10 +212,13 @@ export default function ProfilePage() {
           <div className="form-control">
             <label htmlFor="bio">Bio</label>
             <textarea id="bio" name="bio" value={formData.bio} onChange={handleChange} rows={4} />
+            <small>{(formData.bio || "").length}/180</small>
           </div>
 
+          {formError && <p className="profile-form-error">{formError}</p>}
+
           <div className="form-actions">
-            <button className="btn-save" onClick={handleSave} type="button">Guardar</button>
+            <button className="btn-save" onClick={handleSave} type="button" disabled={loading}>Guardar</button>
             <button className="btn-cancel-edit" onClick={() => setIsEditing(false)} type="button">Cancelar</button>
           </div>
         </div>

@@ -1,5 +1,9 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
 const User = require("../models/user.model");
 
 const getJwtSecret = () => {
@@ -214,9 +218,131 @@ const logout = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Email es obligatorio" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // No revelar que el email no existe
+      return res.status(200).json({ message: "Si el email existe, recibirás instrucciones para restablecer la contraseña" });
+    }
+
+    // Generar token y guardarlo hashed
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashed = crypto.createHash("sha256").update(token).digest("hex");
+
+    user.passwordResetToken = hashed;
+    user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hora
+    await user.save();
+
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${frontendURL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+
+    // Intentar enviar email si hay config SMTP
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const emailFrom = process.env.EMAIL_FROM || `no-reply@${process.env.FRONTEND_URL?.replace(/^https?:\/\//, '') || 'example.com'}`;
+
+    if (smtpHost && smtpPort && smtpUser && smtpPass) {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: Number(smtpPort),
+        secure: Number(smtpPort) === 465, // true for 465, false for other ports
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      // Intentar usar plantilla HTML si existe
+      let htmlContent = null;
+      try {
+        const templatePath = path.resolve(__dirname, "../emails/passwordReset.html");
+        const raw = await fs.promises.readFile(templatePath, "utf8");
+        htmlContent = raw.replace(/{{RESET_URL}}/g, resetUrl);
+      } catch (err) {
+        // Si falla lectura de plantilla, usar HTML simple
+        htmlContent = `<p>Para restablecer tu contraseña, haz click <a href="${resetUrl}">aquí</a>.</p><p>Si no solicitaste esto, ignora este email.</p>`;
+      }
+
+      const mailOptions = {
+        from: emailFrom,
+        to: email,
+        subject: "Restablece tu contraseña - Rincones",
+        text: `Para restablecer tu contraseña, visita: ${resetUrl}\n\nSi no solicitaste esto, ignora este email.`,
+        html: htmlContent,
+      };
+
+      await transporter.sendMail(mailOptions);
+
+      return res.status(200).json({ message: "Instrucciones enviadas al email si existe en nuestro sistema" });
+    }
+
+    // Fallback: sin SMTP configurado, registrar la URL en logs
+    console.info("Password reset URL:", resetUrl);
+    return res.status(200).json({ message: "Instrucciones (URL) han sido registradas en el servidor (sin SMTP configurado)" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, email, newPassword } = req.body;
+
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({ message: "Token, email y nueva contraseña son obligatorios" });
+    }
+
+    // Validar fuerza de contraseña
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ message: passwordValidation.message });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({ email, passwordResetToken: hashedToken }).select("+passwordResetToken +passwordResetExpires +passwordHash");
+
+    if (!user || !user.passwordResetExpires || user.passwordResetExpires < Date.now()) {
+      return res.status(400).json({ message: "Token inválido o expirado" });
+    }
+
+    // Actualizar contraseña
+    const newHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = newHash;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    // Generar token JWT y logear al usuario
+    const jwtToken = jwt.sign(
+      { sub: String(user._id), role: user.role, email: user.email },
+      getJwtSecret(),
+      { expiresIn: "7d" }
+    );
+
+    setAuthCookie(res, jwtToken);
+
+    return res.status(200).json({ ...buildAuthResponse(user, jwtToken) });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   login,
   register,
   me,
   logout,
+  forgotPassword,
+  resetPassword,
 };

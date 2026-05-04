@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "La contraseña es obligatoria"],
       select: false,
     },
+    
     role: {
       type: String,
       enum: ["user", "admin"],
@@ -80,6 +81,14 @@ const userSchema = new mongoose.Schema(
     updatedAt: {
       type: Date,
       default: Date.now,
+    },
+    // Password reset
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
     },
   },
   {

@@ -146,6 +146,21 @@
   resize: vertical;
 }
 
+.form-control small {
+  color: #9d90c8;
+  font-size: 11px;
+}
+
+.profile-form-error {
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(179, 58, 97, 0.2);
+  border: 1px solid rgba(255, 133, 171, 0.35);
+  color: #ffd6e2;
+  font-size: 13px;
+}
+
 .form-actions {
   display: flex;
   gap: 8px;
@@ -210,4 +225,74 @@
   .avatar-large { width: 92px; height: 92px; font-size: 44px; border-radius: 16px; }
   .stats-grid { padding: 16px 24px; gap:16px; }
   .edit-form { margin: 0 24px; padding: 16px; }
+}
+
+/* Dark Theme Overrides */
+.profile-page {
+  background: transparent;
+}
+
+.profile-header {
+  margin: 0.4rem 0.75rem 0;
+  border-radius: 16px;
+  border: 1px solid rgba(173, 144, 255, 0.3);
+  background: linear-gradient(135deg, rgba(141, 95, 245, 0.5), rgba(68, 47, 152, 0.85));
+}
+
+.avatar-large {
+  border: 1px solid rgba(232, 223, 255, 0.4);
+  background: rgba(20, 15, 44, 0.35);
+}
+
+.stat-card,
+.edit-form,
+.info-section,
+.modal {
+  background: rgba(21, 19, 44, 0.92);
+  border: 1px solid rgba(166, 138, 248, 0.2);
+  box-shadow: 0 10px 24px rgba(3, 3, 12, 0.35);
+}
+
+.stat-card .value,
+.info-value,
+.form-control label,
+.modal h3 {
+  color: #f6f3ff;
+}
+
+.stat-card .label,
+.profile-email,
+.profile-bio,
+.modal p,
+.info-label {
+  color: #b7abd8;
+}
+
+.btn-edit {
+  background: rgba(137, 102, 247, 0.2);
+  color: #f2ecff;
+  border-color: rgba(178, 150, 255, 0.35);
+}
+
+.btn-logout,
+.btn-save,
+.btn-confirm-logout {
+  background: linear-gradient(135deg, #8c61ff 0%, #5a44e6 100%);
+}
+
+.btn-cancel-edit,
+.btn-cancel-logout {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f2ecff;
+}
+
+.form-control input,
+.form-control textarea {
+  border: 1px solid rgba(169, 141, 253, 0.24);
+  background: rgba(24, 21, 49, 0.94);
+  color: #f4efff;
+}
+
+.modal-overlay {
+  background: rgba(5, 5, 13, 0.68);
 }
