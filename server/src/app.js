@@ -16,6 +16,11 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
+// Cuando se ejecuta detrás de un proxy (Vercel, Heroku, etc.), habilitar
+// 'trust proxy' para que express-rate-limit y otros middlewares lean correctamente
+// la IP real del cliente desde `X-Forwarded-For`.
+app.set("trust proxy", 1);
+
 // Security: HTTP Headers
 app.use(helmet());
 
