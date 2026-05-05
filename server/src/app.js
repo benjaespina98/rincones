@@ -68,6 +68,9 @@ const parseAllowedOrigins = () => {
     "http://localhost:5177",
     "http://localhost:5176",
     "http://localhost:5175",
+    "https://rincones.vercel.app",
+    "https://www.rincones.vercel.app",
+    "https://rincones-api.vercel.app",
     ...configuredOrigins,
   ]);
 };

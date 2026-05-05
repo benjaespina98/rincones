@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import "./AuthPages.css";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -14,8 +15,8 @@ export default function ForgotPasswordPage() {
 
     try {
       setLoading(true);
-      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await fetch(`${apiURL}/api/auth/forgot-password`, {
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+      const res = await fetch(`${apiURL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -34,11 +35,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="page-center">
-      <div className="card">
+      <div className="auth-card">
         <h2>Restablecer contraseña</h2>
-        <p>Ingresa tu correo y te enviaremos instrucciones para restablecer tu contraseña.</p>
+        <p className="lead">Ingresa tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.</p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <form onSubmit={handleSubmit} className="auth-form">
           <input
             type="email"
             placeholder="tu@email.com"
@@ -51,6 +52,10 @@ export default function ForgotPasswordPage() {
             {loading ? "Enviando..." : "Enviar instrucciones"}
           </button>
         </form>
+
+        <div className="auth-footer">
+          <Link to="/login" className="muted-link">Volver al login</Link>
+        </div>
       </div>
     </div>
   );

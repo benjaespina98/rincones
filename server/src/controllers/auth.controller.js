@@ -18,6 +18,30 @@ const getJwtSecret = () => {
   return secret;
 };
 
+const getAuthCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === "production";
+  const configuredSameSite = String(process.env.COOKIE_SAMESITE || "").trim().toLowerCase();
+  const sameSite = ["strict", "lax", "none"].includes(configuredSameSite)
+    ? configuredSameSite
+    : isProduction
+      ? "none"
+      : "lax";
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction || sameSite === "none",
+    sameSite,
+    path: "/",
+  };
+
+  const cookieDomain = String(process.env.COOKIE_DOMAIN || "").trim();
+  if (cookieDomain) {
+    cookieOptions.domain = cookieDomain;
+  }
+
+  return cookieOptions;
+};
+
 // Validar fortaleza de contraseña
 const validatePasswordStrength = (password) => {
   const minLength = 8;
@@ -45,11 +69,8 @@ const validatePasswordStrength = (password) => {
 // Guardar token en httpOnly cookie
 const setAuthCookie = (res, token) => {
   res.cookie("authToken", token, {
-    httpOnly: true, // No accesible por JavaScript
-    secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
-    sameSite: "strict", // Protege contra CSRF
+    ...getAuthCookieOptions(),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-    path: "/",
   });
 };
 
@@ -203,12 +224,7 @@ const register = async (req, res, next) => {
 const logout = async (req, res, next) => {
   try {
     // Limpiar cookie
-    res.clearCookie("authToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-    });
+    res.clearCookie("authToken", getAuthCookieOptions());
 
     return res.status(200).json({
       message: "Sesión cerrada",
@@ -288,6 +304,12 @@ const forgotPassword = async (req, res, next) => {
 
     // Fallback: sin SMTP configurado, registrar la URL en logs
     console.info("Password reset URL:", resetUrl);
+
+    // En desarrollo, devolver la URL para facilitar pruebas locales
+    if (process.env.NODE_ENV !== "production") {
+      return res.status(200).json({ message: "Instrucciones registradas (dev)", resetUrl });
+    }
+
     return res.status(200).json({ message: "Instrucciones (URL) han sido registradas en el servidor (sin SMTP configurado)" });
   } catch (error) {
     return next(error);

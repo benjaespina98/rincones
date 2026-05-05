@@ -9,12 +9,12 @@
 
 .login-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
   background: var(--surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line-accent);
   padding: var(--space-xl);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .login-header {
@@ -55,7 +55,7 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 0.9rem;
   margin-bottom: var(--space-lg);
 }
 
@@ -71,9 +71,26 @@
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
 
 .login-oauth {
   margin-bottom: var(--space-lg);
+}
+
+.login-footer {
+  text-align: center;
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-md);
+}
+
+.login-footer p {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-secondary);
+}
+
+.login-footer a {
+  color: var(--accent-light);
+  font-weight: 700;
 }
 
 .google-login-btn {

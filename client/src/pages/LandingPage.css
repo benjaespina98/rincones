@@ -1,12 +1,16 @@
 .landing {
   display: grid;
   gap: var(--space-2xl);
+  padding: 8px 2px 0;
   padding-bottom: var(--space-2xl);
 }
 
 /* Hero Section */
 .landing__hero {
-  background: linear-gradient(135deg, rgba(138, 109, 230, 0.2), rgba(15, 18, 32, 0.5));
+  background:
+    radial-gradient(circle at 85% 10%, rgba(167, 130, 239, 0.28), transparent 42%),
+    radial-gradient(circle at 16% 78%, rgba(198, 70, 95, 0.16), transparent 44%),
+    linear-gradient(135deg, rgba(18, 21, 33, 0.96), rgba(14, 18, 30, 0.9));
   border: 1px solid var(--line-accent);
   border-radius: var(--radius-2xl);
   padding: clamp(var(--space-2xl), 5vw, 4rem);
@@ -25,7 +29,7 @@
 
 .landing__hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  font-size: clamp(2.35rem, 8vw, 3.4rem);
   background: linear-gradient(135deg, var(--accent), var(--accent-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -65,9 +69,9 @@
 }
 
 .landing__feature-card:hover {
-  border-color: var(--accent);
+  border-color: var(--line-strong);
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .landing__feature-icon {
@@ -119,6 +123,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
 }
 
 .landing__step-number {
@@ -150,7 +155,7 @@
 
 /* CTA Section */
 .landing__cta {
-  background: linear-gradient(135deg, rgba(138, 109, 230, 0.15), rgba(15, 18, 32, 0.6));
+  background: linear-gradient(135deg, rgba(126, 89, 201, 0.18), rgba(15, 20, 33, 0.9));
   border: 1px solid var(--line-accent);
   border-radius: var(--radius-2xl);
   padding: var(--space-2xl) var(--space-lg);
@@ -175,6 +180,8 @@
 .landing__cta .button {
   min-height: 50px;
   padding: 0 var(--space-lg);
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 /* Mobile Responsive */

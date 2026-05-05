@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { getWineSuggestions, createWine } from "../services/wineApi";
 import "../styles/pages/SuggestionsPage.css";
 
 export default function SuggestionsPage() {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
+  const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -116,6 +118,10 @@ export default function SuggestionsPage() {
       <header className="page-header">
         <h1>✨ Sugerencias</h1>
         <p className="subtitle">Recomendaciones personalizadas para ti</p>
+        <div className="suggestions-hero-cta">
+          <button type="button" className="button button--primary" onClick={() => navigate("/descubrir")}>Escanear etiqueta</button>
+          <button type="button" className="button button--ghost" onClick={() => navigate("/explorar")}>Ver recomendaciones IA</button>
+        </div>
       </header>
 
       {/* Estado de Carga (Shneiderman: visibility) */}
