@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import "./AuthPages.css";
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -26,8 +27,8 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
-      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await fetch(`${apiURL}/api/auth/reset-password`, {
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+      const res = await fetch(`${apiURL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, email, newPassword: password }),
@@ -50,10 +51,11 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="page-center">
-      <div className="card">
+      <div className="auth-card">
         <h2>Crear nueva contraseña</h2>
+        <p className="lead">La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números.</p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <form onSubmit={handleSubmit} className="auth-form">
           <input type="email" placeholder="Correo" value={email} onChange={(e)=>setEmail(e.target.value)} disabled={loading} />
           <input type="password" placeholder="Nueva contraseña" value={password} onChange={(e)=>setPassword(e.target.value)} disabled={loading} />
           <input type="password" placeholder="Confirmar contraseña" value={confirm} onChange={(e)=>setConfirm(e.target.value)} disabled={loading} />
@@ -62,6 +64,10 @@ export default function ResetPasswordPage() {
             {loading ? "Guardando..." : "Cambiar contraseña"}
           </button>
         </form>
+
+        <div className="auth-footer">
+          <Link to="/login" className="muted-link">Volver al login</Link>
+        </div>
       </div>
     </div>
   );

@@ -42,7 +42,7 @@ const INITIAL_WINES = [
   },
 ];
 
-const FILTER_VALUES = new Set(["all", "favorites", "tasted", "tinto", "blanco"]);
+const FILTER_VALUES = new Set(["all", "favorites", "tasted", "nottasted", "lowstock", "tinto", "blanco"]);
 
 export default function BodyPage({ initialFilter = "all" }) {
   const { addToast, removeToast, showSuccess } = useToast();
@@ -86,7 +86,9 @@ export default function BodyPage({ initialFilter = "all" }) {
 
         if (filterType === "all") return true;
         if (filterType === "tasted") return wine.tasted;
+        if (filterType === "nottasted") return !wine.tasted;
         if (filterType === "favorites") return wine.favorite;
+        if (filterType === "lowstock") return Number(wine.quantity) <= 1;
         return wine.type.toLowerCase() === filterType.toLowerCase();
       }),
     [wines, searchTerm, filterType]
@@ -115,6 +117,23 @@ export default function BodyPage({ initialFilter = "all" }) {
 
     setWines((prev) => prev.map((w) => (w.id === id ? { ...w, tasted: !w.tasted } : w)));
     showSuccess(wine.tasted ? "Marcado como no probado" : "Vino marcado como probado");
+  };
+
+  const handleAdjustQuantity = (id, delta) => {
+    const wine = wines.find((item) => item.id === id);
+    if (!wine) return;
+
+    setWines((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const nextQuantity = Math.max(0, Number(item.quantity || 0) + delta);
+        return { ...item, quantity: nextQuantity };
+      })
+    );
+
+    if (delta > 0) {
+      showSuccess(`Stock actualizado: ${wine.name}`);
+    }
   };
 
   const restoreDeletedWine = (wineToRestore, toastId) => {
@@ -176,6 +195,7 @@ export default function BodyPage({ initialFilter = "all" }) {
     total: wines.length,
     favorites: wines.filter((wine) => wine.favorite).length,
     tasted: wines.filter((wine) => wine.tasted).length,
+    lowStock: wines.filter((wine) => Number(wine.quantity) <= 1).length,
   };
 
   const activeFilterLabel =
@@ -185,6 +205,10 @@ export default function BodyPage({ initialFilter = "all" }) {
         ? "Favoritos"
         : filterType === "tasted"
           ? "Probados"
+          : filterType === "nottasted"
+            ? "Pendientes"
+            : filterType === "lowstock"
+              ? "Stock bajo"
           : filterType.charAt(0).toUpperCase() + filterType.slice(1);
 
   return (
@@ -241,6 +265,8 @@ export default function BodyPage({ initialFilter = "all" }) {
           <option value="all">Todos</option>
           <option value="favorites">Favoritos</option>
           <option value="tasted">Probados</option>
+          <option value="nottasted">Pendientes</option>
+          <option value="lowstock">Stock bajo</option>
           <option value="tinto">Tintos</option>
           <option value="blanco">Blancos</option>
         </select>
@@ -256,6 +282,30 @@ export default function BodyPage({ initialFilter = "all" }) {
           <option value="year">Año</option>
           <option value="name">Nombre</option>
         </select>
+      </div>
+
+      <div className="quick-filters" aria-label="Filtros rápidos de bodega">
+        <button
+          type="button"
+          className={`quick-filter-chip ${filterType === "favorites" ? "quick-filter-chip--active" : ""}`}
+          onClick={() => setFilterType("favorites")}
+        >
+          Favoritos ({stats.favorites})
+        </button>
+        <button
+          type="button"
+          className={`quick-filter-chip ${filterType === "nottasted" ? "quick-filter-chip--active" : ""}`}
+          onClick={() => setFilterType("nottasted")}
+        >
+          Pendientes ({wines.length - stats.tasted})
+        </button>
+        <button
+          type="button"
+          className={`quick-filter-chip ${filterType === "lowstock" ? "quick-filter-chip--active" : ""}`}
+          onClick={() => setFilterType("lowstock")}
+        >
+          Stock bajo ({stats.lowStock})
+        </button>
       </div>
 
       {loading && (
@@ -283,7 +333,15 @@ export default function BodyPage({ initialFilter = "all" }) {
                   <span className="wine-year">{wine.year}</span>
                 </div>
                 <div className="wine-details">
-                  <span className="wine-qty">x{wine.quantity}</span>
+                  <div className="wine-qty-controls" aria-label={`Stock de ${wine.name}`}>
+                    <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine.id, -1)}>
+                      −
+                    </button>
+                    <span className="wine-qty">x{wine.quantity}</span>
+                    <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine.id, 1)}>
+                      +
+                    </button>
+                  </div>
                   {!!wine.rating && <span className="wine-rating">★ {wine.rating}</span>}
                 </div>
               </div>

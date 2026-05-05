@@ -1,27 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+
 :root {
-  /* Color Palette - Unified */
-  --bg: #050712;
-  --bg-deep: #030409;
-  --bg-soft: rgba(15, 18, 32, 0.8);
-  --surface: rgba(10, 12, 22, 0.9);
-  --surface-hover: rgba(20, 22, 42, 0.95);
+  /* Brand palette (accessible, dark + wine accent) */
+  --bg: #0b0d14;
+  --bg-deep: #070910;
+  --bg-soft: rgba(18, 21, 33, 0.78);
+  --surface: rgba(18, 22, 36, 0.9);
+  --surface-hover: rgba(27, 32, 49, 0.96);
   
   /* Accent Colors */
-  --accent: #8a6de6;
-  --accent-light: #a58df4;
-  --accent-soft: #bfa8ff;
-  --accent-muted: rgba(138, 109, 230, 0.12);
+  --accent: #7e59c9;
+  --accent-light: #a782ef;
+  --accent-soft: #cbb5f7;
+  --accent-muted: rgba(126, 89, 201, 0.18);
+  --wine: #c6465f;
+  --success: #2fb67b;
   
   /* Text Colors */
-  --text: #eef1ff;
-  --text-secondary: #b8b0dc;
-  --text-muted: #8a8299;
-  --text-subtle: #6a6d8f;
+  --text: #f3f5ff;
+  --text-secondary: #c3bddd;
+  --text-muted: #968fb4;
+  --text-subtle: #7b7798;
   
   /* Borders & Lines */
-  --line: rgba(90, 70, 150, 0.12);
-  --line-strong: rgba(90, 70, 150, 0.25);
-  --line-accent: rgba(120, 88, 200, 0.08);
+  --line: rgba(126, 89, 201, 0.2);
+  --line-strong: rgba(126, 89, 201, 0.38);
+  --line-accent: rgba(167, 130, 239, 0.28);
   
   /* Spacing System */
   --space-xs: 0.25rem;
@@ -57,8 +61,8 @@
   --transition-slow: 300ms ease;
   
   /* Typography */
-  --font-family-serif: "Space Grotesk", system-ui, -apple-system, sans-serif;
-  --font-family-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-family-serif: "Fraunces", "Times New Roman", serif;
+  --font-family-sans: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-family-base: var(--font-family-sans);
 }
 
@@ -79,9 +83,9 @@ body {
   font-family: var(--font-family-base);
   color: var(--text);
   background:
-    radial-gradient(circle at 84% 8%, rgba(126, 97, 206, 0.26) 0%, transparent 38%),
-    radial-gradient(circle at 8% 88%, rgba(70, 106, 192, 0.2) 0%, transparent 34%),
-    linear-gradient(180deg, #050712 0%, #080b17 100%),
+    radial-gradient(circle at 88% 4%, rgba(167, 130, 239, 0.28) 0%, transparent 36%),
+    radial-gradient(circle at 10% 92%, rgba(198, 70, 95, 0.16) 0%, transparent 34%),
+    linear-gradient(180deg, #090b13 0%, #101423 100%),
     var(--bg);
   overflow-x: hidden;
 }
@@ -127,6 +131,11 @@ p {
 button {
   font-family: var(--font-family-base);
   cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
 }
 
 input,
