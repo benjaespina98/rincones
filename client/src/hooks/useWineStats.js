@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { api } from '../services/api';
+import api from '../services/api';
 
 /**
  * Hook para obtener estadísticas de vinos del usuario actual (tipo Spotify)
