@@ -1,11 +1,13 @@
 import { useState } from "react";
 import LabelScanner from "../components/LabelScanner";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { useWineWithImages } from "../hooks/useWineWithImages";
 import { useToast } from "../context/ToastContext";
 import "./WineCollectionPage.css";
 
 const WineCollectionPage = () => {
   const { wines, loading, addWine, deleteWine, updateWine } = useWineCollection();
+  const winesWithImages = useWineWithImages(wines);
   const { showSuccess, showError } = useToast();
   const [showScanner, setShowScanner] = useState(false);
   const [selectedWine, setSelectedWine] = useState(null);
@@ -108,7 +110,7 @@ const WineCollectionPage = () => {
         </div>
       ) : (
         <div className="wine-collection__grid">
-          {wines.map((wine) => (
+          {winesWithImages.map((wine) => (
             <div
               key={wine.id}
               className={`wine-card ${selectedWine?.id === wine.id ? "wine-card--selected" : ""}`}

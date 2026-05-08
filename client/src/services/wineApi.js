@@ -1,108 +1,77 @@
 import api from "./api";
 
-// Obtener todos los vinos del usuario
 export const getWines = async () => {
-  try {
-    const { data } = await api.get("/vinos");
-    return data.data || [];
-  } catch (error) {
-    console.error("Error fetching wines:", error);
-    throw error;
-  }
+  const { data } = await api.get("/wines");
+  return data.data || [];
 };
 
-// Obtener un vino por ID
 export const getWineById = async (id) => {
-  try {
-    const { data } = await api.get(`/vinos/${id}`);
-    return data.data;
-  } catch (error) {
-    console.error("Error fetching wine:", error);
-    throw error;
-  }
+  const { data } = await api.get(`/wines/${id}`);
+  return data.data;
 };
 
-// Crear un nuevo vino
 export const createWine = async (payload) => {
-  try {
-    const { data } = await api.post("/vinos", payload);
-    return data.data;
-  } catch (error) {
-    console.error("Error creating wine:", error);
-    throw error;
-  }
+  const { data } = await api.post("/wines", payload);
+  return data.data;
 };
 
-// Actualizar un vino
 export const updateWine = async (id, payload) => {
-  try {
-    const { data } = await api.put(`/vinos/${id}`, payload);
-    return data.data;
-  } catch (error) {
-    console.error("Error updating wine:", error);
-    throw error;
-  }
+  const { data } = await api.put(`/wines/${id}`, payload);
+  return data.data;
 };
 
-// Eliminar un vino
 export const deleteWine = async (id) => {
-  try {
-    const { data } = await api.delete(`/vinos/${id}`);
-    return data;
-  } catch (error) {
-    console.error("Error deleting wine:", error);
-    throw error;
-  }
+  const { data } = await api.delete(`/wines/${id}`);
+  return data;
 };
 
-// Obtener sugerencias de vinos
+export const getWineStats = async () => {
+  const { data } = await api.get("/wines/stats/summary");
+  return data.data;
+};
+
+export const searchWines = async (query) => {
+  const { data } = await api.get("/wines/search", {
+    params: { q: query },
+  });
+
+  return data.data || [];
+};
+
 export const getWineSuggestions = async () => {
-  try {
-    const { data } = await api.get("/vinos/suggestions");
-    return data.data || [];
-  } catch (error) {
-    console.error("Error fetching suggestions:", error);
-    throw error;
-  }
+  const wines = await getWines();
+
+  return [...wines]
+    .sort((a, b) => {
+      const ratingDelta = Number(b.rating || 0) - Number(a.rating || 0);
+      if (ratingDelta !== 0) return ratingDelta;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    })
+    .slice(0, 6)
+    .map((wine) => ({
+      ...wine,
+      reason: wine.favorite
+        ? "Basado en tus favoritos"
+        : wine.tasted
+          ? "Similar a vinos que ya tomaste"
+          : "Sugerencia según tu bodega",
+    }));
 };
 
-// Marcar como favorito/no favorito
 export const toggleWineFavorite = async (id, isFavorite) => {
-  try {
-    const { data } = await api.patch(`/vinos/${id}/favorite`, {
-      favorite: isFavorite,
-    });
-    return data.data;
-  } catch (error) {
-    console.error("Error toggling favorite:", error);
-    throw error;
-  }
+  return updateWine(id, { favorite: isFavorite });
 };
 
-// Marcar como probado/no probado
 export const toggleWineTasted = async (id, isTasted) => {
-  try {
-    const { data } = await api.patch(`/vinos/${id}/tasted`, {
-      tasted: isTasted,
-    });
-    return data.data;
-  } catch (error) {
-    console.error("Error toggling tasted:", error);
-    throw error;
-  }
+  return updateWine(id, { tasted: isTasted });
 };
 
-// Escanear etiqueta de vino (OCR)
 export const scanWineLabel = async (imageFile) => {
-  try {
-    const formData = new FormData();
-    formData.append("image", imageFile);
-    const { data } = await api.post("/vinos/scan", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data.data;
-  } catch (error) {
-    console.error("Error scanning wine label:", error);
-    throw error;
-  }
+  const formData = new FormData();
+  formData.append("file", imageFile);
+  const { data } = await api.post("/labels/analyze", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return data.data;
 };

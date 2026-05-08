@@ -27,7 +27,6 @@ export default function ConfirmModal({
           <button
             className="confirm-modal__cancel"
             onClick={onCancel}
-            autoFocus
             type="button"
           >
             {cancelText}

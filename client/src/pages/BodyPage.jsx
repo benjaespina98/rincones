@@ -6,38 +6,47 @@ import "../styles/pages/BodyPage.css";
 const INITIAL_WINES = [
   {
     id: "1",
-    name: "Château Margaux",
-    region: "Burdeos",
+    name: "Catena Zapata Malbec Argentino",
+    winery: "Catena Zapata",
+    region: "Mendoza",
     type: "Tinto",
     year: 2015,
     quantity: 2,
     rating: 4.8,
     favorite: true,
     tasted: false,
+    varietal: "Malbec",
+    notes: "Intenso, frutado y ideal para carnes.",
     image: "🍷",
   },
   {
     id: "2",
-    name: "Vega Sicilia",
-    region: "Ribera del Duero",
+    name: "Luigi Bosca Malbec",
+    winery: "Luigi Bosca",
+    region: "Luján de Cuyo",
     type: "Tinto",
     year: 2010,
     quantity: 1,
     rating: 4.9,
     favorite: true,
     tasted: true,
+    varietal: "Malbec",
+    notes: "Elegante, con taninos suaves y final largo.",
     image: "🍷",
   },
   {
     id: "3",
-    name: "Álvaro Palacios",
-    region: "Priorat",
+    name: "Rutini Cabernet Sauvignon",
+    winery: "Rutini Wines",
+    region: "Valle de Uco",
     type: "Tinto",
     year: 2019,
     quantity: 3,
     rating: 4.7,
     favorite: false,
     tasted: false,
+    varietal: "Cabernet Sauvignon",
+    notes: "Buena opción si buscás algo más estructurado.",
     image: "🍷",
   },
 ];
@@ -57,6 +66,13 @@ export default function BodyPage({ initialFilter = "all" }) {
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
+  const normalizeSearchText = (value = "") =>
+    String(value)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
   useEffect(() => {
     if (FILTER_VALUES.has(initialFilter)) {
       setFilterType(initialFilter);
@@ -74,11 +90,14 @@ export default function BodyPage({ initialFilter = "all" }) {
   const filteredWines = useMemo(
     () =>
       wines.filter((wine) => {
-        const normalizedSearch = searchTerm.trim().toLowerCase();
+        const normalizedSearch = normalizeSearchText(searchTerm);
         const matchesSearch =
           !normalizedSearch ||
-          wine.name.toLowerCase().includes(normalizedSearch) ||
-          wine.region.toLowerCase().includes(normalizedSearch);
+          normalizeSearchText(wine.name).includes(normalizedSearch) ||
+          normalizeSearchText(wine.region).includes(normalizedSearch) ||
+          normalizeSearchText(wine.winery).includes(normalizedSearch) ||
+          normalizeSearchText(wine.varietal).includes(normalizedSearch) ||
+          normalizeSearchText(wine.notes).includes(normalizedSearch);
 
         if (!matchesSearch) {
           return false;
@@ -236,7 +255,7 @@ export default function BodyPage({ initialFilter = "all" }) {
       <div className="search-container">
         <input
           type="text"
-          placeholder="Buscar por nombre o región..."
+          placeholder="Buscar por nombre, bodega, varietal o notas..."
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           className="search-input"
@@ -318,7 +337,7 @@ export default function BodyPage({ initialFilter = "all" }) {
       {!loading && sortedWines.length > 0 ? (
         <div className="wines-grid">
           {sortedWines.map((wine) => (
-            <article key={wine.id} className="wine-card">
+            <article key={wine.id || wine._id} className="wine-card">
               <div className="wine-image-wrapper">
                 <div className="wine-image">{wine.image}</div>
                 {wine.favorite && <span className="badge-favorite">❤</span>}
@@ -331,6 +350,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                 <div className="wine-meta">
                   <span className="wine-type">{wine.type}</span>
                   <span className="wine-year">{wine.year}</span>
+                  {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
                 </div>
                 <div className="wine-details">
                   <div className="wine-qty-controls" aria-label={`Stock de ${wine.name}`}>
@@ -349,7 +369,7 @@ export default function BodyPage({ initialFilter = "all" }) {
               <div className="wine-actions">
                 <button
                   className={`btn-icon ${wine.favorite ? "active" : ""}`}
-                  onClick={() => handleToggleFavorite(wine.id)}
+                  onClick={() => handleToggleFavorite(wine.id || wine._id)}
                   type="button"
                   aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
                   title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -359,7 +379,7 @@ export default function BodyPage({ initialFilter = "all" }) {
 
                 <button
                   className={`btn-icon ${wine.tasted ? "active" : ""}`}
-                  onClick={() => handleToggleTasted(wine.id)}
+                  onClick={() => handleToggleTasted(wine.id || wine._id)}
                   type="button"
                   aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
                   title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
@@ -369,7 +389,7 @@ export default function BodyPage({ initialFilter = "all" }) {
 
                 <button
                   className="btn-delete"
-                  onClick={() => setShowDeleteConfirm(wine.id)}
+                  onClick={() => setShowDeleteConfirm(wine.id || wine._id)}
                   type="button"
                   aria-label="Eliminar vino"
                   title="Eliminar vino"

@@ -26,6 +26,12 @@
   justify-content: center;
 }
 
+.scanner-shell {
+  display: grid;
+  gap: 0.85rem;
+  width: 100%;
+}
+
 .btn-scan-large {
   width: min(100%, 220px);
   aspect-ratio: 1 / 1;
@@ -113,6 +119,12 @@
   gap: 0.5rem;
 }
 
+.scan-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .search-input {
   min-height: 45px;
   border-radius: 10px;
@@ -172,6 +184,35 @@
 .info-card p {
   margin: 0;
   color: #b8abd8;
+}
+
+.scan-edit-grid {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.scan-edit-input,
+.scan-edit-textarea {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 10px;
+  border: 1px solid rgba(171, 142, 255, 0.22);
+  background: rgba(21, 20, 44, 0.9);
+  color: #f6f2ff;
+  padding: 0.72rem 0.8rem;
+}
+
+.scan-edit-textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.scan-edit-input:focus,
+.scan-edit-textarea:focus {
+  outline: none;
+  border-color: rgba(198, 173, 255, 0.84);
+  box-shadow: 0 0 0 3px rgba(129, 88, 235, 0.2);
 }
 
 .scan-result {
@@ -246,6 +287,12 @@
   background: rgba(255, 255, 255, 0.14);
   color: #f2ecff;
   font-weight: 700;
+}
+
+.btn-cancel:disabled,
+.btn-add:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 @media (min-width: 768px) {
