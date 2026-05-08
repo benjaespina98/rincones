@@ -1,5 +1,6 @@
 .app-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at 86% 0%, rgba(167, 130, 239, 0.22), transparent 38%),
     radial-gradient(circle at 0% 100%, rgba(198, 70, 95, 0.14), transparent 32%),

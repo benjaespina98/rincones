@@ -2,18 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { useWineWithImages } from "../hooks/useWineWithImages";
 import { useToast } from "../context/ToastContext";
 import "./HomePage.css";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const { wines, addWine, loading } = useWineCollection();
+  const winesWithImages = useWineWithImages(wines);
   const { showSuccess, showError } = useToast();
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const recentWines = wines.slice(0, 6);
-  const filteredWines = wines.filter((w) =>
+  const recentWines = winesWithImages.slice(0, 6);
+  const filteredWines = winesWithImages.filter((w) =>
     w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.winery?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.varietal?.toLowerCase().includes(searchQuery.toLowerCase())

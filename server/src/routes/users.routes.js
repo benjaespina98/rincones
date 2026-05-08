@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const User = require("../models/user.model");
+const Wine = require("../models/wine.model");
 
 // GET /api/users/profile - Obtener perfil del usuario actual
 router.get("/profile", authenticate, async (req, res) => {
@@ -140,6 +141,24 @@ router.get("/stats", authenticate, async (req, res) => {
         averageRating: 0,
       },
     });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/users/:id/wine-stats - Estadísticas derivadas de la colección de vinos del usuario
+router.get("/:id/wine-stats", authenticate, async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+
+    // Permisos: el usuario debe pedir sus propias stats o ser admin
+    if (req.user.id !== targetUserId && !req.user.isAdmin) {
+      return res.status(403).json({ success: false, error: "No autorizado" });
+    }
+
+    const stats = await Wine.getUserStats(targetUserId);
+
+    res.json({ success: true, data: stats });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

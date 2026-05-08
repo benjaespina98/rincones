@@ -5,7 +5,7 @@ import {
   updateWine as updateWineApi,
   deleteWine as deleteWineApi,
   getWineStats,
-} from "../services/winesApi";
+} from "../services/wineApi";
 
 export const useWineCollection = () => {
   const [wines, setWines] = useState([]);

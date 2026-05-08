@@ -2,13 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
+import { useWineStats } from "../hooks/useWineStats";
 import { getProfile, updateProfile, getUserStats } from "../services/authApi";
+import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const { stats: wineStats, loading: statsLoading } = useWineStats();
 
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -143,16 +146,15 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      <div className="profile-header">
+      <section className="profile-header">
         <div className="avatar-large">{formData.avatar || "👤"}</div>
-        {!isEditing ? (
-          <div className="profile-info">
-            <h2>{formData.firstName} {formData.lastName}</h2>
-            <p className="profile-email">{user?.email}</p>
-            {formData.bio && <p className="profile-bio">{formData.bio}</p>}
-          </div>
-        ) : null}
-      </div>
+        <div className="profile-info">
+          <span className="profile-kicker">Tu cuenta</span>
+          <h2>{formData.firstName} {formData.lastName}</h2>
+          <p className="profile-email">{user?.email}</p>
+          {formData.bio && <p className="profile-bio">{formData.bio}</p>}
+        </div>
+      </section>
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -169,24 +171,104 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {wineStats && !statsLoading && (
+        <section className="wine-insights">
+          <h3 className="insights-title">✨ Tu perfil de vino</h3>
+          
+          {/* Types breakdown */}
+          {wineStats.countsByType && wineStats.countsByType.length > 0 && (
+            <div className="insight-card">
+              <div className="insight-header">Por tipo</div>
+              <div className="type-breakdown">
+                {wineStats.countsByType.map((item) => (
+                  <div key={item.type} className="type-item">
+                    <span className="type-label">{item.type}</span>
+                    <span className="type-count">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Top varietals */}
+          {wineStats.topVarietals && wineStats.topVarietals.length > 0 && (
+            <div className="insight-card">
+              <div className="insight-header">Varietales favoritos</div>
+              <div className="top-list">
+                {wineStats.topVarietals.slice(0, 5).map((item, idx) => (
+                  <div key={item.varietal} className="top-item">
+                    <span className="top-rank">#{idx + 1}</span>
+                    <span className="top-name">{item.varietal}</span>
+                    <span className="top-value">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Top regions */}
+          {wineStats.topRegions && wineStats.topRegions.length > 0 && (
+            <div className="insight-card">
+              <div className="insight-header">Regiones exploradas</div>
+              <div className="top-list">
+                {wineStats.topRegions.slice(0, 5).map((item, idx) => (
+                  <div key={item.region} className="top-item">
+                    <span className="top-rank">#{idx + 1}</span>
+                    <span className="top-name">{item.region}</span>
+                    <span className="top-value">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Average rating */}
+          {wineStats.avgRating > 0 && (
+            <div className="insight-card">
+              <div className="insight-header">Rating promedio</div>
+              <div className="rating-display">
+                <span className="rating-number">{wineStats.avgRating.toFixed(1)}</span>
+                <span className="rating-stars">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <span key={i} className={i < Math.round(wineStats.avgRating) ? 'star filled' : 'star'}>
+                      ⭐
+                    </span>
+                  ))}
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {!isEditing ? (
         <>
-          <div className="profile-actions">
-            <button className="btn-edit" onClick={() => setIsEditing(true)} type="button">✏️ Editar Perfil</button>
-            <button className="btn-logout" onClick={() => setShowLogoutConfirm(true)} type="button">🚪 Cerrar Sesión</button>
+          <div className="profile-card">
+            <div className="info-sections">
+              {formData.city && (
+                <div className="info-section">
+                  <span className="info-label">📍 Ubicación</span>
+                  <span className="info-value">{formData.city}{formData.country ? `, ${formData.country}` : ""}</span>
+                </div>
+              )}
+              {!formData.city && !formData.country && (
+                <div className="info-section info-section--empty">
+                  <span className="info-label">Perfil incompleto</span>
+                  <span className="info-value">Completá tus datos para personalizar sugerencias.</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="info-sections">
-            {formData.city && (
-              <div className="info-section">
-                <span className="info-label">📍 Ubicación</span>
-                <span className="info-value">{formData.city}{formData.country ? `, ${formData.country}` : ""}</span>
-              </div>
-            )}
+          <div className="profile-actions profile-actions--stacked">
+            <button className="btn-edit" onClick={() => setIsEditing(true)} type="button">✏️ Editar perfil</button>
+            <button className="btn-logout" onClick={() => setShowLogoutConfirm(true)} type="button">🚪 Cerrar sesión</button>
           </div>
         </>
       ) : (
         <div className="edit-form">
+          <div className="edit-form__section-title">Editá tu perfil</div>
+
           <div className="form-row">
             <div className="form-control">
               <label htmlFor="firstName">Nombre</label>
@@ -217,25 +299,23 @@ export default function ProfilePage() {
 
           {formError && <p className="profile-form-error">{formError}</p>}
 
-          <div className="form-actions">
-            <button className="btn-save" onClick={handleSave} type="button" disabled={loading}>Guardar</button>
+          <div className="profile-actions profile-actions--sticky">
             <button className="btn-cancel-edit" onClick={() => setIsEditing(false)} type="button">Cancelar</button>
+            <button className="btn-save" onClick={handleSave} type="button" disabled={loading}>Guardar cambios</button>
           </div>
         </div>
       )}
 
-      {showLogoutConfirm && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>¿Cerrar sesión?</h3>
-            <p>Se cerrará tu sesión en este dispositivo.</p>
-            <div className="modal-actions">
-              <button className="btn-cancel-logout" onClick={() => setShowLogoutConfirm(false)} type="button">Cancelar</button>
-              <button className="btn-confirm-logout" onClick={handleLogout} type="button">Cerrar Sesión</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="¿Cerrar sesión?"
+        message="Se cerrará tu sesión en este dispositivo."
+        confirmText="Cerrar sesión"
+        cancelText="Cancelar"
+        isDangerous
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 }

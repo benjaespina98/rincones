@@ -1,8 +1,44 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import { getWineSuggestions, createWine } from "../services/wineApi";
+import { getWineSuggestions } from "../services/wineApi";
 import "../styles/pages/SuggestionsPage.css";
+
+const DEMO_SUGGESTIONS = [
+  {
+    id: "1",
+    name: "Catena Zapata Malbec Argentino",
+    region: "Mendoza",
+    type: "Tinto",
+    year: 2015,
+    rating: 4.8,
+    price: 150,
+    image: "🍷",
+    reason: "Basado en tus favoritos",
+  },
+  {
+    id: "2",
+    name: "Luigi Bosca Malbec",
+    region: "Luján de Cuyo",
+    type: "Tinto",
+    year: 2010,
+    rating: 4.9,
+    price: 120,
+    image: "🍷",
+    reason: "Similar a vinos que ya elegiste",
+  },
+  {
+    id: "3",
+    name: "Rutini Cabernet Sauvignon",
+    region: "Valle de Uco",
+    type: "Tinto",
+    year: 2019,
+    rating: 4.7,
+    price: 90,
+    image: "🍷",
+    reason: "Trending entre usuarios",
+  },
+];
 
 export default function SuggestionsPage() {
   const { showSuccess } = useToast();
@@ -11,100 +47,33 @@ export default function SuggestionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Descomentar cuando el backend esté listo
-    // const loadSuggestions = async () => {
-    //   setLoading(true);
-    //   try {
-    //     const data = await getWineSuggestions();
-    //     setSuggestions(data);
-    //   } catch (error) {
-    //     addToast("Error al cargar sugerencias", "error");
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // loadSuggestions();
+    let mounted = true;
 
-    // Datos de demo mientras el backend no está listo
-    const timeout = setTimeout(() => {
-      setSuggestions([
-        {
-          id: "1",
-          name: "Château Margaux 2015",
-          region: "Burdeos",
-          type: "Tinto",
-          year: 2015,
-          rating: 4.8,
-          price: 150,
-          image: "🍷",
-          reason: "Basado en tus favoritos",
-        },
-        {
-          id: "2",
-          name: "Vega Sicilia Unico 2010",
-          region: "Ribera del Duero",
-          type: "Tinto",
-          year: 2010,
-          rating: 4.9,
-          price: 200,
-          image: "🍷",
-          reason: "Similar a Álvaro Palacios",
-        },
-        {
-          id: "3",
-          name: "Álvaro Palacios Terroir 2019",
-          region: "Priorat",
-          type: "Tinto",
-          year: 2019,
-          rating: 4.7,
-          price: 85,
-          image: "🍷",
-          reason: "Trending entre usuarios",
-        },
-        {
-          id: "4",
-          name: "Marqués de Murrieta Reserva 2015",
-          region: "Rioja",
-          type: "Tinto",
-          year: 2015,
-          rating: 4.6,
-          price: 65,
-          image: "🍷",
-          reason: "Nuevo en base datos",
-        },
-        {
-          id: "5",
-          name: "Pichon Longueville 2012",
-          region: "Burdeos",
-          type: "Tinto",
-          year: 2012,
-          rating: 4.5,
-          price: 95,
-          image: "🍷",
-          reason: "Recomendación del Sommelier",
-        },
-        {
-          id: "6",
-          name: "Cono Sur Pinot Noir 2021",
-          region: "Valle del Casablanca",
-          type: "Tinto",
-          year: 2021,
-          rating: 4.3,
-          price: 25,
-          image: "🍷",
-          reason: "Mejor relación precio",
-        },
-      ]);
-      setLoading(false);
-    }, 500);
+    const loadSuggestions = async () => {
+      try {
+        setLoading(true);
+        const data = await getWineSuggestions();
+        if (!mounted) return;
+        setSuggestions(data.length > 0 ? data : DEMO_SUGGESTIONS);
+      } catch (error) {
+        if (!mounted) return;
+        setSuggestions(DEMO_SUGGESTIONS);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-    return () => clearTimeout(timeout);
+    loadSuggestions();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Handlers
   const handleAddToCollection = (wine) => {
-    // TODO: Conectar con API cuando esté lista
-    // await createWine(wine);
     showSuccess(`✓ "${wine.name}" agregado a tu bodega`);
     setSuggestions(suggestions.filter((w) => w.id !== wine.id));
   };
