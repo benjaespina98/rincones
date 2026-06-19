@@ -1,77 +1,58 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
+import LoadingSkeleton from "../components/LoadingSkeleton";
+import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
+import { useWineCollection } from "../hooks/useWineCollection";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 import "../styles/pages/BodyPage.css";
 
-const INITIAL_WINES = [
-  {
-    id: "1",
-    name: "Catena Zapata Malbec Argentino",
-    winery: "Catena Zapata",
-    region: "Mendoza",
-    type: "Tinto",
-    year: 2015,
-    quantity: 2,
-    rating: 4.8,
-    favorite: true,
-    tasted: false,
-    varietal: "Malbec",
-    notes: "Intenso, frutado y ideal para carnes.",
-    image: "🍷",
-  },
-  {
-    id: "2",
-    name: "Luigi Bosca Malbec",
-    winery: "Luigi Bosca",
-    region: "Luján de Cuyo",
-    type: "Tinto",
-    year: 2010,
-    quantity: 1,
-    rating: 4.9,
-    favorite: true,
-    tasted: true,
-    varietal: "Malbec",
-    notes: "Elegante, con taninos suaves y final largo.",
-    image: "🍷",
-  },
-  {
-    id: "3",
-    name: "Rutini Cabernet Sauvignon",
-    winery: "Rutini Wines",
-    region: "Valle de Uco",
-    type: "Tinto",
-    year: 2019,
-    quantity: 3,
-    rating: 4.7,
-    favorite: false,
-    tasted: false,
-    varietal: "Cabernet Sauvignon",
-    notes: "Buena opción si buscás algo más estructurado.",
-    image: "🍷",
-  },
-];
+const FILTER_VALUES = new Set([
+  "all",
+  "favorites",
+  "tasted",
+  "nottasted",
+  "lowstock",
+  "red",
+  "white",
+  "rosé",
+  "sparkling",
+  "fortified",
+]);
 
-const FILTER_VALUES = new Set(["all", "favorites", "tasted", "nottasted", "lowstock", "tinto", "blanco"]);
+const normalizeSearchText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim();
 
 export default function BodyPage({ initialFilter = "all" }) {
-  const { addToast, removeToast, showSuccess } = useToast();
-  const [wines, setWines] = useState(INITIAL_WINES);
-  const [loading] = useState(false);
+  const navigate = useNavigate();
+  const { addToast, removeToast, showSuccess, showError } = useToast();
+  const {
+    wines,
+    loading,
+    error,
+    addWine,
+    deleteWine,
+    toggleFavorite,
+    updateWineTasted,
+    adjustStock,
+  } = useWineCollection();
+
   const [filterType, setFilterType] = useState(
     FILTER_VALUES.has(initialFilter) ? initialFilter : "all"
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [varietalFilter, setVarietalFilter] = useState("all");
+  const [regionFilter, setRegionFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [pendingActionId, setPendingActionId] = useState(null);
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
-
-  const normalizeSearchText = (value = "") =>
-    String(value)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
 
   useEffect(() => {
     if (FILTER_VALUES.has(initialFilter)) {
@@ -81,11 +62,22 @@ export default function BodyPage({ initialFilter = "all" }) {
 
   useEffect(() => {
     return () => {
-      if (undoTimerRef.current) {
-        clearTimeout(undoTimerRef.current);
-      }
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (error) showError(error);
+  }, [error, showError]);
+
+  const varietalOptions = useMemo(
+    () => [...new Set(wines.map((wine) => wine.varietal).filter(Boolean))].sort(),
+    [wines]
+  );
+  const regionOptions = useMemo(
+    () => [...new Set(wines.map((wine) => wine.region).filter(Boolean))].sort(),
+    [wines]
+  );
 
   const filteredWines = useMemo(
     () =>
@@ -93,122 +85,32 @@ export default function BodyPage({ initialFilter = "all" }) {
         const normalizedSearch = normalizeSearchText(searchTerm);
         const matchesSearch =
           !normalizedSearch ||
-          normalizeSearchText(wine.name).includes(normalizedSearch) ||
-          normalizeSearchText(wine.region).includes(normalizedSearch) ||
-          normalizeSearchText(wine.winery).includes(normalizedSearch) ||
-          normalizeSearchText(wine.varietal).includes(normalizedSearch) ||
-          normalizeSearchText(wine.notes).includes(normalizedSearch);
+          [wine.name, wine.region, wine.winery, wine.varietal, wine.notes]
+            .map(normalizeSearchText)
+            .some((field) => field.includes(normalizedSearch));
 
-        if (!matchesSearch) {
-          return false;
-        }
+        if (!matchesSearch) return false;
+        if (varietalFilter !== "all" && wine.varietal !== varietalFilter) return false;
+        if (regionFilter !== "all" && wine.region !== regionFilter) return false;
 
         if (filterType === "all") return true;
         if (filterType === "tasted") return wine.tasted;
         if (filterType === "nottasted") return !wine.tasted;
         if (filterType === "favorites") return wine.favorite;
         if (filterType === "lowstock") return Number(wine.quantity) <= 1;
-        return wine.type.toLowerCase() === filterType.toLowerCase();
+        return wine.type === filterType;
       }),
-    [wines, searchTerm, filterType]
+    [wines, searchTerm, filterType, varietalFilter, regionFilter]
   );
 
   const sortedWines = useMemo(() => {
     return [...filteredWines].sort((a, b) => {
-      if (sortBy === "rating") return b.rating - a.rating;
-      if (sortBy === "year") return b.year - a.year;
+      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === "year") return (b.vintage || 0) - (a.vintage || 0);
       if (sortBy === "name") return a.name.localeCompare(b.name);
-      return 0;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
   }, [filteredWines, sortBy]);
-
-  const handleToggleFavorite = (id) => {
-    const wine = wines.find((w) => w.id === id);
-    if (!wine) return;
-
-    setWines((prev) => prev.map((w) => (w.id === id ? { ...w, favorite: !w.favorite } : w)));
-    showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
-  };
-
-  const handleToggleTasted = (id) => {
-    const wine = wines.find((w) => w.id === id);
-    if (!wine) return;
-
-    setWines((prev) => prev.map((w) => (w.id === id ? { ...w, tasted: !w.tasted } : w)));
-    showSuccess(wine.tasted ? "Marcado como no probado" : "Vino marcado como probado");
-  };
-
-  const handleAdjustQuantity = (id, delta) => {
-    const wine = wines.find((item) => item.id === id);
-    if (!wine) return;
-
-    setWines((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const nextQuantity = Math.max(0, Number(item.quantity || 0) + delta);
-        return { ...item, quantity: nextQuantity };
-      })
-    );
-
-    if (delta > 0) {
-      showSuccess(`Stock actualizado: ${wine.name}`);
-    }
-  };
-
-  const restoreDeletedWine = (wineToRestore, toastId) => {
-    if (!wineToRestore) {
-      return;
-    }
-
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current);
-      undoTimerRef.current = null;
-    }
-
-    setWines((prev) => {
-      const exists = prev.some((wine) => wine.id === wineToRestore.id);
-      if (exists) return prev;
-      return [wineToRestore, ...prev];
-    });
-
-    if (toastId) {
-      removeToast(toastId);
-    }
-
-    showSuccess(`"${wineToRestore.name}" restaurado`);
-  };
-
-  const handleDeleteWine = (id) => {
-    const wineToDelete = wines.find((wine) => wine.id === id);
-    if (!wineToDelete) {
-      setShowDeleteConfirm(null);
-      return;
-    }
-
-    setWines((prev) => prev.filter((wine) => wine.id !== id));
-    setShowDeleteConfirm(null);
-
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current);
-      undoTimerRef.current = null;
-    }
-
-    if (pendingDeleteToastRef.current) {
-      removeToast(pendingDeleteToastRef.current);
-      pendingDeleteToastRef.current = "";
-    }
-
-    const toastId = addToast(`"${wineToDelete.name}" eliminado`, "warning", 8000, {
-      label: "Deshacer",
-      onClick: () => restoreDeletedWine(wineToDelete, toastId),
-    });
-
-    pendingDeleteToastRef.current = toastId;
-    undoTimerRef.current = setTimeout(() => {
-      undoTimerRef.current = null;
-      pendingDeleteToastRef.current = "";
-    }, 8000);
-  };
 
   const stats = {
     total: wines.length,
@@ -228,31 +130,138 @@ export default function BodyPage({ initialFilter = "all" }) {
             ? "Pendientes"
             : filterType === "lowstock"
               ? "Stock bajo"
-          : filterType.charAt(0).toUpperCase() + filterType.slice(1);
+              : WINE_TYPE_LABELS[filterType] || filterType;
+
+  const activeCharacteristicFilters = [
+    varietalFilter !== "all" ? varietalFilter : null,
+    regionFilter !== "all" ? regionFilter : null,
+  ].filter(Boolean);
+
+  const hasActiveFilters = filterType !== "all" || activeCharacteristicFilters.length > 0;
+
+  const clearAllFilters = () => {
+    setFilterType("all");
+    setVarietalFilter("all");
+    setRegionFilter("all");
+  };
+
+  const withPendingAction = async (id, action) => {
+    setPendingActionId(id);
+    try {
+      await action();
+    } catch {
+      showError("No se pudo completar la acción. Intenta de nuevo.");
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  const handleToggleFavorite = (wine) =>
+    withPendingAction(wine._id, async () => {
+      await toggleFavorite(wine._id, !wine.favorite);
+      showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
+    });
+
+  const handleToggleTasted = (wine) =>
+    withPendingAction(wine._id, async () => {
+      await updateWineTasted(wine._id, !wine.tasted);
+      showSuccess(wine.tasted ? "Marcado como no probado" : "Vino marcado como probado");
+    });
+
+  const handleAdjustQuantity = (wine, delta) => {
+    if (delta < 0 && Number(wine.quantity) <= 0) return;
+    withPendingAction(wine._id, async () => {
+      await adjustStock(wine._id, delta);
+      if (delta > 0) showSuccess(`Stock actualizado: ${wine.name}`);
+    });
+  };
+
+  const restoreDeletedWine = async (wineToRestore, toastId) => {
+    if (!wineToRestore) return;
+
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+
+    if (toastId) removeToast(toastId);
+
+    try {
+      await addWine({
+        name: wineToRestore.name,
+        winery: wineToRestore.winery,
+        vintage: wineToRestore.vintage,
+        region: wineToRestore.region,
+        varietal: wineToRestore.varietal,
+        notes: wineToRestore.notes,
+        rating: wineToRestore.rating,
+        tasted: wineToRestore.tasted,
+        favorite: wineToRestore.favorite,
+        quantity: wineToRestore.quantity,
+        image: wineToRestore.image,
+      });
+      showSuccess(`"${wineToRestore.name}" restaurado`);
+    } catch {
+      showError("No se pudo restaurar el vino");
+    }
+  };
+
+  const handleDeleteWine = async (id) => {
+    const wineToDelete = wines.find((wine) => wine._id === id);
+    setShowDeleteConfirm(null);
+    if (!wineToDelete) return;
+
+    try {
+      await deleteWine(id);
+    } catch {
+      showError("No se pudo eliminar el vino");
+      return;
+    }
+
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    if (pendingDeleteToastRef.current) {
+      removeToast(pendingDeleteToastRef.current);
+      pendingDeleteToastRef.current = "";
+    }
+
+    const toastId = addToast(`"${wineToDelete.name}" eliminado`, "warning", 8000, {
+      label: "Deshacer",
+      onClick: () => restoreDeletedWine(wineToDelete, toastId),
+    });
+
+    pendingDeleteToastRef.current = toastId;
+    undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
+      pendingDeleteToastRef.current = "";
+    }, 8000);
+  };
 
   return (
     <div className="body-page">
-      <header className="page-header">
-        <h1>Mi Bodega</h1>
-        <p className="subtitle">Vista actual: {activeFilterLabel}</p>
-
-        <div className="stats-container">
-          <div className="stat">
-            <span className="stat-number">{stats.total}</span>
-            <span className="stat-label">Vinos</span>
-          </div>
-          <div className="stat">
-            <span className="stat-number">{stats.favorites}</span>
-            <span className="stat-label">Favoritos</span>
-          </div>
-          <div className="stat">
-            <span className="stat-number">{stats.tasted}</span>
-            <span className="stat-label">Probados</span>
-          </div>
+      <div className="stats-strip" role="group" aria-label="Resumen de tu bodega">
+        <div className="stat">
+          <span className="stat-number">{stats.total}</span>
+          <span className="stat-label">Vinos</span>
         </div>
-      </header>
+        <div className="stat">
+          <span className="stat-number">{stats.favorites}</span>
+          <span className="stat-label">Favoritos</span>
+        </div>
+        <div className="stat">
+          <span className="stat-number">{stats.tasted}</span>
+          <span className="stat-label">Probados</span>
+        </div>
+        <div className="stat">
+          <span className="stat-number">{stats.lowStock}</span>
+          <span className="stat-label">Stock bajo</span>
+        </div>
+      </div>
 
       <div className="search-container">
+        <span className="search-icon" aria-hidden="true">⌕</span>
         <input
           type="text"
           placeholder="Buscar por nombre, bodega, varietal o notas..."
@@ -286,8 +295,11 @@ export default function BodyPage({ initialFilter = "all" }) {
           <option value="tasted">Probados</option>
           <option value="nottasted">Pendientes</option>
           <option value="lowstock">Stock bajo</option>
-          <option value="tinto">Tintos</option>
-          <option value="blanco">Blancos</option>
+          <option value="red">Tintos</option>
+          <option value="white">Blancos</option>
+          <option value="rosé">Rosados</option>
+          <option value="sparkling">Espumantes</option>
+          <option value="fortified">Fortificados</option>
         </select>
 
         <select
@@ -303,121 +315,226 @@ export default function BodyPage({ initialFilter = "all" }) {
         </select>
       </div>
 
+      {(varietalOptions.length > 1 || regionOptions.length > 1) && (
+        <div className="controls">
+          {varietalOptions.length > 1 && (
+            <select
+              value={varietalFilter}
+              onChange={(event) => setVarietalFilter(event.target.value)}
+              className="filter-select"
+              aria-label="Filtrar por varietal"
+            >
+              <option value="all">Todos los varietales</option>
+              {varietalOptions.map((varietal) => (
+                <option key={varietal} value={varietal}>{varietal}</option>
+              ))}
+            </select>
+          )}
+
+          {regionOptions.length > 1 && (
+            <select
+              value={regionFilter}
+              onChange={(event) => setRegionFilter(event.target.value)}
+              className="filter-select"
+              aria-label="Filtrar por región"
+            >
+              <option value="all">Todas las regiones</option>
+              {regionOptions.map((region) => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
       <div className="quick-filters" aria-label="Filtros rápidos de bodega">
         <button
           type="button"
           className={`quick-filter-chip ${filterType === "favorites" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType("favorites")}
+          onClick={() => setFilterType(filterType === "favorites" ? "all" : "favorites")}
         >
-          Favoritos ({stats.favorites})
+          ❤ Favoritos ({stats.favorites})
         </button>
         <button
           type="button"
           className={`quick-filter-chip ${filterType === "nottasted" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType("nottasted")}
+          onClick={() => setFilterType(filterType === "nottasted" ? "all" : "nottasted")}
         >
           Pendientes ({wines.length - stats.tasted})
         </button>
         <button
           type="button"
           className={`quick-filter-chip ${filterType === "lowstock" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType("lowstock")}
+          onClick={() => setFilterType(filterType === "lowstock" ? "all" : "lowstock")}
         >
-          Stock bajo ({stats.lowStock})
+          ⚠ Stock bajo ({stats.lowStock})
         </button>
       </div>
 
-      {loading && (
-        <div className="loading">
-          <div className="loader"></div>
-          <p>Cargando tu bodega...</p>
+      {hasActiveFilters && (
+        <p className="active-filter-note">
+          Mostrando:{" "}
+          <strong>
+            {[
+              filterType !== "all" ? activeFilterLabel : null,
+              ...activeCharacteristicFilters,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </strong>
+          <button type="button" className="active-filter-note__clear" onClick={clearAllFilters}>
+            Quitar filtros
+          </button>
+        </p>
+      )}
+
+      {loading && <LoadingSkeleton type="card" count={4} />}
+
+      {!loading && sortedWines.length > 0 && (
+        <div className="wines-grid">
+          {sortedWines.map((wine) => {
+            const isPending = pendingActionId === wine._id;
+            return (
+              <article
+                key={wine._id}
+                className={`wine-card ${isPending ? "wine-card--pending" : ""}`}
+                onClick={() => navigate(`/vino/${wine._id}`)}
+                role="link"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") navigate(`/vino/${wine._id}`);
+                }}
+              >
+                <div className="wine-image-wrapper">
+                  {wine.image ? (
+                    <img src={wine.image} alt={wine.name} className="wine-image-photo" loading="lazy" />
+                  ) : (
+                    <span className="wine-image" aria-hidden="true">🍷</span>
+                  )}
+                  {wine.favorite && (
+                    <span className="badge-favorite" aria-label="Favorito" title="Favorito">❤</span>
+                  )}
+                  {wine.tasted && (
+                    <span className="badge-tasted" aria-label="Probado" title="Probado">✓</span>
+                  )}
+                  {Number(wine.quantity) <= 0 && (
+                    <span className="badge-empty">Sin stock</span>
+                  )}
+                </div>
+
+                <div className="wine-info">
+                  <h3 className="wine-name" title={wine.name}>{wine.name}</h3>
+                  <p className="wine-region">
+                    {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
+                  </p>
+                  <div className="wine-meta">
+                    <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+                    {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
+                    {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
+                  </div>
+                  <div className="wine-details">
+                    <div
+                      className="wine-qty-controls"
+                      aria-label={`Stock de ${wine.name}`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => handleAdjustQuantity(wine, -1)}
+                        disabled={isPending || Number(wine.quantity) <= 0}
+                        aria-label="Restar una unidad"
+                      >
+                        −
+                      </button>
+                      <span className="wine-qty">x{wine.quantity}</span>
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => handleAdjustQuantity(wine, 1)}
+                        disabled={isPending}
+                        aria-label="Sumar una unidad"
+                      >
+                        +
+                      </button>
+                    </div>
+                    {!!wine.rating && <StarRating value={wine.rating} size="sm" />}
+                  </div>
+                </div>
+
+                <div className="wine-actions" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    className={`btn-icon ${wine.favorite ? "active" : ""}`}
+                    onClick={() => handleToggleFavorite(wine)}
+                    type="button"
+                    disabled={isPending}
+                    aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                    title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                  >
+                    {wine.favorite ? "❤" : "♡"}
+                  </button>
+
+                  <button
+                    className={`btn-icon ${wine.tasted ? "active" : ""}`}
+                    onClick={() => handleToggleTasted(wine)}
+                    type="button"
+                    disabled={isPending}
+                    aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
+                    title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
+                  >
+                    {wine.tasted ? "✓" : "○"}
+                  </button>
+
+                  <button
+                    className="btn-delete"
+                    onClick={() => setShowDeleteConfirm(wine._id)}
+                    type="button"
+                    disabled={isPending}
+                    aria-label="Eliminar vino"
+                    title="Eliminar vino"
+                  >
+                    🗑
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 
-      {!loading && sortedWines.length > 0 ? (
-        <div className="wines-grid">
-          {sortedWines.map((wine) => (
-            <article key={wine.id || wine._id} className="wine-card">
-              <div className="wine-image-wrapper">
-                <div className="wine-image">{wine.image}</div>
-                {wine.favorite && <span className="badge-favorite">❤</span>}
-                {wine.tasted && <span className="badge-tasted">✓</span>}
-              </div>
-
-              <div className="wine-info">
-                <h3 className="wine-name">{wine.name}</h3>
-                <p className="wine-region">{wine.region}</p>
-                <div className="wine-meta">
-                  <span className="wine-type">{wine.type}</span>
-                  <span className="wine-year">{wine.year}</span>
-                  {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
-                </div>
-                <div className="wine-details">
-                  <div className="wine-qty-controls" aria-label={`Stock de ${wine.name}`}>
-                    <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine.id, -1)}>
-                      −
-                    </button>
-                    <span className="wine-qty">x{wine.quantity}</span>
-                    <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine.id, 1)}>
-                      +
-                    </button>
-                  </div>
-                  {!!wine.rating && <span className="wine-rating">★ {wine.rating}</span>}
-                </div>
-              </div>
-
-              <div className="wine-actions">
-                <button
-                  className={`btn-icon ${wine.favorite ? "active" : ""}`}
-                  onClick={() => handleToggleFavorite(wine.id || wine._id)}
-                  type="button"
-                  aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                  title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                >
-                  {wine.favorite ? "❤" : "♡"}
-                </button>
-
-                <button
-                  className={`btn-icon ${wine.tasted ? "active" : ""}`}
-                  onClick={() => handleToggleTasted(wine.id || wine._id)}
-                  type="button"
-                  aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-                  title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-                >
-                  {wine.tasted ? "✓" : "○"}
-                </button>
-
-                <button
-                  className="btn-delete"
-                  onClick={() => setShowDeleteConfirm(wine.id || wine._id)}
-                  type="button"
-                  aria-label="Eliminar vino"
-                  title="Eliminar vino"
-                >
-                  🗑
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : !loading && wines.length === 0 ? (
+      {!loading && wines.length === 0 && (
         <div className="empty-state">
-          <p className="empty-icon">🍷</p>
+          <p className="empty-icon" aria-hidden="true">🍷</p>
           <p className="empty-title">Tu bodega está vacía</p>
-          <p className="empty-subtitle">Comienza agregando vinos para activar sugerencias.</p>
+          <p className="empty-subtitle">Escaneá la etiqueta de un vino para empezar tu colección.</p>
+          <button type="button" className="empty-cta" onClick={() => navigate("/descubrir")}>
+            Escanear mi primer vino
+          </button>
         </div>
-      ) : !loading && sortedWines.length === 0 ? (
+      )}
+
+      {!loading && wines.length > 0 && sortedWines.length === 0 && (
         <div className="empty-state">
-          <p className="empty-icon">🔍</p>
+          <p className="empty-icon" aria-hidden="true">🔍</p>
           <p className="empty-title">Sin resultados</p>
-          <p className="empty-subtitle">Prueba limpiando búsqueda o cambiando filtros.</p>
+          <p className="empty-subtitle">Probá limpiando la búsqueda o cambiando los filtros.</p>
+          <button
+            type="button"
+            className="empty-cta"
+            onClick={() => {
+              setSearchTerm("");
+              clearAllFilters();
+            }}
+          >
+            Limpiar filtros
+          </button>
         </div>
-      ) : null}
+      )}
 
       <ConfirmModal
         isOpen={showDeleteConfirm !== null}
         title="¿Eliminar vino?"
-        message={`Se quitará "${wines.find((wine) => wine.id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Podrás deshacer por unos segundos.`}
+        message={`Se quitará "${wines.find((wine) => wine._id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Podrás deshacer por unos segundos.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous

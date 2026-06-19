@@ -25,6 +25,11 @@ export const deleteWine = async (id) => {
   return data;
 };
 
+export const adjustWineStock = async (id, delta) => {
+  const { data } = await api.patch(`/wines/${id}/stock`, { delta });
+  return data.data;
+};
+
 export const getWineStats = async () => {
   const { data } = await api.get("/wines/stats/summary");
   return data.data;
@@ -66,12 +71,13 @@ export const toggleWineTasted = async (id, isTasted) => {
   return updateWine(id, { tasted: isTasted });
 };
 
-export const scanWineLabel = async (imageFile) => {
-  const formData = new FormData();
-  formData.append("file", imageFile);
-  const { data } = await api.post("/labels/analyze", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+export const getWineMoments = async (id) => {
+  const { data } = await api.get(`/wines/${id}/moments`);
+  return data.data || [];
+};
 
+export const addWineMoment = async (id, payload) => {
+  const { data } = await api.post(`/wines/${id}/moments`, payload);
   return data.data;
 };
+

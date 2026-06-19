@@ -4,6 +4,7 @@ import {
   createWine as createWineApi,
   updateWine as updateWineApi,
   deleteWine as deleteWineApi,
+  adjustWineStock,
   getWineStats,
 } from "../services/wineApi";
 
@@ -24,7 +25,7 @@ export const useWineCollection = () => {
       setError("");
       const data = await getWines();
       setWines(data);
-      
+
       // Cargar stats
       const statsData = await getWineStats();
       setStats(statsData);
@@ -41,68 +42,43 @@ export const useWineCollection = () => {
     loadWines();
   }, [loadWines]);
 
-  const addWine = useCallback(
-    async (wineData) => {
-      try {
-        const newWine = await createWineApi(wineData);
-        setWines((prev) => [newWine, ...prev]);
-        return newWine;
-      } catch (err) {
-        setError("Error al agregar el vino");
-        throw err;
-      }
-    },
-    []
-  );
+  const addWine = useCallback(async (wineData) => {
+    const newWine = await createWineApi(wineData);
+    setWines((prev) => [newWine, ...prev]);
+    return newWine;
+  }, []);
 
-  const deleteWine = useCallback(
-    async (id) => {
-      try {
-        await deleteWineApi(id);
-        setWines((prev) => prev.filter((wine) => wine._id !== id));
-      } catch (err) {
-        setError("Error al eliminar el vino");
-        throw err;
-      }
-    },
-    []
-  );
+  const deleteWine = useCallback(async (id) => {
+    await deleteWineApi(id);
+    setWines((prev) => prev.filter((wine) => wine._id !== id));
+  }, []);
+
+  const updateWine = useCallback(async (id, payload) => {
+    const updated = await updateWineApi(id, payload);
+    setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
+    return updated;
+  }, []);
 
   const updateWineRating = useCallback(
-    async (id, rating) => {
-      try {
-        const updated = await updateWineApi(id, { rating });
-        setWines((prev) =>
-          prev.map((wine) =>
-            wine._id === id ? { ...wine, rating } : wine
-          )
-        );
-        return updated;
-      } catch (err) {
-        setError("Error al actualizar el vino");
-        throw err;
-      }
-    },
-    []
+    async (id, rating) => updateWine(id, { rating }),
+    [updateWine]
   );
 
   const updateWineTasted = useCallback(
-    async (id, tasted) => {
-      try {
-        const updated = await updateWineApi(id, { tasted });
-        setWines((prev) =>
-          prev.map((wine) =>
-            wine._id === id ? { ...wine, tasted } : wine
-          )
-        );
-        return updated;
-      } catch (err) {
-        setError("Error al actualizar el vino");
-        throw err;
-      }
-    },
-    []
+    async (id, tasted) => updateWine(id, { tasted }),
+    [updateWine]
   );
+
+  const toggleFavorite = useCallback(
+    async (id, favorite) => updateWine(id, { favorite }),
+    [updateWine]
+  );
+
+  const adjustStock = useCallback(async (id, delta) => {
+    const updated = await adjustWineStock(id, delta);
+    setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
+    return updated;
+  }, []);
 
   return {
     wines,
@@ -111,8 +87,11 @@ export const useWineCollection = () => {
     stats,
     addWine,
     deleteWine,
+    updateWine,
     updateWineRating,
     updateWineTasted,
+    toggleFavorite,
+    adjustStock,
     recargar: loadWines,
   };
 };

@@ -13,18 +13,7 @@ const getJwtSecret = () => {
 };
 
 const authenticate = (req, res, next) => {
-  let token = null;
-
-  // Método 1: Leer del Authorization header (Bearer token)
-  const authHeader = String(req.headers.authorization || "");
-  if (authHeader.startsWith("Bearer ")) {
-    token = authHeader.slice(7);
-  }
-
-  // Método 2: Leer de la cookie httpOnly (método seguro)
-  if (!token && req.cookies?.authToken) {
-    token = req.cookies.authToken;
-  }
+  const token = req.cookies?.authToken || null;
 
   if (!token) {
     return res.status(401).json({ message: "Token requerido" });

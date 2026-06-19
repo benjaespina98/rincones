@@ -26,19 +26,6 @@
   color: var(--text-secondary);
 }
 
-.suggestions-hero-cta {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.suggestions-hero-cta .button {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 10px;
-}
-
 .loading {
   display: grid;
   justify-items: center;
@@ -77,6 +64,7 @@
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   padding: 12px;
+  cursor: pointer;
   transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
 }
 
@@ -84,6 +72,11 @@
   transform: translateY(-2px);
   border-color: var(--line-strong);
   box-shadow: var(--shadow-md);
+}
+
+.suggestion-card:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
 }
 
 .suggestion-card .wine-image-wrapper {
@@ -94,10 +87,17 @@
   background: linear-gradient(135deg, rgba(126, 89, 201, 0.24), rgba(16, 20, 33, 0.9));
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
 
 .suggestion-card .wine-image {
   font-size: 2.4rem;
+}
+
+.suggestion-card__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .suggestion-card .wine-info {
@@ -126,8 +126,7 @@
 }
 
 .suggestion-card .wine-type,
-.suggestion-card .wine-year,
-.suggestion-card .wine-price {
+.suggestion-card .wine-year {
   border-radius: 999px;
   border: 1px solid var(--line);
   background: rgba(126, 89, 201, 0.12);
@@ -176,6 +175,18 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--line);
   color: var(--text-secondary);
+}
+
+.btn-favorite--active {
+  background: rgba(255, 101, 160, 0.18);
+  border-color: rgba(255, 101, 160, 0.4);
+  color: #ff6ea0;
+}
+
+.btn-favorite:disabled,
+.btn-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-add {

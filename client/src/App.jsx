@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
-import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -10,10 +9,7 @@ import BodyPage from "./pages/BodyPage";
 import SuggestionsPage from "./pages/SuggestionsPage";
 import ScanWinePage from "./pages/ScanWinePage";
 import ProfilePage from "./pages/ProfilePage";
-import PlacesMapPage from "./pages/PlacesMapPage";
-import ExplorarPage from "./pages/ExplorarPage";
-import LugarDetallePage from "./pages/LugarDetallePage";
-import AgregarLugarPage from "./pages/AgregarLugarPage";
+import WineDetailPage from "./pages/WineDetailPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import "./App.css";
 
@@ -88,12 +84,18 @@ function App() {
         }
       />
       
-      {/* Nested Routes (lugares, admin) */}
-      <Route path="/lugares/:id" element={<LugarDetallePage />} />
-      <Route path="/mapa" element={<PlacesMapPage />} />
-      <Route path="/explorar-lugares" element={<ExplorarPage />} />
-      <Route path="/agregar" element={<ProtectedRoute><AgregarLugarPage /></ProtectedRoute>} />
-      
+      {/* Detalle de vino */}
+      <Route
+        path="/vino/:id"
+        element={
+          <PrivateRoute>
+            <AppLayout pageTitle="Vino">
+                <WineDetailPage />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,6 +1,6 @@
 # Rincones
 
-Aplicacion web MERN para recomendar lugares para visitar (rios, montanas, bares, cafeterias, restaurantes, miradores y puntos turisticos), pensada para escalar a multiples ciudades.
+Aplicacion web MERN para escanear, coleccionar y organizar vinos: tu bodega personal, momentos de degustacion y sugerencias.
 
 ## Stack
 
@@ -8,12 +8,8 @@ Aplicacion web MERN para recomendar lugares para visitar (rios, montanas, bares,
 - Express + Node.js
 - React + Vite
 - React Router + Axios
-- Leaflet (mapa)
-- Mapbox GL JS (mapa interactivo)
-- Foursquare Places API (lugares cercanos)
-- OpenStreetMap (Overpass + Nominatim)
-- Wikipedia API (lugares y contexto publico)
-- Google Places API (enriquecimiento opcional, requiere billing)
+- Tesseract.js (OCR de etiquetas de vino)
+- Unsplash API (imagenes de vinos, opcional)
 
 ## Estructura
 
@@ -36,30 +32,6 @@ server/
 		app.js
 ```
 
-Estructura recomendada para escalar el modulo de mapa:
-
-```
-client/src/
-	components/
-		PlacesMapView.jsx
-		PlacesBottomSheet.jsx
-	pages/
-		PlacesMapPage.jsx
-	services/
-		placesApi.js
-	utils/
-		mapPlaceCategories.js
-server/src/
-	controllers/
-		places.controller.js
-	models/
-		placeCache.model.js
-	routes/
-		places.routes.js
-	services/
-		places.service.js
-```
-
 ## Requisitos
 
 - Node.js 20+
@@ -73,25 +45,19 @@ Backend ([server/.env.example](server/.env.example)):
 PORT=4000
 MONGODB_URI=mongodb://127.0.0.1:27017/rincones
 MONGODB_DB_NAME=rincones
-FOURSQUARE_API_KEY=your_foursquare_api_key
-PLACES_CACHE_TTL_MINUTES=60
-NOMINATIM_TIMEOUT_MS=7000
-OVERPASS_TIMEOUT_MS=6500
-WIKIPEDIA_TIMEOUT_MS=4500
-GOOGLE_PLACES_ENABLED=false
-GOOGLE_PLACES_API_KEY=
-GOOGLE_PLACES_TIMEOUT_MS=7000
-AI_RERANK_API_KEY=
-AI_RERANK_BASE_URL=https://openrouter.ai/api/v1
-AI_RERANK_MODEL=openai/gpt-4o-mini
-AI_CHAT_MODEL=openai/gpt-4o-mini
+JWT_SECRET=change_this_super_secret
+FRONTEND_URL=http://localhost:5173
+ADMIN_EMAIL=admin@rincones.local
+ADMIN_PASSWORD=change_this_password
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+CORS_ALLOW_VERCEL_PREVIEWS=false
 ```
 
 Frontend ([client/.env.example](client/.env.example)):
 
 ```
 VITE_API_URL=http://localhost:4000/api
-VITE_MAPBOX_TOKEN=your_mapbox_public_token
+VITE_UNSPLASH_API_KEY=your_unsplash_api_key
 ```
 
 ## Instalacion
@@ -120,64 +86,45 @@ npm run build
 
 Base URL: `http://localhost:4000/api`
 
-- `GET /lugares` obtener todos los lugares
-- `GET /lugares/:id` obtener detalle de un lugar
-- `GET /places?lat=...&lng=...&radius=...&category=...` lugares cercanos desde cache/Foursquare
-- `GET /geocode/discover?q=...&zona=...&categoria=...` busqueda inteligente multi-fuente
-- `POST /lugares` crear un lugar
-- `PUT /lugares/:id` actualizar un lugar
-- `DELETE /lugares/:id` eliminar un lugar
+Auth (`/auth`):
 
-Objeto devuelto por `GET /places`:
+- `POST /auth/register` registrar usuario
+- `POST /auth/login` iniciar sesion (cookie httpOnly)
+- `GET /auth/me` usuario autenticado
+- `POST /auth/logout` cerrar sesion
+- `POST /auth/forgot-password` / `POST /auth/reset-password`
 
-```json
-{
-	"id": "4b7d5e0ff964a52047c72fe3",
-	"name": "Cafe Example",
-	"category": "cafeteria",
-	"latitude": -34.6037,
-	"longitude": -58.3816,
-	"address": "Av. Corrientes 1234, Buenos Aires, Argentina",
-	"rating": 8.7,
-	"distance": 245,
-	"source": "foursquare"
-}
-```
+Vinos (`/wines`):
+
+- `GET /wines` listar coleccion del usuario
+- `GET /wines/search` buscar dentro de la coleccion
+- `GET /wines/stats/summary` resumen de estadisticas
+- `GET /wines/:id` detalle de un vino
+- `POST /wines` agregar vino
+- `PUT /wines/:id` actualizar vino
+- `PATCH /wines/:id/stock` ajustar stock
+- `GET /wines/:id/moments` / `POST /wines/:id/moments` momentos de degustacion
+- `DELETE /wines/:id` eliminar vino
+
+Etiquetas (`/labels`):
+
+- `POST /labels/analyze` analiza una foto de etiqueta (OCR) y extrae datos del vino
+
+Usuarios (`/users`):
+
+- `GET /users/profile` / `PUT /users/profile`
+- `PUT /users/password`
+- `GET /users/stats`
+- `GET /users/:id/wine-stats`
+
+Admin (`/admin`, requiere rol admin):
+
+- `GET /admin/logs` historial de cambios
+- `GET /admin/users` / `PUT /admin/users/:userId/role`
 
 Health check:
 
 - `GET /health`
-
-## Busqueda Inteligente (Gratis + Legal)
-
-`/geocode/discover` combina multiples fuentes publicas:
-
-- Comunidad Rincones (contenido propio)
-- OpenStreetMap Overpass (POIs)
-- OpenStreetMap Nominatim (fallback)
-- Wikipedia (geosearch + extractos)
-
-Modo hibrido opcional:
-
-- Si `GOOGLE_PLACES_ENABLED=true` y definis `GOOGLE_PLACES_API_KEY`, se agrega Google Places como fuente de enriquecimiento.
-- Si no hay key o billing, el sistema sigue funcionando con fuentes gratuitas.
-
-El ranking prioriza:
-
-- relevancia semantica por consulta
-- cercania geografica
-- calidad de datos (foto, web, contacto)
-- deduplicacion entre fuentes
-
-Reranking con IA real (opcional):
-
-- Si configuras `AI_RERANK_API_KEY`, el backend reranquea resultados con el modelo configurado.
-- Si no configuras esa clave, sigue funcionando con ranking heuristico local.
-
-Chat IA en Descubrir (opcional):
-
-- El endpoint `POST /geocode/chat` usa `AI_CHAT_MODEL` + `AI_RERANK_API_KEY` para responder con IA real.
-- Sin esas credenciales, responde con asistente heuristico (fallback) usando los mejores lugares encontrados.
 
 ## Despliegue (Vercel)
 
@@ -201,8 +148,6 @@ npm run dev
 Frontend local: http://localhost:5173
 
 Backend local: http://localhost:4000/api
-
-Mapa de lugares: http://localhost:5173/mapa
 
 ## Atlas + Vercel (Siguiente Paso)
 

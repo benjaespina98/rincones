@@ -66,10 +66,14 @@
 .skeleton-grid {
   display: grid;
   gap: var(--space-md);
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
 
-  @media (min-width: 641px) {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -80,11 +84,6 @@
   border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-
-  @media (min-width: 641px) {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-  }
 }
 
 .skeleton-card__content {

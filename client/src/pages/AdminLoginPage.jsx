@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useLugares } from "../hooks/useLugares";
 import { getChangeLogs, getUsers } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
 import "./styles/AdminLoginPage.css";
@@ -13,18 +12,18 @@ const ACTION_LABELS = {
 };
 
 const buildLogSummary = (log) => {
-  const nombreLugar = log.after?.nombre || log.before?.nombre || "Registro";
+  const wineName = log.after?.name || log.before?.name || "un vino";
 
   if (log.action === "create") {
-    return `Se creó ${nombreLugar}.`;
+    return `Se agregó "${wineName}" a la bodega.`;
   }
 
   if (log.action === "delete") {
-    return `Se eliminó ${nombreLugar}.`;
+    return `Se eliminó "${wineName}" de la bodega.`;
   }
 
   if (log.action === "update") {
-    return "Se actualizaron datos del registro.";
+    return `Se actualizó "${wineName}".`;
   }
 
   return "";
@@ -34,7 +33,6 @@ const AdminLoginPage = () => {
   const { login, isAdmin, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lugares } = useLugares();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,7 +89,6 @@ const AdminLoginPage = () => {
     const deleteEvents = logs.filter((item) => item.action === "delete").length;
 
     return {
-      totalPlaces: lugares.length,
       totalUsers: usersSummary.total,
       adminsInSample: usersSummary.adminsInSample,
       sampleSize: usersSummary.sampleSize,
@@ -100,7 +97,7 @@ const AdminLoginPage = () => {
       updateEvents,
       deleteEvents,
     };
-  }, [logs, lugares.length, usersSummary]);
+  }, [logs, usersSummary]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -178,12 +175,6 @@ const AdminLoginPage = () => {
               </article>
 
               <article className="admin-metric-card">
-                <span>Lugares</span>
-                <strong>{metrics.totalPlaces}</strong>
-                <small>Publicados</small>
-              </article>
-
-              <article className="admin-metric-card">
                 <span>Eventos 24h</span>
                 <strong>{metrics.logsToday}</strong>
                 <small>Actividad reciente</small>
@@ -209,7 +200,6 @@ const AdminLoginPage = () => {
                 <div className="admin-action-grid">
                   <button className="button" type="button" onClick={() => setActiveTab("roles")}>Gestionar roles</button>
                   <button className="button" type="button" onClick={() => setActiveTab("actividad")}>Revisar logs</button>
-                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Agregar lugar</button>
                   <button className="button" type="button" onClick={() => setActiveTab("app")}>Abrir vista app</button>
                 </div>
               </article>
@@ -230,7 +220,7 @@ const AdminLoginPage = () => {
             <section>
               <div className="admin-section-head">
                 <h2>Registro de actividad</h2>
-                <p>Auditoría reciente de operaciones sobre lugares y usuarios.</p>
+                <p>Auditoría reciente de altas, ediciones y bajas en las bodegas de los usuarios.</p>
               </div>
 
               {loadingDashboard ? (
@@ -248,7 +238,7 @@ const AdminLoginPage = () => {
                         <small>{new Date(log.createdAt).toLocaleString("es-AR")}</small>
                       </div>
                       <strong className="admin-log-item__title">
-                        {log.after?.nombre || log.before?.nombre || "Registro"}
+                        {log.after?.name || log.before?.name || "Vino"}
                       </strong>
                       <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
                       <p className="admin-log-item__summary">{buildLogSummary(log)}</p>

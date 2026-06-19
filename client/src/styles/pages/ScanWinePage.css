@@ -17,19 +17,25 @@
 .scan-options {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1rem;
   padding: 0.6rem 0.95rem;
-}
-
-.scan-section {
-  display: flex;
-  justify-content: center;
 }
 
 .scanner-shell {
   display: grid;
   gap: 0.85rem;
   width: 100%;
+}
+
+.btn-manual-entry {
+  border: none;
+  background: none;
+  color: var(--accent-light);
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.5rem;
+  text-decoration: underline;
 }
 
 .btn-scan-large {
@@ -74,49 +80,17 @@
   font-size: 0.76rem;
 }
 
-.divider {
-  text-align: center;
-  color: #b8abd8;
-  font-size: 0.75rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  position: relative;
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: calc(50% - 24px);
-  height: 1px;
-  background: rgba(160, 133, 244, 0.3);
-}
-
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
-}
-
-.search-section,
 .recent-section {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  width: 100%;
 }
 
-.search-section h3,
 .recent-section h3 {
   margin: 0;
   color: #f4efff;
-}
-
-.search-form {
-  display: grid;
-  gap: 0.5rem;
+  font-size: 0.95rem;
 }
 
 .scan-preview {
@@ -125,22 +99,6 @@
   object-fit: cover;
 }
 
-.search-input {
-  min-height: 45px;
-  border-radius: 10px;
-  border: 1px solid rgba(171, 142, 255, 0.22);
-  background: rgba(21, 20, 44, 0.9);
-  color: #f6f2ff;
-  padding: 0.72rem 0.8rem;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: rgba(198, 173, 255, 0.84);
-  box-shadow: 0 0 0 3px rgba(129, 88, 235, 0.2);
-}
-
-.btn-search,
 .btn-add {
   min-height: 45px;
   border: none;
@@ -172,18 +130,16 @@
   font-size: 0.8rem;
 }
 
-.info-card {
+.scan-ocr-warning {
   display: flex;
-  gap: 0.65rem;
+  gap: 0.5rem;
   border-radius: 12px;
-  border-left: 4px solid #8f63ff;
-  background: rgba(118, 90, 211, 0.2);
-  padding: 0.8rem;
-}
-
-.info-card p {
-  margin: 0;
-  color: #b8abd8;
+  border-left: 4px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  padding: 0.7rem 0.8rem;
+  margin: 0 0 0.6rem;
+  color: #f3e3bd;
+  font-size: 0.85rem;
 }
 
 .scan-edit-grid {
@@ -227,11 +183,12 @@
 }
 
 .result-card .wine-image-wrapper {
-  min-height: 210px;
+  height: 180px;
   background: linear-gradient(145deg, rgba(102, 74, 186, 0.36), rgba(26, 24, 54, 0.8));
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .result-card .wine-image {
@@ -240,36 +197,6 @@
 
 .result-card .wine-info {
   padding: 0.85rem;
-}
-
-.result-card .wine-name {
-  margin: 0;
-  color: #f5f1ff;
-}
-
-.result-card .wine-region {
-  margin: 0.22rem 0 0;
-  color: #c2b4e3;
-}
-
-.result-card .wine-meta {
-  display: flex;
-  gap: 0.45rem;
-  margin-top: 0.55rem;
-}
-
-.result-card .wine-type,
-.result-card .wine-year {
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  background: rgba(132, 104, 214, 0.3);
-  color: #efe5ff;
-  font-size: 0.74rem;
-}
-
-.result-card .wine-rating {
-  margin-top: 0.55rem;
-  color: #ffd08a;
 }
 
 .result-actions {

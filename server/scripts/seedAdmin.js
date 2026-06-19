@@ -26,7 +26,7 @@ const run = async () => {
     await User.findOneAndUpdate(
       { email },
       { email, passwordHash, role: "admin" },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
     );
 
     console.log("Admin creado/actualizado correctamente");
