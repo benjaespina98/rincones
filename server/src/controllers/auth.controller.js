@@ -74,14 +74,13 @@ const setAuthCookie = (res, token) => {
   });
 };
 
-const buildAuthResponse = (user, token) => ({
+const buildAuthResponse = (user) => ({
   data: {
     user: {
       id: String(user._id),
       email: user.email,
       role: user.role,
     },
-    token,
   },
 });
 
@@ -120,7 +119,7 @@ const login = async (req, res, next) => {
     setAuthCookie(res, token);
 
     return res.status(200).json({
-      ...buildAuthResponse(user, token),
+      ...buildAuthResponse(user),
     });
   } catch (error) {
     return next(error);
@@ -214,7 +213,7 @@ const register = async (req, res, next) => {
     setAuthCookie(res, token);
 
     return res.status(201).json({
-      ...buildAuthResponse(user, token),
+      ...buildAuthResponse(user),
     });
   } catch (error) {
     return next(error);
@@ -354,7 +353,7 @@ const resetPassword = async (req, res, next) => {
 
     setAuthCookie(res, jwtToken);
 
-    return res.status(200).json({ ...buildAuthResponse(user, jwtToken) });
+    return res.status(200).json({ ...buildAuthResponse(user) });
   } catch (error) {
     return next(error);
   }

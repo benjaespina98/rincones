@@ -2,9 +2,12 @@ const mongoose = require("mongoose");
 
 const changeLogSchema = new mongoose.Schema(
   {
-    lugarId: {
+    entityType: {
+      type: String,
+      default: "wine",
+    },
+    entityId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Lugar",
       required: true,
     },
     action: {

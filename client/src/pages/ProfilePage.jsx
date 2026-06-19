@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import { useWineStats } from "../hooks/useWineStats";
-import { getProfile, updateProfile, getUserStats } from "../services/authApi";
+import { getProfile, updateProfile } from "../services/authApi";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
@@ -18,7 +19,6 @@ export default function ProfilePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [formError, setFormError] = useState("");
   const [initialFormData, setInitialFormData] = useState(null);
-  const [stats, setStats] = useState({ winesCount: 0, tastedWines: 0, averageRating: 0 });
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -34,13 +34,11 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const profile = await getProfile();
-        const userStats = await getUserStats();
         if (!mounted) return;
         if (profile) {
           setFormData((prev) => ({ ...prev, ...profile }));
           setInitialFormData((prev) => ({ ...prev, ...profile }));
         }
-        if (userStats) setStats(userStats);
       } catch (err) {
         showError?.("Error al cargar perfil");
         // eslint-disable-next-line no-console
@@ -158,15 +156,17 @@ export default function ProfilePage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="value">{stats.winesCount || 0}</div>
+          <div className="value">{statsLoading ? "…" : wineStats?.totals?.total || 0}</div>
           <div className="label">Vinos</div>
         </div>
         <div className="stat-card">
-          <div className="value">{stats.tastedWines || 0}</div>
+          <div className="value">{statsLoading ? "…" : wineStats?.totals?.consumed || 0}</div>
           <div className="label">Probados</div>
         </div>
         <div className="stat-card">
-          <div className="value">{stats.averageRating ? stats.averageRating.toFixed(1) : "-"}</div>
+          <div className="value">
+            {statsLoading ? "…" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "-"}
+          </div>
           <div className="label">Rating</div>
         </div>
       </div>
@@ -182,7 +182,7 @@ export default function ProfilePage() {
               <div className="type-breakdown">
                 {wineStats.countsByType.map((item) => (
                   <div key={item.type} className="type-item">
-                    <span className="type-label">{item.type}</span>
+                    <span className="type-label">{WINE_TYPE_LABELS[item.type] || WINE_TYPE_LABELS.unknown}</span>
                     <span className="type-count">{item.count}</span>
                   </div>
                 ))}

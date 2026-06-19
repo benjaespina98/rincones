@@ -12,17 +12,19 @@ const simpleNameFromOcr = (text) => {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
-    .filter((l) => !/^(19|20)\d{2}$/.test(l));
+    // los años sueltos no son el nombre del vino
+    .filter((l) => !/^(19|20)\d{2}$/.test(l))
+    // descartar líneas demasiado cortas (iniciales, ruido de OCR)
+    .filter((l) => l.replace(/[^a-zA-Z0-9]/g, "").length >= 3);
+
   if (lines.length === 0) return "";
-  // prefer the longest line as the probable label
-  lines.sort((a, b) => b.length - a.length);
+  // las etiquetas suelen imprimir el nombre del vino/bodega arriba de todo
   return lines[0];
 };
 
 const analyzeImageBuffer = async (buffer) => {
-  const worker = createWorker({ logger: () => {} });
+  const worker = await createWorker({ logger: () => {} });
   try {
-    await worker.load();
     // try spanish then english
     try {
       await worker.loadLanguage("spa");

@@ -151,9 +151,8 @@ wineSchema.index({ userId: 1, favorite: 1, tasted: 1 });
 wineSchema.index({ userId: 1, status: 1, quantity: 1 });
 
 // Keep `updatedAt` fresh
-wineSchema.pre("save", function (next) {
+wineSchema.pre("save", function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Instance helper: add a consumption "moment" to a wine
@@ -178,7 +177,7 @@ wineSchema.methods.addMoment = async function (momentData) {
 // Static: aggregate useful stats for a user (used by profile endpoint)
 wineSchema.statics.getUserStats = async function (userId) {
   const ObjectId = mongoose.Types.ObjectId;
-  const userObjectId = ObjectId(userId);
+  const userObjectId = new ObjectId(userId);
 
   const agg = await this.aggregate([
     { $match: { userId: userObjectId } },
