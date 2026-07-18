@@ -71,6 +71,16 @@ export const toggleWineTasted = async (id, isTasted) => {
   return updateWine(id, { tasted: isTasted });
 };
 
+export const getSpendingStats = async () => {
+  const { data } = await api.get("/wines/stats/spending");
+  return data.data;
+};
+
+export const getSuggestedWines = async (context = {}) => {
+  const { data } = await api.post("/wines/suggest", context);
+  return data.data || [];
+};
+
 export const getWineMoments = async (id) => {
   const { data } = await api.get(`/wines/${id}/moments`);
   return data.data || [];

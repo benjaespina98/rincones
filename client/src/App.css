@@ -899,17 +899,19 @@ select:disabled,
 }
 
 .star {
-  color: #59646d;
+  color: rgba(255, 255, 255, 0.16);
 }
 
 .star--filled {
-  color: #f2b635;
+  color: var(--gold);
+  filter: drop-shadow(0 1px 3px rgba(242, 183, 55, 0.4));
 }
 
 .stars__value {
-  margin-left: 0.3rem;
+  margin-left: 0.35rem;
   font-size: 0.82rem;
-  color: #cfdceb;
+  font-weight: 700;
+  color: var(--gold-soft);
 }
 
 .badge {

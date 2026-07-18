@@ -108,3 +108,40 @@
     font-size: 1.24rem;
   }
 }
+
+/* ── Desktop: content sits to the right of the fixed sidebar ── */
+@media (min-width: 1024px) {
+  .app-topbar {
+    margin-left: 240px;
+    padding-left: clamp(1.5rem, 4vw, 3rem);
+    padding-right: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  /* The sidebar already provides Home; hide the mobile back/home controls */
+  .app-topbar__nav-controls,
+  .app-topbar__brand {
+    display: none;
+  }
+
+  .app-topbar__title {
+    font-size: 1.5rem;
+  }
+
+  .app-content--with-topbar {
+    margin-left: 240px;
+    padding-bottom: 56px;
+  }
+
+  /* Cap and center page content so it doesn't stretch edge-to-edge */
+  .app-content--with-topbar > * {
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-content--with-topbar > * {
+    max-width: 1280px;
+  }
+}

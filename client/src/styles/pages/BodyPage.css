@@ -2,20 +2,36 @@
 .body-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 12px 12px 32px;
+  gap: 16px;
+  padding: 18px 14px 32px;
   background: transparent;
+}
+
+/* Page header */
+.bodega-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bodega-header__title {
+  margin: 0;
+  font-size: clamp(1.7rem, 6vw, 2.1rem);
+  line-height: 1.05;
+  color: var(--text);
 }
 
 /* Stats Strip */
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  padding: 14px 10px;
-  background: linear-gradient(135deg, rgba(126, 89, 201, 0.32), rgba(26, 30, 48, 0.85));
+  gap: 4px;
+  padding: 16px 8px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(167, 130, 239, 0.22), transparent 60%),
+    var(--elevated);
   border: 1px solid var(--line-accent);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
 }
 
@@ -23,22 +39,41 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   text-align: center;
+  position: relative;
+}
+
+.stat + .stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 60%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line), transparent);
 }
 
 .stat-number {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--accent-light);
-  line-height: 1.1;
+  font-family: var(--font-family-serif);
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-number--warn {
+  color: var(--gold);
 }
 
 .stat-label {
-  font-size: 0.68rem;
-  color: var(--text-secondary);
+  font-size: 0.64rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 /* Search */
@@ -51,25 +86,29 @@
 .search-icon {
   position: absolute;
   left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   color: var(--text-muted);
-  font-size: 1rem;
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 40px 12px 38px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
+  padding: 13px 40px 13px 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
   font-size: 14px;
-  background: var(--surface);
+  background: var(--glass);
   color: var(--text);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--accent-light);
+  background: var(--surface);
   box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.18);
 }
 
@@ -108,13 +147,20 @@
 .sort-select {
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
+  padding: 11px 36px 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  background: var(--surface);
+  font-weight: 600;
+  background-color: var(--glass);
   color: var(--text);
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a782ef' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -140,26 +186,32 @@
 
 .quick-filter-chip {
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--glass);
   color: var(--text-secondary);
   border-radius: var(--radius-full);
-  padding: 8px 14px;
+  padding: 8px 15px;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
-  min-height: 36px;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  min-height: 38px;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.quick-filter-chip:hover {
+  border-color: var(--line-accent);
+  color: var(--text);
 }
 
 .quick-filter-chip:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .quick-filter-chip--active {
-  background: rgba(126, 89, 201, 0.3);
-  border-color: var(--line-strong);
-  color: var(--text);
+  background: linear-gradient(135deg, rgba(126, 89, 201, 0.42), rgba(126, 89, 201, 0.24));
+  border-color: var(--accent-light);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(126, 89, 201, 0.28);
 }
 
 .active-filter-note {
@@ -195,21 +247,22 @@
 
 /* Wine Card */
 .wine-card {
-  background: var(--surface);
+  background: var(--elevated);
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth), opacity var(--transition-fast);
   display: flex;
   flex-direction: column;
-  animation: wineCardIn 220ms ease both;
+  animation: wineCardIn 320ms var(--ease-out) both;
+  cursor: pointer;
 }
 
 @keyframes wineCardIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -217,8 +270,12 @@
   }
 }
 
-.wine-card {
-  cursor: pointer;
+@media (hover: hover) {
+  .wine-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-accent);
+    box-shadow: var(--shadow-glow);
+  }
 }
 
 .wine-card:active {
@@ -240,22 +297,40 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1.1;
-  background: linear-gradient(135deg, rgba(126, 89, 201, 0.22) 0%, rgba(18, 22, 36, 0.9) 100%);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.28), transparent 65%),
+    linear-gradient(160deg, rgba(126, 89, 201, 0.2) 0%, rgba(12, 15, 25, 0.95) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
+.wine-image-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(8, 10, 18, 0.55) 100%);
+  pointer-events: none;
+}
+
 .wine-image {
   font-size: 46px;
   line-height: 1;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
 }
 
 .wine-image-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+@media (hover: hover) {
+  .wine-card:hover .wine-image-photo {
+    transform: scale(1.05);
+  }
 }
 
 .badge-favorite,
@@ -263,15 +338,23 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  font-size: 16px;
-  background: rgba(12, 15, 25, 0.85);
+  z-index: 1;
+  font-size: 15px;
+  background: rgba(12, 15, 25, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-sm);
+}
+
+.badge-favorite {
+  color: #ff6ea0;
 }
 
 .badge-tasted {
@@ -286,14 +369,16 @@
   position: absolute;
   bottom: 8px;
   right: 8px;
-  background: rgba(198, 70, 95, 0.85);
+  z-index: 1;
+  background: rgba(198, 70, 95, 0.9);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  padding: 3px 8px;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
   border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Wine Info */
@@ -335,9 +420,11 @@
 .wine-type,
 .wine-year {
   background: var(--accent-muted);
-  color: var(--text-secondary);
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
+  color: var(--accent-soft);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  border: 1px solid var(--line);
 }
 
 .wine-details {
@@ -355,17 +442,23 @@
 }
 
 .qty-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--accent-muted);
   color: var(--text);
   font-weight: 800;
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition-fast), opacity var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.qty-btn:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.32);
+  border-color: var(--line-accent);
 }
 
 .qty-btn:active {
@@ -391,28 +484,34 @@
   gap: 6px;
   padding: 8px;
   border-top: 1px solid var(--line);
+  background: rgba(10, 12, 22, 0.35);
 }
 
 .btn-icon,
 .btn-delete {
   flex: 1;
   padding: 8px;
-  border: none;
+  border: 1px solid transparent;
   background: var(--accent-muted);
   color: var(--text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 17px;
-  transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
   min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.btn-icon:hover:not(:disabled),
+.btn-delete:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.28);
+}
+
 .btn-icon:active,
 .btn-delete:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
 .btn-icon:disabled,
@@ -422,15 +521,17 @@
 }
 
 .btn-icon.active {
-  background: rgba(255, 101, 160, 0.22);
+  background: rgba(255, 101, 160, 0.2);
   color: #ff6ea0;
+  border-color: rgba(255, 101, 160, 0.35);
 }
 
 .btn-delete {
-  background: rgba(198, 70, 95, 0.16);
+  background: var(--wine-soft);
   color: var(--wine);
 }
 
+.btn-delete:hover:not(:disabled),
 .btn-delete:active {
   background: rgba(198, 70, 95, 0.28);
 }
@@ -444,12 +545,23 @@
   gap: 10px;
   padding: 56px 20px;
   text-align: center;
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  animation: wineCardIn 320ms var(--ease-out) both;
 }
 
 .empty-icon {
-  font-size: 56px;
-  margin: 0;
-  opacity: 0.6;
+  font-size: 40px;
+  margin: 0 0 4px;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(167, 130, 239, 0.28), rgba(18, 22, 36, 0.6));
+  border: 1px solid var(--line-accent);
 }
 
 .empty-title {
@@ -468,16 +580,21 @@
 
 .empty-cta {
   margin-top: 6px;
-  border: none;
-  background: linear-gradient(135deg, var(--accent), #6e58bf);
+  border: 1px solid rgba(167, 130, 239, 0.3);
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
   color: #fff;
   font-weight: 700;
   font-size: 14px;
-  padding: 12px 22px;
+  padding: 12px 24px;
   border-radius: var(--radius-full);
   cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-accent);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+}
+
+.empty-cta:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 16px 40px rgba(126, 89, 201, 0.4);
 }
 
 .empty-cta:active {
@@ -508,4 +625,158 @@
   .controls {
     max-width: 420px;
   }
+}
+
+/* ── Wishlist ── */
+.wishlist-section {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  overflow: hidden;
+}
+
+.wishlist-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.wishlist-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(126, 89, 201, 0.3);
+  color: var(--accent-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 5px;
+}
+
+.wishlist-toggle__arrow {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.wishlist-body {
+  border-top: 1px solid var(--line);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.wishlist-empty {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 8px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wishlist-add-btn {
+  background: none;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--accent-light);
+  font-size: 0.84rem;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.wishlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wishlist-item {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wishlist-item__info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wishlist-item__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wishlist-item__winery,
+.wishlist-item__type {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.wishlist-item__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.wishlist-buy-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-light);
+  background: rgba(126, 89, 201, 0.12);
+  color: var(--accent-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.wishlist-remove-btn {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.wishlist-convert-form {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.wishlist-convert-title {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.wishlist-convert-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px;
+  gap: 6px;
 }

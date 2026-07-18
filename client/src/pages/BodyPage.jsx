@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
+import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { useWishlist } from "../hooks/useWishlist";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
+import { getCellarStatus } from "../utils/cellarStatus";
 import "../styles/pages/BodyPage.css";
 
 const FILTER_VALUES = new Set([
@@ -14,6 +17,7 @@ const FILTER_VALUES = new Set([
   "tasted",
   "nottasted",
   "lowstock",
+  "cellarready",
   "red",
   "white",
   "rosé",
@@ -51,8 +55,17 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [regionFilter, setRegionFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [convertingWish, setConvertingWish] = useState(null);
+  const [convertDraft, setConvertDraft] = useState({ price: "", store: "", quantity: "1" });
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
+
+  const { wishes, loading: wishesLoading, removeWish, convertToWine } = useWishlist(
+    (wine) => {
+      showSuccess(`"${wine.name}" agregado a tu bodega`);
+    }
+  );
 
   useEffect(() => {
     if (FILTER_VALUES.has(initialFilter)) {
@@ -98,6 +111,7 @@ export default function BodyPage({ initialFilter = "all" }) {
         if (filterType === "nottasted") return !wine.tasted;
         if (filterType === "favorites") return wine.favorite;
         if (filterType === "lowstock") return Number(wine.quantity) <= 1;
+        if (filterType === "cellarready") return Number(wine.quantity) > 0 && getCellarStatus(wine).status === "peak";
         return wine.type === filterType;
       }),
     [wines, searchTerm, filterType, varietalFilter, regionFilter]
@@ -128,7 +142,9 @@ export default function BodyPage({ initialFilter = "all" }) {
           ? "Probados"
           : filterType === "nottasted"
             ? "Pendientes"
-            : filterType === "lowstock"
+            : filterType === "cellarready"
+              ? "Listos para abrir"
+              : filterType === "lowstock"
               ? "Stock bajo"
               : WINE_TYPE_LABELS[filterType] || filterType;
 
@@ -241,6 +257,11 @@ export default function BodyPage({ initialFilter = "all" }) {
 
   return (
     <div className="body-page">
+      <header className="bodega-header">
+        <span className="section-eyebrow">Tu colección</span>
+        <h1 className="bodega-header__title">Mi Bodega</h1>
+      </header>
+
       <div className="stats-strip" role="group" aria-label="Resumen de tu bodega">
         <div className="stat">
           <span className="stat-number">{stats.total}</span>
@@ -255,13 +276,13 @@ export default function BodyPage({ initialFilter = "all" }) {
           <span className="stat-label">Probados</span>
         </div>
         <div className="stat">
-          <span className="stat-number">{stats.lowStock}</span>
+          <span className="stat-number stat-number--warn">{stats.lowStock}</span>
           <span className="stat-label">Stock bajo</span>
         </div>
       </div>
 
       <div className="search-container">
-        <span className="search-icon" aria-hidden="true">⌕</span>
+        <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
         <input
           type="text"
           placeholder="Buscar por nombre, bodega, varietal o notas..."
@@ -278,7 +299,7 @@ export default function BodyPage({ initialFilter = "all" }) {
             type="button"
             aria-label="Limpiar búsqueda"
           >
-            ✕
+            <Icon name="x" size={16} />
           </button>
         )}
       </div>
@@ -295,6 +316,7 @@ export default function BodyPage({ initialFilter = "all" }) {
           <option value="tasted">Probados</option>
           <option value="nottasted">Pendientes</option>
           <option value="lowstock">Stock bajo</option>
+          <option value="cellarready">Listos para abrir</option>
           <option value="red">Tintos</option>
           <option value="white">Blancos</option>
           <option value="rosé">Rosados</option>
@@ -369,6 +391,13 @@ export default function BodyPage({ initialFilter = "all" }) {
         >
           ⚠ Stock bajo ({stats.lowStock})
         </button>
+        <button
+          type="button"
+          className={`quick-filter-chip ${filterType === "cellarready" ? "quick-filter-chip--active" : ""}`}
+          onClick={() => setFilterType(filterType === "cellarready" ? "all" : "cellarready")}
+        >
+          🟢 Listos para abrir
+        </button>
       </div>
 
       {hasActiveFilters && (
@@ -412,10 +441,14 @@ export default function BodyPage({ initialFilter = "all" }) {
                     <span className="wine-image" aria-hidden="true">🍷</span>
                   )}
                   {wine.favorite && (
-                    <span className="badge-favorite" aria-label="Favorito" title="Favorito">❤</span>
+                    <span className="badge-favorite" aria-label="Favorito" title="Favorito">
+                      <Icon name="heart" filled size={15} />
+                    </span>
                   )}
                   {wine.tasted && (
-                    <span className="badge-tasted" aria-label="Probado" title="Probado">✓</span>
+                    <span className="badge-tasted" aria-label="Probado" title="Probado">
+                      <Icon name="check" size={16} />
+                    </span>
                   )}
                   {Number(wine.quantity) <= 0 && (
                     <span className="badge-empty">Sin stock</span>
@@ -445,7 +478,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                         disabled={isPending || Number(wine.quantity) <= 0}
                         aria-label="Restar una unidad"
                       >
-                        −
+                        <Icon name="minus" size={15} />
                       </button>
                       <span className="wine-qty">x{wine.quantity}</span>
                       <button
@@ -455,7 +488,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                         disabled={isPending}
                         aria-label="Sumar una unidad"
                       >
-                        +
+                        <Icon name="plus" size={15} />
                       </button>
                     </div>
                     {!!wine.rating && <StarRating value={wine.rating} size="sm" />}
@@ -471,7 +504,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                     aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
                     title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
                   >
-                    {wine.favorite ? "❤" : "♡"}
+                    <Icon name="heart" filled={wine.favorite} size={18} />
                   </button>
 
                   <button
@@ -482,7 +515,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                     aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
                     title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
                   >
-                    {wine.tasted ? "✓" : "○"}
+                    <Icon name={wine.tasted ? "check" : "circle"} size={18} />
                   </button>
 
                   <button
@@ -493,7 +526,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                     aria-label="Eliminar vino"
                     title="Eliminar vino"
                   >
-                    🗑
+                    <Icon name="trash" size={17} />
                   </button>
                 </div>
               </article>
@@ -530,6 +563,135 @@ export default function BodyPage({ initialFilter = "all" }) {
           </button>
         </div>
       )}
+
+      {/* Sección Wishlist */}
+      <section className="wishlist-section">
+        <button
+          type="button"
+          className="wishlist-toggle"
+          onClick={() => setWishlistOpen((o) => !o)}
+        >
+          <span>♡ Lista de deseos</span>
+          {wishes.length > 0 && <span className="wishlist-badge">{wishes.length}</span>}
+          <span className="wishlist-toggle__arrow">{wishlistOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {wishlistOpen && (
+          <div className="wishlist-body">
+            {wishesLoading && <p className="wishlist-empty">Cargando...</p>}
+
+            {!wishesLoading && wishes.length === 0 && (
+              <div className="wishlist-empty">
+                <p>Guardá vinos que querés comprar.</p>
+                <button
+                  type="button"
+                  className="wishlist-add-btn"
+                  onClick={() => navigate("/descubrir")}
+                >
+                  + Agregar desde escaneo
+                </button>
+              </div>
+            )}
+
+            {!wishesLoading && wishes.length > 0 && (
+              <ul className="wishlist-list">
+                {wishes.map((wish) => (
+                  <li key={wish._id} className="wishlist-item">
+                    {convertingWish === wish._id ? (
+                      <div className="wishlist-convert-form">
+                        <p className="wishlist-convert-title">Compraste: <strong>{wish.name}</strong></p>
+                        <div className="wishlist-convert-fields">
+                          <input
+                            type="number"
+                            placeholder="Precio"
+                            min="0"
+                            value={convertDraft.price}
+                            onChange={(e) => setConvertDraft((d) => ({ ...d, price: e.target.value }))}
+                            className="scan-edit-input"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Tienda"
+                            value={convertDraft.store}
+                            onChange={(e) => setConvertDraft((d) => ({ ...d, store: e.target.value }))}
+                            className="scan-edit-input"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Cantidad"
+                            min="1"
+                            value={convertDraft.quantity}
+                            onChange={(e) => setConvertDraft((d) => ({ ...d, quantity: e.target.value }))}
+                            className="scan-edit-input"
+                          />
+                        </div>
+                        <div className="result-actions">
+                          <button
+                            type="button"
+                            className="btn-cancel"
+                            onClick={() => setConvertingWish(null)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-add"
+                            onClick={async () => {
+                              try {
+                                await convertToWine(wish._id, {
+                                  price: convertDraft.price ? parseFloat(convertDraft.price) : undefined,
+                                  store: convertDraft.store || undefined,
+                                  quantity: convertDraft.quantity ? parseInt(convertDraft.quantity) : 1,
+                                });
+                                setConvertingWish(null);
+                                setConvertDraft({ price: "", store: "", quantity: "1" });
+                              } catch {
+                                showError("No se pudo agregar a la bodega");
+                              }
+                            }}
+                          >
+                            Agregar a bodega
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="wishlist-item__info">
+                          <span className="wishlist-item__name">{wish.name}</span>
+                          {wish.winery && <span className="wishlist-item__winery">{wish.winery}</span>}
+                          {wish.type && wish.type !== "unknown" && (
+                            <span className="wishlist-item__type">{WINE_TYPE_LABELS[wish.type]}</span>
+                          )}
+                        </div>
+                        <div className="wishlist-item__actions">
+                          <button
+                            type="button"
+                            className="wishlist-buy-btn"
+                            onClick={() => {
+                              setConvertingWish(wish._id);
+                              setConvertDraft({ price: "", store: "", quantity: "1" });
+                            }}
+                          >
+                            Ya lo compré
+                          </button>
+                          <button
+                            type="button"
+                            className="wishlist-remove-btn"
+                            onClick={() => removeWish(wish._id)}
+                            aria-label="Eliminar de la lista"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
       <ConfirmModal
         isOpen={showDeleteConfirm !== null}

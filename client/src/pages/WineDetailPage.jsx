@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
+import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
@@ -12,7 +13,8 @@ import {
   getWineMoments,
   addWineMoment,
 } from "../services/wineApi";
-import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineReference";
+import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
+import { getCellarStatus } from "../utils/cellarStatus";
 import "../styles/pages/WineDetailPage.css";
 
 const OCCASIONS = [
@@ -144,6 +146,14 @@ export default function WineDetailPage() {
       vintage: wine.vintage || "",
       type: wine.type || "unknown",
       notes: wine.notes || "",
+      cellarLocation: wine.cellar?.location || "",
+      drinkFrom: wine.cellar?.drinkFrom || "",
+      drinkUntil: wine.cellar?.drinkUntil || "",
+      price: wine.purchase?.price ?? "",
+      store: wine.purchase?.store || "",
+      purchasedAt: wine.purchase?.purchasedAt
+        ? new Date(wine.purchase.purchasedAt).toISOString().split("T")[0]
+        : "",
     });
     setEditing(true);
   };
@@ -166,6 +176,12 @@ export default function WineDetailPage() {
         vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
         type: draft.type,
         notes: draft.notes.trim(),
+        cellarLocation: draft.cellarLocation?.trim() || undefined,
+        drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : undefined,
+        drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : undefined,
+        price: draft.price !== "" ? parseFloat(draft.price) : undefined,
+        store: draft.store?.trim() || undefined,
+        purchasedAt: draft.purchasedAt || undefined,
       });
       setWine(updated);
       setEditing(false);
@@ -244,8 +260,8 @@ export default function WineDetailPage() {
         ) : (
           <div className="wine-detail-hero__placeholder" aria-hidden="true">🍷</div>
         )}
-        {wine.favorite && <span className="badge-favorite" title="Favorito">❤</span>}
-        {wine.tasted && <span className="badge-tasted" title="Probado">✓</span>}
+        {wine.favorite && <span className="badge-favorite" title="Favorito"><Icon name="heart" filled size={18} /></span>}
+        {wine.tasted && <span className="badge-tasted" title="Probado"><Icon name="check" size={20} /></span>}
       </div>
 
       <div className="wine-detail-body">
@@ -254,7 +270,7 @@ export default function WineDetailPage() {
             <div className="wine-detail-titlebar">
               <h2 className="wine-detail-name">{wine.name}</h2>
               <button type="button" className="wine-detail-edit-btn" onClick={startEditing}>
-                Editar
+                <Icon name="pencil" size={15} /> Editar
               </button>
             </div>
             <p className="wine-detail-subtitle">
@@ -265,6 +281,15 @@ export default function WineDetailPage() {
               <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
               {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
               {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
+              {(() => {
+                const cs = getCellarStatus(wine);
+                if (!cs.label) return null;
+                return (
+                  <span className={`cellar-badge cellar-badge--${cs.status}`}>
+                    {cs.status === "peak" ? "🟢" : cs.status === "early" ? "🟡" : "🔴"} {cs.label}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="wine-detail-rating">
@@ -289,6 +314,41 @@ export default function WineDetailPage() {
               <div className="wine-detail-notes">
                 <h3>Notas</h3>
                 <p>{wine.notes}</p>
+              </div>
+            )}
+
+            {(wine.cellar?.location || wine.cellar?.drinkFrom || wine.cellar?.drinkUntil) && (
+              <div className="wine-detail-meta-section">
+                <h3>Bodega</h3>
+                <div className="wine-meta-row">
+                  {wine.cellar.location && (
+                    <span className="wine-meta-chip">📍 {wine.cellar.location}</span>
+                  )}
+                  {(wine.cellar.drinkFrom || wine.cellar.drinkUntil) && (
+                    <span className="wine-meta-chip">
+                      🗓 {wine.cellar.drinkFrom || "—"} – {wine.cellar.drinkUntil || "—"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {wine.purchase?.price > 0 && (
+              <div className="wine-detail-meta-section">
+                <h3>Compra</h3>
+                <div className="wine-meta-row">
+                  <span className="wine-meta-chip">
+                    💰 ${wine.purchase.price.toLocaleString("es-AR")} {wine.purchase.currency || "ARS"}
+                  </span>
+                  {wine.purchase.store && (
+                    <span className="wine-meta-chip">🏪 {wine.purchase.store}</span>
+                  )}
+                  {wine.purchase.purchasedAt && (
+                    <span className="wine-meta-chip">
+                      {new Date(wine.purchase.purchasedAt).toLocaleDateString("es-AR")}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </>
@@ -350,6 +410,61 @@ export default function WineDetailPage() {
               onChange={(event) => updateDraftField("notes", event.target.value)}
             />
 
+            <div className="scan-section-divider">
+              <span>Bodega</span>
+            </div>
+            <input
+              type="text"
+              className="scan-edit-input"
+              placeholder="Ubicación (ej: Estante A, Heladera)"
+              value={draft.cellarLocation}
+              onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
+            />
+            <div className="scan-edit-grid scan-edit-grid--two">
+              <input
+                type="number"
+                className="scan-edit-input"
+                placeholder="Beber desde (año)"
+                value={draft.drinkFrom}
+                onChange={(e) => updateDraftField("drinkFrom", e.target.value)}
+              />
+              <input
+                type="number"
+                className="scan-edit-input"
+                placeholder="Beber hasta (año)"
+                value={draft.drinkUntil}
+                onChange={(e) => updateDraftField("drinkUntil", e.target.value)}
+              />
+            </div>
+
+            <div className="scan-section-divider">
+              <span>Datos de compra</span>
+            </div>
+            <input
+              type="number"
+              className="scan-edit-input"
+              placeholder="Precio"
+              min="0"
+              step="0.01"
+              value={draft.price}
+              onChange={(e) => updateDraftField("price", e.target.value)}
+            />
+            <input
+              type="text"
+              className="scan-edit-input"
+              placeholder="Tienda o vinoteca"
+              list="detail-stores"
+              value={draft.store}
+              onChange={(e) => updateDraftField("store", e.target.value)}
+            />
+            <input
+              type="date"
+              className="scan-edit-input"
+              value={draft.purchasedAt}
+              onChange={(e) => updateDraftField("purchasedAt", e.target.value)}
+              aria-label="Fecha de compra"
+            />
+
             <datalist id="wine-wineries">
               {WINERIES.map((name) => <option key={name} value={name} />)}
             </datalist>
@@ -358,6 +473,9 @@ export default function WineDetailPage() {
             </datalist>
             <datalist id="wine-varietals">
               {VARIETALS.map((name) => <option key={name} value={name} />)}
+            </datalist>
+            <datalist id="detail-stores">
+              {STORES.map((name) => <option key={name} value={name} />)}
             </datalist>
 
             <div className="result-actions">
@@ -374,12 +492,12 @@ export default function WineDetailPage() {
         {!editing && (
           <div className="wine-detail-actions">
             <div className="wine-qty-controls" aria-label="Stock">
-              <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)}>
-                −
+              <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Restar una unidad">
+                <Icon name="minus" size={16} />
               </button>
               <span className="wine-qty">x{wine.quantity}</span>
-              <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)}>
-                +
+              <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una unidad">
+                <Icon name="plus" size={16} />
               </button>
             </div>
 
@@ -390,7 +508,7 @@ export default function WineDetailPage() {
               onClick={handleToggleFavorite}
               aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
             >
-              {wine.favorite ? "❤" : "♡"}
+              <Icon name="heart" filled={wine.favorite} size={19} />
             </button>
 
             <button
@@ -400,11 +518,11 @@ export default function WineDetailPage() {
               onClick={handleToggleTasted}
               aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
             >
-              {wine.tasted ? "✓" : "○"}
+              <Icon name={wine.tasted ? "check" : "circle"} size={19} />
             </button>
 
             <button type="button" className="btn-delete" onClick={() => setShowDeleteConfirm(true)} aria-label="Eliminar vino">
-              🗑
+              <Icon name="trash" size={18} />
             </button>
           </div>
         )}

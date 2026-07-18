@@ -1,137 +1,176 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../context/ToastContext";
-import { getWineSuggestions, toggleWineFavorite } from "../services/wineApi";
-import { WINE_TYPE_LABELS } from "../data/wineReference";
+import { useRecommendations } from "../hooks/useRecommendations";
+import { useWineCollection } from "../hooks/useWineCollection";
+import { WINE_TYPE_LABELS, FOOD_LABELS, MOOD_LABELS } from "../data/wineReference";
+import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import "../styles/pages/SuggestionsPage.css";
 
+const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
+const MOOD_OPTIONS = Object.entries(MOOD_LABELS).map(([value, label]) => ({ value, label }));
+
 export default function SuggestionsPage() {
-  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [pendingId, setPendingId] = useState(null);
+  const { wines } = useWineCollection();
+  const { suggestions, loading, error, context, fetchSuggestions, clearContext } = useRecommendations();
 
-  useEffect(() => {
-    let mounted = true;
+  const hasContext = context.food || context.mood;
 
-    const loadSuggestions = async () => {
-      try {
-        setLoading(true);
-        const data = await getWineSuggestions();
-        if (!mounted) return;
-        setSuggestions(data);
-      } catch (error) {
-        if (!mounted) return;
-        setSuggestions([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    loadSuggestions();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const handleToggleFavorite = async (wine) => {
-    setPendingId(wine._id);
-    try {
-      await toggleWineFavorite(wine._id, !wine.favorite);
-      setSuggestions((prev) =>
-        prev.map((item) => (item._id === wine._id ? { ...item, favorite: !item.favorite } : item))
-      );
-      showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
-    } catch {
-      showError("No se pudo actualizar el favorito");
-    } finally {
-      setPendingId(null);
+  const handleFood = (value) => {
+    const newFood = context.food === value ? null : value;
+    const newCtx = { ...context, food: newFood };
+    if (newCtx.food || newCtx.mood) {
+      fetchSuggestions(newCtx);
+    } else {
+      clearContext();
     }
   };
+
+  const handleMood = (value) => {
+    const newMood = context.mood === value ? null : value;
+    const newCtx = { ...context, mood: newMood };
+    if (newCtx.food || newCtx.mood) {
+      fetchSuggestions(newCtx);
+    } else {
+      clearContext();
+    }
+  };
+
+  const defaultWines = [...wines]
+    .filter((w) => Number(w.quantity) > 0)
+    .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+    .slice(0, 3);
+
+  const displayWines = hasContext ? suggestions : defaultWines;
 
   return (
     <div className="suggestions-page">
       <header className="page-header">
-        <h1>✨ Destacados de tu bodega</h1>
-        <p className="subtitle">Tus mejores rankeados y favoritos, para volver a elegirlos</p>
+        <span className="section-eyebrow">Sommelier personal</span>
+        <h1>¿Qué abrimos hoy?</h1>
+        <p className="subtitle">Elegí el contexto y te sugiero de tu bodega</p>
       </header>
 
-      {loading ? (
-        <LoadingSkeleton type="card" count={3} />
-      ) : suggestions.length > 0 ? (
-        <div className="suggestions-container">
-          {suggestions.map((wine) => (
-            <div
-              key={wine._id}
-              className="suggestion-card"
-              onClick={() => navigate(`/vino/${wine._id}`)}
-              role="link"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") navigate(`/vino/${wine._id}`);
-              }}
-            >
-              <div className="wine-image-wrapper">
-                {wine.image ? (
-                  <img src={wine.image} alt={wine.name} className="suggestion-card__photo" />
-                ) : (
-                  <div className="wine-image" aria-hidden="true">🍷</div>
-                )}
-              </div>
-
-              <div className="wine-info">
-                <h3 className="wine-name">{wine.name}</h3>
-                <p className="wine-region">
-                  {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
-                </p>
-
-                <div className="wine-meta">
-                  <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-                  {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-                </div>
-
-                <div className="wine-rating-reason">
-                  {!!wine.rating && <span className="wine-rating">⭐ {wine.rating}</span>}
-                  <span className="reason">{wine.reason}</span>
-                </div>
-              </div>
-
-              <div className="wine-actions" onClick={(event) => event.stopPropagation()}>
-                <button
-                  className={`btn-favorite ${wine.favorite ? "btn-favorite--active" : ""}`}
-                  onClick={() => handleToggleFavorite(wine)}
-                  type="button"
-                  disabled={pendingId === wine._id}
-                  title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                  aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                >
-                  {wine.favorite ? "❤" : "🤍"}
-                </button>
-                <button
-                  className="btn-add"
-                  onClick={() => navigate(`/vino/${wine._id}`)}
-                  type="button"
-                >
-                  Ver detalle
-                </button>
-              </div>
-            </div>
-          ))}
+      <section className="context-selector">
+        <div className="context-group">
+          <span className="context-label">¿Con qué vas a comer?</span>
+          <div className="chip-row">
+            {FOOD_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={`context-chip ${context.food === value ? "context-chip--active" : ""}`}
+                onClick={() => handleFood(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="empty-state">
-          <p className="empty-icon">🎯</p>
-          <p className="empty-title">Todavía no hay destacados</p>
-          <p className="empty-subtitle">
-            Agregá vinos a tu bodega y calificalos para que aparezcan acá.
-          </p>
-          <button type="button" className="button button--primary" onClick={() => navigate("/descubrir")}>
-            Escanear etiqueta
+
+        <div className="context-group">
+          <span className="context-label">¿Qué estilo buscás?</span>
+          <div className="chip-row">
+            {MOOD_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={`context-chip ${context.mood === value ? "context-chip--active" : ""}`}
+                onClick={() => handleMood(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {hasContext && (
+          <button type="button" className="clear-context-btn" onClick={clearContext}>
+            Quitar filtros
           </button>
-        </div>
-      )}
+        )}
+      </section>
+
+      <section className="suggestions-results">
+        {!hasContext && (
+          <p className="suggestions-hint">
+            Seleccioná una opción arriba para personalizar las sugerencias.
+          </p>
+        )}
+
+        {loading && <LoadingSkeleton type="list" count={3} />}
+
+        {error && <p className="suggestions-error">{error}</p>}
+
+        {!loading && !error && displayWines.length === 0 && (
+          <div className="suggestions-empty">
+            <p className="empty-icon">🍷</p>
+            <p className="empty-title">Sin resultados para este contexto</p>
+            <p className="empty-subtitle">
+              No tenés vinos con stock que coincidan. ¿Querés agregar uno?
+            </p>
+            <button
+              type="button"
+              className="empty-cta"
+              onClick={() => navigate("/descubrir")}
+            >
+              Agregar vino
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && displayWines.length > 0 && (
+          <p className="suggestions-results__label">
+            {hasContext ? "Sugerencias para vos" : "Destacados de tu bodega"}
+          </p>
+        )}
+
+        {!loading && !error && displayWines.length > 0 && (
+          <ul className="suggestions-list">
+            {displayWines.map((wine) => (
+              <li
+                key={wine._id}
+                className="suggestion-card"
+                onClick={() => navigate(`/vino/${wine._id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && navigate(`/vino/${wine._id}`)}
+              >
+                <div className="suggestion-card__image">
+                  {wine.image
+                    ? <img src={wine.image} alt={wine.name} />
+                    : <span aria-hidden="true">🍷</span>
+                  }
+                </div>
+
+                <div className="suggestion-card__body">
+                  <p className="suggestion-card__name">{wine.name}</p>
+                  {wine.winery && (
+                    <p className="suggestion-card__winery">{wine.winery}</p>
+                  )}
+                  <div className="suggestion-card__meta">
+                    {wine.type && wine.type !== "unknown" && (
+                      <span className="wine-type-badge">
+                        {WINE_TYPE_LABELS[wine.type]}
+                      </span>
+                    )}
+                    {wine.varietal && (
+                      <span className="suggestion-card__varietal">{wine.varietal}</span>
+                    )}
+                    <span className="suggestion-card__stock">x{wine.quantity}</span>
+                  </div>
+                  {wine.rating > 0 && <StarRating value={wine.rating} size="sm" />}
+                  {wine.matchReason && (
+                    <p className="suggestion-card__reason">
+                      <span aria-hidden="true">✨</span> {wine.matchReason}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Wine = require("../models/wine.model");
+const { getCellarStatus } = require("./cellar.service");
 const WineMoment = require("../models/wineMoment.model");
 const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
@@ -91,6 +92,13 @@ async function createWine(userId, payload) {
     type,
     lastConsumedAt,
     consumptionCount,
+    cellarLocation,
+    drinkFrom,
+    drinkUntil,
+    price,
+    currency,
+    store,
+    purchasedAt,
   } = payload;
 
   const wine = new Wine({
@@ -111,6 +119,17 @@ async function createWine(userId, payload) {
     status: toWineStatus({ tasted: tasted === true, quantity: parseQuantity(quantity, 1), status }),
     lastConsumedAt: lastConsumedAt ? new Date(lastConsumedAt) : undefined,
     consumptionCount: parseQuantity(consumptionCount, 0),
+    cellar: {
+      location: cellarLocation?.trim() || undefined,
+      drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined,
+      drinkUntil: drinkUntil ? parseInt(drinkUntil) : undefined,
+    },
+    purchase: {
+      price: price !== undefined && price !== "" ? parseFloat(price) : undefined,
+      currency: currency || "ARS",
+      store: store?.trim() || undefined,
+      purchasedAt: purchasedAt ? new Date(purchasedAt) : undefined,
+    },
   });
 
   const savedWine = await wine.save();
@@ -146,6 +165,13 @@ async function updateWine(userId, id, payload) {
     type,
     lastConsumedAt,
     consumptionCount,
+    cellarLocation,
+    drinkFrom,
+    drinkUntil,
+    price,
+    currency,
+    store,
+    purchasedAt,
   } = payload;
 
   if (name !== undefined) wine.name = String(name).trim();
@@ -161,6 +187,14 @@ async function updateWine(userId, id, payload) {
   if (status !== undefined) wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status });
   if (lastConsumedAt !== undefined) wine.lastConsumedAt = lastConsumedAt ? new Date(lastConsumedAt) : null;
   if (consumptionCount !== undefined) wine.consumptionCount = parseQuantity(consumptionCount, wine.consumptionCount || 0);
+
+  if (cellarLocation !== undefined) wine.cellar = { ...wine.cellar, location: cellarLocation?.trim() || undefined };
+  if (drinkFrom !== undefined) wine.cellar = { ...wine.cellar, drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined };
+  if (drinkUntil !== undefined) wine.cellar = { ...wine.cellar, drinkUntil: drinkUntil ? parseInt(drinkUntil) : undefined };
+  if (price !== undefined) wine.purchase = { ...wine.purchase, price: price !== "" ? parseFloat(price) : undefined };
+  if (currency !== undefined) wine.purchase = { ...wine.purchase, currency };
+  if (store !== undefined) wine.purchase = { ...wine.purchase, store: store?.trim() || undefined };
+  if (purchasedAt !== undefined) wine.purchase = { ...wine.purchase, purchasedAt: purchasedAt ? new Date(purchasedAt) : null };
 
   const wasTasted = wine.tasted;
   if (tasted !== undefined) wine.tasted = tasted === true;
@@ -240,6 +274,171 @@ async function addMoment(userId, id, body) {
   return moment;
 }
 
+async function getSpendingStats(userId) {
+  const ObjectId = mongoose.Types.ObjectId;
+  const userObjectId = new ObjectId(userId);
+
+  const agg = await Wine.aggregate([
+    { $match: { userId: userObjectId, "purchase.price": { $exists: true, $gt: 0 } } },
+    {
+      $facet: {
+        total: [
+          { $group: { _id: null, totalSpent: { $sum: "$purchase.price" }, count: { $sum: 1 } } },
+        ],
+        byMonth: [
+          { $match: { "purchase.purchasedAt": { $exists: true } } },
+          {
+            $group: {
+              _id: {
+                year:  { $year: "$purchase.purchasedAt" },
+                month: { $month: "$purchase.purchasedAt" },
+              },
+              total: { $sum: "$purchase.price" },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { "_id.year": -1, "_id.month": -1 } },
+          { $limit: 12 },
+        ],
+        byType: [
+          {
+            $group: {
+              _id: "$type",
+              avgPrice: { $avg: "$purchase.price" },
+              count:    { $sum: 1 },
+            },
+          },
+          { $sort: { avgPrice: -1 } },
+        ],
+        bestValue: [
+          { $match: { rating: { $gt: 0 } } },
+          {
+            $addFields: {
+              valueScore: { $divide: ["$rating", { $add: ["$purchase.price", 1] }] },
+            },
+          },
+          { $sort: { valueScore: -1 } },
+          { $limit: 1 },
+          { $project: { name: 1, winery: 1, rating: 1, "purchase.price": 1 } },
+        ],
+      },
+    },
+  ]).exec();
+
+  const out = agg && agg[0] ? agg[0] : {};
+  const totalRow = out.total && out.total[0];
+
+  return {
+    totalSpent:    totalRow ? totalRow.totalSpent : 0,
+    winesWithPrice: totalRow ? totalRow.count : 0,
+    byMonth: (out.byMonth || []).map((r) => ({
+      year:  r._id.year,
+      month: r._id.month,
+      total: r.total,
+      count: r.count,
+    })),
+    avgPriceByType: (out.byType || []).map((r) => ({
+      type:     r._id || "unknown",
+      avgPrice: Math.round(r.avgPrice),
+      count:    r.count,
+    })),
+    bestValueWine: out.bestValue && out.bestValue[0] ? out.bestValue[0] : null,
+  };
+}
+
+const FOOD_PAIRINGS = {
+  carne:   { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
+  pasta:   { types: ["red", "white"],              varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir"] },
+  pescado: { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
+  queso:   { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
+  postre:  { types: ["sparkling", "fortified"],    varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc"] },
+  solo:    { types: [],                            varietals: [] },
+};
+
+function daysSince(date) {
+  return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
+}
+
+function scoreWine(wine, context) {
+  let score = 0;
+  const reasons = [];
+
+  // Rating del usuario (máx 30)
+  if (wine.rating > 0) {
+    score += wine.rating * 6;
+    reasons.push(`${wine.rating}★`);
+  }
+
+  // Favorito
+  if (wine.favorite) {
+    score += 10;
+    reasons.push("Favorito");
+  }
+
+  const pairing = context.food ? FOOD_PAIRINGS[context.food] : null;
+
+  // Maridaje — tipo
+  if (pairing && pairing.types.length > 0 && pairing.types.includes(wine.type)) {
+    score += 20;
+  }
+
+  // Maridaje — varietal
+  if (pairing && wine.varietal) {
+    const match = pairing.varietals.some((v) =>
+      wine.varietal.toLowerCase().includes(v.toLowerCase())
+    );
+    if (match) {
+      score += 15;
+      reasons.push("Maridaría bien");
+    }
+  }
+
+  // Mood
+  if (context.mood === "liviano" && (wine.type === "white" || wine.type === "sparkling" || wine.type === "rosé")) score += 10;
+  if (context.mood === "robusto" && (wine.type === "red" || wine.type === "fortified")) score += 10;
+  if (context.mood === "festivo" && wine.type === "sparkling") score += 15;
+
+  // Novedad — bonus si nunca fue probado
+  if (!wine.tasted) score += 5;
+
+  // Penalización por consumo reciente
+  if (wine.lastConsumedAt && daysSince(wine.lastConsumedAt) < 7) score -= 10;
+
+  // Ventana óptima
+  const cellar = getCellarStatus(wine);
+  if (cellar.status === "peak") {
+    score += 10;
+    reasons.push("Momento óptimo");
+  }
+
+  return { score, reasons };
+}
+
+async function suggestWines(userId, context = {}) {
+  const wines = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+
+  const scored = wines
+    .map((wine) => {
+      const { score, reasons } = scoreWine(wine, context);
+      return { wine, score, reasons };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  return scored.map(({ wine, score, reasons }) => ({
+    ...wine.toObject(),
+    matchScore: score,
+    matchReason: reasons.join(" · ") || "Disponible en tu bodega",
+  }));
+}
+
+async function getCellarReady(userId) {
+  const wines = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+  return wines
+    .filter((w) => getCellarStatus(w).status === "peak")
+    .map((w) => ({ ...w.toObject(), cellarStatus: getCellarStatus(w) }));
+}
+
 async function deleteWine(userId, id) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
@@ -258,6 +457,7 @@ module.exports = {
   listWines,
   searchWines,
   getStatsSummary,
+  getSpendingStats,
   getWineById,
   createWine,
   updateWine,
@@ -265,4 +465,6 @@ module.exports = {
   getMoments,
   addMoment,
   deleteWine,
+  suggestWines,
+  getCellarReady,
 };

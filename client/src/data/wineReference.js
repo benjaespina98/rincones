@@ -36,3 +36,34 @@ export const VARIETALS = [
   "Chardonnay", "Sauvignon Blanc", "Torrontés", "Sémillon", "Viognier",
   "Chenin Blanc", "Gewürztraminer", "Pinot Grigio",
 ];
+
+export const STORES = [
+  "Tonel Privado", "El Mundo del Vino", "Vinoteca Urbana",
+  "Winery", "Mercado Libre", "Coto", "Disco", "Carrefour",
+  "Bodega directa", "Vinoteca local",
+];
+
+export const FOOD_PAIRINGS = {
+  carne:   { types: ["red"],                    varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
+  pasta:   { types: ["red", "white"],           varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir", "Barbera"] },
+  pescado: { types: ["white", "sparkling"],     varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
+  queso:   { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
+  postre:  { types: ["sparkling", "fortified"], varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc"] },
+  solo:    { types: [],                         varietals: [] },
+};
+
+export const FOOD_LABELS = {
+  carne:   "Carnes",
+  pasta:   "Pasta",
+  pescado: "Pescado",
+  queso:   "Queso",
+  postre:  "Postre",
+  solo:    "Sin maridaje",
+};
+
+export const MOOD_LABELS = {
+  liviano:    "Liviano",
+  robusto:    "Robusto",
+  festivo:    "Festivo",
+  cualquiera: "Cualquiera",
+};
