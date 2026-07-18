@@ -83,6 +83,19 @@ const wineSchema = new mongoose.Schema(
         max: 20,
       },
     },
+    cellar: {
+      location: { type: String, trim: true },
+      drinkFrom: { type: Number },
+      drinkUntil: { type: Number },
+    },
+
+    purchase: {
+      price:       { type: Number, min: 0 },
+      currency:    { type: String, default: "ARS" },
+      store:       { type: String, trim: true },
+      purchasedAt: { type: Date },
+    },
+
     image: {
       type: String, // URL de la imagen
       default: null,
@@ -149,6 +162,7 @@ wineSchema.index({ userId: 1, createdAt: -1 });
 wineSchema.index({ userId: 1, name: 1 });
 wineSchema.index({ userId: 1, favorite: 1, tasted: 1 });
 wineSchema.index({ userId: 1, status: 1, quantity: 1 });
+wineSchema.index({ userId: 1, "purchase.purchasedAt": -1 });
 
 // Keep `updatedAt` fresh
 wineSchema.pre("save", function () {

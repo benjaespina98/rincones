@@ -93,6 +93,34 @@ const addMoment = async (req, res) => {
   }
 };
 
+const spendingStats = async (req, res) => {
+  try {
+    const data = await winesService.getSpendingStats(req.user.id);
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const suggest = async (req, res) => {
+  try {
+    const { food, mood, maxResults } = req.body;
+    const results = await winesService.suggestWines(req.user.id, { food, mood, maxResults });
+    return res.json({ success: true, data: results, count: results.length });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const cellarReady = async (req, res) => {
+  try {
+    const wines = await winesService.getCellarReady(req.user.id);
+    return res.json({ success: true, data: wines, count: wines.length });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 const remove = async (req, res) => {
   try {
     const ok = await winesService.deleteWine(req.user.id, req.params.id);
@@ -107,6 +135,9 @@ module.exports = {
   list,
   search,
   statsSummary,
+  spendingStats,
+  suggest,
+  cellarReady,
   getOne,
   create,
   update,

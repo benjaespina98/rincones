@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import BottomTabNavigation from "./BottomTabNavigation";
+import Icon from "./Icon";
 import "../styles/AppLayout.css";
 
 const getInitials = (email = "") => {
@@ -36,7 +37,7 @@ const AppLayout = ({ children, pageTitle }) => {
             onClick={() => navigate(-1)}
             disabled={!canGoBack}
           >
-            ←
+            <Icon name="arrow-left" size={18} />
           </button>
 
           <button
@@ -46,7 +47,7 @@ const AppLayout = ({ children, pageTitle }) => {
             title="Ir al inicio"
             onClick={() => navigate("/")}
           >
-            ⌂
+            <Icon name="home" size={18} />
           </button>
         </div>
 

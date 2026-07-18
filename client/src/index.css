@@ -6,15 +6,21 @@
   --bg-deep: #070910;
   --bg-soft: rgba(18, 21, 33, 0.78);
   --surface: rgba(18, 22, 36, 0.9);
+  --surface-2: rgba(24, 28, 46, 0.94);
   --surface-hover: rgba(27, 32, 49, 0.96);
-  
+  --glass: rgba(20, 24, 40, 0.72);
+  --elevated: linear-gradient(160deg, rgba(30, 34, 56, 0.94), rgba(16, 19, 33, 0.94));
+
   /* Accent Colors */
   --accent: #7e59c9;
   --accent-light: #a782ef;
   --accent-soft: #cbb5f7;
   --accent-muted: rgba(126, 89, 201, 0.18);
   --wine: #c6465f;
+  --wine-soft: rgba(198, 70, 95, 0.16);
   --success: #2fb67b;
+  --gold: #f2b737;
+  --gold-soft: #ffd98a;
   
   /* Text Colors */
   --text: #f3f5ff;
@@ -44,10 +50,12 @@
   --radius-full: 999px;
   
   /* Shadows */
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 12px 24px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.38);
   --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 28px 56px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 12px 32px rgba(126, 89, 201, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 14px 40px rgba(90, 60, 170, 0.24);
   
   /* Safe Area (for notched phones) */
   --safe-area-inset-top: env(safe-area-inset-top, 0);
@@ -56,9 +64,11 @@
   --safe-area-inset-left: env(safe-area-inset-left, 0);
   
   /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-smooth: 200ms ease;
-  --transition-slow: 300ms ease;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 150ms var(--ease-out);
+  --transition-smooth: 220ms var(--ease-out);
+  --transition-slow: 320ms var(--ease-out);
   
   /* Typography */
   --font-family-serif: "Fraunces", "Times New Roman", serif;
@@ -168,4 +178,44 @@ img {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(138, 109, 230, 0.5);
+}
+
+/* SVG icon base */
+.icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Shared section heading utility (premium, consistent across pages) */
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-family-sans);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.section-heading {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

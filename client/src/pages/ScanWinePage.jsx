@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LabelScanner from "../components/LabelScanner";
+import Icon from "../components/Icon";
+import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
-import { WINE_TYPES, WINERIES, REGIONS, VARIETALS } from "../data/wineReference";
+import { createWish } from "../services/wishApi";
+import { searchWines } from "../services/wineSearchApi";
+import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import "../styles/pages/ScanWinePage.css";
 
 const EMPTY_DRAFT = {
@@ -16,6 +20,10 @@ const EMPTY_DRAFT = {
   preview: "",
   rawText: "",
   ocrFailed: false,
+  price: "",
+  store: "",
+  purchasedAt: "",
+  quantity: "1",
 };
 
 const buildWinePayload = (draft) => ({
@@ -28,7 +36,21 @@ const buildWinePayload = (draft) => ({
   notes: draft.notes?.trim() || "",
   image: draft.preview || "",
   rawText: draft.rawText || "",
-  quantity: 1,
+  quantity: draft.quantity ? Number.parseInt(draft.quantity, 10) : 1,
+  price: draft.price ? parseFloat(draft.price) : undefined,
+  store: draft.store?.trim() || undefined,
+  purchasedAt: draft.purchasedAt || undefined,
+});
+
+const buildWishPayload = (draft) => ({
+  name: draft.label?.trim() || "Vino sin nombre",
+  winery: draft.winery?.trim() || "",
+  type: draft.type || "unknown",
+  region: draft.region?.trim() || "",
+  varietal: draft.varietal?.trim() || "",
+  vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : undefined,
+  notes: draft.notes?.trim() || "",
+  source: draft.rawText ? "ocr" : "manual",
 });
 
 export default function ScanWinePage() {
@@ -37,10 +59,54 @@ export default function ScanWinePage() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanDraft, setScanDraft] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [savingWish, setSavingWish] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   const recentWines = [...wines]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 3);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearched(false);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchWines(q);
+        setSearchResults(results);
+        setSearched(true);
+      } catch {
+        setSearchResults([]);
+        setSearched(true);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectResult = (result) => {
+    setScanDraft({
+      ...EMPTY_DRAFT,
+      label: result.name || "",
+      winery: result.winery || "",
+      region: result.region || "",
+      type: result.type || "unknown",
+      preview: result.image || "",
+    });
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearched(false);
+  };
 
   const handleCapture = (payload) => {
     setScanDraft({
@@ -63,13 +129,11 @@ export default function ScanWinePage() {
 
   const handleSaveDraft = async () => {
     if (!scanDraft) return;
-
     const payload = buildWinePayload(scanDraft);
     if (!payload.name.trim()) {
       showError("Falta el nombre del vino");
       return;
     }
-
     try {
       setSaving(true);
       const createdWine = await addWine(payload);
@@ -83,6 +147,25 @@ export default function ScanWinePage() {
     }
   };
 
+  const handleSaveWish = async () => {
+    if (!scanDraft) return;
+    const payload = buildWishPayload(scanDraft);
+    if (!payload.name.trim()) {
+      showError("Falta el nombre del vino");
+      return;
+    }
+    try {
+      setSavingWish(true);
+      await createWish(payload);
+      showSuccess(`"${payload.name}" agregado a tu lista de deseos`);
+      setScanDraft(null);
+    } catch {
+      showError("No se pudo agregar a la lista de deseos");
+    } finally {
+      setSavingWish(false);
+    }
+  };
+
   const handleCancelDraft = () => setScanDraft(null);
 
   return (
@@ -91,6 +174,90 @@ export default function ScanWinePage() {
         <div className="scan-options">
           {!showScanner ? (
             <>
+              <section className="wine-search">
+                <span className="section-eyebrow">Buscar vino conocido</span>
+                <div className="wine-search__input-wrap">
+                  <span className="wine-search__icon" aria-hidden="true">
+                    <Icon name="search" size={18} />
+                  </span>
+                  <input
+                    type="text"
+                    className="wine-search__input"
+                    placeholder="Ej: Catena Malbec, Rutini, Luigi Bosca..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Buscar vino conocido"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="wine-search__clear"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Limpiar búsqueda"
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  )}
+                </div>
+
+                {searchLoading && <LoadingSkeleton type="list" count={3} />}
+
+                {!searchLoading && searched && searchResults.length === 0 && (
+                  <p className="wine-search__empty">
+                    Sin resultados. Probá otro nombre o escaneá la etiqueta.
+                  </p>
+                )}
+
+                {searchResults.length > 0 && (
+                  <>
+                    <ul className="wine-search__results">
+                      {searchResults.map((r) => (
+                        <li key={r.id} className="wine-search-card">
+                          <div className="wine-search-card__img">
+                            {r.image ? (
+                              <img src={r.image} alt={r.name} loading="lazy" />
+                            ) : (
+                              <span aria-hidden="true">🍷</span>
+                            )}
+                          </div>
+                          <div className="wine-search-card__body">
+                            <p className="wine-search-card__name">{r.name}</p>
+                            {r.winery && (
+                              <p className="wine-search-card__winery">{r.winery}</p>
+                            )}
+                            <div className="wine-search-card__meta">
+                              {r.type && r.type !== "unknown" && (
+                                <span className="wine-type-badge">{WINE_TYPE_LABELS[r.type]}</span>
+                              )}
+                              {r.region && (
+                                <span className="wine-search-card__region">{r.region}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="wine-search-card__add"
+                            onClick={() => handleSelectResult(r)}
+                            aria-label={`Cargar ${r.name}`}
+                            title="Cargar datos"
+                          >
+                            <Icon name="plus" size={18} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="wine-search__source">
+                      Fuente:{" "}
+                      {searchResults[0].source === "openfoodfacts"
+                        ? "Open Food Facts"
+                        : "catálogo demo"}
+                    </p>
+                  </>
+                )}
+              </section>
+
+              <div className="scan-divider"><span>o</span></div>
+
               <button
                 className="btn-scan-large"
                 onClick={() => setShowScanner(true)}
@@ -103,7 +270,7 @@ export default function ScanWinePage() {
               </button>
 
               <button type="button" className="btn-manual-entry" onClick={handleManualEntry}>
-                ✎ Agregar manualmente, sin escanear
+                <Icon name="pencil" size={15} /> Agregar manualmente, sin escanear
               </button>
             </>
           ) : (
@@ -152,43 +319,43 @@ export default function ScanWinePage() {
                   className="scan-edit-input"
                   placeholder="Nombre del vino *"
                   value={scanDraft.label}
-                  onChange={(event) => updateDraft("label", event.target.value)}
+                  onChange={(e) => updateDraft("label", e.target.value)}
                 />
                 <input
                   type="text"
                   className="scan-edit-input"
                   placeholder="Bodega"
-                  list="wine-wineries"
+                  list="scan-wineries"
                   value={scanDraft.winery}
-                  onChange={(event) => updateDraft("winery", event.target.value)}
+                  onChange={(e) => updateDraft("winery", e.target.value)}
                 />
                 <input
                   type="text"
                   className="scan-edit-input"
                   placeholder="Región"
-                  list="wine-regions"
+                  list="scan-regions"
                   value={scanDraft.region}
-                  onChange={(event) => updateDraft("region", event.target.value)}
+                  onChange={(e) => updateDraft("region", e.target.value)}
                 />
                 <input
                   type="text"
                   className="scan-edit-input"
                   placeholder="Varietal"
-                  list="wine-varietals"
+                  list="scan-varietals"
                   value={scanDraft.varietal}
-                  onChange={(event) => updateDraft("varietal", event.target.value)}
+                  onChange={(e) => updateDraft("varietal", e.target.value)}
                 />
                 <input
                   type="number"
                   className="scan-edit-input"
                   placeholder="Año"
                   value={scanDraft.vintage}
-                  onChange={(event) => updateDraft("vintage", event.target.value)}
+                  onChange={(e) => updateDraft("vintage", e.target.value)}
                 />
                 <select
                   className="scan-edit-input"
                   value={scanDraft.type}
-                  onChange={(event) => updateDraft("type", event.target.value)}
+                  onChange={(e) => updateDraft("type", e.target.value)}
                   aria-label="Tipo de vino"
                 >
                   <option value="unknown">Tipo de vino...</option>
@@ -200,26 +367,71 @@ export default function ScanWinePage() {
                   className="scan-edit-textarea"
                   placeholder="Notas"
                   value={scanDraft.notes}
-                  onChange={(event) => updateDraft("notes", event.target.value)}
+                  onChange={(e) => updateDraft("notes", e.target.value)}
                 />
               </div>
 
-              <datalist id="wine-wineries">
-                {WINERIES.map((name) => <option key={name} value={name} />)}
+              <div className="scan-section-divider">
+                <span>Datos de compra <small>(opcional)</small></span>
+              </div>
+
+              <div className="scan-edit-grid scan-edit-grid--purchase">
+                <input
+                  type="number"
+                  className="scan-edit-input"
+                  placeholder="Precio"
+                  min="0"
+                  step="0.01"
+                  value={scanDraft.price}
+                  onChange={(e) => updateDraft("price", e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="scan-edit-input"
+                  placeholder="Tienda o vinoteca"
+                  list="scan-stores"
+                  value={scanDraft.store}
+                  onChange={(e) => updateDraft("store", e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="scan-edit-input"
+                  value={scanDraft.purchasedAt}
+                  onChange={(e) => updateDraft("purchasedAt", e.target.value)}
+                  aria-label="Fecha de compra"
+                />
+                <input
+                  type="number"
+                  className="scan-edit-input"
+                  placeholder="Cantidad de botellas"
+                  min="1"
+                  value={scanDraft.quantity}
+                  onChange={(e) => updateDraft("quantity", e.target.value)}
+                />
+              </div>
+
+              <datalist id="scan-wineries">
+                {WINERIES.map((n) => <option key={n} value={n} />)}
               </datalist>
-              <datalist id="wine-regions">
-                {REGIONS.map((name) => <option key={name} value={name} />)}
+              <datalist id="scan-regions">
+                {REGIONS.map((n) => <option key={n} value={n} />)}
               </datalist>
-              <datalist id="wine-varietals">
-                {VARIETALS.map((name) => <option key={name} value={name} />)}
+              <datalist id="scan-varietals">
+                {VARIETALS.map((n) => <option key={n} value={n} />)}
+              </datalist>
+              <datalist id="scan-stores">
+                {STORES.map((n) => <option key={n} value={n} />)}
               </datalist>
 
-              <div className="result-actions">
-                <button className="btn-cancel" onClick={handleCancelDraft} type="button" disabled={saving}>
-                  Cancelar
-                </button>
-                <button className="btn-add" onClick={handleSaveDraft} type="button" disabled={saving}>
+              <div className="result-actions result-actions--column">
+                <button className="btn-add" onClick={handleSaveDraft} type="button" disabled={saving || savingWish}>
                   {saving ? "Guardando..." : "Agregar a bodega"}
+                </button>
+                <button className="btn-wish" onClick={handleSaveWish} type="button" disabled={saving || savingWish}>
+                  {savingWish ? "Guardando..." : "♡ Agregar a lista de deseos"}
+                </button>
+                <button className="btn-cancel" onClick={handleCancelDraft} type="button" disabled={saving || savingWish}>
+                  Cancelar
                 </button>
               </div>
             </div>

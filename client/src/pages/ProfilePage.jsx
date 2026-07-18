@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import { useWineStats } from "../hooks/useWineStats";
+import { useSpendingStats } from "../hooks/useSpendingStats";
 import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import ConfirmModal from "../components/ConfirmModal";
+import Icon from "../components/Icon";
 import "../styles/pages/ProfilePage.css";
 
 export default function ProfilePage() {
@@ -13,6 +15,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const { stats: wineStats, loading: statsLoading } = useWineStats();
+  const { spending } = useSpendingStats();
 
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -197,7 +200,7 @@ export default function ProfilePage() {
               <div className="top-list">
                 {wineStats.topVarietals.slice(0, 5).map((item, idx) => (
                   <div key={item.varietal} className="top-item">
-                    <span className="top-rank">#{idx + 1}</span>
+                    <span className="top-rank">{idx + 1}</span>
                     <span className="top-name">{item.varietal}</span>
                     <span className="top-value">{item.count}</span>
                   </div>
@@ -213,7 +216,7 @@ export default function ProfilePage() {
               <div className="top-list">
                 {wineStats.topRegions.slice(0, 5).map((item, idx) => (
                   <div key={item.region} className="top-item">
-                    <span className="top-rank">#{idx + 1}</span>
+                    <span className="top-rank">{idx + 1}</span>
                     <span className="top-name">{item.region}</span>
                     <span className="top-value">{item.count}</span>
                   </div>
@@ -241,6 +244,51 @@ export default function ProfilePage() {
         </section>
       )}
 
+      {spending && spending.totalSpent > 0 && (
+        <section className="wine-insights">
+          <h3 className="insights-title">💰 Mi inversión en vinos</h3>
+          <div className="insight-card">
+            <div className="insight-header">Total gastado</div>
+            <div className="rating-display">
+              <span className="rating-number">
+                ${spending.totalSpent.toLocaleString("es-AR", { maximumFractionDigits: 0 })}
+              </span>
+              <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                en {spending.winesWithPrice} {spending.winesWithPrice === 1 ? "vino" : "vinos"}
+              </span>
+            </div>
+          </div>
+
+          {spending.avgPriceByType && spending.avgPriceByType.length > 0 && (
+            <div className="insight-card">
+              <div className="insight-header">Precio promedio por tipo</div>
+              <div className="type-breakdown">
+                {spending.avgPriceByType.map((item) => (
+                  <div key={item.type} className="type-item">
+                    <span className="type-label">{WINE_TYPE_LABELS[item.type] || item.type}</span>
+                    <span className="type-count">
+                      ${item.avgPrice.toLocaleString("es-AR")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {spending.bestValueWine && (
+            <div className="insight-card">
+              <div className="insight-header">Mejor relación calidad/precio</div>
+              <div className="type-item">
+                <span className="type-label">{spending.bestValueWine.name}</span>
+                <span className="type-count">
+                  ${spending.bestValueWine.purchase?.price?.toLocaleString("es-AR")} · {spending.bestValueWine.rating}★
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {!isEditing ? (
         <>
           <div className="profile-card">
@@ -261,8 +309,12 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-actions profile-actions--stacked">
-            <button className="btn-edit" onClick={() => setIsEditing(true)} type="button">✏️ Editar perfil</button>
-            <button className="btn-logout" onClick={() => setShowLogoutConfirm(true)} type="button">🚪 Cerrar sesión</button>
+            <button className="btn-edit" onClick={() => setIsEditing(true)} type="button">
+              <Icon name="pencil" size={17} /> Editar perfil
+            </button>
+            <button className="btn-logout" onClick={() => setShowLogoutConfirm(true)} type="button">
+              <Icon name="log-out" size={17} /> Cerrar sesión
+            </button>
           </div>
         </>
       ) : (

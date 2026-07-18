@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const labelsRoutes = require("./routes/labels.routes");
 const winesRoutes = require("./routes/wines.routes");
+const wishesRoutes = require("./routes/wishes.routes");
 const usersRoutes = require("./routes/users.routes");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -118,6 +119,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/labels", labelsRoutes);
 app.use("/api/wines", winesRoutes);
+app.use("/api/wishes", wishesRoutes);
 app.use("/api/users", usersRoutes);
 
 app.use((req, res) => {

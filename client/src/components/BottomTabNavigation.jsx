@@ -74,6 +74,10 @@ export default function BottomTabNavigation() {
   return (
     <nav className="bottom-tabs-container">
       <div className="bottom-tabs">
+        <div className="sidebar-brand" aria-hidden="true">
+          <span className="sidebar-brand__mark">🍇</span>
+          <span className="sidebar-brand__name">Rincones</span>
+        </div>
         {tabs.map((tab) => (
           <button
             key={tab.id}

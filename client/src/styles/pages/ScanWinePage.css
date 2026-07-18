@@ -29,6 +29,9 @@
 }
 
 .btn-manual-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: none;
   color: var(--accent-light);
@@ -36,6 +39,220 @@
   font-size: 0.88rem;
   padding: 0.5rem;
   text-decoration: underline;
+}
+
+/* ── Buscar vino conocido (API) ── */
+.wine-search {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.wine-search__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.wine-search__icon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.wine-search__input {
+  width: 100%;
+  padding: 13px 42px 13px 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  background: var(--glass);
+  color: var(--text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.wine-search__input:focus {
+  outline: none;
+  border-color: var(--accent-light);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.18);
+}
+
+.wine-search__clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.wine-search__clear:hover {
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+.wine-search__empty {
+  margin: 0;
+  padding: 6px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.wine-search__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.wine-search-card {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.wine-search-card:hover {
+  border-color: var(--line-accent);
+}
+
+.wine-search-card__img {
+  width: 52px;
+  height: 66px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  background: linear-gradient(160deg, rgba(126, 89, 201, 0.22), rgba(12, 15, 25, 0.9));
+  border: 1px solid var(--line);
+}
+
+.wine-search-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wine-search-card__body {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.wine-search-card__name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wine-search-card__winery {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wine-search-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.wine-search-card__region {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.wine-search-card .wine-type-badge {
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.wine-search-card__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid rgba(167, 130, 239, 0.3);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.wine-search-card__add:hover {
+  filter: brightness(1.08);
+}
+
+.wine-search-card__add:active {
+  transform: scale(0.92);
+}
+
+.wine-search__source {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  text-align: right;
+}
+
+.scan-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.scan-divider::before,
+.scan-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
 }
 
 .btn-scan-large {
