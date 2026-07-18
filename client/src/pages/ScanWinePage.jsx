@@ -118,6 +118,34 @@ export default function ScanWinePage() {
       ocrFailed: Boolean(payload.ocrFailed),
     });
     setShowScanner(false);
+
+    // Enriquecer con datos reales: usamos el nombre leído por OCR para buscar
+    // el vino en Open Food Facts y completar sólo los campos que quedaron vacíos.
+    const detectedName = (payload.label || "").trim();
+    if (detectedName.length >= 3) {
+      searchWines(detectedName)
+        .then(([match]) => {
+          if (!match) return;
+          setScanDraft((prev) => {
+            if (!prev) return prev;
+            const filledSomething =
+              (!prev.winery && match.winery) ||
+              (!prev.region && match.region) ||
+              (!prev.preview && match.image) ||
+              (prev.type === "unknown" && match.type !== "unknown");
+            if (!filledSomething) return prev;
+            return {
+              ...prev,
+              winery: prev.winery || match.winery || "",
+              region: prev.region || match.region || "",
+              type: prev.type !== "unknown" ? prev.type : match.type || "unknown",
+              preview: prev.preview || match.image || "",
+            };
+          });
+          showSuccess("Completamos datos desde Open Food Facts");
+        })
+        .catch(() => {});
+    }
   };
 
   const handleManualEntry = () => {

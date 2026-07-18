@@ -469,3 +469,25 @@
   .profile-card { padding: 18px; }
   .profile-actions--sticky { bottom: calc(92px + env(safe-area-inset-bottom)); }
 }
+
+/* Desktop: focused, centered column (no sticky bar needed without bottom tabs) */
+@media (min-width: 1024px) {
+  .profile-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-bottom: 48px;
+  }
+
+  .profile-header { padding: 28px; }
+
+  .profile-actions--stacked {
+    flex-direction: row;
+  }
+
+  .profile-actions--sticky {
+    position: static;
+    background: none;
+    backdrop-filter: none;
+    padding: 4px 0 0;
+  }
+}
