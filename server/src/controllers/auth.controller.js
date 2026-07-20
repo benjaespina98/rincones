@@ -1,10 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
-const fs = require("fs");
-const path = require("path");
 const User = require("../models/user.model");
+const mailService = require("../services/mail.service");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -259,57 +257,33 @@ const forgotPassword = async (req, res, next) => {
     const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetUrl = `${frontendURL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
-    // Intentar enviar email si hay config SMTP
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const emailFrom = process.env.EMAIL_FROM || `no-reply@${process.env.FRONTEND_URL?.replace(/^https?:\/\//, '') || 'example.com'}`;
+    const genericMessage =
+      "Si el email existe, recibirás instrucciones para restablecer la contraseña";
+    const isDev = process.env.NODE_ENV !== "production";
 
-    if (smtpHost && smtpPort && smtpUser && smtpPass) {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: Number(smtpPort),
-        secure: Number(smtpPort) === 465, // true for 465, false for other ports
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      // Intentar usar plantilla HTML si existe
-      let htmlContent = null;
+    // Si el SMTP está configurado, enviamos el email. Un fallo de envío no debe
+    // devolver 500 ni revelar si el email existe: registramos y respondemos genérico.
+    if (mailService.isMailConfigured()) {
       try {
-        const templatePath = path.resolve(__dirname, "../emails/passwordReset.html");
-        const raw = await fs.promises.readFile(templatePath, "utf8");
-        htmlContent = raw.replace(/{{RESET_URL}}/g, resetUrl);
-      } catch (err) {
-        // Si falla lectura de plantilla, usar HTML simple
-        htmlContent = `<p>Para restablecer tu contraseña, haz click <a href="${resetUrl}">aquí</a>.</p><p>Si no solicitaste esto, ignora este email.</p>`;
+        await mailService.sendPasswordResetEmail({ to: email, resetUrl });
+        return res.status(200).json({ message: genericMessage });
+      } catch (mailError) {
+        console.error("Error enviando email de recuperación:", mailError.message);
+        if (isDev) {
+          return res
+            .status(200)
+            .json({ message: "No se pudo enviar el email (dev). Usá el enlace directo.", resetUrl });
+        }
+        return res.status(200).json({ message: genericMessage });
       }
-
-      const mailOptions = {
-        from: emailFrom,
-        to: email,
-        subject: "Restablece tu contraseña - Rincones",
-        text: `Para restablecer tu contraseña, visita: ${resetUrl}\n\nSi no solicitaste esto, ignora este email.`,
-        html: htmlContent,
-      };
-
-      await transporter.sendMail(mailOptions);
-
-      return res.status(200).json({ message: "Instrucciones enviadas al email si existe en nuestro sistema" });
     }
 
-    // Fallback: sin SMTP configurado, registrar la URL en logs
+    // Sin SMTP configurado: registramos la URL. En desarrollo la devolvemos para probar.
     console.info("Password reset URL:", resetUrl);
-
-    // En desarrollo, devolver la URL para facilitar pruebas locales
-    if (process.env.NODE_ENV !== "production") {
+    if (isDev) {
       return res.status(200).json({ message: "Instrucciones registradas (dev)", resetUrl });
     }
-
-    return res.status(200).json({ message: "Instrucciones (URL) han sido registradas en el servidor (sin SMTP configurado)" });
+    return res.status(200).json({ message: genericMessage });
   } catch (error) {
     return next(error);
   }

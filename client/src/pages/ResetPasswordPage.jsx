@@ -1,72 +1,118 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import "./AuthPages.css";
+import { resetPassword } from "../services/authApi";
+import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
+import Icon from "../components/Icon";
+import PasswordInput from "../components/PasswordInput";
+import "./Auth.css";
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const emailFromQuery = searchParams.get("email") || "";
 
-  const [email, setEmail] = useState(emailFromQuery);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { showSuccess, showError } = useToast();
 
-  useEffect(() => {
-    if (emailFromQuery) setEmail(emailFromQuery);
-  }, [emailFromQuery]);
+  const strength = passwordStrength(password);
+  const invalidLink = !token || !emailFromQuery;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) return showToast({ message: "Falta token en la URL", type: "error" });
-    if (!email) return showToast({ message: "Email requerido", type: "error" });
-    if (!password || password !== confirm) return showToast({ message: "Contraseñas no coinciden", type: "error" });
+    if (invalidLink) {
+      setError("El enlace es inválido o está incompleto. Pedí uno nuevo.");
+      return;
+    }
+    if (!meetsPasswordPolicy(password)) {
+      setError("La contraseña necesita 8+ caracteres, con mayúsculas, minúsculas y números.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
 
     try {
       setLoading(true);
-      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-      const res = await fetch(`${apiURL}/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, email, newPassword: password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Error al restablecer contraseña");
-      }
-
-      showToast({ message: "Contraseña actualizada. Puedes ingresar ahora.", type: "success" });
+      await resetPassword({ token, email: emailFromQuery, newPassword: password });
+      showSuccess("Contraseña actualizada. ¡Listo!");
       navigate("/login");
     } catch (err) {
-      console.error(err);
-      showToast({ message: err.message || "Error" , type: "error"});
+      const msg = err.response?.data?.message || "No pudimos restablecer la contraseña.";
+      setError(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page-center">
+    <div className="auth-screen">
       <div className="auth-card">
-        <h2>Crear nueva contraseña</h2>
-        <p className="lead">La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números.</p>
+        <div className="auth-brand">
+          <span className="auth-brand__mark" aria-hidden="true">
+            <Icon name="lock" size={26} />
+          </span>
+          <h1 className="auth-brand__title">Nueva contraseña</h1>
+          <p className="auth-brand__subtitle">
+            {emailFromQuery ? `Para ${emailFromQuery}` : "Creá una contraseña segura para tu cuenta."}
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input type="email" placeholder="Correo" value={email} onChange={(e)=>setEmail(e.target.value)} disabled={loading} />
-          <input type="password" placeholder="Nueva contraseña" value={password} onChange={(e)=>setPassword(e.target.value)} disabled={loading} />
-          <input type="password" placeholder="Confirmar contraseña" value={confirm} onChange={(e)=>setConfirm(e.target.value)} disabled={loading} />
+        {(error || invalidLink) && (
+          <div className="auth-error" role="alert">
+            <Icon name="alert-triangle" size={16} />
+            {error || "El enlace es inválido o expiró. Pedí uno nuevo."}
+          </div>
+        )}
 
-          <button type="submit" className="button button--primary" disabled={loading}>
-            {loading ? "Guardando..." : "Cambiar contraseña"}
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="password">Nueva contraseña</label>
+            <PasswordInput
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => { setError(""); setPassword(e.target.value); }}
+              disabled={loading || invalidLink}
+              autoComplete="new-password"
+            />
+            {password && (
+              <div className="auth-strength">
+                <div className="auth-strength__bars">
+                  {[1, 2, 3].map((i) => (
+                    <span key={i} className={`auth-strength__bar ${i <= strength.level ? `is-on--${strength.cls}` : ""}`} />
+                  ))}
+                </div>
+                <span className="auth-strength__label">Seguridad: {strength.label}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="confirm">Confirmar contraseña</label>
+            <PasswordInput
+              id="confirm"
+              name="confirm"
+              value={confirm}
+              onChange={(e) => { setError(""); setConfirm(e.target.value); }}
+              disabled={loading || invalidLink}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <button type="submit" className="auth-submit" disabled={loading || invalidLink}>
+            {loading ? <span className="auth-spinner" aria-hidden="true" /> : <>Cambiar contraseña <Icon name="arrow-right" size={18} /></>}
           </button>
         </form>
 
         <div className="auth-footer">
-          <Link to="/login" className="muted-link">Volver al login</Link>
+          <Link to="/login" className="auth-link">← Volver al inicio de sesión</Link>
         </div>
       </div>
     </div>

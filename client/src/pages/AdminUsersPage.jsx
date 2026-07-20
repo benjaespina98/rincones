@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getUsers, updateUserRole } from "../services/adminApi";
-import { useToast } from "../hooks/useToast";
+import { useToast } from "../context/ToastContext";
 import "./styles/AdminUsersPage.css";
 
 const AdminUsersPage = ({ embedded = false }) => {
-  const showToast = useToast();
+  const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,11 +13,7 @@ const AdminUsersPage = ({ embedded = false }) => {
   const [editingUserId, setEditingUserId] = useState(null);
   const [updatingRole, setUpdatingRole] = useState(false);
 
-  useEffect(() => {
-    loadUsers();
-  }, [page]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -26,11 +22,15 @@ const AdminUsersPage = ({ embedded = false }) => {
       setPagination(data.pagination);
     } catch (err) {
       setError(err.response?.data?.message || "Error al cargar usuarios");
-      showToast("Error al cargar usuarios", "error");
+      showError("Error al cargar usuarios");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, showError]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const handleRoleChange = async (userId, newRole) => {
     if (updatingRole) return;
@@ -38,11 +38,11 @@ const AdminUsersPage = ({ embedded = false }) => {
     try {
       setUpdatingRole(true);
       await updateUserRole(userId, newRole);
-      showToast(`Rol actualizado a "${newRole}"`, "success");
+      showSuccess(`Rol actualizado a "${newRole}"`);
       setEditingUserId(null);
       await loadUsers();
     } catch (err) {
-      showToast(err.response?.data?.message || "Error al actualizar rol", "error");
+      showError(err.response?.data?.message || "Error al actualizar rol");
     } finally {
       setUpdatingRole(false);
     }

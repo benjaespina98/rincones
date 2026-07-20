@@ -21,13 +21,19 @@
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--elevated);
   border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-light);
   box-shadow: var(--shadow-lg);
   pointer-events: all;
-  animation: slideIn 300ms ease;
+  animation: slideIn 300ms var(--ease-out);
   transform-origin: top right;
 }
+
+.toast--success { border-left-color: #4ade80; }
+.toast--error { border-left-color: #e24448; }
+.toast--warning { border-left-color: #fbbf24; }
+.toast--info { border-left-color: var(--accent-light); }
 
 @keyframes slideIn {
   from {

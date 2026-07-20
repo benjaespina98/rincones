@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
@@ -22,34 +22,29 @@ const getInitials = (email = "") => {
 
 const AppLayout = ({ children, pageTitle }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin } = useAuth();
-  const canGoBack = typeof window !== "undefined" && window.history.length > 1;
+
+  // Los controles de volver/inicio sólo tienen sentido en pantallas de detalle;
+  // en las pestañas principales la navegación es el propio tab bar.
+  const isSubScreen = location.pathname.startsWith("/vino");
 
   return (
     <div className="app-layout">
       <header className="app-topbar">
-        <div className="app-topbar__nav-controls">
-          <button
-            className="app-topbar__nav-btn"
-            type="button"
-            aria-label="Volver"
-            title="Volver"
-            onClick={() => navigate(-1)}
-            disabled={!canGoBack}
-          >
-            <Icon name="arrow-left" size={18} />
-          </button>
-
-          <button
-            className="app-topbar__nav-btn"
-            type="button"
-            aria-label="Ir al inicio"
-            title="Ir al inicio"
-            onClick={() => navigate("/")}
-          >
-            <Icon name="home" size={18} />
-          </button>
-        </div>
+        {isSubScreen && (
+          <div className="app-topbar__nav-controls">
+            <button
+              className="app-topbar__nav-btn"
+              type="button"
+              aria-label="Volver"
+              title="Volver"
+              onClick={() => navigate(-1)}
+            >
+              <Icon name="arrow-left" size={18} />
+            </button>
+          </div>
+        )}
 
         <div className="app-topbar__title-wrap">
           <span className="app-topbar__brand">Rincones</span>

@@ -435,47 +435,45 @@
   gap: 8px;
 }
 
-.wine-qty-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+/* Stock stepper (.wine-qty-controls/.qty-btn/.wine-qty) is global — see App.css */
 
-.qty-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--accent-muted);
-  color: var(--text);
-  font-weight: 800;
-  font-size: 15px;
-  display: inline-flex;
+/* Interactive favorite toggle on the image */
+.wine-fav-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 15, 25, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.qty-btn:hover:not(:disabled) {
-  background: rgba(126, 89, 201, 0.32);
-  border-color: var(--line-accent);
+.wine-fav-toggle:hover:not(:disabled) {
+  background: rgba(12, 15, 25, 0.82);
 }
 
-.qty-btn:active {
-  transform: scale(0.92);
+.wine-fav-toggle.is-active {
+  color: #ff6ea0;
+  border-color: rgba(255, 110, 160, 0.42);
 }
 
-.qty-btn:disabled {
-  opacity: 0.35;
+.wine-fav-toggle:active {
+  transform: scale(0.86);
+}
+
+.wine-fav-toggle:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-.wine-qty {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  min-width: 22px;
-  text-align: center;
 }
 
 /* Wine Actions */
@@ -487,119 +485,62 @@
   background: rgba(10, 12, 22, 0.35);
 }
 
-.btn-icon,
-.btn-delete {
+.wine-action-btn {
   flex: 1;
-  padding: 8px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 10px;
   border: 1px solid transparent;
   background: var(--accent-muted);
   color: var(--text-secondary);
   border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 17px;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
 
-.btn-icon:hover:not(:disabled),
-.btn-delete:hover:not(:disabled) {
+.wine-action-btn:hover:not(:disabled) {
   background: rgba(126, 89, 201, 0.28);
+  color: var(--text);
 }
 
-.btn-icon:active,
-.btn-delete:active {
-  transform: scale(0.92);
+.wine-action-btn:active {
+  transform: scale(0.96);
 }
 
-.btn-icon:disabled,
-.btn-delete:disabled {
+.wine-action-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.btn-icon.active {
-  background: rgba(255, 101, 160, 0.2);
-  color: #ff6ea0;
-  border-color: rgba(255, 101, 160, 0.35);
+.wine-action-btn.is-active {
+  background: rgba(47, 182, 123, 0.16);
+  color: #7fe3b4;
+  border-color: rgba(47, 182, 123, 0.3);
 }
 
-.btn-delete {
+.wine-action-btn--danger {
+  flex: 0 0 auto;
+  width: 44px;
+  padding: 0;
   background: var(--wine-soft);
   color: var(--wine);
 }
 
-.btn-delete:hover:not(:disabled),
-.btn-delete:active {
+.wine-action-btn--danger:hover:not(:disabled) {
   background: rgba(198, 70, 95, 0.28);
+  color: var(--wine);
 }
 
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 56px 20px;
-  text-align: center;
-  background: var(--elevated);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  animation: wineCardIn 320ms var(--ease-out) both;
-}
+/* .btn-icon / .btn-delete now live in WineDetailPage.css (their only consumer) */
 
-.empty-icon {
-  font-size: 40px;
-  margin: 0 0 4px;
-  width: 84px;
-  height: 84px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 35%, rgba(167, 130, 239, 0.28), rgba(18, 22, 36, 0.6));
-  border: 1px solid var(--line-accent);
-}
-
-.empty-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.empty-subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  max-width: 280px;
-}
-
-.empty-cta {
-  margin-top: 6px;
-  border: 1px solid rgba(167, 130, 239, 0.3);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
-  color: #fff;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 12px 24px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  box-shadow: var(--shadow-accent);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
-}
-
-.empty-cta:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 16px 40px rgba(126, 89, 201, 0.4);
-}
-
-.empty-cta:active {
-  transform: scale(0.97);
-}
+/* Empty state styles are global (see App.css) */
 
 /* Tablet and up */
 @media (min-width: 640px) {

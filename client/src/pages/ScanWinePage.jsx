@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
+import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
@@ -24,6 +25,9 @@ const EMPTY_DRAFT = {
   store: "",
   purchasedAt: "",
   quantity: "1",
+  confidence: null,
+  enriched: false,
+  fromScan: false,
 };
 
 const buildWinePayload = (draft) => ({
@@ -115,7 +119,9 @@ export default function ScanWinePage() {
       vintage: payload.vintage || "",
       preview: payload.preview || "",
       rawText: payload.rawText || "",
+      confidence: typeof payload.confidence === "number" ? payload.confidence : null,
       ocrFailed: Boolean(payload.ocrFailed),
+      fromScan: true,
     });
     setShowScanner(false);
 
@@ -140,6 +146,7 @@ export default function ScanWinePage() {
               region: prev.region || match.region || "",
               type: prev.type !== "unknown" ? prev.type : match.type || "unknown",
               preview: prev.preview || match.image || "",
+              enriched: true,
             };
           });
           showSuccess("Completamos datos desde Open Food Facts");
@@ -240,42 +247,56 @@ export default function ScanWinePage() {
                   <>
                     <ul className="wine-search__results">
                       {searchResults.map((r) => (
-                        <li key={r.id} className="wine-search-card">
-                          <div className="wine-search-card__img">
+                        <li key={r.id} className="wine-result-card">
+                          <div className="wine-result-card__media">
                             {r.image ? (
                               <img src={r.image} alt={r.name} loading="lazy" />
                             ) : (
-                              <span aria-hidden="true">🍷</span>
+                              <span className="wine-result-card__ph" aria-hidden="true">🍷</span>
+                            )}
+                            {r.type && r.type !== "unknown" && (
+                              <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
                             )}
                           </div>
-                          <div className="wine-search-card__body">
-                            <p className="wine-search-card__name">{r.name}</p>
-                            {r.winery && (
-                              <p className="wine-search-card__winery">{r.winery}</p>
+
+                          <div className="wine-result-card__body">
+                            <p className="wine-result-card__name" title={r.name}>{r.name}</p>
+                            <p className="wine-result-card__winery">
+                              {r.winery || "Bodega no especificada"}
+                            </p>
+
+                            {(r.region || r.vintage) && (
+                              <div className="wine-result-card__meta">
+                                {r.region && (
+                                  <span className="wine-result-card__chip">
+                                    <Icon name="map-pin" size={13} /> {r.region}
+                                  </span>
+                                )}
+                                {r.vintage && (
+                                  <span className="wine-result-card__chip">{r.vintage}</span>
+                                )}
+                              </div>
                             )}
-                            <div className="wine-search-card__meta">
-                              {r.type && r.type !== "unknown" && (
-                                <span className="wine-type-badge">{WINE_TYPE_LABELS[r.type]}</span>
-                              )}
-                              {r.region && (
-                                <span className="wine-search-card__region">{r.region}</span>
-                              )}
-                            </div>
+
+                            {r.rating > 0 && (
+                              <div className="wine-result-card__rating">
+                                <StarRating value={r.rating} size="sm" />
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              className="wine-result-card__add"
+                              onClick={() => handleSelectResult(r)}
+                            >
+                              <Icon name="plus" size={16} /> Agregar
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className="wine-search-card__add"
-                            onClick={() => handleSelectResult(r)}
-                            aria-label={`Cargar ${r.name}`}
-                            title="Cargar datos"
-                          >
-                            <Icon name="plus" size={18} />
-                          </button>
                         </li>
                       ))}
                     </ul>
                     <p className="wine-search__source">
-                      Fuente:{" "}
+                      Datos de{" "}
                       {searchResults[0].source === "openfoodfacts"
                         ? "Open Food Facts"
                         : "catálogo demo"}
@@ -335,11 +356,52 @@ export default function ScanWinePage() {
             </div>
 
             <div className="wine-info">
-              {scanDraft.ocrFailed && (
-                <p className="scan-ocr-warning">
-                  No pudimos leer la etiqueta automáticamente. Completá los datos a mano.
-                </p>
-              )}
+              {scanDraft.fromScan && (scanDraft.ocrFailed ? (
+                <div className="scan-detection scan-detection--failed">
+                  <span className="scan-confidence scan-confidence--low">
+                    <Icon name="alert-triangle" size={15} /> No pudimos leer la etiqueta
+                  </span>
+                  <p className="scan-detection__hint">Sin problema: completá los datos a mano abajo.</p>
+                </div>
+              ) : (
+                (() => {
+                  const conf = scanDraft.confidence;
+                  const level = conf == null ? "mid" : conf >= 75 ? "high" : conf >= 45 ? "mid" : "low";
+                  const label = level === "high" ? "confiable" : level === "mid" ? "revisá los datos" : "poco clara";
+                  const detected = [
+                    ["Nombre", scanDraft.label],
+                    ["Bodega", scanDraft.winery],
+                    ["Año", scanDraft.vintage],
+                    ["Región", scanDraft.region],
+                  ];
+                  return (
+                    <div className="scan-detection">
+                      <div className="scan-detection__head">
+                        <span className={`scan-confidence scan-confidence--${level}`}>
+                          <Icon name="check" size={15} /> Lectura {label}
+                          {typeof conf === "number" && <em>· {conf}%</em>}
+                        </span>
+                        {scanDraft.enriched && (
+                          <span className="scan-enriched">
+                            <Icon name="sparkles" size={14} /> Open Food Facts
+                          </span>
+                        )}
+                      </div>
+                      <div className="scan-detection__fields">
+                        {detected.map(([field, value]) => (
+                          <span
+                            key={field}
+                            className={`scan-field-chip ${value ? "is-ok" : "is-missing"}`}
+                          >
+                            <Icon name={value ? "check" : "x"} size={12} /> {field}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="scan-detection__hint">Revisá y completá lo que falte antes de guardar.</p>
+                    </div>
+                  );
+                })()
+              ))}
 
               <div className="scan-edit-grid">
                 <input

@@ -260,23 +260,37 @@ export default function WineDetailPage() {
         ) : (
           <div className="wine-detail-hero__placeholder" aria-hidden="true">🍷</div>
         )}
-        {wine.favorite && <span className="badge-favorite" title="Favorito"><Icon name="heart" filled size={18} /></span>}
-        {wine.tasted && <span className="badge-tasted" title="Probado"><Icon name="check" size={20} /></span>}
+
+        <div className="wine-detail-hero__badges">
+          {wine.favorite && (
+            <span className="hero-badge hero-badge--fav" title="Favorito">
+              <Icon name="heart" filled size={15} />
+            </span>
+          )}
+          {wine.tasted && (
+            <span className="hero-badge hero-badge--tasted" title="Probado">
+              <Icon name="check" size={16} />
+            </span>
+          )}
+        </div>
+
+        {!editing && (
+          <button type="button" className="wine-detail-hero__edit" onClick={startEditing} aria-label="Editar vino">
+            <Icon name="pencil" size={16} />
+          </button>
+        )}
+
+        <div className="wine-detail-hero__overlay">
+          <h1 className="wine-detail-hero__name">{wine.name}</h1>
+          <p className="wine-detail-hero__origin">
+            {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
+          </p>
+        </div>
       </div>
 
       <div className="wine-detail-body">
         {!editing ? (
           <>
-            <div className="wine-detail-titlebar">
-              <h2 className="wine-detail-name">{wine.name}</h2>
-              <button type="button" className="wine-detail-edit-btn" onClick={startEditing}>
-                <Icon name="pencil" size={15} /> Editar
-              </button>
-            </div>
-            <p className="wine-detail-subtitle">
-              {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
-            </p>
-
             <div className="wine-detail-meta">
               <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
               {wine.vintage && <span className="wine-year">{wine.vintage}</span>}

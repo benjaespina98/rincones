@@ -39,11 +39,15 @@ const analyzeImageBuffer = async (buffer) => {
     const parsedVintage = tryParseVintage(text);
     const parsedName = simpleNameFromOcr(text);
 
+    // Confianza global del OCR (0-100) que reporta Tesseract.
+    const confidence = Math.max(0, Math.min(100, Math.round(Number(data?.confidence) || 0)));
+
     // basic analysis heuristics
     const analysis = {
       hasVintage: !!parsedVintage,
       estimatedName: parsedName,
       estimatedVintage: parsedVintage,
+      confidence,
       rawText: text,
     };
 

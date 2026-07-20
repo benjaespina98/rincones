@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import api from "../services/api";
+import Icon from "./Icon";
 import "./LabelScanner.css";
 
 const fileToDataUrl = (file) =>
@@ -35,15 +36,15 @@ const LabelScanner = ({ onCapture, onCancel }) => {
         preview: dataUrl,
         label: analysis.estimatedName || "",
         vintage: analysis.estimatedVintage || "",
+        confidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
         rawText: analysis.rawText || "",
         ocrFailed: false,
       });
-    } catch (error) {
+    } catch {
       setAnalyzeError(
-        "No se pudo leer la etiqueta automáticamente. Podés completar los datos a mano."
+        "No pudimos leer la etiqueta automáticamente. Podés completar los datos a mano."
       );
-      // Seguimos el flujo igual: el usuario completa todo manualmente en la siguiente pantalla.
-      onCapture({ preview: dataUrl, label: "", vintage: "", rawText: "", ocrFailed: true });
+      onCapture({ preview: dataUrl, label: "", vintage: "", confidence: null, rawText: "", ocrFailed: true });
     } finally {
       setAnalyzing(false);
     }
@@ -57,58 +58,73 @@ const LabelScanner = ({ onCapture, onCancel }) => {
 
   return (
     <div className="label-scanner">
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleInputChange}
+        className="label-scanner__input"
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleInputChange}
+        className="label-scanner__input"
+      />
+
       {!preview ? (
-        <div className="label-scanner__sources">
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleInputChange}
-            className="label-scanner__input"
-          />
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleInputChange}
-            className="label-scanner__input"
-          />
+        <>
+          <div className="label-scanner__frame" aria-hidden="true">
+            <span className="label-scanner__frame-corner label-scanner__frame-corner--tl" />
+            <span className="label-scanner__frame-corner label-scanner__frame-corner--tr" />
+            <span className="label-scanner__frame-corner label-scanner__frame-corner--bl" />
+            <span className="label-scanner__frame-corner label-scanner__frame-corner--br" />
+            <Icon name="camera" size={38} className="label-scanner__frame-icon" />
+            <p className="label-scanner__frame-hint">Encuadrá la etiqueta del vino</p>
+          </div>
 
-          <button
-            type="button"
-            className="label-scanner__source-btn"
-            onClick={() => cameraInputRef.current?.click()}
-          >
-            <span className="label-scanner__source-icon" aria-hidden="true">📷</span>
-            <span>Tomar foto</span>
-          </button>
-
-          <button
-            type="button"
-            className="label-scanner__source-btn"
-            onClick={() => galleryInputRef.current?.click()}
-          >
-            <span className="label-scanner__source-icon" aria-hidden="true">🖼️</span>
-            <span>Subir de galería</span>
-          </button>
+          <div className="label-scanner__actions">
+            <button
+              type="button"
+              className="label-scanner__btn label-scanner__btn--primary"
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              <Icon name="camera" size={18} /> Tomar foto
+            </button>
+            <button
+              type="button"
+              className="label-scanner__btn"
+              onClick={() => galleryInputRef.current?.click()}
+            >
+              <Icon name="image" size={18} /> Galería
+            </button>
+          </div>
 
           {onCancel && (
-            <button type="button" className="btn-cancel" onClick={onCancel}>
+            <button type="button" className="label-scanner__cancel" onClick={onCancel}>
               Cancelar
             </button>
           )}
-        </div>
+        </>
       ) : (
         <div className="label-scanner__preview">
           <img src={preview} alt="Etiqueta seleccionada" />
           {analyzing && (
-            <div className="label-scanner__analyzing">
-              <span className="label-scanner__spinner" aria-hidden="true" />
-              Analizando etiqueta...
+            <div className="label-scanner__scanning" role="status">
+              <span className="label-scanner__scan-line" />
+              <div className="label-scanner__scan-text">
+                <span className="label-scanner__spinner" aria-hidden="true" />
+                Leyendo la etiqueta…
+              </div>
             </div>
           )}
-          {analyzeError && <p className="label-scanner__error">{analyzeError}</p>}
+          {analyzeError && (
+            <p className="label-scanner__error">
+              <Icon name="alert-triangle" size={15} /> {analyzeError}
+            </p>
+          )}
         </div>
       )}
     </div>

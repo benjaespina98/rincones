@@ -44,7 +44,6 @@ export default function ProfilePage() {
         }
       } catch (err) {
         showError?.("Error al cargar perfil");
-        // eslint-disable-next-line no-console
         console.error(err);
       } finally {
         if (mounted) setLoading(false);
@@ -121,7 +120,6 @@ export default function ProfilePage() {
       setInitialFormData(formData);
     } catch (err) {
       showError?.("Error al actualizar el perfil");
-      // eslint-disable-next-line no-console
       console.error(err);
     } finally {
       setLoading(false);
@@ -132,7 +130,7 @@ export default function ProfilePage() {
     try {
       await logout();
       navigate("/login");
-    } catch (err) {
+    } catch {
       showError?.("Error al cerrar sesión");
     }
   };
@@ -140,7 +138,10 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="profile-page">
-        <div className="loading">Cargando perfil...</div>
+        <div className="page-loading">
+          <span className="spinner" aria-hidden="true" />
+          <span>Cargando tu perfil…</span>
+        </div>
       </div>
     );
   }
