@@ -101,7 +101,10 @@
   pointer-events: none;
 }
 
-.auth-input {
+/* Prefijado con .auth-input-wrap para ganarle en especificidad a los
+   selectores globales input[type="email"|"password"|...] de App.css,
+   que si no pisan el padding y hacen que el ícono se superponga al texto. */
+.auth-input-wrap .auth-input {
   width: 100%;
   min-height: 50px;
   padding: 13px 44px 13px 42px;
@@ -109,26 +112,26 @@
   border-radius: var(--radius-md);
   background: var(--glass);
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
-.auth-input:focus {
+.auth-input-wrap .auth-input:focus {
   outline: none;
   border-color: var(--accent-light);
   background: rgba(13, 17, 31, 0.98);
   box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.16);
 }
 
-.auth-input::placeholder {
+.auth-input-wrap .auth-input::placeholder {
   color: var(--text-subtle);
 }
 
-.auth-input:disabled {
+.auth-input-wrap .auth-input:disabled {
   opacity: 0.55;
 }
 
-.auth-input--plain {
+.auth-input-wrap .auth-input--plain {
   padding-left: 14px;
 }
 
@@ -259,11 +262,37 @@
 }
 
 .auth-hint {
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
   text-align: center;
-  margin: -6px 0 4px;
+  margin: -2px 0 16px;
+}
+
+.auth-hint strong {
+  color: var(--text);
+}
+
+.auth-linkbtn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.auth-linkbtn:hover {
+  color: var(--text);
+}
+
+.auth-linkbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Dev-only reset link surfaced when there's no SMTP configured */

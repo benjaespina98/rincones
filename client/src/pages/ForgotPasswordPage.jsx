@@ -12,8 +12,7 @@ export default function ForgotPasswordPage() {
   const [devResetUrl, setDevResetUrl] = useState("");
   const { showSuccess, showError } = useToast();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const sendInstructions = async () => {
     if (!email) {
       showError("Ingresá tu email.");
       return;
@@ -34,6 +33,16 @@ export default function ForgotPasswordPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendInstructions();
+  };
+
+  const handleUseAnother = () => {
+    setSent(false);
+    setDevResetUrl("");
   };
 
   return (
@@ -75,8 +84,9 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <p className="auth-hint">
-              Revisá tu bandeja de entrada (y el spam). Si no llega en unos minutos, volvé a intentar.
+              Enviamos instrucciones a <strong>{email}</strong>. Revisá tu bandeja de entrada (y el spam).
             </p>
+
             {devResetUrl && (
               <div className="auth-devbox">
                 <span className="auth-devbox__title">Modo desarrollo · sin email configurado</span>
@@ -85,6 +95,24 @@ export default function ForgotPasswordPage() {
                 </Link>
               </div>
             )}
+
+            <button
+              type="button"
+              className="auth-submit"
+              onClick={sendInstructions}
+              disabled={loading}
+            >
+              {loading ? <span className="auth-spinner" aria-hidden="true" /> : "Reenviar instrucciones"}
+            </button>
+
+            <button
+              type="button"
+              className="auth-linkbtn"
+              onClick={handleUseAnother}
+              disabled={loading}
+            >
+              Usar otro correo
+            </button>
           </>
         )}
 

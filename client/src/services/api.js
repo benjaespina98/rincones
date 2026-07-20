@@ -1,7 +1,6 @@
 import axios from "axios";
 
 const devApiUrl = "http://localhost:4000/api";
-const prodApiUrl = "https://rincones-api.vercel.app/api";
 
 const normalizeApiUrl = (value) => String(value || "").trim().replace(/\/$/, "");
 
@@ -10,10 +9,13 @@ const configuredLooksLocal = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/a
   configuredApiUrl
 );
 
-const fallbackApiUrl = import.meta.env.PROD ? prodApiUrl : devApiUrl;
-const baseURL = import.meta.env.PROD && configuredLooksLocal
-  ? prodApiUrl
-  : configuredApiUrl || fallbackApiUrl;
+// En producción usamos una ruta relativa (mismo origen) que Vercel redirige a la API
+// mediante un rewrite (ver client/vercel.json). Así la cookie de sesión es first-party
+// y funciona en Safari/iOS (que bloquea cookies de terceros entre subdominios).
+// En desarrollo apuntamos al server local.
+const baseURL = import.meta.env.PROD
+  ? (configuredApiUrl && !configuredLooksLocal ? configuredApiUrl : "/api")
+  : (configuredApiUrl || devApiUrl);
 
 const api = axios.create({
   baseURL,
