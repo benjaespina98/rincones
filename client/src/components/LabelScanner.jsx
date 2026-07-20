@@ -11,6 +11,41 @@ const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+// Reduce la imagen antes de subirla: baja la latencia del análisis y el peso de red.
+const resizeImage = (file, maxDim = 1280, quality = 0.85) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (Math.max(width, height) > maxDim) {
+        if (width >= height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      canvas.toBlob(
+        (blob) => (blob ? resolve({ blob, dataUrl }) : reject(new Error("resize-failed"))),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image-decode-failed"));
+    };
+    img.src = url;
+  });
+
 const LabelScanner = ({ onCapture, onCancel }) => {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -22,13 +57,24 @@ const LabelScanner = ({ onCapture, onCancel }) => {
     if (!file) return;
     setAnalyzeError("");
 
-    const dataUrl = await fileToDataUrl(file);
+    // Reducimos la imagen; si el navegador no la puede decodificar (ej. HEIC),
+    // usamos el archivo original como respaldo.
+    let uploadBlob = file;
+    let dataUrl;
+    try {
+      const resized = await resizeImage(file);
+      uploadBlob = resized.blob;
+      dataUrl = resized.dataUrl;
+    } catch {
+      dataUrl = await fileToDataUrl(file);
+    }
+
     setPreview(dataUrl);
     setAnalyzing(true);
 
     try {
       const form = new FormData();
-      form.append("file", file, file.name || "etiqueta.jpg");
+      form.append("file", uploadBlob, "etiqueta.jpg");
       const { data: body } = await api.post("/labels/analyze", form, { timeout: 30000 });
       const analysis = body.data || {};
 
@@ -36,15 +82,20 @@ const LabelScanner = ({ onCapture, onCancel }) => {
         preview: dataUrl,
         label: analysis.estimatedName || "",
         vintage: analysis.estimatedVintage || "",
+        winery: analysis.winery || "",
+        varietal: analysis.varietal || "",
+        region: analysis.region || "",
+        type: analysis.type || "unknown",
         confidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
+        source: analysis.source || "",
         rawText: analysis.rawText || "",
-        ocrFailed: false,
+        ocrFailed: analysis.isWineLabel === false,
       });
     } catch {
       setAnalyzeError(
         "No pudimos leer la etiqueta automáticamente. Podés completar los datos a mano."
       );
-      onCapture({ preview: dataUrl, label: "", vintage: "", confidence: null, rawText: "", ocrFailed: true });
+      onCapture({ preview: dataUrl, label: "", vintage: "", winery: "", varietal: "", region: "", type: "unknown", confidence: null, source: "", rawText: "", ocrFailed: true });
     } finally {
       setAnalyzing(false);
     }
