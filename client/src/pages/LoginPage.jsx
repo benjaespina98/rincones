@@ -2,31 +2,28 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import "./LoginPage.css";
+import Icon from "../components/Icon";
+import PasswordInput from "../components/PasswordInput";
+import "./Auth.css";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setError("");
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.email || !formData.password) {
-      showError("Por favor completa todos los campos");
+      setError("Completá tu correo y contraseña.");
       return;
     }
 
@@ -35,65 +32,72 @@ const LoginPage = () => {
       await login(formData.email, formData.password);
       showSuccess("¡Bienvenido de vuelta!");
       navigate("/");
-    } catch (error) {
-      showError(error.response?.data?.message || "Error en autenticación");
-      console.error(error);
+    } catch (err) {
+      const msg = err.response?.data?.message || "No pudimos iniciar sesión. Revisá tus datos.";
+      setError(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-header">
-          <div className="login-icon">🍷</div>
-          <h1>Rincones</h1>
-          <p>Descubre y colecciona tus vinos favoritos</p>
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <span className="auth-brand__mark" aria-hidden="true">🍇</span>
+          <h1 className="auth-brand__title">Rincones</h1>
+          <p className="auth-brand__subtitle">Tu bodega personal, siempre en el bolsillo.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="tu@email.com"
-              disabled={loading}
-            />
+        {error && (
+          <div className="auth-error" role="alert">
+            <Icon name="alert-triangle" size={16} /> {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="email">Correo electrónico</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-wrap__icon" aria-hidden="true"><Icon name="mail" size={18} /></span>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                className="auth-input"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="tu@email.com"
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
-            <input
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="password">Contraseña</label>
+            <PasswordInput
               id="password"
-              type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
               disabled={loading}
+              autoComplete="current-password"
             />
           </div>
 
-          <button
-            type="submit"
-            className="button button--primary button--block"
-            disabled={loading}
-          >
-            {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? <span className="auth-spinner" aria-hidden="true" /> : <>Iniciar sesión <Icon name="arrow-right" size={18} /></>}
           </button>
         </form>
 
-        <div className="login-footer">
-          <p>¿No tienes cuenta?</p>
-          <div style={{display:'flex', gap: '0.75rem', justifyContent: 'center'}}>
-            <Link to="/register">Crear cuenta</Link>
-            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+        <div className="auth-footer">
+          <div className="auth-footer__row">
+            <span>¿No tenés cuenta?</span>
+            <Link to="/register" className="auth-link">Crear cuenta</Link>
           </div>
+          <Link to="/forgot-password" className="auth-link">¿Olvidaste tu contraseña?</Link>
         </div>
       </div>
     </div>

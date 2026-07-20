@@ -21,7 +21,7 @@ const TabIcon = ({ name }) => {
   if (name === "explorar") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M11 4a7 7 0 1 0 4.3 12.5l3.9 3.9 1.4-1.4-3.9-3.9A7 7 0 0 0 11 4Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z" fill="currentColor"/>
+        <path d="m12 3 2.2 5.3L19.5 10l-5.3 2.2L12 17.5l-2.2-5.3L4.5 10l5.3-1.7L12 3Z" fill="currentColor"/>
       </svg>
     );
   }
@@ -29,7 +29,7 @@ const TabIcon = ({ name }) => {
   if (name === "descubrir") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m12 3 2.2 5.3L19.5 10l-5.3 2.2L12 17.5l-2.2-5.3L4.5 10l5.3-1.7L12 3Z" fill="currentColor"/>
+        <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" fill="currentColor"/>
       </svg>
     );
   }
@@ -48,8 +48,8 @@ export default function BottomTabNavigation() {
   const tabs = [
     { id: "bodega", label: "Bodega", path: "/" },
     { id: "favoritos", label: "Favoritos", path: "/favoritos" },
+    { id: "descubrir", label: "Agregar", path: "/descubrir", primary: true },
     { id: "explorar", label: "Explorar", path: "/explorar" },
-    { id: "descubrir", label: "Descubrir", path: "/descubrir" },
     { id: "perfil", label: "Perfil", path: "/perfil" },
   ];
 
@@ -72,7 +72,7 @@ export default function BottomTabNavigation() {
   };
 
   return (
-    <nav className="bottom-tabs-container">
+    <nav className="bottom-tabs-container" aria-label="Navegación principal">
       <div className="bottom-tabs">
         <div className="sidebar-brand" aria-hidden="true">
           <span className="sidebar-brand__mark">🍇</span>
@@ -81,9 +81,10 @@ export default function BottomTabNavigation() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
+            className={`tab-button ${activeTab === tab.id ? "active" : ""} ${tab.primary ? "tab-button--add" : ""}`}
             onClick={() => handleTabClick(tab.path)}
             aria-label={tab.label}
+            aria-current={activeTab === tab.id ? "page" : undefined}
             type="button"
           >
             <span className="tab-icon"><TabIcon name={tab.id} /></span>

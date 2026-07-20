@@ -2,13 +2,18 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import "./RegisterPage.css";
+import { register as registerRequest } from "../services/authApi";
+import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
+import Icon from "../components/Icon";
+import PasswordInput from "../components/PasswordInput";
+import "./Auth.css";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     email: "",
@@ -16,133 +21,145 @@ const RegisterPage = () => {
     confirmPassword: "",
   });
 
+  const strength = passwordStrength(formData.password);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setError("");
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { firstName, email, password, confirmPassword } = formData;
 
-    if (!formData.firstName || !formData.email || !formData.password || !formData.confirmPassword) {
-      showError("Por favor completa todos los campos");
+    if (!firstName || !email || !password || !confirmPassword) {
+      setError("Completá todos los campos.");
       return;
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      showError("Las contraseñas no coinciden");
+    if (!meetsPasswordPolicy(password)) {
+      setError("La contraseña necesita 8+ caracteres, con mayúsculas, minúsculas y números.");
       return;
     }
-
-    const hasUpperCase = /[A-Z]/.test(formData.password);
-    const hasLowerCase = /[a-z]/.test(formData.password);
-    const hasNumber = /\d/.test(formData.password);
-
-    if (formData.password.length < 8) {
-      showError("La contraseña debe tener al menos 8 caracteres");
-      return;
-    }
-
-    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      showError("La contraseña debe contener mayúsculas, minúsculas y números");
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
     try {
       setLoading(true);
-      const { register } = await import("../services/authApi");
-      const response = await register(formData.email, formData.password, formData.firstName);
-      
-      // Auto-login después de registro
-      await login(formData.email, formData.password);
-      
-      showSuccess("¡Cuenta creada exitosamente!");
+      await registerRequest(email, password, firstName);
+      await login(email, password);
+      showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
       navigate("/");
-    } catch (error) {
-      showError(error.response?.data?.message || "Error al crear la cuenta");
-      console.error(error);
+    } catch (err) {
+      const msg = err.response?.data?.message || "No pudimos crear la cuenta.";
+      setError(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="register-page">
-      <div className="register-container">
-        <div className="register-header">
-          <div className="register-icon">🍷</div>
-          <h1>Rincones</h1>
-          <p>Crea tu cuenta y comienza a coleccionar</p>
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <span className="auth-brand__mark" aria-hidden="true">🍇</span>
+          <h1 className="auth-brand__title">Creá tu cuenta</h1>
+          <p className="auth-brand__subtitle">Empezá a coleccionar y a descubrir tu próximo vino favorito.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-group">
-            <label htmlFor="firstName">Nombre</label>
-            <input
-              id="firstName"
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              placeholder="Juan"
-              disabled={loading}
-            />
+        {error && (
+          <div className="auth-error" role="alert">
+            <Icon name="alert-triangle" size={16} /> {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="firstName">Nombre</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-wrap__icon" aria-hidden="true"><Icon name="user" size={18} /></span>
+              <input
+                id="firstName"
+                type="text"
+                name="firstName"
+                className="auth-input"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="¿Cómo te llamás?"
+                autoComplete="given-name"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="tu@email.com"
-              disabled={loading}
-            />
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="email">Correo electrónico</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-wrap__icon" aria-hidden="true"><Icon name="mail" size={18} /></span>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                className="auth-input"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="tu@email.com"
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
-            <input
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="password">Contraseña</label>
+            <PasswordInput
               id="password"
-              type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
               disabled={loading}
+              autoComplete="new-password"
             />
+            {formData.password && (
+              <div className="auth-strength">
+                <div className="auth-strength__bars">
+                  {[1, 2, 3].map((i) => (
+                    <span
+                      key={i}
+                      className={`auth-strength__bar ${i <= strength.level ? `is-on--${strength.cls}` : ""}`}
+                    />
+                  ))}
+                </div>
+                <span className="auth-strength__label">Seguridad: {strength.label}</span>
+              </div>
+            )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirmar contraseña</label>
-            <input
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="confirmPassword">Confirmar contraseña</label>
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="••••••••"
               disabled={loading}
+              autoComplete="new-password"
             />
           </div>
 
-          <button
-            type="submit"
-            className="button button--primary button--block"
-            disabled={loading}
-          >
-            {loading ? "Creando cuenta..." : "Crear cuenta"}
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? <span className="auth-spinner" aria-hidden="true" /> : <>Crear cuenta <Icon name="arrow-right" size={18} /></>}
           </button>
         </form>
 
-        <div className="register-footer">
-          <p>¿Ya tienes cuenta?</p>
-          <Link to="/login">Inicia sesión</Link>
+        <div className="auth-footer">
+          <div className="auth-footer__row">
+            <span>¿Ya tenés cuenta?</span>
+            <Link to="/login" className="auth-link">Iniciá sesión</Link>
+          </div>
         </div>
       </div>
     </div>

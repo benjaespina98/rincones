@@ -21,4 +21,28 @@ const api = axios.create({
   withCredentials: true, // Permitir envío automático de cookies (httpOnly)
 });
 
+// Manejo de expiración de sesión: si un endpoint protegido responde 401,
+// redirigimos al login (salvo que ya estemos en una pantalla de auth o
+// consultando /auth/me, que se usa para hidratar la sesión al iniciar).
+const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/admin"];
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const url = error?.config?.url || "";
+    const isMeCheck = url.includes("/auth/me");
+    const isAuthCall = url.includes("/auth/");
+
+    if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
+      const onAuthScreen = AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
+      if (!onAuthScreen) {
+        window.location.assign("/login");
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;

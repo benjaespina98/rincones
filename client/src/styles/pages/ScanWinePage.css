@@ -119,62 +119,95 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
-}
-
-.wine-search-card {
-  display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  align-items: center;
-  padding: 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 
-.wine-search-card:hover {
-  border-color: var(--line-accent);
-}
-
-.wine-search-card__img {
-  width: 52px;
-  height: 66px;
-  border-radius: var(--radius-sm);
+.wine-result-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+  animation: wineCardIn 320ms var(--ease-out) both;
+}
+
+@media (hover: hover) {
+  .wine-result-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-accent);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+.wine-result-card__media {
+  position: relative;
+  aspect-ratio: 1 / 1.05;
   display: grid;
   place-items: center;
-  font-size: 1.5rem;
-  background: linear-gradient(160deg, rgba(126, 89, 201, 0.22), rgba(12, 15, 25, 0.9));
-  border: 1px solid var(--line);
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.28), transparent 62%),
+    linear-gradient(160deg, rgba(126, 89, 201, 0.2), rgba(12, 15, 25, 0.94));
 }
 
-.wine-search-card__img img {
+.wine-result-card__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--transition-slow);
 }
 
-.wine-search-card__body {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
+@media (hover: hover) {
+  .wine-result-card:hover .wine-result-card__media img {
+    transform: scale(1.06);
+  }
 }
 
-.wine-search-card__name {
-  margin: 0;
-  font-size: 0.9rem;
+.wine-result-card__ph {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+}
+
+.wine-result-card__type {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.66rem;
   font-weight: 700;
+  color: #fff;
+  background: rgba(12, 15, 25, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.wine-result-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  flex: 1;
+}
+
+.wine-result-card__name {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.wine-search-card__winery {
+.wine-result-card__winery {
   margin: 0;
   font-size: 0.78rem;
   color: var(--text-secondary);
@@ -183,50 +216,58 @@
   text-overflow: ellipsis;
 }
 
-.wine-search-card__meta {
+.wine-result-card__meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 2px;
+}
+
+.wine-result-card__chip {
+  display: inline-flex;
   align-items: center;
-}
-
-.wine-search-card__region {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.wine-search-card .wine-type-badge {
-  padding: 3px 9px;
+  gap: 3px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
+  background: rgba(126, 89, 201, 0.14);
   border: 1px solid var(--line);
-  background: rgba(126, 89, 201, 0.16);
-  color: var(--accent-soft);
+  color: var(--text-secondary);
   font-size: 0.7rem;
   font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.wine-search-card__add {
-  display: flex;
+.wine-result-card__rating {
+  margin-top: 2px;
+}
+
+.wine-result-card__add {
+  margin-top: auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
+  gap: 6px;
+  padding: 10px;
   border: 1px solid rgba(167, 130, 239, 0.3);
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--accent-light), var(--accent));
   color: #fff;
+  font-size: 0.84rem;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
   transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.wine-search-card__add:hover {
+.wine-result-card__add:hover {
   filter: brightness(1.08);
 }
 
-.wine-search-card__add:active {
-  transform: scale(0.92);
+.wine-result-card__add:active {
+  transform: scale(0.96);
 }
 
 .wine-search__source {
@@ -234,6 +275,12 @@
   font-size: 0.72rem;
   color: var(--text-subtle);
   text-align: right;
+}
+
+@media (min-width: 720px) {
+  .wine-search__results {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .scan-divider {
@@ -316,15 +363,6 @@
   object-fit: cover;
 }
 
-.btn-add {
-  min-height: 45px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #8f60ff 0%, #5d46e8 100%);
-  color: #fff;
-  font-weight: 700;
-}
-
 .recent-list {
   display: grid;
   gap: 0.5rem;
@@ -347,45 +385,94 @@
   font-size: 0.8rem;
 }
 
-.scan-ocr-warning {
-  display: flex;
-  gap: 0.5rem;
-  border-radius: 12px;
-  border-left: 4px solid #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
-  padding: 0.7rem 0.8rem;
-  margin: 0 0 0.6rem;
-  color: #f3e3bd;
-  font-size: 0.85rem;
-}
-
-.scan-edit-grid {
+/* ── Detection summary (post-scan) ── */
+.scan-detection {
   display: grid;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: 10px;
+  padding: 14px;
+  margin: 0 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--glass);
 }
 
-.scan-edit-input,
-.scan-edit-textarea {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 10px;
-  border: 1px solid rgba(171, 142, 255, 0.22);
-  background: rgba(21, 20, 44, 0.9);
-  color: #f6f2ff;
-  padding: 0.72rem 0.8rem;
+.scan-detection--failed {
+  border-color: rgba(242, 183, 55, 0.35);
+  background: rgba(242, 183, 55, 0.08);
 }
 
-.scan-edit-textarea {
-  min-height: 90px;
-  resize: vertical;
+.scan-detection__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.scan-edit-input:focus,
-.scan-edit-textarea:focus {
-  outline: none;
-  border-color: rgba(198, 173, 255, 0.84);
-  box-shadow: 0 0 0 3px rgba(129, 88, 235, 0.2);
+.scan-confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.scan-confidence em {
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.scan-confidence--high { color: var(--success); }
+.scan-confidence--mid { color: var(--gold-soft); }
+.scan-confidence--low { color: #f0899d; }
+
+.scan-enriched {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(126, 89, 201, 0.16);
+  border: 1px solid var(--line-accent);
+  color: var(--accent-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.scan-detection__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.scan-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.scan-field-chip.is-ok {
+  background: rgba(47, 182, 123, 0.14);
+  border-color: rgba(47, 182, 123, 0.32);
+  color: #7fe3b4;
+}
+
+.scan-field-chip.is-missing {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+  color: var(--text-muted);
+}
+
+.scan-detection__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
 }
 
 .scan-result {
@@ -416,27 +503,9 @@
   padding: 0.85rem;
 }
 
-.result-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+.scan-result .result-actions {
   padding: 0.8rem;
   border-top: 1px solid rgba(161, 133, 242, 0.2);
-}
-
-.btn-cancel {
-  min-height: 45px;
-  border: none;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #f2ecff;
-  font-weight: 700;
-}
-
-.btn-cancel:disabled,
-.btn-add:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
 }
 
 @media (min-width: 768px) {

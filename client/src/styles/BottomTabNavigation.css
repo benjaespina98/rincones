@@ -124,6 +124,30 @@
   }
 }
 
+/* Primary "Agregar" action — stands out as the main CTA */
+.tab-button--add .tab-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(126, 89, 201, 0.42);
+}
+
+.tab-button--add .tab-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tab-button--add.active .tab-icon {
+  transform: none;
+  filter: none;
+}
+
+.tab-button--add.active::before {
+  display: none;
+}
+
 /* Brand only visible in desktop sidebar */
 .sidebar-brand {
   display: none;

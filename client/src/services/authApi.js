@@ -20,6 +20,16 @@ export const logout = async () => {
   return data;
 };
 
+export const forgotPassword = async (email) => {
+  const { data } = await api.post("/auth/forgot-password", { email });
+  return data; // puede incluir { resetUrl } en entorno de desarrollo
+};
+
+export const resetPassword = async ({ token, email, newPassword }) => {
+  const { data } = await api.post("/auth/reset-password", { token, email, newPassword });
+  return data;
+};
+
 export const getProfile = async () => {
   const { data } = await api.get("/users/profile");
   return data.data;

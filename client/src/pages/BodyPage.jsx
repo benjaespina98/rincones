@@ -257,11 +257,8 @@ export default function BodyPage({ initialFilter = "all" }) {
 
   return (
     <div className="body-page">
-      <header className="bodega-header">
-        <span className="section-eyebrow">Tu colección</span>
-        <h1 className="bodega-header__title">Mi Bodega</h1>
-      </header>
-
+      {(loading || wines.length > 0) && (
+        <>
       <div className="stats-strip" role="group" aria-label="Resumen de tu bodega">
         <div className="stat">
           <span className="stat-number">{stats.total}</span>
@@ -375,7 +372,7 @@ export default function BodyPage({ initialFilter = "all" }) {
           className={`quick-filter-chip ${filterType === "favorites" ? "quick-filter-chip--active" : ""}`}
           onClick={() => setFilterType(filterType === "favorites" ? "all" : "favorites")}
         >
-          ❤ Favoritos ({stats.favorites})
+          Favoritos ({stats.favorites})
         </button>
         <button
           type="button"
@@ -389,14 +386,14 @@ export default function BodyPage({ initialFilter = "all" }) {
           className={`quick-filter-chip ${filterType === "lowstock" ? "quick-filter-chip--active" : ""}`}
           onClick={() => setFilterType(filterType === "lowstock" ? "all" : "lowstock")}
         >
-          ⚠ Stock bajo ({stats.lowStock})
+          Stock bajo ({stats.lowStock})
         </button>
         <button
           type="button"
           className={`quick-filter-chip ${filterType === "cellarready" ? "quick-filter-chip--active" : ""}`}
           onClick={() => setFilterType(filterType === "cellarready" ? "all" : "cellarready")}
         >
-          🟢 Listos para abrir
+          Listos para abrir
         </button>
       </div>
 
@@ -415,6 +412,8 @@ export default function BodyPage({ initialFilter = "all" }) {
             Quitar filtros
           </button>
         </p>
+      )}
+        </>
       )}
 
       {loading && <LoadingSkeleton type="card" count={4} />}
@@ -440,11 +439,19 @@ export default function BodyPage({ initialFilter = "all" }) {
                   ) : (
                     <span className="wine-image" aria-hidden="true">🍷</span>
                   )}
-                  {wine.favorite && (
-                    <span className="badge-favorite" aria-label="Favorito" title="Favorito">
-                      <Icon name="heart" filled size={15} />
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    className={`wine-fav-toggle ${wine.favorite ? "is-active" : ""}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleToggleFavorite(wine);
+                    }}
+                    disabled={isPending}
+                    aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                    title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                  >
+                    <Icon name="heart" filled={wine.favorite} size={16} />
+                  </button>
                   {wine.tasted && (
                     <span className="badge-tasted" aria-label="Probado" title="Probado">
                       <Icon name="check" size={16} />
@@ -463,7 +470,6 @@ export default function BodyPage({ initialFilter = "all" }) {
                   <div className="wine-meta">
                     <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
                     {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-                    {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
                   </div>
                   <div className="wine-details">
                     <div
@@ -497,36 +503,26 @@ export default function BodyPage({ initialFilter = "all" }) {
 
                 <div className="wine-actions" onClick={(event) => event.stopPropagation()}>
                   <button
-                    className={`btn-icon ${wine.favorite ? "active" : ""}`}
-                    onClick={() => handleToggleFavorite(wine)}
-                    type="button"
-                    disabled={isPending}
-                    aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                    title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                  >
-                    <Icon name="heart" filled={wine.favorite} size={18} />
-                  </button>
-
-                  <button
-                    className={`btn-icon ${wine.tasted ? "active" : ""}`}
+                    className={`wine-action-btn ${wine.tasted ? "is-active" : ""}`}
                     onClick={() => handleToggleTasted(wine)}
                     type="button"
                     disabled={isPending}
                     aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
                     title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
                   >
-                    <Icon name={wine.tasted ? "check" : "circle"} size={18} />
+                    <Icon name={wine.tasted ? "check" : "circle"} size={16} />
+                    {wine.tasted ? "Probado" : "Marcar probado"}
                   </button>
 
                   <button
-                    className="btn-delete"
+                    className="wine-action-btn wine-action-btn--danger"
                     onClick={() => setShowDeleteConfirm(wine._id)}
                     type="button"
                     disabled={isPending}
                     aria-label="Eliminar vino"
                     title="Eliminar vino"
                   >
-                    <Icon name="trash" size={17} />
+                    <Icon name="trash" size={16} />
                   </button>
                 </div>
               </article>

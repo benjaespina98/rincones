@@ -10,7 +10,7 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component {
             <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-lg)" }}>
               Lo sentimos, algo inesperado ocurrió. Intenta recargar la página.
             </p>
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details
                 style={{
                   textAlign: "left",

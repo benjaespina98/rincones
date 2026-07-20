@@ -30,6 +30,12 @@ const fetchJson = async (url) => {
   }
 };
 
+// Extrae una añada (año 1900-2099) del texto si existe.
+const parseVintage = (text = "") => {
+  const m = String(text).match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : "";
+};
+
 const normalizeOff = (product) => {
   const name = (product.product_name || "").trim();
   if (!name) return null;
@@ -43,6 +49,9 @@ const normalizeOff = (product) => {
     winery: brand,
     region,
     image,
+    vintage: parseVintage(name),
+    varietal: "",
+    rating: 0,
     type: guessType(`${product.categories || ""} ${name}`),
     barcode: product.code || "",
     source: "openfoodfacts",
@@ -84,12 +93,16 @@ const loadSample = async () => {
     r.value.forEach((w) => {
       const name = (w.wine || "").trim();
       if (!name) return;
+      const ratingAvg = Number.parseFloat(w.rating?.average);
       items.push({
         id: `sample-${type}-${w.id}`,
         name,
         winery: (w.winery || "").trim(),
         region: (w.location || "").replace(/\s+/g, " ").trim(),
         image: w.image || "",
+        vintage: parseVintage(name),
+        varietal: "",
+        rating: Number.isFinite(ratingAvg) ? ratingAvg : 0,
         type,
         barcode: "",
         source: "sampleapis",

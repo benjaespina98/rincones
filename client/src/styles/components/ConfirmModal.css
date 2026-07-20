@@ -125,6 +125,28 @@
   filter: brightness(0.95);
 }
 
+/* Desktop: centered dialog instead of a full-width bottom sheet */
+@media (min-width: 1024px) {
+  .confirm-modal-overlay {
+    align-items: center;
+    padding: 24px;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  .confirm-modal {
+    max-width: 420px;
+    max-height: none;
+    border-radius: var(--radius-xl);
+    border-bottom: 1px solid rgba(167, 130, 239, 0.18);
+    animation: modalPop 0.24s var(--ease-out);
+  }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .confirm-modal {

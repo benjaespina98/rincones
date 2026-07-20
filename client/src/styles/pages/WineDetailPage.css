@@ -8,7 +8,7 @@
 .wine-detail-hero {
   position: relative;
   width: 100%;
-  height: 300px;
+  height: 340px;
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(167, 130, 239, 0.35), transparent 65%),
     linear-gradient(160deg, rgba(126, 89, 201, 0.32) 0%, rgba(12, 15, 25, 0.95) 100%);
@@ -44,6 +44,93 @@
   50% { transform: translateY(-8px); }
 }
 
+/* Poster overlay (name + origin over the image) */
+.wine-detail-hero__overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 22px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wine-detail-hero__name {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.7rem, 6vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.wine-detail-hero__origin {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Top badges + edit */
+.wine-detail-hero__badges {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.hero-badge {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(12, 15, 25, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-badge--fav { color: #ff6ea0; }
+.hero-badge--tasted { color: var(--success); }
+
+.wine-detail-hero__edit {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 15, 25, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.wine-detail-hero__edit:hover {
+  background: var(--accent);
+}
+
+.wine-detail-hero__edit:active {
+  transform: scale(0.92);
+}
+
 .wine-detail-hero .badge-favorite,
 .wine-detail-hero .badge-tasted {
   position: absolute;
@@ -70,8 +157,8 @@
 
 .wine-detail-body {
   position: relative;
-  margin-top: -28px;
-  padding: 4px 16px 0;
+  margin-top: 16px;
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -246,25 +333,7 @@
   font-weight: 500;
 }
 
-/* Edit form divider */
-.scan-section-divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 2px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-}
-
-.scan-section-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--line-accent), transparent);
-}
+/* Edit form styles (inputs, divider, action buttons) are global — see App.css */
 
 .wine-detail-notes {
   position: relative;
@@ -321,6 +390,56 @@
 .wine-detail-actions .btn-delete {
   min-height: 40px;
   min-width: 44px;
+}
+
+/* Icon action buttons (favorite / tasted / delete) — Wine Detail only */
+.btn-icon,
+.btn-delete {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+  color: var(--text-secondary);
+  font-size: 17px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.btn-icon:hover:not(:disabled),
+.btn-delete:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.28);
+}
+
+.btn-icon:active,
+.btn-delete:active {
+  transform: scale(0.92);
+}
+
+.btn-icon:disabled,
+.btn-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-icon.active {
+  background: rgba(255, 101, 160, 0.2);
+  color: #ff6ea0;
+  border-color: rgba(255, 101, 160, 0.35);
+}
+
+.btn-delete {
+  background: var(--wine-soft);
+  color: var(--wine);
+}
+
+.btn-delete:hover:not(:disabled),
+.btn-delete:active {
+  background: rgba(198, 70, 95, 0.28);
 }
 
 /* Moments */
