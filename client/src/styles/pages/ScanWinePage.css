@@ -270,6 +270,18 @@
   transform: scale(0.96);
 }
 
+.wine-result-card__add:disabled {
+  cursor: default;
+}
+
+.wine-result-card__add.is-added {
+  background: rgba(47, 182, 123, 0.16);
+  border-color: rgba(47, 182, 123, 0.4);
+  color: #7fe3b4;
+  box-shadow: none;
+  filter: none;
+}
+
 .wine-search__source {
   margin: 0;
   font-size: 0.72rem;
