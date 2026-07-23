@@ -58,6 +58,17 @@ const normalizeOff = (product) => {
   };
 };
 
+// Puntaje de calidad: priorizamos resultados con imagen y datos completos,
+// para que las tarjetas se vean bien y los primeros sean los más útiles.
+const qualityScore = (w) =>
+  (w.image ? 3 : 0) + (w.winery ? 1.5 : 0) + (w.region ? 0.5 : 0) + (w.vintage ? 0.5 : 0);
+
+const isUsableResult = (w) =>
+  w &&
+  w.name.length >= 3 &&
+  !/^\d+$/.test(w.name) && // nombres que son solo números = ruido
+  w.name.replace(/[^a-zA-ZÀ-ÿ]/g, "").length >= 2; // requiere algo de texto real
+
 const searchOpenFoodFacts = async (query) => {
   const params = new URLSearchParams({
     search_terms: query,
@@ -65,11 +76,25 @@ const searchOpenFoodFacts = async (query) => {
     tag_contains_0: "contains",
     tag_0: "wines",
     fields: "code,product_name,brands,image_front_small_url,image_small_url,image_url,countries,categories",
-    page_size: "24",
+    page_size: "40",
     json: "1",
   });
   const data = await fetchJson(`${OFF_BASE}/cgi/search.pl?${params.toString()}`);
-  return (data.products || []).map(normalizeOff).filter(Boolean);
+
+  const seen = new Set();
+  const items = (data.products || [])
+    .map(normalizeOff)
+    .filter(isUsableResult)
+    .filter((w) => {
+      // dedupe por nombre + bodega
+      const key = `${w.name.toLowerCase()}|${w.winery.toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  items.sort((a, b) => qualityScore(b) - qualityScore(a));
+  return items.slice(0, 24);
 };
 
 // --- Fallback: SampleAPIs (cacheado en memoria por sesión) ---

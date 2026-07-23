@@ -69,6 +69,8 @@ export default function ScanWinePage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [addingId, setAddingId] = useState(null);
+  const [addedIds, setAddedIds] = useState(() => new Set());
 
   const recentWines = [...wines]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -98,18 +100,29 @@ export default function ScanWinePage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSelectResult = (result) => {
-    setScanDraft({
-      ...EMPTY_DRAFT,
-      label: result.name || "",
+  // Agregado directo a la bodega (1 toque, sin formulario).
+  const handleSelectResult = async (result) => {
+    if (addingId || addedIds.has(result.id)) return;
+    const payload = {
+      name: result.name || "Vino sin nombre",
       winery: result.winery || "",
       region: result.region || "",
+      varietal: result.varietal || "",
+      vintage: result.vintage ? Number.parseInt(result.vintage, 10) : null,
       type: result.type || "unknown",
-      preview: result.image || "",
-    });
-    setSearchQuery("");
-    setSearchResults([]);
-    setSearched(false);
+      image: result.image || "",
+      quantity: 1,
+    };
+    try {
+      setAddingId(result.id);
+      const created = await addWine(payload);
+      setAddedIds((prev) => new Set(prev).add(result.id));
+      showSuccess(`"${created.name}" agregado a tu bodega`);
+    } catch {
+      showError("No se pudo agregar el vino. Probá de nuevo.");
+    } finally {
+      setAddingId(null);
+    }
   };
 
   const handleCapture = (payload) => {
@@ -290,10 +303,17 @@ export default function ScanWinePage() {
 
                             <button
                               type="button"
-                              className="wine-result-card__add"
+                              className={`wine-result-card__add ${addedIds.has(r.id) ? "is-added" : ""}`}
                               onClick={() => handleSelectResult(r)}
+                              disabled={addingId === r.id || addedIds.has(r.id)}
                             >
-                              <Icon name="plus" size={16} /> Agregar
+                              {addedIds.has(r.id) ? (
+                                <><Icon name="check" size={16} /> En tu bodega</>
+                              ) : addingId === r.id ? (
+                                "Agregando…"
+                              ) : (
+                                <><Icon name="plus" size={16} /> Agregar</>
+                              )}
                             </button>
                           </div>
                         </li>
