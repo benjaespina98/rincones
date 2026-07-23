@@ -20,12 +20,42 @@ const baseURL = import.meta.env.PROD
 const api = axios.create({
   baseURL,
   timeout: 12000,
-  withCredentials: true, // Permitir envío automático de cookies (httpOnly)
+  withCredentials: true, // Cookie httpOnly como respaldo donde el navegador la permita
+});
+
+const TOKEN_KEY = "rincones_token";
+
+export const setAuthToken = (token) => {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // localStorage no disponible (modo privado, etc.): seguimos con la cookie.
+  }
+};
+
+export const getAuthToken = () => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+// Adjuntamos el token por header Authorization. Es la vía robusta: funciona en
+// Safari/iOS y entre dominios, donde la cookie de terceros se bloquea.
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Manejo de expiración de sesión: si un endpoint protegido responde 401,
-// redirigimos al login (salvo que ya estemos en una pantalla de auth o
-// consultando /auth/me, que se usa para hidratar la sesión al iniciar).
+// limpiamos el token y volvemos al login (salvo que ya estemos en una pantalla
+// de auth o consultando /auth/me, que se usa para hidratar la sesión al iniciar).
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/admin"];
 
 api.interceptors.response.use(
@@ -37,6 +67,7 @@ api.interceptors.response.use(
     const isAuthCall = url.includes("/auth/");
 
     if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
+      setAuthToken(null);
       const onAuthScreen = AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
       if (!onAuthScreen) {
         window.location.assign("/login");

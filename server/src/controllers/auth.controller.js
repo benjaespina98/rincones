@@ -72,13 +72,17 @@ const setAuthCookie = (res, token) => {
   });
 };
 
-const buildAuthResponse = (user) => ({
+const buildAuthResponse = (user, token) => ({
   data: {
     user: {
       id: String(user._id),
       email: user.email,
       role: user.role,
     },
+    // El token también se devuelve en el body para que el cliente lo guarde y
+    // lo mande por header Authorization (imprescindible en Safari/iOS, donde la
+    // cookie cross-dominio se bloquea). La cookie httpOnly se mantiene como respaldo.
+    token,
   },
 });
 
@@ -116,9 +120,7 @@ const login = async (req, res, next) => {
     // Guardar token en httpOnly cookie
     setAuthCookie(res, token);
 
-    return res.status(200).json({
-      ...buildAuthResponse(user),
-    });
+    return res.status(200).json(buildAuthResponse(user, token));
   } catch (error) {
     return next(error);
   }
@@ -210,9 +212,7 @@ const register = async (req, res, next) => {
     // Guardar token en httpOnly cookie
     setAuthCookie(res, token);
 
-    return res.status(201).json({
-      ...buildAuthResponse(user),
-    });
+    return res.status(201).json(buildAuthResponse(user, token));
   } catch (error) {
     return next(error);
   }
@@ -327,7 +327,7 @@ const resetPassword = async (req, res, next) => {
 
     setAuthCookie(res, jwtToken);
 
-    return res.status(200).json({ ...buildAuthResponse(user) });
+    return res.status(200).json(buildAuthResponse(user, jwtToken));
   } catch (error) {
     return next(error);
   }
