@@ -31,7 +31,7 @@ const createRes = () => {
   return res;
 };
 
-test("auth login sets cookie and does not return token", async () => {
+test("auth login sets cookie and returns token", async () => {
   const originalFindOne = User.findOne;
   const originalCompare = bcrypt.compare;
   const originalSecret = process.env.JWT_SECRET;
@@ -49,7 +49,7 @@ test("auth login sets cookie and does not return token", async () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res.cookies.length, 1);
     assert.equal(res.cookies[0].name, "authToken");
-    assert.ok(!Object.prototype.hasOwnProperty.call(res.body.data, "token"));
+    assert.ok(typeof res.body.data.token === "string" && res.body.data.token.length > 0);
     assert.deepEqual(res.body.data.user, {
       id: "user-1",
       email: "admin@example.com",
@@ -62,7 +62,7 @@ test("auth login sets cookie and does not return token", async () => {
   }
 });
 
-test("auth register sets cookie and does not return token", async () => {
+test("auth register sets cookie and returns token", async () => {
   const originalFindOne = User.findOne;
   const originalCreate = User.create;
   const originalHash = bcrypt.hash;
@@ -82,7 +82,7 @@ test("auth register sets cookie and does not return token", async () => {
     assert.equal(res.statusCode, 201);
     assert.equal(res.cookies.length, 1);
     assert.equal(res.cookies[0].name, "authToken");
-    assert.ok(!Object.prototype.hasOwnProperty.call(res.body.data, "token"));
+    assert.ok(typeof res.body.data.token === "string" && res.body.data.token.length > 0);
     assert.deepEqual(res.body.data.user, {
       id: "user-2",
       email: "new@example.com",

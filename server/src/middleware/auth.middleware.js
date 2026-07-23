@@ -13,7 +13,13 @@ const getJwtSecret = () => {
 };
 
 const authenticate = (req, res, next) => {
-  const token = req.cookies?.authToken || null;
+  // Aceptamos el token por header Authorization: Bearer <token> (robusto, funciona
+  // en Safari/iOS y cross-dominio) y, como respaldo, por cookie httpOnly.
+  const authHeader = String(req.headers.authorization || "");
+  const bearerToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : null;
+  const token = bearerToken || req.cookies?.authToken || null;
 
   if (!token) {
     return res.status(401).json({ message: "Token requerido" });

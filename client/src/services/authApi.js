@@ -1,12 +1,14 @@
-import api from "./api";
+import api, { setAuthToken } from "./api";
 
 export const login = async (email, password) => {
   const { data } = await api.post("/auth/login", { email, password });
+  if (data.data?.token) setAuthToken(data.data.token);
   return data.data;
 };
 
 export const register = async (email, password, firstName = "") => {
   const { data } = await api.post("/auth/register", { email, password, firstName });
+  if (data.data?.token) setAuthToken(data.data.token);
   return data.data;
 };
 
@@ -16,8 +18,12 @@ export const getMe = async () => {
 };
 
 export const logout = async () => {
-  const { data } = await api.post("/auth/logout");
-  return data;
+  try {
+    const { data } = await api.post("/auth/logout");
+    return data;
+  } finally {
+    setAuthToken(null);
+  }
 };
 
 export const forgotPassword = async (email) => {
