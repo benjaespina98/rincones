@@ -2,32 +2,30 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
+import { tapHaptic } from "../utils/haptics";
 import "../styles/AppLayout.css";
 
 const getInitials = (email = "") => {
-  if (!email) {
-    return "U";
-  }
-
+  if (!email) return "U";
   const parts = email.split("@")[0].split(/[._-]/).filter(Boolean);
-  if (!parts.length) {
-    return email[0].toUpperCase();
-  }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("");
+  if (!parts.length) return email[0].toUpperCase();
+  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() || "").join("");
 };
 
 const AppLayout = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
-  // Los controles de volver/inicio sólo tienen sentido en pantallas de detalle;
+  // Los controles de volver sólo tienen sentido en pantallas de detalle;
   // en las pestañas principales la navegación es el propio tab bar.
   const isSubScreen = location.pathname.startsWith("/vino");
+  const displayName = (user?.email || "").split("@")[0] || "Mi cuenta";
+
+  const goToProfile = () => {
+    tapHaptic();
+    navigate("/perfil");
+  };
 
   return (
     <div className="app-layout">
@@ -52,24 +50,16 @@ const AppLayout = ({ children, pageTitle }) => {
         </div>
 
         <div className="app-topbar__actions">
-          {isAdmin && (
-            <button
-              className="app-topbar__admin-btn"
-              type="button"
-              onClick={() => navigate("/admin")}
-            >
-              Admin
-            </button>
-          )}
-
+          {/* Tocar el nombre lleva a la sección de perfil a pantalla completa
+              (no un desplegable): configuración y cerrar sesión viven ahí. */}
           <button
-            className="app-topbar__avatar"
+            className="app-topbar__account"
             type="button"
-            onClick={() => navigate("/perfil")}
-            aria-label="Ir al perfil"
-            title={user?.email || "Perfil"}
+            onClick={goToProfile}
+            aria-label={`Ir a mi perfil (${displayName})`}
           >
-            {getInitials(user?.email)}
+            <span className="app-topbar__avatar">{getInitials(user?.email)}</span>
+            <span className="app-topbar__account-name">{displayName}</span>
           </button>
         </div>
       </header>

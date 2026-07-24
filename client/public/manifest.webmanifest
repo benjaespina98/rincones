@@ -1,0 +1,27 @@
+{
+  "name": "Rincones — Tu bodega personal",
+  "short_name": "Rincones",
+  "description": "Tu bodega personal: escaneá etiquetas, coleccioná y descubrí tus vinos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d16",
+  "theme_color": "#0b0d16",
+  "lang": "es-AR",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

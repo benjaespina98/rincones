@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/user.model");
 const mailService = require("../services/mail.service");
+const { validateBirthDate } = require("../utils/age");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -98,13 +99,13 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select("+passwordHash");
 
     if (!user) {
-      return res.status(401).json({ message: "Credenciales invalidas" });
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValid) {
-      return res.status(401).json({ message: "Credenciales invalidas" });
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
     const token = jwt.sign(
@@ -158,6 +159,12 @@ const register = async (req, res, next) => {
       });
     }
 
+    // Fecha de nacimiento obligatoria: valida mayoría de edad (18+).
+    const birthValidation = validateBirthDate(req.body.birthDate);
+    if (!birthValidation.valid) {
+      return res.status(400).json({ message: birthValidation.message });
+    }
+
     // Validar fortaleza de contraseña
     const passwordValidation = validatePasswordStrength(password);
     if (!passwordValidation.valid) {
@@ -195,6 +202,7 @@ const register = async (req, res, next) => {
       email,
       passwordHash,
       firstName,
+      birthDate: birthValidation.date,
       role: "user",
     });
 

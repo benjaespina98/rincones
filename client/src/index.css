@@ -141,11 +141,49 @@ p {
 button {
   font-family: var(--font-family-base);
   cursor: pointer;
+  /* Sin el flash gris de Android/iOS al tocar: el feedback lo damos nosotros
+     con :active, que se siente más prolijo. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent-light);
   outline-offset: 2px;
+}
+
+/* Estado deshabilitado uniforme. Antes cada botón lo resolvía distinto (o no lo
+   resolvía) y quedaban controles que parecían activos pero no respondían. */
+button:disabled,
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.7);
+}
+
+/* Feedback táctil: todo lo clickeable se hunde apenas al presionar. */
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Los íconos dentro de un botón nunca capturan el click: sin esto, el target
+   del evento puede ser el <svg> y romper delegación o handlers con closest(). */
+button svg {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:not(:disabled):active {
+    transform: none;
+  }
 }
 
 input,

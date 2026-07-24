@@ -121,19 +121,6 @@
   font-size: 0.9rem;
 }
 
-.suggestions-empty {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  text-align: center;
-  padding: 40px 18px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 14px;
-  background: rgba(18, 22, 36, 0.5);
-}
-
-/* Empty-state inner styles (icon/title/subtitle/cta) are global — see App.css */
-
 /* Results label */
 .suggestions-results__label {
   margin: 4px 0 -2px;
@@ -276,4 +263,88 @@
   background: linear-gradient(135deg, rgba(126, 89, 201, 0.16), rgba(126, 89, 201, 0.06));
   border: 1px solid var(--line-accent);
   border-radius: var(--radius-md);
+}
+
+/* ── Descubrir: vinos argentinos del catálogo ──
+   Aparece cuando la bodega no tiene nada que coincida con el contexto, para que
+   la pantalla siempre proponga algo en lugar de quedar vacía. */
+.discover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.discover-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--glass);
+}
+
+.discover-card__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.discover-card__name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.discover-card__winery {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.discover-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.discover-card__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.discover-card__add {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: rgba(126, 89, 201, 0.18);
+  color: var(--accent-soft);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.discover-card__add:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.discover-card__add.is-added {
+  background: rgba(47, 182, 123, 0.16);
+  border-color: rgba(47, 182, 123, 0.34);
+  color: #7fe3b4;
+  cursor: default;
 }

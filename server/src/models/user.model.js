@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Fecha de nacimiento. Obligatoria desde el registro: valida mayoría de edad
+    // (app de vinos) y habilita features de cumpleaños/eventos a futuro.
+    birthDate: {
+      type: Date,
+    },
     lastName: {
       type: String,
       trim: true,

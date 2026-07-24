@@ -45,7 +45,9 @@ const LoginPage = () => {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-brand__mark" aria-hidden="true">🍇</span>
+          <span className="auth-brand__mark" aria-hidden="true">
+            <Icon name="wine-glass" filled size={32} />
+          </span>
           <h1 className="auth-brand__title">Rincones</h1>
           <p className="auth-brand__subtitle">Tu bodega personal, siempre en el bolsillo.</p>
         </div>

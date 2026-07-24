@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
+const { calculateAge, validateBirthDate } = require("../utils/age");
 
 // GET /api/users/profile - Obtener perfil del usuario actual
 router.get("/profile", authenticate, async (req, res) => {
@@ -24,6 +25,8 @@ router.get("/profile", authenticate, async (req, res) => {
         country: user.country || "",
         bio: user.bio || "",
         avatar: user.avatar || "",
+        birthDate: user.birthDate || null,
+        age: calculateAge(user.birthDate),
         preferences: user.preferences || {},
         stats: user.stats || {},
         createdAt: user.createdAt,
@@ -37,12 +40,21 @@ router.get("/profile", authenticate, async (req, res) => {
 // PUT /api/users/profile - Actualizar perfil del usuario
 router.put("/profile", authenticate, async (req, res) => {
   try {
-    const { firstName, lastName, city, country, bio, avatar, theme, language, notifications } = req.body;
+    const { firstName, lastName, city, country, bio, avatar, birthDate, theme, language, notifications } = req.body;
 
     const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    // La fecha de nacimiento se puede corregir, pero sigue validando 18+.
+    if (birthDate !== undefined) {
+      const birthValidation = validateBirthDate(birthDate);
+      if (!birthValidation.valid) {
+        return res.status(400).json({ success: false, error: birthValidation.message });
+      }
+      user.birthDate = birthValidation.date;
     }
 
     // Actualizar campos de perfil
@@ -78,6 +90,8 @@ router.put("/profile", authenticate, async (req, res) => {
         country: user.country,
         bio: user.bio,
         avatar: user.avatar,
+        birthDate: user.birthDate || null,
+        age: calculateAge(user.birthDate),
         preferences: user.preferences,
       },
     });
