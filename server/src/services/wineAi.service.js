@@ -100,4 +100,85 @@ const searchWinesWithAi = async (query) => {
     .slice(0, MAX_ITEMS);
 };
 
-module.exports = { isAiSearchConfigured, searchWinesWithAi };
+// --- Descripción de un vino (ficha estilo Vivino) ---
+
+const DESCRIBE_SCHEMA = {
+  type: "object",
+  properties: {
+    // Reseña corta en prosa, 2-3 oraciones.
+    summary: { type: "string" },
+    // Perfil de boca (cuerpo, taninos, acidez) en una frase.
+    body: { type: "string" },
+    aromas: { type: "array", items: { type: "string" } },
+    foodPairing: { type: "array", items: { type: "string" } },
+    // Graduación típica del estilo. 0 si no se sabe.
+    alcohol: { type: "number" },
+    // Sugerencia de temperatura de servicio, ej "16-18 °C".
+    serve: { type: "string" },
+    // Confianza de que el vino es real y conocido: true/false.
+    known: { type: "boolean" },
+  },
+  required: ["summary", "known"],
+};
+
+const buildDescribePrompt = (wine) => {
+  const parts = [
+    wine.name && `Nombre: ${wine.name}`,
+    wine.winery && `Bodega: ${wine.winery}`,
+    wine.varietal && `Varietal: ${wine.varietal}`,
+    wine.region && `Región: ${wine.region}`,
+    wine.type && wine.type !== "unknown" && `Tipo: ${wine.type}`,
+    wine.vintage && `Añada: ${wine.vintage}`,
+  ].filter(Boolean).join("\n");
+
+  return `Sos un sommelier argentino. Describí este vino para una app de bodega personal:
+
+${parts}
+
+Devolvé:
+- summary: 2-3 oraciones, tono cercano y claro (no marketinero), sobre el estilo y a qué apunta.
+- body: una frase sobre cuerpo, taninos y acidez.
+- aromas: 3 a 6 aromas/sabores típicos (ej: "cereza", "vainilla", "pimienta").
+- foodPairing: 3 a 5 comidas que maridan bien.
+- alcohol: graduación típica del estilo (número, ej 14). 0 si no sabés.
+- serve: temperatura de servicio sugerida (ej "16-18 °C").
+- known: true sólo si conocés este vino o su estilo con razonable certeza; false si estarías adivinando.
+
+Reglas: no inventes datos específicos que no puedas saber (premios, puntajes, precios).
+Si no conocés el vino puntual, describí de forma general según su varietal y región, y poné known:false.`;
+};
+
+/**
+ * Genera una descripción estructurada de un vino. Devuelve null si no está
+ * configurado Gemini o si falla (el llamador decide el fallback).
+ */
+const describeWine = async (wine) => {
+  if (!isGeminiConfigured()) return null;
+  if (!wine?.name) return null;
+
+  const parsed = await generateJson({
+    parts: [{ text: buildDescribePrompt(wine) }],
+    schema: DESCRIBE_SCHEMA,
+    timeoutMs: 12000,
+  });
+
+  const clean = (s) => String(s || "").trim();
+  const list = (arr, max) =>
+    Array.isArray(arr)
+      ? arr.map((x) => clean(x)).filter(Boolean).slice(0, max)
+      : [];
+
+  const alcohol = Number(parsed?.alcohol);
+
+  return {
+    summary: clean(parsed?.summary),
+    body: clean(parsed?.body),
+    aromas: list(parsed?.aromas, 6),
+    foodPairing: list(parsed?.foodPairing, 5),
+    alcohol: Number.isFinite(alcohol) && alcohol > 0 && alcohol < 25 ? alcohol : null,
+    serve: clean(parsed?.serve),
+    known: parsed?.known !== false,
+  };
+};
+
+module.exports = { isAiSearchConfigured, searchWinesWithAi, describeWine };

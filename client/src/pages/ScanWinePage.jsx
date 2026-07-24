@@ -4,6 +4,7 @@ import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import WineArtwork from "../components/WineArtwork";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { createWish } from "../services/wishApi";
@@ -308,7 +309,7 @@ export default function ScanWinePage() {
                     {r.image ? (
                       <img src={r.image} alt={r.name} loading="lazy" />
                     ) : (
-                      <span className="wine-result-card__ph" aria-hidden="true">🍷</span>
+                      <WineArtwork type={r.type} size={92} className="wine-result-card__ph" />
                     )}
                     {r.type && r.type !== "unknown" && (
                       <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
