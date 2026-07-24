@@ -64,7 +64,11 @@ const AppLayout = ({ children, pageTitle }) => {
         </div>
       </header>
 
-      <main className="app-content app-content--with-topbar">{children}</main>
+      {/* key por ruta: al navegar, el contenido se remonta y hace un fade-in
+          sutil (transición de página, sin librería). */}
+      <main key={location.pathname} className="app-content app-content--with-topbar app-content--enter">
+        {children}
+      </main>
       <BottomTabNavigation />
     </div>
   );

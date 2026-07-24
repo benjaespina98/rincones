@@ -518,7 +518,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                       </button>
                       <button
                         type="button"
-                        className="wine-row__icon-btn"
+                        className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
                         onClick={() => handleToggleFavorite(wine)}
                         disabled={isPending}
                         aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}

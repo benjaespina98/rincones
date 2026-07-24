@@ -31,6 +31,10 @@ export default function DiscoverPage() {
   const [query, setQuery] = useState("");
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  // Vino del día = el primero de los destacados (rota por día en el server).
+  // "Sorprendeme" cambia el foco a uno al azar del set.
+  const [spotlightIdx, setSpotlightIdx] = useState(0);
+  const [surprised, setSurprised] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -51,6 +55,17 @@ export default function DiscoverPage() {
     if (q.length < 2) return;
     tapHaptic();
     navigate(`/agregar?q=${encodeURIComponent(q)}`);
+  };
+
+  const spotlight = featured[spotlightIdx] || null;
+
+  const surpriseMe = () => {
+    if (featured.length < 2) return;
+    tapHaptic();
+    let next = spotlightIdx;
+    while (next === spotlightIdx) next = Math.floor(Math.random() * featured.length);
+    setSpotlightIdx(next);
+    setSurprised(true);
   };
 
   const handleAdd = async (wine) => {
@@ -101,6 +116,41 @@ export default function DiscoverPage() {
           </button>
         </form>
       </header>
+
+      {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
+      {spotlight && (
+        <section className="spotlight" key={spotlight.id}>
+          <div className="spotlight__art">
+            <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={140} />
+          </div>
+          <div className="spotlight__body">
+            <span className="spotlight__kicker">
+              {surprised ? "🎲 Una sorpresa" : "✦ Vino del día"}
+            </span>
+            <h2 className="spotlight__name">{spotlight.name}</h2>
+            <p className="spotlight__meta">
+              {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
+            </p>
+            <div className="spotlight__actions">
+              <button
+                type="button"
+                className={`spotlight__add ${addedIds.has(spotlight.id) ? "is-added" : ""}`}
+                onClick={() => handleAdd(spotlight)}
+                disabled={addingId === spotlight.id || addedIds.has(spotlight.id)}
+              >
+                {addedIds.has(spotlight.id) ? (
+                  <><Icon name="check" size={16} /> En tu bodega</>
+                ) : (
+                  <><Icon name="plus" size={16} /> Agregar</>
+                )}
+              </button>
+              <button type="button" className="spotlight__surprise" onClick={surpriseMe}>
+                🎲 Sorprendeme
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Recomendados del catálogo argentino */}
       <section className="discover-section">
