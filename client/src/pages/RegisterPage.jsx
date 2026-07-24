@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import { register as registerRequest } from "../services/authApi";
 import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
+import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import Icon from "../components/Icon";
 import PasswordInput from "../components/PasswordInput";
 import "./Auth.css";
@@ -17,6 +18,7 @@ const RegisterPage = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     email: "",
+    birthDate: "",
     password: "",
     confirmPassword: "",
   });
@@ -31,10 +33,15 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { firstName, email, password, confirmPassword } = formData;
+    const { firstName, email, birthDate, password, confirmPassword } = formData;
 
-    if (!firstName || !email || !password || !confirmPassword) {
+    if (!firstName || !email || !birthDate || !password || !confirmPassword) {
       setError("Completá todos los campos.");
+      return;
+    }
+    const birthError = birthDateError(birthDate);
+    if (birthError) {
+      setError(birthError);
       return;
     }
     if (!meetsPasswordPolicy(password)) {
@@ -48,7 +55,7 @@ const RegisterPage = () => {
 
     try {
       setLoading(true);
-      await registerRequest(email, password, firstName);
+      await registerRequest(email, password, firstName, birthDate);
       await login(email, password);
       showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
       navigate("/");
@@ -65,7 +72,9 @@ const RegisterPage = () => {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-brand__mark" aria-hidden="true">🍇</span>
+          <span className="auth-brand__mark" aria-hidden="true">
+            <Icon name="wine-glass" filled size={32} />
+          </span>
           <h1 className="auth-brand__title">Creá tu cuenta</h1>
           <p className="auth-brand__subtitle">Empezá a coleccionar y a descubrir tu próximo vino favorito.</p>
         </div>
@@ -111,6 +120,24 @@ const RegisterPage = () => {
                 disabled={loading}
               />
             </div>
+          </div>
+
+          <div className="auth-field">
+            <label className="auth-field__label" htmlFor="birthDate">Fecha de nacimiento</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-wrap__icon" aria-hidden="true"><Icon name="calendar" size={18} /></span>
+              <input
+                id="birthDate"
+                type="date"
+                name="birthDate"
+                className="auth-input"
+                value={formData.birthDate}
+                onChange={handleChange}
+                max={maxBirthDateForAge()}
+                disabled={loading}
+              />
+            </div>
+            <p className="auth-field__hint">Necesitás ser mayor de 18 años.</p>
           </div>
 
           <div className="auth-field">

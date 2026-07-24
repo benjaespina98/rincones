@@ -6,8 +6,8 @@ export const login = async (email, password) => {
   return data.data;
 };
 
-export const register = async (email, password, firstName = "") => {
-  const { data } = await api.post("/auth/register", { email, password, firstName });
+export const register = async (email, password, firstName = "", birthDate = "") => {
+  const { data } = await api.post("/auth/register", { email, password, firstName, birthDate });
   if (data.data?.token) setAuthToken(data.data.token);
   return data.data;
 };

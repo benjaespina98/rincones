@@ -28,6 +28,26 @@ const PATHS = {
     </>
   ),
   "arrow-right": <path d="M5 12h14M13 5l7 7-7 7" />,
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
+  calendar: (
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 3v3M16 3v3" />
+    </>
+  ),
+  cake: (
+    <>
+      <path d="M4 20h16M5 20v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />
+      <path d="M4 15c1.2 0 1.2 1 2.4 1s1.2-1 2.4-1 1.2 1 2.4 1 1.2-1 2.4-1 1.2 1 2.4 1 1.2-1 2.4-1" />
+      <path d="M12 8V6M12 4v.01" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+    </>
+  ),
   mail: (
     <>
       <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -86,10 +106,20 @@ const PATHS = {
   ),
 };
 
+// Variantes sólidas. Además de heart/star, acá viven los íconos de la barra de
+// navegación y la marca, que antes estaban duplicados dentro de
+// BottomTabNavigation como un set de SVG paralelo.
 const FILLED = {
   heart:
     "M12 21s-7.5-4.9-10-9.4C.6 8.9 2 5.5 5.2 5.1c1.9-.2 3.4 1 3.8 2 .4-1 1.9-2.2 3.8-2 3.2.4 4.6 3.8 3.2 6.5C19.5 16.1 12 21 12 21Z",
   star: "M12 3.3l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.4 9.4l5.8-.8L12 3.3Z",
+  // Copa: es la marca de Rincones (también el favicon).
+  "wine-glass":
+    "M9 2h6v4l-1.6 5.3a5.2 5.2 0 0 0-.1 1.4V19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-6.3a5.2 5.2 0 0 0-.1-1.4L7 6V2Z",
+  sparkle: "m12 3 2.2 5.3L19.5 10l-5.3 2.2L12 17.5l-2.2-5.3L4.5 10l5.3-1.7L12 3Z",
+  "user-solid":
+    "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z",
+  "plus-solid": "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z",
 };
 
 const HEART_OUTLINE =

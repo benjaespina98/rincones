@@ -73,7 +73,14 @@ test("auth register sets cookie and returns token", async () => {
   User.findOne = async () => null;
   User.create = async (payload) => ({ _id: "user-2", email: payload.email, role: payload.role });
 
-  const req = { body: { email: "new@example.com", password: "Secret123", firstName: "Nuevo" } };
+  const req = {
+    body: {
+      email: "new@example.com",
+      password: "Secret123",
+      firstName: "Nuevo",
+      birthDate: "1990-06-15",
+    },
+  };
   const res = createRes();
 
   try {
@@ -93,6 +100,46 @@ test("auth register sets cookie and returns token", async () => {
     User.create = originalCreate;
     bcrypt.hash = originalHash;
     process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test("auth register rejects users under 18", async () => {
+  const originalFindOne = User.findOne;
+  User.findOne = async () => null;
+
+  const req = {
+    body: {
+      email: "kid@example.com",
+      password: "Secret123",
+      firstName: "Menor",
+      birthDate: "2015-01-01",
+    },
+  };
+  const res = createRes();
+
+  try {
+    await authController.register(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 400);
+    assert.match(res.body.message, /18/);
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("auth register rejects missing birthDate", async () => {
+  const originalFindOne = User.findOne;
+  User.findOne = async () => null;
+
+  const req = {
+    body: { email: "nobirth@example.com", password: "Secret123", firstName: "SinFecha" },
+  };
+  const res = createRes();
+
+  try {
+    await authController.register(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 400);
+  } finally {
+    User.findOne = originalFindOne;
   }
 });
 

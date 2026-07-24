@@ -70,28 +70,58 @@
   gap: 0.5rem;
 }
 
-.app-topbar__admin-btn {
-  border: 1px solid var(--line-strong);
-  background: rgba(126, 89, 201, 0.24);
-  color: #eee7ff;
-  border-radius: 999px;
-  padding: 0.42rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 600;
+/* Botón de cuenta: avatar + nombre. Tocarlo lleva al perfil a pantalla
+   completa (no un desplegable) — ahí viven config y cerrar sesión. */
+.app-topbar__account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.app-topbar__account:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
 }
 
 .app-topbar__avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
   border: 1px solid rgba(189, 166, 255, 0.5);
   background: linear-gradient(135deg, #a782ef 0%, #7e59c9 100%);
   color: #fdfcff;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.app-topbar__account-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .app-topbar__account-name {
+    display: none;
+  }
+  .app-topbar__account {
+    padding: 4px;
+  }
 }
 
 .app-content--with-topbar {

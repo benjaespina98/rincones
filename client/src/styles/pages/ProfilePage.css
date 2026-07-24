@@ -72,6 +72,16 @@
   opacity: 0.95;
 }
 
+.profile-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-soft);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -114,63 +124,72 @@
   color: #b7abd8;
 }
 
-.profile-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.profile-actions--stacked {
-  flex-direction: column;
-}
-
-.profile-actions--sticky {
-  position: sticky;
-  bottom: calc(86px + env(safe-area-inset-bottom));
-  padding: 12px 0 0;
-  background: linear-gradient(180deg, rgba(11, 13, 20, 0.02), rgba(11, 13, 20, 0.86));
-  backdrop-filter: blur(10px);
-  z-index: 40;
-}
-
-.btn-edit,
-.btn-logout {
-  width: 100%;
-  min-height: 50px;
-  padding: 12px 14px;
+/* Lista de acciones de cuenta (patrón app real: filas tocables). */
+.account-list {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
   border-radius: var(--radius-lg);
-  border: none;
-  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  overflow: hidden;
+}
+
+.account-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.account-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.account-item__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  transition: transform var(--transition-fast), filter var(--transition-fast), background var(--transition-fast);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  flex-shrink: 0;
 }
 
-.btn-edit {
-  background: rgba(137, 102, 247, 0.18);
-  color: #f2ecff;
-  border: 1px solid rgba(178, 150, 255, 0.35);
+.account-item__label {
+  flex: 1;
+  min-width: 0;
 }
 
-.btn-edit:hover {
-  background: rgba(137, 102, 247, 0.3);
+.account-item__chevron {
+  color: var(--text-subtle);
+  transform: rotate(-90deg); /* chevron-down → apunta a la derecha */
 }
 
-.btn-logout {
-  background: linear-gradient(135deg, #8c61ff 0%, #5a44e6 100%);
-  color: white;
-  box-shadow: var(--shadow-accent);
+.account-item--danger {
+  color: #f0899d;
 }
 
-.btn-logout:hover {
-  filter: brightness(1.08);
+.account-item--danger:hover {
+  background: rgba(240, 137, 157, 0.1);
 }
 
-.btn-edit:active,
-.btn-logout:active {
-  transform: scale(0.98);
+.account-item--danger .account-item__icon {
+  background: rgba(240, 137, 157, 0.14);
+  color: #ff9db0;
 }
 
 .profile-card {
@@ -209,87 +228,8 @@
   font-size: 14px;
 }
 
-/* Edit Form */
-.edit-form {
-  background: rgba(21, 19, 44, 0.92);
-  margin: 0;
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 10px 24px rgba(3, 3, 12, 0.35);
-  border: 1px solid rgba(166, 138, 248, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.edit-form__section-title {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #d8cdff;
-}
-
-.form-row {
-  display: flex;
-  gap: 10px;
-}
-
-.form-row .form-control {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-control label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #f6f3ff;
-}
-
-.form-control input,
-.form-control textarea {
-  padding: 12px;
-  border: 1px solid rgba(169, 141, 253, 0.24);
-  border-radius: 12px;
-  font-size: 14px;
-  background: rgba(24, 21, 49, 0.94);
-  color: #f4efff;
-}
-
-.form-control textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.form-control small {
-  color: #b7abd8;
-  font-size: 11px;
-}
-
-.profile-form-error {
-  margin: 0;
-  border-radius: 12px;
-  padding: 10px;
-  background: rgba(179, 58, 97, 0.2);
-  border: 1px solid rgba(255, 133, 171, 0.35);
-  color: #ffd6e2;
-  font-size: 13px;
-}
-
-.btn-save,
-.btn-cancel-edit {
-  flex: 1;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-save { background: linear-gradient(135deg, #8c61ff 0%, #5a44e6 100%); color: white; }
-.btn-cancel-edit { background: rgba(255, 255, 255, 0.14); color: #f2ecff; }
+/* La edición de perfil vive en ProfileEditor (pantalla completa) —
+   ver styles/components/ProfileEditor.css. */
 
 /* Empty profile state */
 .empty-profile {
@@ -465,9 +405,7 @@
   .profile-header { padding: 24px; }
   .avatar-large { width: 92px; height: 92px; font-size: 44px; border-radius: 16px; }
   .stats-grid { gap: 16px; }
-  .edit-form { padding: 18px; }
   .profile-card { padding: 18px; }
-  .profile-actions--sticky { bottom: calc(92px + env(safe-area-inset-bottom)); }
 }
 
 /* Desktop: focused, centered column (no sticky bar needed without bottom tabs) */
@@ -479,15 +417,4 @@
   }
 
   .profile-header { padding: 28px; }
-
-  .profile-actions--stacked {
-    flex-direction: row;
-  }
-
-  .profile-actions--sticky {
-    position: static;
-    background: none;
-    backdrop-filter: none;
-    padding: 4px 0 0;
-  }
 }

@@ -57,7 +57,6 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [pendingActionId, setPendingActionId] = useState(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [convertingWish, setConvertingWish] = useState(null);
-  const [convertDraft, setConvertDraft] = useState({ price: "", store: "", quantity: "1" });
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
@@ -177,6 +176,29 @@ export default function BodyPage({ initialFilter = "all" }) {
       await toggleFavorite(wine._id, !wine.favorite);
       showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
     });
+
+  // Pasar un deseo a la bodega es un solo toque. Antes abría un formulario de
+  // precio/tienda/cantidad; ahora entra con lo mínimo y el toast ofrece editar
+  // para quien quiera cargar el resto.
+  const handleBuyWish = async (wish) => {
+    if (convertingWish) return;
+    try {
+      setConvertingWish(wish._id);
+      const created = await convertToWine(wish._id, { quantity: 1 });
+      addToast(
+        `"${wish.name}" pasó a tu bodega`,
+        "success",
+        5000,
+        created?._id
+          ? { label: "Editar", onClick: () => navigate(`/vino/${created._id}`) }
+          : null
+      );
+    } catch {
+      showError("No se pudo pasar el vino a tu bodega");
+    } finally {
+      setConvertingWish(null);
+    }
+  };
 
   const handleToggleTasted = (wine) =>
     withPendingAction(wine._id, async () => {
@@ -535,9 +557,9 @@ export default function BodyPage({ initialFilter = "all" }) {
         <div className="empty-state">
           <p className="empty-icon" aria-hidden="true">🍷</p>
           <p className="empty-title">Tu bodega está vacía</p>
-          <p className="empty-subtitle">Escaneá la etiqueta de un vino para empezar tu colección.</p>
+          <p className="empty-subtitle">Buscá un vino por nombre o escaneá su etiqueta para empezar tu colección.</p>
           <button type="button" className="empty-cta" onClick={() => navigate("/descubrir")}>
-            Escanear mi primer vino
+            Agregar mi primer vino
           </button>
         </div>
       )}
@@ -578,14 +600,7 @@ export default function BodyPage({ initialFilter = "all" }) {
 
             {!wishesLoading && wishes.length === 0 && (
               <div className="wishlist-empty">
-                <p>Guardá vinos que querés comprar.</p>
-                <button
-                  type="button"
-                  className="wishlist-add-btn"
-                  onClick={() => navigate("/descubrir")}
-                >
-                  + Agregar desde escaneo
-                </button>
+                <p>Guardá vinos que querés comprar. Buscalos o escaneálos desde el botón + y elegí "A la lista de deseos".</p>
               </div>
             )}
 
@@ -593,94 +608,32 @@ export default function BodyPage({ initialFilter = "all" }) {
               <ul className="wishlist-list">
                 {wishes.map((wish) => (
                   <li key={wish._id} className="wishlist-item">
-                    {convertingWish === wish._id ? (
-                      <div className="wishlist-convert-form">
-                        <p className="wishlist-convert-title">Compraste: <strong>{wish.name}</strong></p>
-                        <div className="wishlist-convert-fields">
-                          <input
-                            type="number"
-                            placeholder="Precio"
-                            min="0"
-                            value={convertDraft.price}
-                            onChange={(e) => setConvertDraft((d) => ({ ...d, price: e.target.value }))}
-                            className="scan-edit-input"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Tienda"
-                            value={convertDraft.store}
-                            onChange={(e) => setConvertDraft((d) => ({ ...d, store: e.target.value }))}
-                            className="scan-edit-input"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Cantidad"
-                            min="1"
-                            value={convertDraft.quantity}
-                            onChange={(e) => setConvertDraft((d) => ({ ...d, quantity: e.target.value }))}
-                            className="scan-edit-input"
-                          />
-                        </div>
-                        <div className="result-actions">
-                          <button
-                            type="button"
-                            className="btn-cancel"
-                            onClick={() => setConvertingWish(null)}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-add"
-                            onClick={async () => {
-                              try {
-                                await convertToWine(wish._id, {
-                                  price: convertDraft.price ? parseFloat(convertDraft.price) : undefined,
-                                  store: convertDraft.store || undefined,
-                                  quantity: convertDraft.quantity ? parseInt(convertDraft.quantity) : 1,
-                                });
-                                setConvertingWish(null);
-                                setConvertDraft({ price: "", store: "", quantity: "1" });
-                              } catch {
-                                showError("No se pudo agregar a la bodega");
-                              }
-                            }}
-                          >
-                            Agregar a bodega
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="wishlist-item__info">
-                          <span className="wishlist-item__name">{wish.name}</span>
-                          {wish.winery && <span className="wishlist-item__winery">{wish.winery}</span>}
-                          {wish.type && wish.type !== "unknown" && (
-                            <span className="wishlist-item__type">{WINE_TYPE_LABELS[wish.type]}</span>
-                          )}
-                        </div>
-                        <div className="wishlist-item__actions">
-                          <button
-                            type="button"
-                            className="wishlist-buy-btn"
-                            onClick={() => {
-                              setConvertingWish(wish._id);
-                              setConvertDraft({ price: "", store: "", quantity: "1" });
-                            }}
-                          >
-                            Ya lo compré
-                          </button>
-                          <button
-                            type="button"
-                            className="wishlist-remove-btn"
-                            onClick={() => removeWish(wish._id)}
-                            aria-label="Eliminar de la lista"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </>
-                    )}
+                    <div className="wishlist-item__info">
+                      <span className="wishlist-item__name">{wish.name}</span>
+                      {wish.winery && <span className="wishlist-item__winery">{wish.winery}</span>}
+                      {wish.type && wish.type !== "unknown" && (
+                        <span className="wishlist-item__type">{WINE_TYPE_LABELS[wish.type]}</span>
+                      )}
+                    </div>
+                    <div className="wishlist-item__actions">
+                      <button
+                        type="button"
+                        className="wishlist-buy-btn"
+                        disabled={convertingWish === wish._id}
+                        onClick={() => handleBuyWish(wish)}
+                      >
+                        {convertingWish === wish._id ? "Pasando…" : "Ya lo compré"}
+                      </button>
+                      <button
+                        type="button"
+                        className="wishlist-remove-btn"
+                        onClick={() => removeWish(wish._id)}
+                        aria-label={`Quitar ${wish.name} de la lista de deseos`}
+                        title="Quitar de la lista"
+                      >
+                        <Icon name="x" size={15} />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

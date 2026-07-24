@@ -6,30 +6,35 @@ import { useWineStats } from "../hooks/useWineStats";
 import { useSpendingStats } from "../hooks/useSpendingStats";
 import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
-import ConfirmModal from "../components/ConfirmModal";
+import { calculateAge } from "../utils/age";
+import { errorHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
+import ProfileEditor from "../components/ProfileEditor";
+import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { user, isAdmin, logout } = useAuth();
   const { showSuccess, showError } = useToast();
   const { stats: wineStats, loading: statsLoading } = useWineStats();
   const { spending } = useSpendingStats();
 
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [initialFormData, setInitialFormData] = useState(null);
-  const [formData, setFormData] = useState({
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     bio: "",
     city: "",
     country: "",
+    birthDate: "",
     avatar: user?.avatar || "👤",
   });
+
+  const age = calculateAge(profileData.birthDate);
 
   useEffect(() => {
     let mounted = true;
@@ -39,8 +44,7 @@ export default function ProfilePage() {
         const profile = await getProfile();
         if (!mounted) return;
         if (profile) {
-          setFormData((prev) => ({ ...prev, ...profile }));
-          setInitialFormData((prev) => ({ ...prev, ...profile }));
+          setProfileData((prev) => ({ ...prev, ...profile }));
         }
       } catch (err) {
         showError?.("Error al cargar perfil");
@@ -56,82 +60,29 @@ export default function ProfilePage() {
     };
   }, [showError]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormError("");
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const validateProfile = () => {
-    const firstName = String(formData.firstName || "").trim();
-    const lastName = String(formData.lastName || "").trim();
-    const bio = String(formData.bio || "");
-
-    if (firstName.length < 2) {
-      return "El nombre debe tener al menos 2 caracteres.";
-    }
-
-    if (firstName.length > 40 || lastName.length > 40) {
-      return "Nombre y apellido deben tener hasta 40 caracteres.";
-    }
-
-    if (bio.length > 180) {
-      return "La bio puede tener hasta 180 caracteres.";
-    }
-
-    return "";
-  };
-
-  const hasChanges =
-    JSON.stringify({
-      firstName: formData.firstName || "",
-      lastName: formData.lastName || "",
-      city: formData.city || "",
-      country: formData.country || "",
-      bio: formData.bio || "",
-    }) !==
-    JSON.stringify({
-      firstName: initialFormData?.firstName || "",
-      lastName: initialFormData?.lastName || "",
-      city: initialFormData?.city || "",
-      country: initialFormData?.country || "",
-      bio: initialFormData?.bio || "",
-    });
-
-  const handleSave = async () => {
-    const validationError = validateProfile();
-    if (validationError) {
-      setFormError(validationError);
-      showError?.(validationError);
-      return;
-    }
-
-    if (!hasChanges) {
-      showSuccess?.("No hay cambios para guardar");
-      setIsEditing(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await updateProfile(formData);
-      showSuccess?.("Perfil actualizado");
-      setIsEditing(false);
-      setInitialFormData(formData);
-    } catch (err) {
-      showError?.("Error al actualizar el perfil");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
       navigate("/login");
     } catch {
-      showError?.("Error al cerrar sesión");
+      errorHaptic();
+      showError?.("No se pudo cerrar la sesión");
+    }
+  };
+
+  const handleSaveProfile = async (form) => {
+    try {
+      setSaving(true);
+      const updated = { ...profileData, ...form };
+      await updateProfile(updated);
+      setProfileData(updated);
+      setIsEditing(false);
+      showSuccess?.("Perfil actualizado");
+    } catch (err) {
+      showError?.("No se pudo actualizar el perfil");
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -149,12 +100,17 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <section className="profile-header">
-        <div className="avatar-large">{formData.avatar || "👤"}</div>
+        <div className="avatar-large">{profileData.avatar || "👤"}</div>
         <div className="profile-info">
           <span className="profile-kicker">Tu cuenta</span>
-          <h2>{formData.firstName} {formData.lastName}</h2>
+          <h2>{profileData.firstName} {profileData.lastName}</h2>
+          {age != null && (
+            <span className="profile-age">
+              <Icon name="cake" size={14} /> {age} años
+            </span>
+          )}
           <p className="profile-email">{user?.email}</p>
-          {formData.bio && <p className="profile-bio">{formData.bio}</p>}
+          {profileData.bio && <p className="profile-bio">{profileData.bio}</p>}
         </div>
       </section>
 
@@ -290,85 +246,69 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {!isEditing ? (
-        <>
-          <div className="profile-card">
-            <div className="info-sections">
-              {formData.city && (
-                <div className="info-section">
-                  <span className="info-label">📍 Ubicación</span>
-                  <span className="info-value">{formData.city}{formData.country ? `, ${formData.country}` : ""}</span>
-                </div>
-              )}
-              {!formData.city && !formData.country && (
-                <div className="info-section info-section--empty">
-                  <span className="info-label">Perfil incompleto</span>
-                  <span className="info-value">Completá tus datos para personalizar sugerencias.</span>
-                </div>
-              )}
+      <div className="profile-card">
+        <div className="info-sections">
+          {profileData.city ? (
+            <div className="info-section">
+              <span className="info-label">📍 Ubicación</span>
+              <span className="info-value">{profileData.city}{profileData.country ? `, ${profileData.country}` : ""}</span>
             </div>
-          </div>
-
-          <div className="profile-actions profile-actions--stacked">
-            <button className="btn-edit" onClick={() => setIsEditing(true)} type="button">
-              <Icon name="pencil" size={17} /> Editar perfil
-            </button>
-            <button className="btn-logout" onClick={() => setShowLogoutConfirm(true)} type="button">
-              <Icon name="log-out" size={17} /> Cerrar sesión
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="edit-form">
-          <div className="edit-form__section-title">Editá tu perfil</div>
-
-          <div className="form-row">
-            <div className="form-control">
-              <label htmlFor="firstName">Nombre</label>
-              <input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} />
+          ) : (
+            <div className="info-section info-section--empty">
+              <span className="info-label">Perfil incompleto</span>
+              <span className="info-value">Completá tus datos para personalizar sugerencias.</span>
             </div>
-            <div className="form-control">
-              <label htmlFor="lastName">Apellido</label>
-              <input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-control">
-              <label htmlFor="city">Ciudad</label>
-              <input id="city" name="city" value={formData.city} onChange={handleChange} />
-            </div>
-            <div className="form-control">
-              <label htmlFor="country">País</label>
-              <input id="country" name="country" value={formData.country} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="form-control">
-            <label htmlFor="bio">Bio</label>
-            <textarea id="bio" name="bio" value={formData.bio} onChange={handleChange} rows={4} />
-            <small>{(formData.bio || "").length}/180</small>
-          </div>
-
-          {formError && <p className="profile-form-error">{formError}</p>}
-
-          <div className="profile-actions profile-actions--sticky">
-            <button className="btn-cancel-edit" onClick={() => setIsEditing(false)} type="button">Cancelar</button>
-            <button className="btn-save" onClick={handleSave} type="button" disabled={loading}>Guardar cambios</button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Sección de cuenta: acá viven editar perfil, admin y cerrar sesión —
+          es la pantalla completa a la que se llega tocando el nombre. */}
+      <div className="account-list">
+        <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
+          <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
+          <span className="account-item__label">Editar perfil</span>
+          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+        </button>
+
+        {isAdmin && (
+          <button className="account-item" type="button" onClick={() => navigate("/admin")}>
+            <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+            <span className="account-item__label">Panel de administración</span>
+            <Icon name="chevron-down" size={16} className="account-item__chevron" />
+          </button>
+        )}
+
+        <button
+          className="account-item account-item--danger"
+          type="button"
+          onClick={() => setShowLogoutConfirm(true)}
+        >
+          <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
+          <span className="account-item__label">Cerrar sesión</span>
+        </button>
+      </div>
 
       <ConfirmModal
         isOpen={showLogoutConfirm}
         title="¿Cerrar sesión?"
-        message="Se cerrará tu sesión en este dispositivo."
+        message="Vas a tener que volver a ingresar tus datos para entrar."
         confirmText="Cerrar sesión"
         cancelText="Cancelar"
         isDangerous
-        onCancel={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
       />
+
+      {isEditing && (
+        <ProfileEditor
+          initialData={profileData}
+          email={user?.email}
+          saving={saving}
+          onCancel={() => setIsEditing(false)}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   );
 }
