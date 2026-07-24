@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import BottomTabNavigation from "./BottomTabNavigation";
+import OnboardingModal from "./OnboardingModal";
 import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
 import "../styles/AppLayout.css";
@@ -15,7 +17,11 @@ const getInitials = (email = "") => {
 const AppLayout = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const [onbDismissed, setOnbDismissed] = useState(false);
+
+  // Onboarding: se muestra si el usuario nunca lo completó (flag del server).
+  const showOnboarding = user && user.onboarded === false && !onbDismissed;
 
   // Los controles de volver sólo tienen sentido en pantallas de detalle;
   // en las pestañas principales la navegación es el propio tab bar.
@@ -70,6 +76,15 @@ const AppLayout = ({ children, pageTitle }) => {
         {children}
       </main>
       <BottomTabNavigation />
+
+      {showOnboarding && (
+        <OnboardingModal
+          onDone={() => {
+            setOnbDismissed(true);
+            refreshUser();
+          }}
+        />
+      )}
     </div>
   );
 };

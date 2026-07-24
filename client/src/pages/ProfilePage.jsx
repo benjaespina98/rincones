@@ -8,6 +8,7 @@ import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { calculateAge } from "../utils/age";
 import { errorHaptic } from "../utils/haptics";
+import { getLevel, getAchievements, countUnlocked } from "../utils/gamification";
 import Icon from "../components/Icon";
 import ProfileEditor from "../components/ProfileEditor";
 import ConfirmModal from "../components/ConfirmModal";
@@ -146,6 +147,54 @@ export default function ProfilePage() {
       </div>
 
       <h2 className="profile-section-title">Tu perfil de vino</h2>
+
+      {/* Nivel + progreso + logros (gamificación derivada de tus stats) */}
+      {(() => {
+        const total = wineStats?.totals?.total || 0;
+        const lvl = getLevel(total);
+        const achievements = getAchievements(wineStats);
+        const unlocked = countUnlocked(achievements);
+        return (
+          <>
+            <div className="level-card">
+              <div className="level-card__top">
+                <span className="level-card__badge">Nv {lvl.level}</span>
+                <div className="level-card__meta">
+                  <span className="level-card__title">{lvl.title}</span>
+                  <span className="level-card__sub">
+                    {lvl.isMax
+                      ? "¡Nivel máximo alcanzado! 🏆"
+                      : `${lvl.toNext} ${lvl.toNext === 1 ? "vino" : "vinos"} para ${lvl.nextTitle}`}
+                  </span>
+                </div>
+              </div>
+              <div className="level-bar" role="progressbar" aria-valuenow={Math.round(lvl.progress * 100)}>
+                <span className="level-bar__fill" style={{ width: `${Math.round(lvl.progress * 100)}%` }} />
+              </div>
+            </div>
+
+            <div className="ach">
+              <div className="ach__head">
+                <span className="ach__title">Logros</span>
+                <span className="ach__count">{unlocked}/{achievements.length}</span>
+              </div>
+              <div className="ach__grid">
+                {achievements.map((a) => (
+                  <div key={a.id} className={`ach__item ${a.done ? "is-done" : ""}`} title={a.hint}>
+                    <span className="ach__emoji">{a.icon}</span>
+                    <span className="ach__label">{a.label}</span>
+                    {a.done ? (
+                      <Icon name="check" size={13} className="ach__check" />
+                    ) : (
+                      <span className="ach__hint">{a.hint}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       <div className="stats-grid">
         <div className="stat-card">
