@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
+import WineArtwork from "../components/WineArtwork";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
@@ -459,7 +460,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                   {wine.image ? (
                     <img src={wine.image} alt={wine.name} className="wine-image-photo" loading="lazy" />
                   ) : (
-                    <span className="wine-image" aria-hidden="true">🍷</span>
+                    <WineArtwork type={wine.type} size={110} />
                   )}
                   <button
                     type="button"

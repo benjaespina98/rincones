@@ -110,9 +110,42 @@ export default function ProfilePage() {
             </span>
           )}
           <p className="profile-email">{user?.email}</p>
+          {(profileData.city || profileData.country) && (
+            <p className="profile-location">
+              <Icon name="map-pin" size={13} /> {[profileData.city, profileData.country].filter(Boolean).join(", ")}
+            </p>
+          )}
           {profileData.bio && <p className="profile-bio">{profileData.bio}</p>}
         </div>
       </section>
+
+      {/* Cuenta: editar, admin y cerrar sesión. Separado de tu gusto de vino. */}
+      <div className="account-list">
+        <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
+          <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
+          <span className="account-item__label">Editar perfil</span>
+          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+        </button>
+
+        {isAdmin && (
+          <button className="account-item" type="button" onClick={() => navigate("/admin")}>
+            <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+            <span className="account-item__label">Panel de administración</span>
+            <Icon name="chevron-down" size={16} className="account-item__chevron" />
+          </button>
+        )}
+
+        <button
+          className="account-item account-item--danger"
+          type="button"
+          onClick={() => setShowLogoutConfirm(true)}
+        >
+          <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
+          <span className="account-item__label">Cerrar sesión</span>
+        </button>
+      </div>
+
+      <h2 className="profile-section-title">Tu perfil de vino</h2>
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -133,8 +166,6 @@ export default function ProfilePage() {
 
       {wineStats && !statsLoading && (
         <section className="wine-insights">
-          <h3 className="insights-title">✨ Tu perfil de vino</h3>
-          
           {/* Types breakdown */}
           {wineStats.countsByType && wineStats.countsByType.length > 0 && (
             <div className="insight-card">
@@ -245,49 +276,6 @@ export default function ProfilePage() {
           )}
         </section>
       )}
-
-      <div className="profile-card">
-        <div className="info-sections">
-          {profileData.city ? (
-            <div className="info-section">
-              <span className="info-label">📍 Ubicación</span>
-              <span className="info-value">{profileData.city}{profileData.country ? `, ${profileData.country}` : ""}</span>
-            </div>
-          ) : (
-            <div className="info-section info-section--empty">
-              <span className="info-label">Perfil incompleto</span>
-              <span className="info-value">Completá tus datos para personalizar sugerencias.</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sección de cuenta: acá viven editar perfil, admin y cerrar sesión —
-          es la pantalla completa a la que se llega tocando el nombre. */}
-      <div className="account-list">
-        <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
-          <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
-          <span className="account-item__label">Editar perfil</span>
-          <Icon name="chevron-down" size={16} className="account-item__chevron" />
-        </button>
-
-        {isAdmin && (
-          <button className="account-item" type="button" onClick={() => navigate("/admin")}>
-            <span className="account-item__icon"><Icon name="lock" size={18} /></span>
-            <span className="account-item__label">Panel de administración</span>
-            <Icon name="chevron-down" size={16} className="account-item__chevron" />
-          </button>
-        )}
-
-        <button
-          className="account-item account-item--danger"
-          type="button"
-          onClick={() => setShowLogoutConfirm(true)}
-        >
-          <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
-          <span className="account-item__label">Cerrar sesión</span>
-        </button>
-      </div>
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

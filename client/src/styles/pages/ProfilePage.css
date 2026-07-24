@@ -82,6 +82,25 @@
   color: var(--accent-soft);
 }
 
+.profile-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Título que separa el bloque "Tu perfil de vino" de las acciones de cuenta. */
+.profile-section-title {
+  margin: 8px 0 -4px;
+  font-family: var(--font-family-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

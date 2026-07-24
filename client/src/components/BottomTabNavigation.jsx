@@ -7,12 +7,13 @@ export default function BottomTabNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // El perfil se accede desde el avatar del header (arriba a la derecha),
+  // así que no repetimos un tab acá. La cámara/alta es el botón central.
   const tabs = [
     { id: "bodega", label: "Bodega", path: "/", icon: "wine-glass" },
     { id: "favoritos", label: "Favoritos", path: "/favoritos", icon: "heart" },
     { id: "descubrir", label: "Agregar", path: "/descubrir", icon: "plus-solid", primary: true },
-    { id: "explorar", label: "Explorar", path: "/explorar", icon: "sparkle" },
-    { id: "perfil", label: "Perfil", path: "/perfil", icon: "user-solid" },
+    { id: "explorar", label: "Sommelier", path: "/explorar", icon: "sparkle" },
   ];
 
   const getActiveTab = () => {
@@ -21,8 +22,8 @@ export default function BottomTabNavigation() {
       "/favoritos": "favoritos",
       "/explorar": "explorar",
       "/descubrir": "descubrir",
-      "/perfil": "perfil",
-      "/profile": "perfil",
+      "/perfil": "bodega",
+      "/profile": "bodega",
     };
     return pathToTab[location.pathname] || "bodega";
   };
