@@ -140,6 +140,8 @@ const me = async (req, res, next) => {
         id: String(user._id),
         email: user.email,
         role: user.role,
+        onboarded: Boolean(user.onboardedAt),
+        firstName: user.firstName || "",
       },
     });
   } catch (error) {

@@ -69,6 +69,15 @@ const userSchema = new mongoose.Schema(
         email: { type: Boolean, default: true },
         suggestions: { type: Boolean, default: true },
       },
+      // Gustos elegidos en el onboarding (personalizan sugerencias).
+      favoriteTypes: { type: [String], default: [] },
+      favoriteVarietals: { type: [String], default: [] },
+    },
+
+    // Fecha en que completó el onboarding inicial (null = todavía no).
+    onboardedAt: {
+      type: Date,
+      default: null,
     },
 
     // Estadísticas
