@@ -4,7 +4,7 @@ import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { createWish } from "../services/wishApi";
@@ -308,11 +308,7 @@ export default function ScanWinePage() {
               {searchResults.map((r) => (
                 <li key={r.id} className="wine-result-card">
                   <div className="wine-result-card__media">
-                    {r.image ? (
-                      <img src={r.image} alt={r.name} loading="lazy" />
-                    ) : (
-                      <WineArtwork type={r.type} size={92} className="wine-result-card__ph" />
-                    )}
+                    <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} />
                     {r.type && r.type !== "unknown" && (
                       <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
                     )}

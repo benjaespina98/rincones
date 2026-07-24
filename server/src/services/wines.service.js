@@ -5,6 +5,7 @@ const WineMoment = require("../models/wineMoment.model");
 const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
 const wineImages = require("./wineImages.service");
+const imageStorage = require("./imageStorage.service");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -105,9 +106,12 @@ async function createWine(userId, payload) {
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
   // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
-  const providedImage = wineImages.wineKey(name, winery) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
+  const rawProvided = wineImages.wineKey(name, winery) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
     ? String(image).trim()
     : "";
+  // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
+  // queda el base64 tal cual. Así el vino y el pool comparten la misma referencia.
+  const providedImage = rawProvided ? await imageStorage.store(rawProvided) : "";
   const resolvedImage = providedImage || (await wineImages.getImage(name, winery));
 
   const wine = new Wine({

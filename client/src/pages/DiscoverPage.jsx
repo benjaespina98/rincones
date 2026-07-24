@@ -8,7 +8,7 @@ import { DISCOVER_CONTENT } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import "../styles/pages/DiscoverPage.css";
 
@@ -116,7 +116,7 @@ export default function DiscoverPage() {
             {featured.map((wine) => (
               <article key={wine.id} className="discover-wine">
                 <div className="discover-wine__art">
-                  <WineArtwork type={wine.type} size={92} />
+                  <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
                   {wine.type && wine.type !== "unknown" && (
                     <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
                   )}

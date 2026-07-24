@@ -16,7 +16,7 @@ import {
 import { describeWine } from "../services/wineSearchApi";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import "../styles/pages/WineDetailPage.css";
 
 const OCCASIONS = [
@@ -294,13 +294,9 @@ export default function WineDetailPage() {
   return (
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
-        {wine.image ? (
-          <img src={wine.image} alt={wine.name} className="wine-detail-hero__image" />
-        ) : (
-          <div className="wine-detail-hero__placeholder">
-            <WineArtwork type={wine.type} size={150} />
-          </div>
-        )}
+        <div className="wine-detail-hero__placeholder">
+          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} />
+        </div>
 
         <div className="wine-detail-hero__badges">
           {wine.favorite && (

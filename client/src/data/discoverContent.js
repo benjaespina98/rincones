@@ -1,11 +1,8 @@
 // Contenido curado para la sección "Descubrí": aprender, explorar, comunidad.
 //
-// Punto de partida editable. Para no inventar URLs específicas que podrían estar
-// mal, la mayoría apunta a búsquedas (siempre válidas y útiles). Reemplazalos
-// por tus propios enlaces/curaduría cuando quieras (canales, cursos, eventos).
-
-const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-const google = (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+// Enlaces DIRECTOS a recursos reales (no búsquedas). Curaduría inicial, editable:
+// reemplazá o sumá los tuyos cuando quieras. Verificados a julio 2026 — si algún
+// video/curso se da de baja con el tiempo, actualizá la URL acá.
 
 export const DISCOVER_CONTENT = [
   {
@@ -14,8 +11,16 @@ export const DISCOVER_CONTENT = [
     icon: "play",
     accent: "#c6465f",
     items: [
-      { title: "Cómo catar un vino como sommelier", subtitle: "6 min · para arrancar", url: yt("cómo catar un vino sommelier paso a paso") },
-      { title: "Malbec: por qué es la joya argentina", subtitle: "Terroir de altura", url: yt("malbec argentino terroir mendoza documental") },
+      {
+        title: "Cómo catar vino, por Martín Bruno",
+        subtitle: "YouTube · sommelier argentino",
+        url: "https://www.youtube.com/watch?v=GgjdxzuW7l8",
+      },
+      {
+        title: "Cata de vino para principiantes",
+        subtitle: "YouTube · desde cero",
+        url: "https://www.youtube.com/watch?v=to-oQp5UzPs",
+      },
     ],
   },
   {
@@ -24,8 +29,16 @@ export const DISCOVER_CONTENT = [
     icon: "graduation",
     accent: "#7e59c9",
     items: [
-      { title: "Iniciación al mundo del vino", subtitle: "Curso online", url: google("curso iniciación al vino online argentina") },
-      { title: "Ser sommelier en Argentina", subtitle: "Carreras y talleres", url: google("curso sommelier argentina presencial y online") },
+      {
+        title: "Sol Sommelier — contenido gratis",
+        subtitle: "Masterclasses y e-books (Argentina)",
+        url: "https://www.solsommelier.com.ar/",
+      },
+      {
+        title: "WSET — formación internacional",
+        subtitle: "Certificaciones reconocidas",
+        url: "https://www.wsetglobal.com/",
+      },
     ],
   },
   {
@@ -34,8 +47,11 @@ export const DISCOVER_CONTENT = [
     icon: "calendar",
     accent: "#2fb67b",
     items: [
-      { title: "Fiesta Nacional de la Vendimia", subtitle: "Mendoza · cada marzo", url: google("Fiesta Nacional de la Vendimia Mendoza fechas") },
-      { title: "Catas y ferias cerca tuyo", subtitle: "Agenda actualizada", url: google("ferias y catas de vino en Argentina próximos eventos") },
+      {
+        title: "Fiesta Nacional de la Vendimia",
+        subtitle: "Mendoza · cada marzo",
+        url: "https://es.wikipedia.org/wiki/Fiesta_Nacional_de_la_Vendimia",
+      },
     ],
   },
   {
@@ -44,8 +60,16 @@ export const DISCOVER_CONTENT = [
     icon: "chat",
     accent: "#f2b737",
     items: [
-      { title: "Bodegas argentinas en Instagram", subtitle: "Seguí a tus favoritas", url: google("bodegas argentinas instagram") },
-      { title: "r/wine en Reddit", subtitle: "Comunidad global", url: "https://www.reddit.com/r/wine/" },
+      {
+        title: "CataTú — el canal del vino",
+        subtitle: "YouTube · comunidad en español",
+        url: "https://www.youtube.com/channel/UCnX3wjgErD_rZMoDNcbjxlg",
+      },
+      {
+        title: "r/wine en Reddit",
+        subtitle: "Comunidad global",
+        url: "https://www.reddit.com/r/wine/",
+      },
     ],
   },
 ];

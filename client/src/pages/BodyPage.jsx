@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
@@ -461,11 +461,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                   aria-expanded={expanded}
                 >
                   <span className="wine-row__thumb">
-                    {wine.image ? (
-                      <img src={wine.image} alt="" loading="lazy" />
-                    ) : (
-                      <WineArtwork type={wine.type} size={54} />
-                    )}
+                    <WinePhoto src={wine.image} type={wine.type} alt="" artSize={54} />
                     {wine.tasted && (
                       <span className="wine-row__tasted" title="Probado"><Icon name="check" size={12} /></span>
                     )}

@@ -7,7 +7,7 @@ import { searchWines } from "../services/wineSearchApi";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import {
   WINE_TYPE_LABELS,
   FOOD_LABELS,
@@ -202,11 +202,7 @@ export default function SuggestionsPage() {
                   onKeyDown={(e) => e.key === "Enter" && navigate(`/vino/${wine._id}`)}
                 >
                   <div className="suggestion-card__image">
-                    {wine.image ? (
-                      <img src={wine.image} alt={wine.name} />
-                    ) : (
-                      <WineArtwork type={wine.type} size={92} />
-                    )}
+                    <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
                   </div>
 
                   <div className="suggestion-card__body">
