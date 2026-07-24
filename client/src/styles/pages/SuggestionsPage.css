@@ -54,12 +54,12 @@
 }
 
 .context-chip {
-  padding: 7px 13px;
+  padding: 6px 11px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--glass);
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);

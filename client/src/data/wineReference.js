@@ -60,25 +60,23 @@ export const FOOD_PAIRINGS = {
 
 export const FOOD_LABELS = {
   asado:    "🔥 Asado",
-  carne:    "Carnes rojas",
-  pollo:    "Pollo / aves",
+  carne:    "Carnes",
+  pollo:    "Pollo",
   pasta:    "Pasta",
   pizza:    "Pizza",
   pescado:  "Pescado",
-  mariscos: "Mariscos",
   picada:   "Picada",
   queso:    "Quesos",
-  ensalada: "Ensaladas",
   postre:   "Postres",
   solo:     "Sin comida",
 };
 
 export const MOOD_LABELS = {
-  liviano:    "Liviano y fresco",
+  liviano:    "Liviano",
   cuerpo:     "Con cuerpo",
-  festivo:    "Festivo / burbujas",
+  festivo:    "Festivo",
   elegante:   "Elegante",
-  facil:      "Fácil de tomar",
+  facil:      "Fácil",
   dulce:      "Dulce",
   cualquiera: "Cualquiera",
 };

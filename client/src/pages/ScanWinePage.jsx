@@ -17,6 +17,12 @@ import "../styles/pages/ScanWinePage.css";
 // el nombre, que es el único dato que realmente no podemos inventar.
 const CONFIDENCE_THRESHOLD = 45;
 
+// Atajos rápidos por varietal para arrancar la búsqueda sin escribir.
+const QUICK_VARIETALS = [
+  "Malbec", "Cabernet Sauvignon", "Cabernet Franc", "Pinot Noir",
+  "Bonarda", "Syrah", "Torrontés", "Chardonnay", "Sauvignon Blanc",
+];
+
 const toWinePayload = (draft) => ({
   name: draft.name?.trim() || "Vino sin nombre",
   winery: draft.winery?.trim() || "",
@@ -47,6 +53,7 @@ export default function ScanWinePage() {
   const [searchFailed, setSearchFailed] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  const [wishedIds, setWishedIds] = useState(() => new Set());
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -98,6 +105,32 @@ export default function ScanWinePage() {
       showError("No se pudo agregar el vino. Probá de nuevo.");
     } finally {
       setAddingId(null);
+    }
+  };
+
+  // "Lo quiero": guarda un vino de la búsqueda en la lista de deseos, aunque no
+  // lo tengas todavía. Es el flujo "me gusta / lo quiero comprar".
+  const handleWishResult = async (result) => {
+    if (wishedIds.has(result.id)) return;
+    try {
+      setWishedIds((prev) => new Set(prev).add(result.id));
+      await createWish({
+        name: result.name || "Vino sin nombre",
+        winery: result.winery || "",
+        region: result.region || "",
+        varietal: result.varietal || "",
+        type: result.type || "unknown",
+        source: "search",
+      });
+      successHaptic();
+      showSuccess(`"${result.name}" agregado a tu lista de deseos`);
+    } catch {
+      setWishedIds((prev) => {
+        const n = new Set(prev);
+        n.delete(result.id);
+        return n;
+      });
+      showError("No se pudo agregar a la lista de deseos");
     }
   };
 
@@ -289,6 +322,25 @@ export default function ScanWinePage() {
             )}
           </div>
 
+          {/* Atajos por varietal cuando todavía no buscaste nada. */}
+          {!searchQuery && !searched && (
+            <div className="wine-search__chips">
+              <span className="wine-search__chips-label">Buscá por varietal</span>
+              <div className="wine-search__chips-row">
+                {QUICK_VARIETALS.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className="wine-search__chip"
+                    onClick={() => setSearchQuery(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {searchLoading && <LoadingSkeleton type="list" count={3} />}
 
           {!searchLoading && searched && searchFailed && (
@@ -337,20 +389,32 @@ export default function ScanWinePage() {
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      className={`wine-result-card__add ${addedIds.has(r.id) ? "is-added" : ""}`}
-                      onClick={() => handleAddResult(r)}
-                      disabled={addingId === r.id || addedIds.has(r.id)}
-                    >
-                      {addedIds.has(r.id) ? (
-                        <><Icon name="check" size={16} /> En tu bodega</>
-                      ) : addingId === r.id ? (
-                        "Agregando…"
-                      ) : (
-                        <><Icon name="plus" size={16} /> Agregar</>
-                      )}
-                    </button>
+                    <div className="wine-result-card__actions">
+                      <button
+                        type="button"
+                        className={`wine-result-card__add ${addedIds.has(r.id) ? "is-added" : ""}`}
+                        onClick={() => handleAddResult(r)}
+                        disabled={addingId === r.id || addedIds.has(r.id)}
+                      >
+                        {addedIds.has(r.id) ? (
+                          <><Icon name="check" size={16} /> En tu bodega</>
+                        ) : addingId === r.id ? (
+                          "Agregando…"
+                        ) : (
+                          <><Icon name="plus" size={16} /> Agregar</>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className={`wine-result-card__wish ${wishedIds.has(r.id) ? "is-wished" : ""}`}
+                        onClick={() => handleWishResult(r)}
+                        disabled={wishedIds.has(r.id)}
+                        aria-label={wishedIds.has(r.id) ? "En tu lista de deseos" : "Agregar a la lista de deseos"}
+                        title={wishedIds.has(r.id) ? "En tu lista de deseos" : "Lo quiero (lista de deseos)"}
+                      >
+                        <Icon name="heart" filled={wishedIds.has(r.id)} size={16} />
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}

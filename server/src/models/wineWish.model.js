@@ -25,7 +25,7 @@ const wineWishSchema = new mongoose.Schema(
     notes:    { type: String, trim: true, default: "" },
     source: {
       type: String,
-      enum: ["manual", "ocr", "recomendación"],
+      enum: ["manual", "ocr", "recomendación", "search"],
       default: "manual",
     },
     priority: { type: Number, min: 1, max: 3, default: 2 },
