@@ -160,8 +160,8 @@ export default function DiscoverPage() {
         <div className="discover-content">
           {DISCOVER_CONTENT.map((group) => (
             <div key={group.id} className="content-group">
-              <span className="content-group__label">
-                <span aria-hidden="true">{group.icon}</span> {group.label}
+              <span className="content-group__label" style={{ color: group.accent }}>
+                {group.label}
               </span>
               <div className="content-group__items">
                 {group.items.map((item) => (
@@ -172,7 +172,11 @@ export default function DiscoverPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => tapHaptic()}
+                    style={{ "--accent-content": group.accent }}
                   >
+                    <span className="content-card__icon">
+                      <Icon name={group.icon} size={18} />
+                    </span>
                     <div className="content-card__text">
                       <span className="content-card__title">{item.title}</span>
                       <span className="content-card__subtitle">{item.subtitle}</span>
@@ -185,7 +189,7 @@ export default function DiscoverPage() {
           ))}
         </div>
 
-        <p className="discover-foot">Más secciones y recomendaciones en camino.</p>
+        <p className="discover-foot">Curado para vos · más contenido en camino.</p>
       </section>
     </div>
   );

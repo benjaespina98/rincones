@@ -35,6 +35,14 @@ const PATHS = {
       <path d="m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3 5.3-2.2Z" />
     </>
   ),
+  play: <path d="M7 5v14l11-7-11-7Z" />,
+  graduation: (
+    <>
+      <path d="M12 4 2 9l10 5 10-5-10-5Z" />
+      <path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" />
+    </>
+  ),
+  chat: <path d="M4 5h16v11H8l-4 4V5Z" />,
   calendar: (
     <>
       <rect x="3" y="4" width="18" height="17" rx="2" />
@@ -116,12 +124,16 @@ const PATHS = {
 // navegación y la marca, que antes estaban duplicados dentro de
 // BottomTabNavigation como un set de SVG paralelo.
 const FILLED = {
+  // Corazón simétrico y prolijo (el anterior se veía torcido a tamaño chico).
   heart:
-    "M12 21s-7.5-4.9-10-9.4C.6 8.9 2 5.5 5.2 5.1c1.9-.2 3.4 1 3.8 2 .4-1 1.9-2.2 3.8-2 3.2.4 4.6 3.8 3.2 6.5C19.5 16.1 12 21 12 21Z",
+    "M12 21.35 3.6 12.9a5.5 5.5 0 0 1 7.8-7.77l.6.6.6-.6a5.5 5.5 0 0 1 7.8 7.77L12 21.35Z",
   star: "M12 3.3l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.4 9.4l5.8-.8L12 3.3Z",
-  // Copa: es la marca de Rincones (también el favicon).
+  // Copa: la usa el Sommelier y la marca de Rincones (favicon).
   "wine-glass":
     "M9 2h6v4l-1.6 5.3a5.2 5.2 0 0 0-.1 1.4V19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-6.3a5.2 5.2 0 0 0-.1-1.4L7 6V2Z",
+  // Botella: representa la bodega/colección.
+  bottle:
+    "M10.4 2h3.2v2.4c0 .5.1 1 .4 1.5l.9 1.6c.4.7.6 1.5.6 2.3V20a2 2 0 0 1-2 2h-2.6a2 2 0 0 1-2-2V9.8c0-.8.2-1.6.6-2.3l.9-1.6c.3-.5.4-1 .4-1.5V2Z",
   sparkle: "m12 3 2.2 5.3L19.5 10l-5.3 2.2L12 17.5l-2.2-5.3L4.5 10l5.3-1.7L12 3Z",
   "user-solid":
     "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z",
@@ -129,7 +141,7 @@ const FILLED = {
 };
 
 const HEART_OUTLINE =
-  "M12 21s-7.5-4.9-10-9.4C.6 8.9 2 5.5 5.2 5.1c1.9-.2 3.4 1 3.8 2 .4-1 1.9-2.2 3.8-2 3.2.4 4.6 3.8 3.2 6.5C19.5 16.1 12 21 12 21Z";
+  "M12 21.35 3.6 12.9a5.5 5.5 0 0 1 7.8-7.77l.6.6.6-.6a5.5 5.5 0 0 1 7.8 7.77L12 21.35Z";
 
 export default function Icon({ name, filled = false, size = 20, className = "", ...rest }) {
   // Filled variants (heart/star) render a solid shape.

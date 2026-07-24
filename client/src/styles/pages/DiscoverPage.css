@@ -267,7 +267,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--glass);
@@ -276,9 +276,22 @@
 }
 
 .content-card:hover {
-  border-color: var(--line-accent);
+  border-color: color-mix(in srgb, var(--accent-content, var(--accent)) 50%, transparent);
   background: var(--surface);
   transform: translateY(-1px);
+}
+
+.content-card__icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--accent-content, var(--accent-light));
+  background: color-mix(in srgb, var(--accent-content, var(--accent)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-content, var(--accent)) 28%, transparent);
 }
 
 .content-card__text {

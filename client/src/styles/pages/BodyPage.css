@@ -242,308 +242,214 @@
   text-decoration: underline;
 }
 
-/* Wine Grid */
-.wines-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-/* Wine Card */
-.wine-card {
-  background: var(--elevated);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth), opacity var(--transition-fast);
+/* ── Lista de vinos: filas compactas que se expanden al tocar ── */
+.wines-list {
   display: flex;
   flex-direction: column;
-  animation: wineCardIn 320ms var(--ease-out) both;
-  cursor: pointer;
-}
-
-@keyframes wineCardIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (hover: hover) {
-  .wine-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--line-accent);
-    box-shadow: var(--shadow-glow);
-  }
-}
-
-.wine-card:active {
-  transform: scale(0.98);
-}
-
-.wine-card:focus-visible {
-  outline: 2px solid var(--accent-light);
-  outline-offset: 2px;
-}
-
-.wine-card--pending {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-/* Wine Image Wrapper */
-.wine-image-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1.1;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.28), transparent 65%),
-    linear-gradient(160deg, rgba(126, 89, 201, 0.2) 0%, rgba(12, 15, 25, 0.95) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.wine-image-wrapper::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 55%, rgba(8, 10, 18, 0.55) 100%);
-  pointer-events: none;
-}
-
-.wine-image {
-  font-size: 46px;
-  line-height: 1;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
-}
-
-.wine-image-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-@media (hover: hover) {
-  .wine-card:hover .wine-image-photo {
-    transform: scale(1.05);
-  }
-}
-
-.badge-favorite,
-.badge-tasted {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
-  font-size: 15px;
-  background: rgba(12, 15, 25, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm);
-}
-
-.badge-favorite {
-  color: #ff6ea0;
-}
-
-.badge-tasted {
-  bottom: 8px;
-  right: auto;
-  left: 8px;
-  top: auto;
-  color: var(--success);
-}
-
-.badge-empty {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  z-index: 1;
-  background: rgba(198, 70, 95, 0.9);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 4px 9px;
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Wine Info */
-.wine-info {
-  padding: 12px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wine-name {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wine-region {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wine-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.wine-type,
-.wine-year {
-  background: var(--accent-muted);
-  color: var(--accent-soft);
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  border: 1px solid var(--line);
-}
-
-.wine-details {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
   gap: 8px;
 }
 
-/* Stock stepper (.wine-qty-controls/.qty-btn/.wine-qty) is global — see App.css */
+.wine-row {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
 
-/* Interactive favorite toggle on the image */
-.wine-fav-toggle {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  width: 34px;
-  height: 34px;
+.wine-row.is-expanded {
+  border-color: var(--line-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.wine-row.is-pending {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.wine-row__main {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(12, 15, 25, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.82);
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
-  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.wine-fav-toggle:hover:not(:disabled) {
-  background: rgba(12, 15, 25, 0.82);
+.wine-row__thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--line);
 }
 
-.wine-fav-toggle.is-active {
-  color: #ff6ea0;
-  border-color: rgba(255, 110, 160, 0.42);
+.wine-row__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.wine-fav-toggle:active {
-  transform: scale(0.86);
+.wine-row__tasted {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--success);
+  color: #04120b;
 }
 
-.wine-fav-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Wine Actions */
-.wine-actions {
-  display: flex;
-  gap: 6px;
-  padding: 8px;
-  border-top: 1px solid var(--line);
-  background: rgba(10, 12, 22, 0.35);
-}
-
-.wine-action-btn {
+.wine-row__info {
   flex: 1;
   min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wine-row__name {
+  font-family: var(--font-family-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wine-row__sub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wine-row__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.wine-row__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.wine-row__fav {
+  display: inline-flex;
+  color: var(--wine);
+}
+
+.wine-row__qty {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+
+.wine-row__qty.is-empty {
+  background: var(--wine-soft);
+  color: #f0a9b6;
+}
+
+.wine-row__caret {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.wine-row.is-expanded .wine-row__caret {
+  transform: rotate(180deg);
+}
+
+/* Contenido expandido */
+.wine-row__expand {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px 14px;
+  animation: rowExpand 200ms var(--ease-out);
+}
+
+@keyframes rowExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wine-row__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wine-row__links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wine-row__detail {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 40px;
-  padding: 0 12px;
+  gap: 6px;
+  min-height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(126, 89, 201, 0.14);
+  color: var(--accent-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.wine-row__detail:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.wine-row__icon-btn {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  font-size: 12.5px;
-  font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.wine-action-btn:hover:not(:disabled) {
-  background: var(--accent-muted);
+.wine-row__icon-btn:hover:not(:disabled) {
   border-color: var(--line-accent);
-  color: var(--text);
+  color: var(--wine);
 }
 
-.wine-action-btn:active {
-  transform: scale(0.96);
-}
-
-.wine-action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.wine-action-btn.is-active {
-  background: rgba(47, 182, 123, 0.16);
-  color: #7fe3b4;
-  border-color: rgba(47, 182, 123, 0.3);
-}
-
-.wine-action-btn--danger {
-  flex: 0 0 auto;
-  width: 44px;
-  padding: 0;
+.wine-row__icon-btn--danger:hover:not(:disabled) {
   background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.34);
   color: var(--wine);
 }
-
-.wine-action-btn--danger:hover:not(:disabled) {
-  background: rgba(198, 70, 95, 0.28);
-  color: var(--wine);
-}
-
-/* .btn-icon / .btn-delete now live in WineDetailPage.css (their only consumer) */
 
 /* Empty state styles are global (see App.css) */
 
@@ -553,8 +459,11 @@
     padding: 16px 20px 32px;
   }
 
-  .wines-grid {
-    grid-template-columns: repeat(3, 1fr);
+  /* En pantallas anchas la lista se acomoda en dos columnas de filas. */
+  .wines-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
   }
 }
 
@@ -562,10 +471,6 @@
   .body-page {
     max-width: 1100px;
     margin: 0 auto;
-  }
-
-  .wines-grid {
-    grid-template-columns: repeat(4, 1fr);
   }
 
   .controls {

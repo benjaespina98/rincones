@@ -56,6 +56,7 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [regionFilter, setRegionFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [convertingWish, setConvertingWish] = useState(null);
   const undoTimerRef = useRef(null);
@@ -442,112 +443,104 @@ export default function BodyPage({ initialFilter = "all" }) {
       {loading && <LoadingSkeleton type="card" count={4} />}
 
       {!loading && sortedWines.length > 0 && (
-        <div className="wines-grid">
+        <div className="wines-list">
           {sortedWines.map((wine) => {
             const isPending = pendingActionId === wine._id;
+            const expanded = expandedId === wine._id;
+            const origin = [wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen";
             return (
               <article
                 key={wine._id}
-                className={`wine-card ${isPending ? "wine-card--pending" : ""}`}
-                onClick={() => navigate(`/vino/${wine._id}`)}
-                role="link"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") navigate(`/vino/${wine._id}`);
-                }}
+                className={`wine-row ${expanded ? "is-expanded" : ""} ${isPending ? "is-pending" : ""}`}
               >
-                <div className="wine-image-wrapper">
-                  {wine.image ? (
-                    <img src={wine.image} alt={wine.name} className="wine-image-photo" loading="lazy" />
-                  ) : (
-                    <WineArtwork type={wine.type} size={110} />
-                  )}
-                  <button
-                    type="button"
-                    className={`wine-fav-toggle ${wine.favorite ? "is-active" : ""}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleToggleFavorite(wine);
-                    }}
-                    disabled={isPending}
-                    aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                    title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                  >
-                    <Icon name="heart" filled={wine.favorite} size={16} />
-                  </button>
-                  {wine.tasted && (
-                    <span className="badge-tasted" aria-label="Probado" title="Probado">
-                      <Icon name="check" size={16} />
-                    </span>
-                  )}
-                  {Number(wine.quantity) <= 0 && (
-                    <span className="badge-empty">Sin stock</span>
-                  )}
-                </div>
+                {/* Fila compacta: tocar expande la info y las acciones. */}
+                <button
+                  type="button"
+                  className="wine-row__main"
+                  onClick={() => setExpandedId(expanded ? null : wine._id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="wine-row__thumb">
+                    {wine.image ? (
+                      <img src={wine.image} alt="" loading="lazy" />
+                    ) : (
+                      <WineArtwork type={wine.type} size={54} />
+                    )}
+                    {wine.tasted && (
+                      <span className="wine-row__tasted" title="Probado"><Icon name="check" size={12} /></span>
+                    )}
+                  </span>
 
-                <div className="wine-info">
-                  <h3 className="wine-name" title={wine.name}>{wine.name}</h3>
-                  <p className="wine-region">
-                    {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
-                  </p>
-                  <div className="wine-meta">
-                    <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-                    {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-                  </div>
-                  <div className="wine-details">
-                    <div
-                      className="wine-qty-controls"
-                      aria-label={`Stock de ${wine.name}`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                  <span className="wine-row__info">
+                    <span className="wine-row__name">{wine.name}</span>
+                    <span className="wine-row__sub">{origin}</span>
+                    <span className="wine-row__chips">
+                      <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+                      {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
+                      {wine.rating > 0 && <StarRating value={wine.rating} size="sm" />}
+                    </span>
+                  </span>
+
+                  <span className="wine-row__right">
+                    {wine.favorite && (
+                      <span className="wine-row__fav" aria-label="Favorito"><Icon name="heart" filled size={14} /></span>
+                    )}
+                    <span className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""}`}>
+                      {Number(wine.quantity) <= 0 ? "Sin stock" : `x${wine.quantity}`}
+                    </span>
+                    <Icon name="chevron-down" size={18} className="wine-row__caret" />
+                  </span>
+                </button>
+
+                {expanded && (
+                  <div className="wine-row__expand">
+                    <div className="wine-row__controls">
+                      <div className="wine-qty-controls" aria-label={`Stock de ${wine.name}`}>
+                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, -1)} disabled={isPending || Number(wine.quantity) <= 0} aria-label="Restar una unidad">
+                          <Icon name="minus" size={15} />
+                        </button>
+                        <span className="wine-qty">x{wine.quantity}</span>
+                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, 1)} disabled={isPending} aria-label="Sumar una unidad">
+                          <Icon name="plus" size={15} />
+                        </button>
+                      </div>
+
                       <button
+                        className={`wine-action-btn ${wine.tasted ? "is-active" : ""}`}
+                        onClick={() => handleToggleTasted(wine)}
                         type="button"
-                        className="qty-btn"
-                        onClick={() => handleAdjustQuantity(wine, -1)}
-                        disabled={isPending || Number(wine.quantity) <= 0}
-                        aria-label="Restar una unidad"
-                      >
-                        <Icon name="minus" size={15} />
-                      </button>
-                      <span className="wine-qty">x{wine.quantity}</span>
-                      <button
-                        type="button"
-                        className="qty-btn"
-                        onClick={() => handleAdjustQuantity(wine, 1)}
                         disabled={isPending}
-                        aria-label="Sumar una unidad"
                       >
-                        <Icon name="plus" size={15} />
+                        <Icon name={wine.tasted ? "check" : "circle"} size={16} />
+                        {wine.tasted ? "Probado" : "Marcar probado"}
                       </button>
                     </div>
-                    {!!wine.rating && <StarRating value={wine.rating} size="sm" />}
+
+                    <div className="wine-row__links">
+                      <button type="button" className="wine-row__detail" onClick={() => navigate(`/vino/${wine._id}`)}>
+                        Ver ficha completa <Icon name="arrow-right" size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="wine-row__icon-btn"
+                        onClick={() => handleToggleFavorite(wine)}
+                        disabled={isPending}
+                        aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                      >
+                        <Icon name="heart" filled={wine.favorite} size={17} />
+                      </button>
+                      <button
+                        type="button"
+                        className="wine-row__icon-btn wine-row__icon-btn--danger"
+                        onClick={() => setShowDeleteConfirm(wine._id)}
+                        disabled={isPending}
+                        aria-label="Eliminar vino"
+                      >
+                        <Icon name="trash" size={17} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                <div className="wine-actions" onClick={(event) => event.stopPropagation()}>
-                  <button
-                    className={`wine-action-btn ${wine.tasted ? "is-active" : ""}`}
-                    onClick={() => handleToggleTasted(wine)}
-                    type="button"
-                    disabled={isPending}
-                    aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-                    title={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-                  >
-                    <Icon name={wine.tasted ? "check" : "circle"} size={16} />
-                    {wine.tasted ? "Probado" : "Marcar probado"}
-                  </button>
-
-                  <button
-                    className="wine-action-btn wine-action-btn--danger"
-                    onClick={() => setShowDeleteConfirm(wine._id)}
-                    type="button"
-                    disabled={isPending}
-                    aria-label="Eliminar vino"
-                    title="Eliminar vino"
-                  >
-                    <Icon name="trash" size={16} />
-                  </button>
-                </div>
+                )}
               </article>
             );
           })}

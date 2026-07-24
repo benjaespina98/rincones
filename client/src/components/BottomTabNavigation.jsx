@@ -10,11 +10,11 @@ export default function BottomTabNavigation() {
   // Orden: Descubrí (home) · Favoritos · [+ Agregar centrado] · Sommelier · Bodega.
   // El perfil se accede tocando el nombre en el header, no hay tab acá.
   const tabs = [
-    { id: "descubri", label: "Descubrí", path: "/", icon: "compass", filled: false },
+    { id: "descubri", label: "Descubrí", path: "/", icon: "sparkle", filled: true },
     { id: "favoritos", label: "Favoritos", path: "/favoritos", icon: "heart", filled: true },
     { id: "agregar", label: "Agregar", path: "/agregar", icon: "plus-solid", filled: true, primary: true },
-    { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "sparkle", filled: true },
-    { id: "bodega", label: "Bodega", path: "/bodega", icon: "wine-glass", filled: true },
+    { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass", filled: true },
+    { id: "bodega", label: "Bodega", path: "/bodega", icon: "bottle", filled: true },
   ];
 
   const pathToTab = {
