@@ -1,5 +1,6 @@
 const catalogService = require("../services/catalog.service");
 const { describeWine } = require("../services/wineAi.service");
+const wineImages = require("../services/wineImages.service");
 const WineInfo = require("../models/wineInfo.model");
 
 // GET /api/catalog/search?q=...
@@ -11,7 +12,9 @@ const search = async (req, res, next) => {
     }
 
     const { results, degraded } = await catalogService.searchWines(q);
-    return res.status(200).json({ data: results, degraded });
+    // Pegamos las fotos "stock" que otros usuarios hayan subido.
+    const withImages = await wineImages.enrichWithImages(results);
+    return res.status(200).json({ data: withImages, degraded });
   } catch (error) {
     return next(error);
   }
@@ -71,7 +74,7 @@ const describe = async (req, res, next) => {
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
 const featured = async (req, res, next) => {
   try {
-    const data = catalogService.getFeatured(8);
+    const data = await wineImages.enrichWithImages(catalogService.getFeatured(8));
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);

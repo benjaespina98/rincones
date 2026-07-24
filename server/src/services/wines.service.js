@@ -4,6 +4,7 @@ const { getCellarStatus } = require("./cellar.service");
 const WineMoment = require("../models/wineMoment.model");
 const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
+const wineImages = require("./wineImages.service");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -101,6 +102,14 @@ async function createWine(userId, payload) {
     purchasedAt,
   } = payload;
 
+  // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
+  // no, intentamos completar con la foto "stock" que otro haya subido del mismo
+  // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
+  const providedImage = wineImages.wineKey(name, winery) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
+    ? String(image).trim()
+    : "";
+  const resolvedImage = providedImage || (await wineImages.getImage(name, winery));
+
   const wine = new Wine({
     userId,
     name: String(name || "").trim(),
@@ -109,7 +118,8 @@ async function createWine(userId, payload) {
     region: region?.trim() || "",
     varietal: varietal?.trim() || "",
     notes: notes?.trim() || "",
-    image: image || "",
+    image: resolvedImage,
+    imageSource: providedImage ? undefined : (resolvedImage ? "community" : undefined),
     rawText: rawText || "",
     type: type || "unknown",
     rating: rating ? parseInt(rating) : 0,
@@ -133,6 +143,12 @@ async function createWine(userId, payload) {
   });
 
   const savedWine = await wine.save();
+
+  // Si el usuario aportó una foto propia, la sumamos al pool compartido para
+  // que aparezca cuando otro busque/cargue el mismo vino.
+  if (providedImage) {
+    await wineImages.contribute({ name, winery, image: providedImage, userId });
+  }
 
   const user = await User.findById(userId);
   user.stats.winesCount = (user.stats.winesCount || 0) + 1;
