@@ -559,7 +559,7 @@ export default function BodyPage({ initialFilter = "all" }) {
           <p className="empty-icon" aria-hidden="true">🍷</p>
           <p className="empty-title">Tu bodega está vacía</p>
           <p className="empty-subtitle">Buscá un vino por nombre o escaneá su etiqueta para empezar tu colección.</p>
-          <button type="button" className="empty-cta" onClick={() => navigate("/descubrir")}>
+          <button type="button" className="empty-cta" onClick={() => navigate("/agregar")}>
             Agregar mi primer vino
           </button>
         </div>

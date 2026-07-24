@@ -20,6 +20,14 @@ export const searchWines = async (query) => {
 };
 
 /**
+ * Vinos destacados para la home Descubrí (catálogo curado, sin gastar cuota IA).
+ */
+export const getFeaturedWines = async () => {
+  const { data } = await api.get("/catalog/featured");
+  return Array.isArray(data?.data) ? data.data : [];
+};
+
+/**
  * Trae la ficha del vino (descripción, aromas, maridaje) generada por IA y
  * cacheada en el server. Lanza si falla, para que la UI muestre un estado claro.
  */

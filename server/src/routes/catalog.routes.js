@@ -10,4 +10,7 @@ router.get("/search", authenticate, catalogController.search);
 // POST /api/catalog/describe - ficha del vino (descripción, aromas, maridaje).
 router.post("/describe", authenticate, catalogController.describe);
 
+// GET /api/catalog/featured - vinos destacados para la home Descubrí.
+router.get("/featured", authenticate, catalogController.featured);
+
 module.exports = router;

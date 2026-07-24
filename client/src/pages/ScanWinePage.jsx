@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
@@ -38,7 +38,9 @@ export default function ScanWinePage() {
   const [pending, setPending] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  // Prefill desde la home Descubrí (?q=…): buscás allá y llegás acá con resultados.
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);

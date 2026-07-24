@@ -262,19 +262,19 @@ const AdminLoginPage = () => {
                 <article className="admin-view-card">
                   <h3>Mi Bodega</h3>
                   <p>Gestiona colección y favoritos como usuario final.</p>
-                  <button className="button" type="button" onClick={() => navigate("/")}>Abrir bodega</button>
+                  <button className="button" type="button" onClick={() => navigate("/bodega")}>Abrir bodega</button>
                 </article>
 
                 <article className="admin-view-card">
                   <h3>Explorar</h3>
                   <p>Revisa recomendaciones y tarjetas de sugerencias.</p>
-                  <button className="button" type="button" onClick={() => navigate("/explorar")}>Abrir explorar</button>
+                  <button className="button" type="button" onClick={() => navigate("/sommelier")}>Abrir explorar</button>
                 </article>
 
                 <article className="admin-view-card">
                   <h3>Descubrir</h3>
                   <p>Valida flujo de escaneo y alta de vinos.</p>
-                  <button className="button" type="button" onClick={() => navigate("/descubrir")}>Abrir descubrir</button>
+                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Abrir descubrir</button>
                 </article>
 
                 <article className="admin-view-card">

@@ -29,6 +29,12 @@ const PATHS = {
   ),
   "arrow-right": <path d="M5 12h14M13 5l7 7-7 7" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3 5.3-2.2Z" />
+    </>
+  ),
   calendar: (
     <>
       <rect x="3" y="4" width="18" height="17" rx="2" />

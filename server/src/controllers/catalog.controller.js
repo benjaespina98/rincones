@@ -68,4 +68,14 @@ const describe = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe };
+// GET /api/catalog/featured - vinos destacados para la home Descubrí.
+const featured = async (req, res, next) => {
+  try {
+    const data = catalogService.getFeatured(8);
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { search, describe, featured };

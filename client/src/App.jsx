@@ -9,6 +9,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
 const BodyPage = lazy(() => import("./pages/BodyPage"));
 const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
 const ScanWinePage = lazy(() => import("./pages/ScanWinePage"));
@@ -22,6 +23,12 @@ const RouteFallback = () => (
   </div>
 );
 
+const withLayout = (title, element) => (
+  <PrivateRoute>
+    <AppLayout pageTitle={title}>{element}</AppLayout>
+  </PrivateRoute>
+);
+
 function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -33,72 +40,23 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Private Routes with Bottom Tab Navigation */}
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Mi Bodega">
-                <BodyPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
+        {/* Home = Descubrí (recomendaciones + contenido) */}
+        <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />
 
-        <Route
-          path="/favoritos"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Favoritos">
-                <BodyPage initialFilter="favorites" />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
+        {/* Mi bodega (antes era "/") */}
+        <Route path="/bodega" element={withLayout("Mi Bodega", <BodyPage />)} />
+        <Route path="/favoritos" element={withLayout("Favoritos", <BodyPage initialFilter="favorites" />)} />
 
-        <Route
-          path="/explorar"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Explorar">
-                <SuggestionsPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
+        {/* Sommelier (antes /explorar) y Agregar (antes /descubrir) */}
+        <Route path="/sommelier" element={withLayout("Sommelier", <SuggestionsPage />)} />
+        <Route path="/agregar" element={withLayout("Agregar vino", <ScanWinePage />)} />
 
-        <Route
-          path="/descubrir"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Agregar vino">
-                <ScanWinePage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
+        {/* Redirecciones de rutas viejas para no romper enlaces guardados */}
+        <Route path="/explorar" element={<Navigate to="/sommelier" replace />} />
+        <Route path="/descubrir" element={<Navigate to="/agregar" replace />} />
 
-        <Route
-          path="/perfil"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Perfil">
-                <ProfilePage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/vino/:id"
-          element={
-            <PrivateRoute>
-              <AppLayout pageTitle="Vino">
-                <WineDetailPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
+        <Route path="/perfil" element={withLayout("Perfil", <ProfilePage />)} />
+        <Route path="/vino/:id" element={withLayout("Vino", <WineDetailPage />)} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
