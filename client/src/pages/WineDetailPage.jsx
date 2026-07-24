@@ -373,7 +373,7 @@ export default function WineDetailPage() {
                   )}
                 </div>
 
-                {aiLoading && <LoadingSkeleton type="list" count={2} />}
+                {aiLoading && <LoadingSkeleton type="inline" count={3} />}
 
                 {aiFailed && !aiLoading && (
                   <p className="wine-about__failed">
