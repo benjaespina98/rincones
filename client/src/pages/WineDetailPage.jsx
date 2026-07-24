@@ -13,8 +13,10 @@ import {
   getWineMoments,
   addWineMoment,
 } from "../services/wineApi";
+import { describeWine } from "../services/wineSearchApi";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
+import WineArtwork from "../components/WineArtwork";
 import "../styles/pages/WineDetailPage.css";
 
 const OCCASIONS = [
@@ -64,6 +66,11 @@ export default function WineDetailPage() {
   const [momentDraft, setMomentDraft] = useState(EMPTY_MOMENT);
   const [savingMoment, setSavingMoment] = useState(false);
 
+  // Ficha generada por IA (descripción, aromas, maridaje) — estilo Vivino.
+  const [aiInfo, setAiInfo] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiFailed, setAiFailed] = useState(false);
+
   const loadWine = useCallback(async () => {
     try {
       setLoading(true);
@@ -96,6 +103,38 @@ export default function WineDetailPage() {
     loadWine();
     loadMoments();
   }, [loadWine, loadMoments]);
+
+  // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.
+  const wineName = wine?.name;
+  const wineWinery = wine?.winery;
+  useEffect(() => {
+    if (!wineName) return;
+    let active = true;
+    setAiLoading(true);
+    setAiFailed(false);
+    describeWine({
+      name: wineName,
+      winery: wineWinery,
+      varietal: wine?.varietal,
+      type: wine?.type,
+      region: wine?.region,
+      vintage: wine?.vintage,
+    })
+      .then((info) => {
+        if (active) setAiInfo(info);
+      })
+      .catch(() => {
+        if (active) setAiFailed(true);
+      })
+      .finally(() => {
+        if (active) setAiLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+    // Sólo depende del vino (nombre+bodega); el resto son datos estables del mismo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wineName, wineWinery]);
 
   const applyUpdate = async (payload, successMessage) => {
     setPending(true);
@@ -258,7 +297,9 @@ export default function WineDetailPage() {
         {wine.image ? (
           <img src={wine.image} alt={wine.name} className="wine-detail-hero__image" />
         ) : (
-          <div className="wine-detail-hero__placeholder" aria-hidden="true">🍷</div>
+          <div className="wine-detail-hero__placeholder">
+            <WineArtwork type={wine.type} size={150} />
+          </div>
         )}
 
         <div className="wine-detail-hero__badges">
@@ -323,6 +364,74 @@ export default function WineDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
+            {(aiLoading || aiInfo || aiFailed) && (
+              <div className="wine-about">
+                <div className="wine-about__head">
+                  <h3><Icon name="sparkles" size={16} /> Sobre este vino</h3>
+                  {aiInfo && !aiInfo.known && (
+                    <span className="wine-about__tag" title="Descripción general del estilo, no del vino puntual">
+                      aproximado
+                    </span>
+                  )}
+                </div>
+
+                {aiLoading && <LoadingSkeleton type="list" count={2} />}
+
+                {aiFailed && !aiLoading && (
+                  <p className="wine-about__failed">
+                    No pudimos cargar la descripción ahora. Probá reabrir el vino más tarde.
+                  </p>
+                )}
+
+                {aiInfo && !aiLoading && (
+                  <>
+                    {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
+                    {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
+
+                    {aiInfo.aromas?.length > 0 && (
+                      <div className="wine-about__block">
+                        <span className="wine-about__label">Aromas y sabores</span>
+                        <div className="wine-about__chips">
+                          {aiInfo.aromas.map((a) => (
+                            <span key={a} className="wine-about__chip">{a}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiInfo.foodPairing?.length > 0 && (
+                      <div className="wine-about__block">
+                        <span className="wine-about__label">Marida con</span>
+                        <div className="wine-about__chips">
+                          {aiInfo.foodPairing.map((f) => (
+                            <span key={f} className="wine-about__chip wine-about__chip--food">🍽 {f}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(aiInfo.alcohol || aiInfo.serve) && (
+                      <div className="wine-about__facts">
+                        {aiInfo.alcohol && (
+                          <span className="wine-about__fact">
+                            <strong>{aiInfo.alcohol}%</strong> alcohol
+                          </span>
+                        )}
+                        {aiInfo.serve && (
+                          <span className="wine-about__fact">
+                            <strong>{aiInfo.serve}</strong> servir
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <p className="wine-about__disclaimer">Descripción orientativa generada con IA.</p>
+                  </>
+                )}
+              </div>
+            )}
 
             {wine.notes && (
               <div className="wine-detail-notes">

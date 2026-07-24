@@ -18,3 +18,19 @@ export const searchWines = async (query) => {
   const { data } = await api.get("/catalog/search", { params: { q } });
   return Array.isArray(data?.data) ? data.data : [];
 };
+
+/**
+ * Trae la ficha del vino (descripción, aromas, maridaje) generada por IA y
+ * cacheada en el server. Lanza si falla, para que la UI muestre un estado claro.
+ */
+export const describeWine = async (wine) => {
+  const { data } = await api.post("/catalog/describe", {
+    name: wine.name,
+    winery: wine.winery,
+    varietal: wine.varietal,
+    type: wine.type,
+    region: wine.region,
+    vintage: wine.vintage,
+  });
+  return data?.data || null;
+};
