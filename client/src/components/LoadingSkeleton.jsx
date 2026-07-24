@@ -35,11 +35,31 @@ const LoadingSkeleton = ({ type = "card", count = 3 }) => {
     );
   }
 
+  if (type === "list") {
+    return (
+      <div className="skeleton-list">
+        {items.map((_, i) => (
+          <div key={i} className="skeleton-row">
+            <div className="skeleton skeleton--thumb"></div>
+            <div className="skeleton-row__lines">
+              <div className="skeleton skeleton--text" style={{ width: "62%" }}></div>
+              <div className="skeleton skeleton--text skeleton--small" style={{ width: "42%" }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (type === "inline") {
     return (
       <div className="skeleton-inline">
         {items.map((_, i) => (
-          <div key={i} className="skeleton skeleton--text" style={{ height: "1.2rem" }}></div>
+          <div
+            key={i}
+            className="skeleton skeleton--text"
+            style={{ height: "1rem", width: i === count - 1 ? "60%" : "100%" }}
+          ></div>
         ))}
       </div>
     );

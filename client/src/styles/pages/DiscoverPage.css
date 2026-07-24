@@ -94,6 +94,120 @@
   filter: brightness(1.08);
 }
 
+/* ── Vino del día / Sorpresa ── */
+.spotlight {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line-accent);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(198, 70, 95, 0.16), transparent 55%),
+    radial-gradient(120% 140% at 0% 0%, rgba(167, 130, 239, 0.22), transparent 55%),
+    linear-gradient(160deg, rgba(40, 30, 70, 0.92), rgba(14, 17, 30, 0.95));
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: spotlightIn 420ms var(--ease-out) both;
+}
+
+@keyframes spotlightIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.spotlight__art {
+  position: relative;
+  flex-shrink: 0;
+  width: 104px;
+  height: 132px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.spotlight__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.spotlight__kicker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+
+.spotlight__name {
+  margin: 2px 0 0;
+  font-family: var(--font-family-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.spotlight__meta {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.spotlight__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotlight__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.spotlight__add:hover:not(:disabled) { filter: brightness(1.08); }
+.spotlight__add.is-added {
+  background: rgba(47, 182, 123, 0.18);
+  color: #7fe3b4;
+  box-shadow: none;
+}
+
+.spotlight__surprise {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-full);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.spotlight__surprise:hover {
+  border-color: var(--accent-light);
+  color: var(--text);
+  background: var(--surface);
+}
+
 /* ── Secciones ── */
 .discover-section {
   display: grid;
@@ -149,6 +263,24 @@
   border: 1px solid var(--line);
   background: var(--elevated);
   overflow: hidden;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  animation: discoverWineIn 400ms var(--ease-out) both;
+}
+
+@media (hover: hover) {
+  .discover-wine:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-accent);
+  }
+}
+
+@keyframes discoverWineIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover-wine { animation: none; }
 }
 
 .discover-wine__art {

@@ -254,7 +254,32 @@
   border: 1px solid var(--line);
   background: var(--elevated);
   overflow: hidden;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  animation: rowIn 380ms var(--ease-out) both;
+}
+
+/* Entrada escalonada: cada fila aparece un pelito después que la anterior. */
+.wine-row:nth-child(1) { animation-delay: 0ms; }
+.wine-row:nth-child(2) { animation-delay: 45ms; }
+.wine-row:nth-child(3) { animation-delay: 90ms; }
+.wine-row:nth-child(4) { animation-delay: 135ms; }
+.wine-row:nth-child(5) { animation-delay: 180ms; }
+.wine-row:nth-child(n + 6) { animation-delay: 220ms; }
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (hover: hover) {
+  .wine-row:not(.is-expanded):hover {
+    transform: translateY(-2px);
+    border-color: var(--line-accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-row { animation: none; }
 }
 
 .wine-row.is-expanded {
@@ -449,6 +474,28 @@
   background: var(--wine-soft);
   border-color: rgba(198, 70, 95, 0.34);
   color: var(--wine);
+}
+
+/* Favorito activo: corazón vino + pop al marcar. */
+.wine-row__icon-btn.is-fav {
+  background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.34);
+  color: var(--wine);
+}
+
+.wine-row__icon-btn.is-fav .icon {
+  animation: heartPop 340ms var(--ease-spring);
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-row__icon-btn.is-fav .icon { animation: none; }
 }
 
 /* Empty state styles are global (see App.css) */

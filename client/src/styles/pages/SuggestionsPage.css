@@ -108,22 +108,33 @@
   font-size: 0.9rem;
 }
 
+/* Contenedor de resultados: da aire entre el selector, "De tu bodega" y
+   "Para descubrir" (antes quedaba todo pegado). */
+.suggestions-results {
+  display: grid;
+  gap: 10px;
+}
+
 /* Results label */
 .suggestions-results__label {
-  margin: 4px 0 -2px;
+  margin: 12px 0 2px;
   font-family: var(--font-family-serif);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text);
 }
 
+.suggestions-results__label:first-child {
+  margin-top: 0;
+}
+
 /* Results list */
 .suggestions-list {
   list-style: none;
-  margin: 0;
+  margin: 0 0 4px;
   padding: 0;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .suggestion-card {
@@ -187,7 +198,7 @@
 .suggestion-card__body {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .suggestion-card__name {

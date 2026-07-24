@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
+import Dropdown from "../components/Dropdown";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
@@ -326,66 +327,62 @@ export default function BodyPage({ initialFilter = "all" }) {
       </div>
 
       <div className="controls">
-        <select
+        <Dropdown
+          ariaLabel="Filtrar vinos"
           value={filterType}
-          onChange={(event) => setFilterType(event.target.value)}
-          className="filter-select"
-          aria-label="Filtrar vinos"
-        >
-          <option value="all">Todos</option>
-          <option value="favorites">Favoritos</option>
-          <option value="tasted">Probados</option>
-          <option value="nottasted">Pendientes</option>
-          <option value="lowstock">Stock bajo</option>
-          <option value="cellarready">Listos para abrir</option>
-          <option value="red">Tintos</option>
-          <option value="white">Blancos</option>
-          <option value="rosé">Rosados</option>
-          <option value="sparkling">Espumantes</option>
-          <option value="fortified">Fortificados</option>
-        </select>
+          onChange={setFilterType}
+          options={[
+            { value: "all", label: "Todos" },
+            { value: "favorites", label: "Favoritos" },
+            { value: "tasted", label: "Probados" },
+            { value: "nottasted", label: "Pendientes" },
+            { value: "lowstock", label: "Stock bajo" },
+            { value: "cellarready", label: "Listos para abrir" },
+            { value: "red", label: "Tintos" },
+            { value: "white", label: "Blancos" },
+            { value: "rosé", label: "Rosados" },
+            { value: "sparkling", label: "Espumantes" },
+            { value: "fortified", label: "Fortificados" },
+          ]}
+        />
 
-        <select
+        <Dropdown
+          ariaLabel="Ordenar vinos"
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value)}
-          className="sort-select"
-          aria-label="Ordenar vinos"
-        >
-          <option value="recent">Recientes</option>
-          <option value="rating">Rating</option>
-          <option value="year">Año</option>
-          <option value="name">Nombre</option>
-        </select>
+          onChange={setSortBy}
+          options={[
+            { value: "recent", label: "Recientes" },
+            { value: "rating", label: "Rating" },
+            { value: "year", label: "Año" },
+            { value: "name", label: "Nombre" },
+          ]}
+        />
       </div>
 
       {(varietalOptions.length > 1 || regionOptions.length > 1) && (
         <div className="controls">
           {varietalOptions.length > 1 && (
-            <select
+            <Dropdown
+              ariaLabel="Filtrar por varietal"
               value={varietalFilter}
-              onChange={(event) => setVarietalFilter(event.target.value)}
-              className="filter-select"
-              aria-label="Filtrar por varietal"
-            >
-              <option value="all">Todos los varietales</option>
-              {varietalOptions.map((varietal) => (
-                <option key={varietal} value={varietal}>{varietal}</option>
-              ))}
-            </select>
+              onChange={setVarietalFilter}
+              options={[
+                { value: "all", label: "Todos los varietales" },
+                ...varietalOptions.map((v) => ({ value: v, label: v })),
+              ]}
+            />
           )}
 
           {regionOptions.length > 1 && (
-            <select
+            <Dropdown
+              ariaLabel="Filtrar por región"
               value={regionFilter}
-              onChange={(event) => setRegionFilter(event.target.value)}
-              className="filter-select"
-              aria-label="Filtrar por región"
-            >
-              <option value="all">Todas las regiones</option>
-              {regionOptions.map((region) => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
+              onChange={setRegionFilter}
+              options={[
+                { value: "all", label: "Todas las regiones" },
+                ...regionOptions.map((r) => ({ value: r, label: r })),
+              ]}
+            />
           )}
         </div>
       )}
@@ -518,7 +515,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                       </button>
                       <button
                         type="button"
-                        className="wine-row__icon-btn"
+                        className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
                         onClick={() => handleToggleFavorite(wine)}
                         disabled={isPending}
                         aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -572,7 +569,9 @@ export default function BodyPage({ initialFilter = "all" }) {
         </div>
       )}
 
-      {/* Sección Wishlist */}
+      {/* Lista de deseos: sólo en la bodega, no en la vista de Favoritos
+          (son cosas distintas: deseos = vinos que querés comprar). */}
+      {initialFilter !== "favorites" && (
       <section className="wishlist-section">
         <button
           type="button"
@@ -631,6 +630,7 @@ export default function BodyPage({ initialFilter = "all" }) {
           </div>
         )}
       </section>
+      )}
 
       <ConfirmModal
         isOpen={showDeleteConfirm !== null}

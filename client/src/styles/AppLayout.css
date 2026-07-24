@@ -128,6 +128,20 @@
   padding-top: 0;
 }
 
+/* Transición de página: fade + leve subida al cambiar de sección. */
+.app-content--enter {
+  animation: pageEnter 300ms var(--ease-out) both;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-content--enter { animation: none; }
+}
+
 @media (min-width: 768px) {
   .app-topbar {
     padding-left: 1.4rem;
