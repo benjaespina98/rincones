@@ -94,26 +94,30 @@
   pointer-events: none;
 }
 
-.search-input {
+/* Prefijado con .search-container para ganarle en especificidad a la regla
+   global input[type="text"] de App.css (si no, le pisa el padding-left y el
+   ícono de lupa se monta sobre el placeholder). */
+.search-container .search-input {
   width: 100%;
-  padding: 13px 40px 13px 40px;
-  border: 1px solid var(--line);
+  height: 48px;
+  padding: 0 44px;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-full);
-  font-size: 14px;
-  background: var(--glass);
+  font-size: 0.95rem;
+  background: var(--surface);
   color: var(--text);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
-.search-input:focus {
+.search-container .search-input:focus {
   outline: none;
   border-color: var(--accent-light);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.18);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.2);
 }
 
-.search-input::placeholder {
-  color: var(--text-muted);
+.search-container .search-input::placeholder {
+  color: var(--text-subtle);
 }
 
 .search-clear {
