@@ -419,14 +419,11 @@ function scoreWine(wine, context) {
     }
   }
 
-  // Estilo buscado
+  // Estilo buscado (refina; la comida es el driver principal).
   const m = context.mood;
   if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) score += 12;
   if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) score += 12;
   if (m === "festivo" && wine.type === "sparkling") score += 15;
-  if (m === "elegante" && wine.rating >= 4) { score += 12; reasons.push("Tu preferido"); }
-  if (m === "facil" && ["white", "rosé"].includes(wine.type)) score += 12;
-  if (m === "dulce" && (wine.type === "fortified" || /torront|gew|moscat|chenin/i.test(wine.varietal || ""))) score += 12;
 
   // Novedad — bonus si nunca fue probado
   if (!wine.tasted) score += 5;

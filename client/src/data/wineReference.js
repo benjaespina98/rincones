@@ -75,8 +75,5 @@ export const MOOD_LABELS = {
   liviano:    "Liviano",
   cuerpo:     "Con cuerpo",
   festivo:    "Festivo",
-  elegante:   "Elegante",
-  facil:      "Fácil",
-  dulce:      "Dulce",
   cualquiera: "Cualquiera",
 };

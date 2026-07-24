@@ -177,6 +177,15 @@ const fold = (text = "") =>
 
 const slug = (text) => fold(text).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+// Etiqueta en español del tipo, para poder buscar "tinto", "blanco", etc.
+const TYPE_ES = {
+  red: "tinto",
+  white: "blanco",
+  "rosé": "rosado rose",
+  sparkling: "espumante espumoso",
+  fortified: "fortificado",
+};
+
 const CATALOG = RAW.map(([winery, line, varietal, region, type]) => {
   // La línea ya identifica al vino ("Catena Alta", "Alamos"), así que el nombre
   // visible es "<línea> <varietal>" y la bodega se muestra aparte en la tarjeta.
@@ -194,8 +203,9 @@ const CATALOG = RAW.map(([winery, line, varietal, region, type]) => {
     barcode: "",
     country: region.includes("Uruguay") ? "Uruguay" : "Argentina",
     source: "catalogo-ar",
-    // Índice de búsqueda precalculado.
-    haystack: fold(`${line} ${varietal} ${winery} ${region}`),
+    // Índice de búsqueda: nombre, varietal, bodega, región y el tipo en español
+    // (así "tinto"/"blanco" también matchean).
+    haystack: fold(`${line} ${varietal} ${winery} ${region} ${TYPE_ES[type] || ""}`),
   };
 });
 

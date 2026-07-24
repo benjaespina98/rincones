@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useRecommendations } from "../hooks/useRecommendations";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { useToast } from "../context/ToastContext";
-import { searchWines } from "../services/wineSearchApi";
+import { searchWines, describeWine } from "../services/wineSearchApi";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -25,9 +25,6 @@ const MOOD_VARIETALS = {
   liviano: ["Pinot Noir", "Torrontés", "Sauvignon Blanc"],
   cuerpo: ["Malbec", "Cabernet Sauvignon", "Tannat"],
   festivo: ["Extra Brut", "Chardonnay"],
-  elegante: ["Cabernet Franc", "Pinot Noir", "Malbec"],
-  facil: ["Rosado", "Torrontés", "Bonarda"],
-  dulce: ["Torrontés", "Moscato"],
   cualquiera: ["Malbec", "Torrontés"],
 };
 
@@ -43,6 +40,19 @@ export default function SuggestionsPage() {
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  // Descripción expandible por card (lazy: se pide al tocar).
+  const [expandedId, setExpandedId] = useState(null);
+  const [descById, setDescById] = useState({});
+
+  const toggleDiscover = (wine) => {
+    const open = expandedId === wine.id;
+    setExpandedId(open ? null : wine.id);
+    if (open || descById[wine.id]) return;
+    setDescById((m) => ({ ...m, [wine.id]: { loading: true } }));
+    describeWine(wine)
+      .then((info) => setDescById((m) => ({ ...m, [wine.id]: { info } })))
+      .catch(() => setDescById((m) => ({ ...m, [wine.id]: { failed: true } })));
+  };
 
   const hasContext = Boolean(context.food || context.mood);
 
@@ -246,38 +256,76 @@ export default function SuggestionsPage() {
                     : "No tenés nada que pegue, pero probá estos"}
                 </p>
                 <ul className="discover-list">
-                  {discover.map((wine) => (
-                    <li key={wine.id} className="discover-card">
-                      <div className="discover-card__body">
-                        <p className="discover-card__name">{wine.name}</p>
-                        <p className="discover-card__winery">{wine.winery}</p>
-                        <div className="discover-card__meta">
-                          {wine.type && wine.type !== "unknown" && (
-                            <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
-                          )}
-                          {wine.region && (
-                            <span className="discover-card__chip">
-                              <Icon name="map-pin" size={12} /> {wine.region}
+                  {discover.map((wine) => {
+                    const expanded = expandedId === wine.id;
+                    const d = descById[wine.id];
+                    return (
+                      <li key={wine.id} className={`discover-card ${expanded ? "is-expanded" : ""}`}>
+                        <div className="discover-card__row">
+                          <button
+                            type="button"
+                            className="discover-card__main"
+                            onClick={() => toggleDiscover(wine)}
+                            aria-expanded={expanded}
+                          >
+                            <span className="discover-card__thumb">
+                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} />
                             </span>
-                          )}
-                        </div>
-                      </div>
+                            <span className="discover-card__body">
+                              <span className="discover-card__name">{wine.name}</span>
+                              <span className="discover-card__winery">{wine.winery}</span>
+                              <span className="discover-card__meta">
+                                {wine.type && wine.type !== "unknown" && (
+                                  <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
+                                )}
+                                {wine.region && (
+                                  <span className="discover-card__chip">
+                                    <Icon name="map-pin" size={12} /> {wine.region}
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                            <Icon name="chevron-down" size={18} className="discover-card__caret" />
+                          </button>
 
-                      <button
-                        type="button"
-                        className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
-                        onClick={() => handleAddDiscover(wine)}
-                        disabled={addingId === wine.id || addedIds.has(wine.id)}
-                        aria-label={`Agregar ${wine.name} a mi bodega`}
-                      >
-                        {addedIds.has(wine.id) ? (
-                          <Icon name="check" size={16} />
-                        ) : (
-                          <Icon name="plus" size={16} />
+                          <button
+                            type="button"
+                            className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
+                            onClick={() => handleAddDiscover(wine)}
+                            disabled={addingId === wine.id || addedIds.has(wine.id)}
+                            aria-label={`Agregar ${wine.name} a mi bodega`}
+                          >
+                            {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="plus" size={16} />}
+                          </button>
+                        </div>
+
+                        {expanded && (
+                          <div className="discover-card__detail">
+                            {d?.loading && <LoadingSkeleton type="inline" count={2} />}
+                            {d?.failed && <p className="discover-card__failed">No pudimos cargar la descripción ahora.</p>}
+                            {d?.info && (
+                              <>
+                                {d.info.summary && <p className="discover-card__summary">{d.info.summary}</p>}
+                                {d.info.aromas?.length > 0 && (
+                                  <div className="discover-card__chips">
+                                    {d.info.aromas.map((a) => (
+                                      <span key={a} className="discover-card__aroma">{a}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                {d.info.foodPairing?.length > 0 && (
+                                  <p className="discover-card__pair">
+                                    <Icon name="sparkles" size={13} /> Marida con: {d.info.foodPairing.slice(0, 3).join(", ")}
+                                  </p>
+                                )}
+                                <p className="discover-card__ia">Descripción orientativa generada con IA.</p>
+                              </>
+                            )}
+                          </div>
                         )}
-                      </button>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </>
             )}
