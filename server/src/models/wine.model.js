@@ -102,7 +102,7 @@ const wineSchema = new mongoose.Schema(
     },
     imageSource: {
       type: String,
-      enum: ["local", "vivino", "unsplash", "user-upload", "ocr"],
+      enum: ["local", "vivino", "unsplash", "user-upload", "ocr", "community"],
       default: "local",
     },
     rawText: {

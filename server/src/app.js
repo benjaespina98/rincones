@@ -23,10 +23,13 @@ app.set("trust proxy", 1);
 // Security: HTTP Headers
 app.use(helmet());
 
-// Security: Rate limiting
+// Security: Rate limiting.
+// El límite general es amplio porque la app es una SPA que hace varias llamadas
+// por pantalla (destacados, búsquedas del sommelier, etc.). Detrás de un NAT
+// varios usuarios comparten IP, así que un límite muy bajo cortaría a gente real.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
+  max: 600,
   message: "Demasiadas solicitudes, intenta más tarde",
   standardHeaders: true,
   legacyHeaders: false,
@@ -50,8 +53,6 @@ const forgotLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-app.use(limiter);
 
 const parseAllowedOrigins = () => {
   const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
@@ -99,6 +100,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+
+// El rate limiter va DESPUÉS de CORS: si no, una respuesta 429 sale sin las
+// cabeceras Access-Control-* y el browser la reporta como error de CORS en vez
+// de "demasiadas solicitudes", ocultando la causa real.
+app.use(limiter);
+
 app.use(cookieParser()); // Parsear cookies
 app.use(express.json({ limit: "12mb" }));
 

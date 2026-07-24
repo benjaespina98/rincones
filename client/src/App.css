@@ -356,14 +356,14 @@ select:disabled {
 }
 
 .qty-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--accent-muted);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
   color: var(--text);
   font-weight: 800;
   font-size: 15px;
@@ -372,8 +372,9 @@ select:disabled {
 }
 
 .qty-btn:hover:not(:disabled) {
-  background: rgba(126, 89, 201, 0.32);
-  border-color: var(--line-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .qty-btn:active {
@@ -386,10 +387,10 @@ select:disabled {
 }
 
 .wine-qty {
-  min-width: 22px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  min-width: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
   text-align: center;
 }
 

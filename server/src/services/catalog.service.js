@@ -237,4 +237,28 @@ const searchWines = async (query) => {
   return { results, degraded: offFailed && results.length === 0 };
 };
 
-module.exports = { searchWines, searchCatalog, guessType };
+// Selección de vinos destacados para la home "Descubrí". Sale del catálogo
+// curado (instantáneo, sin gastar cuota de IA), variando por día para que rote.
+const getFeatured = (count = 8) => {
+  // Semilla diaria: mismo set durante el día, cambia cada jornada.
+  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const pool = [...CATALOG];
+  // Barajado determinístico por la semilla del día.
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = (daySeed * 9301 + i * 49297) % (i + 1);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  // Diversificamos por bodega para no repetir la misma marca.
+  const seenWinery = new Set();
+  const picked = [];
+  for (const wine of pool) {
+    if (seenWinery.has(wine.winery)) continue;
+    seenWinery.add(wine.winery);
+    const { haystack, ...rest } = wine;
+    picked.push(rest);
+    if (picked.length >= count) break;
+  }
+  return picked;
+};
+
+module.exports = { searchWines, searchCatalog, guessType, getFeatured };

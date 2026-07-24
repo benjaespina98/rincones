@@ -16,7 +16,7 @@ import {
 import { describeWine } from "../services/wineSearchApi";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
-import WineArtwork from "../components/WineArtwork";
+import WinePhoto from "../components/WinePhoto";
 import "../styles/pages/WineDetailPage.css";
 
 const OCCASIONS = [
@@ -237,7 +237,7 @@ export default function WineDetailPage() {
     try {
       await deleteWine(id);
       showSuccess(`"${wine.name}" eliminado de tu bodega`);
-      navigate("/");
+      navigate("/bodega");
     } catch {
       showError("No se pudo eliminar el vino");
     }
@@ -283,7 +283,7 @@ export default function WineDetailPage() {
           <p className="empty-icon" aria-hidden="true">🍷</p>
           <p className="empty-title">No encontramos este vino</p>
           <p className="empty-subtitle">Puede que ya lo hayas eliminado de tu bodega.</p>
-          <button type="button" className="empty-cta" onClick={() => navigate("/")}>
+          <button type="button" className="empty-cta" onClick={() => navigate("/bodega")}>
             Volver a Mi Bodega
           </button>
         </div>
@@ -294,13 +294,9 @@ export default function WineDetailPage() {
   return (
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
-        {wine.image ? (
-          <img src={wine.image} alt={wine.name} className="wine-detail-hero__image" />
-        ) : (
-          <div className="wine-detail-hero__placeholder">
-            <WineArtwork type={wine.type} size={150} />
-          </div>
-        )}
+        <div className="wine-detail-hero__placeholder">
+          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} />
+        </div>
 
         <div className="wine-detail-hero__badges">
           {wine.favorite && (

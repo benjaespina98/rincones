@@ -1,0 +1,33 @@
+.wine-photo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Placeholder de botella: siempre presente, debajo de la foto. */
+.wine-photo__art {
+  position: absolute;
+  inset: 0;
+}
+
+/* La foto arranca invisible y se funde cuando terminó de cargar. */
+.wine-photo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out);
+}
+
+.wine-photo__img.is-loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-photo__img {
+    transition: none;
+  }
+}

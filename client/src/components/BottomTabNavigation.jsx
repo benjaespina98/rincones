@@ -7,30 +7,30 @@ export default function BottomTabNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Orden: Descubrí (home) · Favoritos · [+ Agregar centrado] · Sommelier · Bodega.
+  // El perfil se accede tocando el nombre en el header, no hay tab acá.
   const tabs = [
-    { id: "bodega", label: "Bodega", path: "/", icon: "wine-glass" },
-    { id: "favoritos", label: "Favoritos", path: "/favoritos", icon: "heart" },
-    { id: "descubrir", label: "Agregar", path: "/descubrir", icon: "plus-solid", primary: true },
-    { id: "explorar", label: "Explorar", path: "/explorar", icon: "sparkle" },
-    { id: "perfil", label: "Perfil", path: "/perfil", icon: "user-solid" },
+    { id: "descubri", label: "Descubrí", path: "/", icon: "sparkle", filled: true },
+    { id: "favoritos", label: "Favoritos", path: "/favoritos", icon: "heart", filled: true },
+    { id: "agregar", label: "Agregar", path: "/agregar", icon: "plus-solid", filled: true, primary: true },
+    { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass", filled: true },
+    { id: "bodega", label: "Bodega", path: "/bodega", icon: "bottle", filled: true },
   ];
 
-  const getActiveTab = () => {
-    const pathToTab = {
-      "/": "bodega",
-      "/favoritos": "favoritos",
-      "/explorar": "explorar",
-      "/descubrir": "descubrir",
-      "/perfil": "perfil",
-      "/profile": "perfil",
-    };
-    return pathToTab[location.pathname] || "bodega";
+  const pathToTab = {
+    "/": "descubri",
+    "/favoritos": "favoritos",
+    "/agregar": "agregar",
+    "/sommelier": "sommelier",
+    "/bodega": "bodega",
+    "/vino": "bodega",
   };
 
-  const activeTab = getActiveTab();
+  const activeTab =
+    pathToTab[location.pathname] ||
+    (location.pathname.startsWith("/vino") ? "bodega" : null);
 
   const handleTabClick = (path) => {
-    // No revibramos ni renavegamos si ya estás en esa sección.
     if (path === location.pathname) return;
     tapHaptic();
     navigate(path);
@@ -52,7 +52,7 @@ export default function BottomTabNavigation() {
             aria-current={activeTab === tab.id ? "page" : undefined}
             type="button"
           >
-            <span className="tab-icon"><Icon name={tab.icon} filled size={22} /></span>
+            <span className="tab-icon"><Icon name={tab.icon} filled={tab.filled} size={tab.primary ? 24 : 22} /></span>
             <span className="tab-label">{tab.label}</span>
           </button>
         ))}
