@@ -8,24 +8,46 @@
 // Ventaja de Cloudinary: guardamos una URL liviana en Mongo (no base64 pesado),
 // y servimos la imagen optimizada con f_auto,q_auto y un tamaño acotado.
 
-const { v2: cloudinary } = require("cloudinary");
+// Importante: el SDK de Cloudinary valida CLOUDINARY_URL apenas se importa y
+// LANZA si está mal formado (ej: sin el prefijo cloudinary://). Eso crashearía
+// todo el server. Por eso saneamos la variable ANTES de requerir el módulo y
+// envolvemos el require en try/catch: una credencial mala nunca debe tumbar la API.
+const rawUrl = String(process.env.CLOUDINARY_URL || "").trim();
+if (rawUrl && !rawUrl.startsWith("cloudinary://")) {
+  console.error(
+    "CLOUDINARY_URL mal formado (debe empezar con 'cloudinary://'). Se ignora; se usa fallback base64."
+  );
+  delete process.env.CLOUDINARY_URL;
+}
+
+let cloudinary = null;
+try {
+  cloudinary = require("cloudinary").v2;
+} catch (error) {
+  console.error("No se pudo inicializar Cloudinary, se usa fallback:", error.message);
+}
 
 let configured = false;
-(() => {
+if (cloudinary) {
   const url = String(process.env.CLOUDINARY_URL || "").trim();
   const cloud = String(process.env.CLOUDINARY_CLOUD_NAME || "").trim();
   const key = String(process.env.CLOUDINARY_API_KEY || "").trim();
   const secret = String(process.env.CLOUDINARY_API_SECRET || "").trim();
 
-  if (url) {
-    // El SDK lee CLOUDINARY_URL del entorno automáticamente.
-    cloudinary.config({ secure: true });
-    configured = true;
-  } else if (cloud && key && secret) {
-    cloudinary.config({ cloud_name: cloud, api_key: key, api_secret: secret, secure: true });
-    configured = true;
+  try {
+    if (url) {
+      // El SDK lee CLOUDINARY_URL del entorno automáticamente.
+      cloudinary.config({ secure: true });
+      configured = true;
+    } else if (cloud && key && secret) {
+      cloudinary.config({ cloud_name: cloud, api_key: key, api_secret: secret, secure: true });
+      configured = true;
+    }
+  } catch (error) {
+    console.error("Credenciales de Cloudinary inválidas, se usa fallback:", error.message);
+    configured = false;
   }
-})();
+}
 
 const isConfigured = () => configured;
 
