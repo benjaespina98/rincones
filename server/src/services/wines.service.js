@@ -6,6 +6,7 @@ const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
 const wineImages = require("./wineImages.service");
 const imageStorage = require("./imageStorage.service");
+const winePrices = require("./winePrices.service");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -152,6 +153,15 @@ async function createWine(userId, payload) {
   // que aparezca cuando otro busque/cargue el mismo vino.
   if (providedImage) {
     await wineImages.contribute({ name, winery, image: providedImage, userId });
+  }
+
+  // Si registró lo que pagó, alimenta el precio comunitario (promedio).
+  if (savedWine.purchase?.price > 0) {
+    await winePrices.contribute({
+      name, winery,
+      price: savedWine.purchase.price,
+      currency: savedWine.purchase.currency,
+    });
   }
 
   const user = await User.findById(userId);

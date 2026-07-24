@@ -13,7 +13,7 @@ import {
   getWineMoments,
   addWineMoment,
 } from "../services/wineApi";
-import { describeWine } from "../services/wineSearchApi";
+import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import WinePhoto from "../components/WinePhoto";
@@ -71,6 +71,8 @@ export default function WineDetailPage() {
   const [aiInfo, setAiInfo] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
+  // Precio comunitario (promedio de lo que pagó la gente).
+  const [communityPrice, setCommunityPrice] = useState(null);
 
   const loadWine = useCallback(async () => {
     try {
@@ -130,6 +132,10 @@ export default function WineDetailPage() {
       .finally(() => {
         if (active) setAiLoading(false);
       });
+    getWinePrice(wineName, wineWinery)
+      .then((p) => { if (active) setCommunityPrice(p); })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -429,6 +435,33 @@ export default function WineDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
+            <div className="wine-price">
+              <div className="wine-price__row">
+                <div className="wine-price__info">
+                  <span className="wine-price__label">Precio de referencia</span>
+                  {communityPrice ? (
+                    <span className="wine-price__value">
+                      ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
+                      <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
+                    </span>
+                  ) : (
+                    <span className="wine-price__empty">
+                      Sin datos aún. Cargá lo que pagaste (al editar el vino) y ayudás a la comunidad.
+                    </span>
+                  )}
+                </div>
+              </div>
+              <a
+                className="wine-price__meli"
+                href={mercadoLibreUrl(wine.name, wine.winery)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
+              </a>
+            </div>
 
             {wine.notes && (
               <div className="wine-detail-notes">
