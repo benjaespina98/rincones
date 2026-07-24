@@ -27,6 +27,7 @@ router.get("/profile", authenticate, async (req, res) => {
         avatar: user.avatar || "",
         birthDate: user.birthDate || null,
         age: calculateAge(user.birthDate),
+        onboarded: Boolean(user.onboardedAt),
         preferences: user.preferences || {},
         stats: user.stats || {},
         createdAt: user.createdAt,
@@ -40,12 +41,28 @@ router.get("/profile", authenticate, async (req, res) => {
 // PUT /api/users/profile - Actualizar perfil del usuario
 router.put("/profile", authenticate, async (req, res) => {
   try {
-    const { firstName, lastName, city, country, bio, avatar, birthDate, theme, language, notifications } = req.body;
+    const {
+      firstName, lastName, city, country, bio, avatar, birthDate,
+      theme, language, notifications,
+      favoriteTypes, favoriteVarietals, onboarded,
+    } = req.body;
 
     const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    // Preferencias de gusto (onboarding) — arrays de strings, acotados.
+    if (Array.isArray(favoriteTypes)) {
+      user.preferences.favoriteTypes = favoriteTypes.map((t) => String(t).trim()).filter(Boolean).slice(0, 10);
+    }
+    if (Array.isArray(favoriteVarietals)) {
+      user.preferences.favoriteVarietals = favoriteVarietals.map((v) => String(v).trim()).filter(Boolean).slice(0, 20);
+    }
+    // Marca el onboarding como completado (una sola vez).
+    if (onboarded === true && !user.onboardedAt) {
+      user.onboardedAt = new Date();
     }
 
     // La fecha de nacimiento se puede corregir, pero sigue validando 18+.
@@ -92,6 +109,7 @@ router.put("/profile", authenticate, async (req, res) => {
         avatar: user.avatar,
         birthDate: user.birthDate || null,
         age: calculateAge(user.birthDate),
+        onboarded: Boolean(user.onboardedAt),
         preferences: user.preferences,
       },
     });

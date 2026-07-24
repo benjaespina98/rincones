@@ -46,6 +46,16 @@ export const updateProfile = async (profileData) => {
   return data.data;
 };
 
+// Guarda las preferencias elegidas en el onboarding y lo marca como completado.
+export const saveOnboarding = async ({ favoriteTypes, favoriteVarietals }) => {
+  const { data } = await api.put("/users/profile", {
+    favoriteTypes,
+    favoriteVarietals,
+    onboarded: true,
+  });
+  return data.data;
+};
+
 export const updatePassword = async (currentPassword, newPassword) => {
   const { data } = await api.put("/users/password", {
     currentPassword,
