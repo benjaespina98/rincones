@@ -367,12 +367,18 @@ async function getSpendingStats(userId) {
 }
 
 const FOOD_PAIRINGS = {
-  carne:   { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
-  pasta:   { types: ["red", "white"],              varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir"] },
-  pescado: { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
-  queso:   { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
-  postre:  { types: ["sparkling", "fortified"],    varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc"] },
-  solo:    { types: [],                            varietals: [] },
+  asado:    { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Bonarda", "Tannat", "Petit Verdot"] },
+  carne:    { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
+  pollo:    { types: ["white", "red"],              varietals: ["Chardonnay", "Pinot Noir", "Torrontés", "Viognier"] },
+  pasta:    { types: ["red", "white"],              varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir", "Sangiovese"] },
+  pizza:    { types: ["red"],                       varietals: ["Bonarda", "Sangiovese", "Malbec", "Tempranillo"] },
+  pescado:  { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
+  mariscos: { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Chardonnay", "Pinot Grigio", "Albariño"] },
+  picada:   { types: ["red", "white"],              varietals: ["Malbec", "Bonarda", "Torrontés", "Chardonnay"] },
+  queso:    { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
+  ensalada: { types: ["white", "rosé", "sparkling"],varietals: ["Sauvignon Blanc", "Torrontés", "Pinot Grigio"] },
+  postre:   { types: ["sparkling", "fortified"],    varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc", "Moscato"] },
+  solo:     { types: [],                            varietals: [] },
 };
 
 function daysSince(date) {
@@ -413,10 +419,14 @@ function scoreWine(wine, context) {
     }
   }
 
-  // Mood
-  if (context.mood === "liviano" && (wine.type === "white" || wine.type === "sparkling" || wine.type === "rosé")) score += 10;
-  if (context.mood === "robusto" && (wine.type === "red" || wine.type === "fortified")) score += 10;
-  if (context.mood === "festivo" && wine.type === "sparkling") score += 15;
+  // Estilo buscado
+  const m = context.mood;
+  if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) score += 12;
+  if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) score += 12;
+  if (m === "festivo" && wine.type === "sparkling") score += 15;
+  if (m === "elegante" && wine.rating >= 4) { score += 12; reasons.push("Tu preferido"); }
+  if (m === "facil" && ["white", "rosé"].includes(wine.type)) score += 12;
+  if (m === "dulce" && (wine.type === "fortified" || /torront|gew|moscat|chenin/i.test(wine.varietal || ""))) score += 12;
 
   // Novedad — bonus si nunca fue probado
   if (!wine.tasted) score += 5;

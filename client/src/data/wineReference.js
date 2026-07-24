@@ -44,26 +44,41 @@ export const STORES = [
 ];
 
 export const FOOD_PAIRINGS = {
-  carne:   { types: ["red"],                    varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
-  pasta:   { types: ["red", "white"],           varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir", "Barbera"] },
-  pescado: { types: ["white", "sparkling"],     varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
-  queso:   { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
-  postre:  { types: ["sparkling", "fortified"], varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc"] },
-  solo:    { types: [],                         varietals: [] },
+  asado:    { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Bonarda", "Tannat", "Petit Verdot"] },
+  carne:    { types: ["red"],                       varietals: ["Malbec", "Cabernet Sauvignon", "Syrah", "Tannat", "Petit Verdot"] },
+  pollo:    { types: ["white", "red"],              varietals: ["Chardonnay", "Pinot Noir", "Torrontés", "Viognier"] },
+  pasta:    { types: ["red", "white"],              varietals: ["Merlot", "Bonarda", "Chardonnay", "Pinot Noir", "Sangiovese"] },
+  pizza:    { types: ["red"],                       varietals: ["Bonarda", "Sangiovese", "Malbec", "Tempranillo"] },
+  pescado:  { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Torrontés", "Chardonnay", "Pinot Grigio", "Viognier"] },
+  mariscos: { types: ["white", "sparkling"],        varietals: ["Sauvignon Blanc", "Chardonnay", "Pinot Grigio", "Albariño"] },
+  picada:   { types: ["red", "white"],              varietals: ["Malbec", "Bonarda", "Torrontés", "Chardonnay"] },
+  queso:    { types: ["red", "white", "fortified"], varietals: ["Malbec", "Chardonnay", "Sémillon", "Gewürztraminer"] },
+  ensalada: { types: ["white", "rosé", "sparkling"],varietals: ["Sauvignon Blanc", "Torrontés", "Pinot Grigio"] },
+  postre:   { types: ["sparkling", "fortified"],    varietals: ["Torrontés", "Gewürztraminer", "Chenin Blanc", "Moscato"] },
+  solo:     { types: [],                            varietals: [] },
 };
 
 export const FOOD_LABELS = {
-  carne:   "Carnes",
-  pasta:   "Pasta",
-  pescado: "Pescado",
-  queso:   "Queso",
-  postre:  "Postre",
-  solo:    "Sin maridaje",
+  asado:    "🔥 Asado",
+  carne:    "Carnes rojas",
+  pollo:    "Pollo / aves",
+  pasta:    "Pasta",
+  pizza:    "Pizza",
+  pescado:  "Pescado",
+  mariscos: "Mariscos",
+  picada:   "Picada",
+  queso:    "Quesos",
+  ensalada: "Ensaladas",
+  postre:   "Postres",
+  solo:     "Sin comida",
 };
 
 export const MOOD_LABELS = {
-  liviano:    "Liviano",
-  robusto:    "Robusto",
-  festivo:    "Festivo",
+  liviano:    "Liviano y fresco",
+  cuerpo:     "Con cuerpo",
+  festivo:    "Festivo / burbujas",
+  elegante:   "Elegante",
+  facil:      "Fácil de tomar",
+  dulce:      "Dulce",
   cualquiera: "Cualquiera",
 };

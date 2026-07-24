@@ -23,8 +23,11 @@ const MOOD_OPTIONS = Object.entries(MOOD_LABELS).map(([value, label]) => ({ valu
 // cuando la bodega del usuario todavía no tiene nada que coincida.
 const MOOD_VARIETALS = {
   liviano: ["Pinot Noir", "Torrontés", "Sauvignon Blanc"],
-  robusto: ["Malbec", "Cabernet Sauvignon", "Tannat"],
+  cuerpo: ["Malbec", "Cabernet Sauvignon", "Tannat"],
   festivo: ["Extra Brut", "Chardonnay"],
+  elegante: ["Cabernet Franc", "Pinot Noir", "Malbec"],
+  facil: ["Rosado", "Torrontés", "Bonarda"],
+  dulce: ["Torrontés", "Moscato"],
   cualquiera: ["Malbec", "Torrontés"],
 };
 

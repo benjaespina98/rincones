@@ -17,6 +17,7 @@ import { describeWine } from "../services/wineSearchApi";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import WinePhoto from "../components/WinePhoto";
+import Dropdown from "../components/Dropdown";
 import "../styles/pages/WineDetailPage.css";
 
 const OCCASIONS = [
@@ -511,17 +512,15 @@ export default function WineDetailPage() {
               value={draft.vintage}
               onChange={(event) => updateDraftField("vintage", event.target.value)}
             />
-            <select
-              className="scan-edit-input"
+            <Dropdown
+              ariaLabel="Tipo de vino"
               value={draft.type}
-              onChange={(event) => updateDraftField("type", event.target.value)}
-              aria-label="Tipo de vino"
-            >
-              <option value="unknown">Tipo de vino...</option>
-              {WINE_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              onChange={(v) => updateDraftField("type", v)}
+              options={[
+                { value: "unknown", label: "Tipo de vino..." },
+                ...WINE_TYPES.map(({ value, label }) => ({ value, label })),
+              ]}
+            />
             <textarea
               className="scan-edit-textarea"
               placeholder="Notas"
@@ -658,22 +657,24 @@ export default function WineDetailPage() {
 
           {showMomentForm && (
             <form className="moment-form" onSubmit={handleAddMoment}>
-              <select
+              <Dropdown
+                ariaLabel="Ocasión"
                 value={momentDraft.occasion}
-                onChange={(e) => setMomentDraft((p) => ({ ...p, occasion: e.target.value }))}
-                aria-label="Ocasión"
-              >
-                <option value="">Ocasión...</option>
-                {OCCASIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <select
+                onChange={(v) => setMomentDraft((p) => ({ ...p, occasion: v }))}
+                options={[
+                  { value: "", label: "Ocasión..." },
+                  ...OCCASIONS.map((o) => ({ value: o.value, label: o.label })),
+                ]}
+              />
+              <Dropdown
+                ariaLabel="Cómo te sentiste"
                 value={momentDraft.emotion}
-                onChange={(e) => setMomentDraft((p) => ({ ...p, emotion: e.target.value }))}
-                aria-label="Cómo te sentiste"
-              >
-                <option value="">¿Cómo te sentiste?</option>
-                {EMOTIONS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-              </select>
+                onChange={(v) => setMomentDraft((p) => ({ ...p, emotion: v }))}
+                options={[
+                  { value: "", label: "¿Cómo te sentiste?" },
+                  ...EMOTIONS.map((e) => ({ value: e.value, label: e.label })),
+                ]}
+              />
               <input
                 type="text"
                 placeholder="¿Con quién?"
