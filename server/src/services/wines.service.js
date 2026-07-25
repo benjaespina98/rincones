@@ -284,6 +284,15 @@ async function addMoment(userId, id, body) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
 
+  // Hasta 2 fotos: las subimos a Cloudinary (o base64 si no está configurado).
+  const rawPhotos = Array.isArray(body.photos) ? body.photos.slice(0, 2) : [];
+  const photos = [];
+  for (const p of rawPhotos) {
+    const value = String(p || "").trim();
+    if (!/^(data:image\/|https?:\/\/)/.test(value)) continue;
+    photos.push(await imageStorage.store(value, { folder: "rincones/moments" }));
+  }
+
   const moment = await WineMoment.create({
     userId,
     wineId: wine._id,
@@ -295,7 +304,7 @@ async function addMoment(userId, id, body) {
     foodPairing: String(body.foodPairing || "").trim(),
     notes: String(body.notes || "").trim(),
     rating: body.rating !== undefined ? Number(body.rating) : wine.rating,
-    photo: String(body.photo || "").trim(),
+    photos,
     tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((t) => String(t).trim()) : [],
   });
 

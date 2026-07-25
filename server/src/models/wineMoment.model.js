@@ -60,6 +60,11 @@ const wineMomentSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    // Hasta 2 fotos del momento (privadas). URLs de Cloudinary (o base64 fallback).
+    photos: {
+      type: [String],
+      default: [],
+    },
     tags: {
       type: [String],
       default: [],
