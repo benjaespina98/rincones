@@ -15,6 +15,7 @@ const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
 const ScanWinePage = lazy(() => import("./pages/ScanWinePage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const WineDetailPage = lazy(() => import("./pages/WineDetailPage"));
+const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 
 const RouteFallback = () => (
@@ -57,6 +58,7 @@ function App() {
 
         <Route path="/perfil" element={withLayout("Perfil", <ProfilePage />)} />
         <Route path="/vino/:id" element={withLayout("Vino", <WineDetailPage />)} />
+        <Route path="/descubrir/vino" element={withLayout("Vino", <CatalogWinePage />)} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

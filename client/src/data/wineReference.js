@@ -59,7 +59,7 @@ export const FOOD_PAIRINGS = {
 };
 
 export const FOOD_LABELS = {
-  asado:    "🔥 Asado",
+  asado:    "Asado",
   carne:    "Carnes",
   pollo:    "Pollo",
   pasta:    "Pasta",
@@ -69,11 +69,4 @@ export const FOOD_LABELS = {
   queso:    "Quesos",
   postre:   "Postres",
   solo:     "Sin comida",
-};
-
-export const MOOD_LABELS = {
-  liviano:    "Liviano",
-  cuerpo:     "Con cuerpo",
-  festivo:    "Festivo",
-  cualquiera: "Cualquiera",
 };

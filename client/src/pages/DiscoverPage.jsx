@@ -165,14 +165,27 @@ export default function DiscoverPage() {
           <div className="discover-rail">
             {featured.map((wine) => (
               <article key={wine.id} className="discover-wine">
-                <div className="discover-wine__art">
-                  <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
-                  {wine.type && wine.type !== "unknown" && (
-                    <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="discover-wine__open"
+                  onClick={() => navigate("/descubrir/vino", { state: { wine } })}
+                  aria-label={`Ver detalle de ${wine.name}`}
+                >
+                  <div className="discover-wine__art">
+                    <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
+                    {wine.type && wine.type !== "unknown" && (
+                      <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
+                    )}
+                  </div>
+                </button>
                 <div className="discover-wine__body">
-                  <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
+                  <button
+                    type="button"
+                    className="discover-wine__namebtn"
+                    onClick={() => navigate("/descubrir/vino", { state: { wine } })}
+                  >
+                    <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
+                  </button>
                   <p className="discover-wine__winery">{wine.winery}</p>
                   {wine.region && (
                     <p className="discover-wine__region">

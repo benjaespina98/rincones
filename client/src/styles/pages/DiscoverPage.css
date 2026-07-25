@@ -283,9 +283,33 @@
   .discover-wine { animation: none; }
 }
 
+.discover-wine__open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
 .discover-wine__art {
   position: relative;
   aspect-ratio: 1 / 1;
+}
+
+/* Nombre tappable: botón sin estilo propio, hereda del texto. */
+.discover-wine__namebtn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.discover-wine__namebtn:hover .discover-wine__name {
+  color: var(--accent-soft);
 }
 
 .discover-wine__type {

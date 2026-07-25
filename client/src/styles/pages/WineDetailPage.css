@@ -866,3 +866,40 @@
     gap: 18px;
   }
 }
+
+/* ── CTA "Agregar a mi bodega" en la ficha de catálogo ── */
+.catalog-add-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 15px 20px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.catalog-add-cta:hover:not(:disabled) {
+  background: var(--accent-strong, var(--accent));
+}
+
+.catalog-add-cta:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.catalog-add-cta.is-added {
+  background: var(--glass);
+  color: var(--accent-soft);
+  border: 1px solid var(--line-accent);
+}
+
+.catalog-add-cta:disabled {
+  cursor: default;
+}
