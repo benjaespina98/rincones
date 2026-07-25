@@ -10,7 +10,7 @@ import "../styles/components/WinePhoto.css";
  * se ve el hueco vacío mientras la foto viaja desde Cloudinary/servidor —el
  * problema típico de "tarda unos segundos y aparece de golpe".
  */
-export default function WinePhoto({ src, type = "unknown", artSize = 92, alt = "", className = "" }) {
+export default function WinePhoto({ src, type = "unknown", artSize = 92, alt = "", className = "", priority = false }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const showImg = src && !failed;
@@ -24,7 +24,8 @@ export default function WinePhoto({ src, type = "unknown", artSize = 92, alt = "
         <img
           src={src}
           alt={alt}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          fetchpriority={priority ? "high" : "auto"}
           decoding="async"
           className={`wine-photo__img ${loaded ? "is-loaded" : ""}`}
           onLoad={() => setLoaded(true)}

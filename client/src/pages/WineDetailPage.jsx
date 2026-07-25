@@ -313,7 +313,7 @@ export default function WineDetailPage() {
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
         <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} />
+          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} priority />
         </div>
 
         <div className="wine-detail-hero__badges">
