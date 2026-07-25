@@ -10,6 +10,7 @@
 
 const { CATALOG, fold } = require("../data/argentineWines");
 const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
+const communityWines = require("./communityWines.service");
 const CatalogSearch = require("../models/catalogSearch.model");
 
 const OFF_BASE = "https://world.openfoodfacts.org";
@@ -183,29 +184,48 @@ const searchWithAiCached = async (query) => {
 // --- API pública del servicio ---
 
 // Orden de confianza de las fuentes: primero lo verificado a mano, después lo
-// que aporta el modelo, y al final OFF (datos sucios y cobertura pobre en AR).
-const SOURCE_RANK = { "catalogo-ar": 0, gemini: 1, openfoodfacts: 2 };
+// que cargó la comunidad, el modelo, y al final OFF (datos sucios en AR).
+const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
+
+const dedupeAndRank = (lists) => {
+  const seen = new Set();
+  const merged = [];
+  for (const wine of lists.flat()) {
+    const key = `${fold(wine.name)}|${fold(wine.winery)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(wine);
+  }
+  merged.sort((a, b) => {
+    const rankA = SOURCE_RANK[a.source] ?? 9;
+    const rankB = SOURCE_RANK[b.source] ?? 9;
+    if (rankA !== rankB) return rankA - rankB;
+    return (b.score || 0) - (a.score || 0);
+  });
+  return merged.slice(0, MAX_RESULTS).map(({ score, haystack, ...wine }) => wine);
+};
 
 /**
- * Busca vinos por texto en tres escalones:
+ * Busca vinos por texto combinando fuentes:
  *   1. Catálogo argentino curado (instantáneo, verificado).
- *   2. Gemini, sólo si el catálogo no alcanzó (cacheado en Mongo).
- *   3. Open Food Facts, best-effort, por las imágenes y el código de barras.
- * Ninguno de los dos últimos puede romper la búsqueda: si fallan, devolvemos
- * lo que haya conseguido el catálogo.
+ *   2. Catálogo comunitario (vinos que cargaron los usuarios; crece con el uso).
+ *   3. Gemini, sólo si lo anterior no alcanzó (cacheado en Mongo).
+ *   4. Open Food Facts, best-effort, por imágenes y código de barras.
  */
 const searchWines = async (query) => {
   const q = String(query || "").trim();
   if (q.length < 2) return { results: [], degraded: false };
 
-  const local = searchCatalog(q);
+  // Catálogo curado (sync) + comunitario (DB) en paralelo: ambos rápidos.
+  const [local, community] = await Promise.all([
+    Promise.resolve(searchCatalog(q)),
+    communityWines.search(q).catch(() => []),
+  ]);
 
-  // Si el catálogo curado ya respondió bien, cortamos acá: es la fuente más
-  // confiable y evitamos ~1s de espera por fuentes externas que no van a
-  // aportar nada mejor.
-  if (local.length >= AI_THRESHOLD) {
-    const results = local.slice(0, MAX_RESULTS).map(({ score, haystack, ...wine }) => wine);
-    return { results, degraded: false };
+  // Si entre lo curado y lo comunitario ya hay suficiente, cortamos acá y no
+  // gastamos cuota de IA ni esperamos a fuentes externas.
+  if (local.length + community.length >= AI_THRESHOLD) {
+    return { results: dedupeAndRank([local, community]), degraded: false };
   }
 
   const [aiResults, offResult] = await Promise.all([
@@ -215,25 +235,7 @@ const searchWines = async (query) => {
 
   const external = offResult || [];
   const offFailed = offResult === null;
-
-  // Dedupe por nombre + bodega, respetando el orden de confianza.
-  const seen = new Set();
-  const merged = [];
-  for (const wine of [...local, ...aiResults, ...external]) {
-    const key = `${fold(wine.name)}|${fold(wine.winery)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(wine);
-  }
-
-  merged.sort((a, b) => {
-    const rankA = SOURCE_RANK[a.source] ?? 9;
-    const rankB = SOURCE_RANK[b.source] ?? 9;
-    if (rankA !== rankB) return rankA - rankB;
-    return (b.score || 0) - (a.score || 0);
-  });
-
-  const results = merged.slice(0, MAX_RESULTS).map(({ score, haystack, ...wine }) => wine);
+  const results = dedupeAndRank([local, community, aiResults, external]);
   return { results, degraded: offFailed && results.length === 0 };
 };
 

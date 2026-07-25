@@ -28,6 +28,21 @@ export const getFeaturedWines = async () => {
 };
 
 /**
+ * Precio comunitario de un vino (promedio de lo que pagó la gente).
+ * Devuelve { avg, count, min, max, currency } o null.
+ */
+export const getWinePrice = async (name, winery) => {
+  const { data } = await api.get("/catalog/price", { params: { name, winery } });
+  return data?.data || null;
+};
+
+// URL de búsqueda del vino en MercadoLibre (siempre actual, sin API).
+export const mercadoLibreUrl = (name, winery) => {
+  const q = [name, winery].filter(Boolean).join(" ");
+  return `https://listado.mercadolibre.com.ar/${encodeURIComponent(q)}`;
+};
+
+/**
  * Trae la ficha del vino (descripción, aromas, maridaje) generada por IA y
  * cacheada en el server. Lanza si falla, para que la UI muestre un estado claro.
  */

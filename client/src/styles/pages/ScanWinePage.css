@@ -133,6 +133,48 @@
   font-size: 0.88rem;
 }
 
+/* Atajos por varietal (búsqueda vacía). */
+.wine-search__chips {
+  display: grid;
+  gap: 8px;
+}
+
+.wine-search__chips-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.wine-search__chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.wine-search__chip {
+  padding: 7px 13px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.wine-search__chip:hover {
+  border-color: var(--line-accent);
+  color: var(--text);
+  background: var(--surface);
+}
+
+.wine-search__chip:active {
+  transform: scale(0.96);
+}
+
 .wine-search__results {
   list-style: none;
   margin: 0;
@@ -263,8 +305,16 @@
   margin-top: 2px;
 }
 
-.wine-result-card__add {
+/* Fila de acciones: "Agregar" (a bodega) + corazón "lo quiero" (a deseos). */
+.wine-result-card__actions {
   margin-top: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.wine-result-card__add {
+  flex: 1;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -279,6 +329,32 @@
   cursor: pointer;
   box-shadow: var(--shadow-accent);
   transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.wine-result-card__wish {
+  flex-shrink: 0;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.wine-result-card__wish:hover:not(:disabled) {
+  border-color: rgba(198, 70, 95, 0.4);
+  color: var(--wine);
+}
+
+.wine-result-card__wish.is-wished {
+  background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.4);
+  color: var(--wine);
+  cursor: default;
 }
 
 .wine-result-card__add:hover {

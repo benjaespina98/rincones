@@ -75,6 +75,10 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
       folder,
       resource_type: "image",
       overwrite: false,
+      // Transformación de ENTRADA: Cloudinary reduce la imagen ANTES de
+      // guardarla, así no acumulamos el original de varios MB del celular.
+      // Cap a 1600px (suficiente para retina) + calidad/formato automáticos.
+      transformation: [{ width: 1600, crop: "limit", quality: "auto:good", fetch_format: "auto" }],
     });
     return optimized(res.secure_url || value);
   } catch {

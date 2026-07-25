@@ -13,4 +13,7 @@ router.post("/describe", authenticate, catalogController.describe);
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
 router.get("/featured", authenticate, catalogController.featured);
 
+// GET /api/catalog/price - precio comunitario (promedio de lo que pagó la gente).
+router.get("/price", authenticate, catalogController.price);
+
 module.exports = router;

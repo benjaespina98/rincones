@@ -6,6 +6,8 @@ const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
 const wineImages = require("./wineImages.service");
 const imageStorage = require("./imageStorage.service");
+const winePrices = require("./winePrices.service");
+const communityWines = require("./communityWines.service");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -154,6 +156,25 @@ async function createWine(userId, payload) {
     await wineImages.contribute({ name, winery, image: providedImage, userId });
   }
 
+  // Si registró lo que pagó, alimenta el precio comunitario (promedio).
+  if (savedWine.purchase?.price > 0) {
+    await winePrices.contribute({
+      name, winery,
+      price: savedWine.purchase.price,
+      currency: savedWine.purchase.currency,
+    });
+  }
+
+  // La identidad del vino alimenta el catálogo comunitario (búsqueda de todos).
+  await communityWines.contribute({
+    name: savedWine.name,
+    winery: savedWine.winery,
+    region: savedWine.region,
+    varietal: savedWine.varietal,
+    type: savedWine.type,
+    image: resolvedImage,
+  });
+
   const user = await User.findById(userId);
   user.stats.winesCount = (user.stats.winesCount || 0) + 1;
   if (tasted) user.stats.tastedWines = (user.stats.tastedWines || 0) + 1;
@@ -263,6 +284,15 @@ async function addMoment(userId, id, body) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
 
+  // Hasta 2 fotos: las subimos a Cloudinary (o base64 si no está configurado).
+  const rawPhotos = Array.isArray(body.photos) ? body.photos.slice(0, 2) : [];
+  const photos = [];
+  for (const p of rawPhotos) {
+    const value = String(p || "").trim();
+    if (!/^(data:image\/|https?:\/\/)/.test(value)) continue;
+    photos.push(await imageStorage.store(value, { folder: "rincones/moments" }));
+  }
+
   const moment = await WineMoment.create({
     userId,
     wineId: wine._id,
@@ -274,7 +304,7 @@ async function addMoment(userId, id, body) {
     foodPairing: String(body.foodPairing || "").trim(),
     notes: String(body.notes || "").trim(),
     rating: body.rating !== undefined ? Number(body.rating) : wine.rating,
-    photo: String(body.photo || "").trim(),
+    photos,
     tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((t) => String(t).trim()) : [],
   });
 
@@ -419,14 +449,11 @@ function scoreWine(wine, context) {
     }
   }
 
-  // Estilo buscado
+  // Estilo buscado (refina; la comida es el driver principal).
   const m = context.mood;
   if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) score += 12;
   if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) score += 12;
   if (m === "festivo" && wine.type === "sparkling") score += 15;
-  if (m === "elegante" && wine.rating >= 4) { score += 12; reasons.push("Tu preferido"); }
-  if (m === "facil" && ["white", "rosé"].includes(wine.type)) score += 12;
-  if (m === "dulce" && (wine.type === "fortified" || /torront|gew|moscat|chenin/i.test(wine.varietal || ""))) score += 12;
 
   // Novedad — bonus si nunca fue probado
   if (!wine.tasted) score += 5;

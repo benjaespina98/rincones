@@ -1,6 +1,7 @@
 const catalogService = require("../services/catalog.service");
 const { describeWine } = require("../services/wineAi.service");
 const wineImages = require("../services/wineImages.service");
+const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");
 
 // GET /api/catalog/search?q=...
@@ -81,4 +82,17 @@ const featured = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, featured };
+// GET /api/catalog/price?name=&winery= - precio comunitario (promedio).
+const price = async (req, res, next) => {
+  try {
+    const data = await winePrices.getPrice(
+      String(req.query.name || ""),
+      String(req.query.winery || "")
+    );
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { search, describe, featured, price };

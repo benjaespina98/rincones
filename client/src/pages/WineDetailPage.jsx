@@ -13,7 +13,8 @@ import {
   getWineMoments,
   addWineMoment,
 } from "../services/wineApi";
-import { describeWine } from "../services/wineSearchApi";
+import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
+import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import WinePhoto from "../components/WinePhoto";
@@ -45,7 +46,17 @@ const EMPTY_MOMENT = {
   foodPairing: "",
   notes: "",
   rating: 0,
+  photos: [],
 };
+
+// Lee un archivo de imagen como data URL (para previsualizar y enviar).
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 export default function WineDetailPage() {
   const { id } = useParams();
@@ -71,6 +82,8 @@ export default function WineDetailPage() {
   const [aiInfo, setAiInfo] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
+  // Precio comunitario (promedio de lo que pagó la gente).
+  const [communityPrice, setCommunityPrice] = useState(null);
 
   const loadWine = useCallback(async () => {
     try {
@@ -130,6 +143,10 @@ export default function WineDetailPage() {
       .finally(() => {
         if (active) setAiLoading(false);
       });
+    getWinePrice(wineName, wineWinery)
+      .then((p) => { if (active) setCommunityPrice(p); })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -296,7 +313,7 @@ export default function WineDetailPage() {
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
         <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} />
+          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} priority />
         </div>
 
         <div className="wine-detail-hero__badges">
@@ -313,9 +330,23 @@ export default function WineDetailPage() {
         </div>
 
         {!editing && (
-          <button type="button" className="wine-detail-hero__edit" onClick={startEditing} aria-label="Editar vino">
-            <Icon name="pencil" size={16} />
-          </button>
+          <div className="wine-detail-hero__actions">
+            <button
+              type="button"
+              className="wine-detail-hero__icon-btn"
+              onClick={async () => {
+                const r = await shareWine(wine);
+                if (r === "copied") showSuccess("Copiado al portapapeles");
+              }}
+              aria-label="Compartir vino"
+              title="Compartir"
+            >
+              <Icon name="share" size={16} />
+            </button>
+            <button type="button" className="wine-detail-hero__icon-btn" onClick={startEditing} aria-label="Editar vino" title="Editar">
+              <Icon name="pencil" size={16} />
+            </button>
+          </div>
         )}
 
         <div className="wine-detail-hero__overlay">
@@ -429,6 +460,33 @@ export default function WineDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
+            <div className="wine-price">
+              <div className="wine-price__row">
+                <div className="wine-price__info">
+                  <span className="wine-price__label">Precio de referencia</span>
+                  {communityPrice ? (
+                    <span className="wine-price__value">
+                      ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
+                      <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
+                    </span>
+                  ) : (
+                    <span className="wine-price__empty">
+                      Sin datos aún. Cargá lo que pagaste (al editar el vino) y ayudás a la comunidad.
+                    </span>
+                  )}
+                </div>
+              </div>
+              <a
+                className="wine-price__meli"
+                href={mercadoLibreUrl(wine.name, wine.winery)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
+              </a>
+            </div>
 
             {wine.notes && (
               <div className="wine-detail-notes">
@@ -698,6 +756,49 @@ export default function WineDetailPage() {
                 value={momentDraft.notes}
                 onChange={(e) => setMomentDraft((p) => ({ ...p, notes: e.target.value }))}
               />
+
+              {/* Fotos del momento (máx 2, privadas). */}
+              <div className="moment-photos">
+                <span className="moment-photos__label">Fotos <small>(máx 2 · privadas)</small></span>
+                <div className="moment-photos__grid">
+                  {momentDraft.photos.map((src, i) => (
+                    <div key={i} className="moment-photos__item">
+                      <img src={src} alt={`Foto ${i + 1}`} />
+                      <button
+                        type="button"
+                        className="moment-photos__remove"
+                        onClick={() => setMomentDraft((p) => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}
+                        aria-label="Quitar foto"
+                      >
+                        <Icon name="x" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {momentDraft.photos.length < 2 && (
+                    <label className="moment-photos__add">
+                      <Icon name="camera" size={20} />
+                      <span>Agregar</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (!file) return;
+                          try {
+                            const url = await fileToDataUrl(file);
+                            setMomentDraft((p) => ({ ...p, photos: [...p.photos, url].slice(0, 2) }));
+                          } catch {
+                            showError("No se pudo cargar la foto");
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div className="rating-input" role="group" aria-label="Calificar este momento">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -740,6 +841,15 @@ export default function WineDetailPage() {
                     {moment.emotion && <span>🙂 {emotionLabel(moment.emotion)}</span>}
                   </div>
                   {moment.notes && <p className="moment-item__notes">{moment.notes}</p>}
+                  {moment.photos?.length > 0 && (
+                    <div className="moment-item__photos">
+                      {moment.photos.map((src, i) => (
+                        <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+                          <img src={src} alt={`Foto ${i + 1}`} loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
