@@ -109,6 +109,8 @@ const DESCRIBE_SCHEMA = {
     summary: { type: "string" },
     // Perfil de boca (cuerpo, taninos, acidez) en una frase.
     body: { type: "string" },
+    // Etiquetas cortas de perfil, estilo Vivino (ej: "Cuerpo medio", "Seco").
+    profile: { type: "array", items: { type: "string" } },
     aromas: { type: "array", items: { type: "string" } },
     foodPairing: { type: "array", items: { type: "string" } },
     // Graduación típica del estilo. 0 si no se sabe.
@@ -138,6 +140,7 @@ ${parts}
 Devolvé:
 - summary: 2-3 oraciones, tono cercano y claro (no marketinero), sobre el estilo y a qué apunta.
 - body: una frase sobre cuerpo, taninos y acidez.
+- profile: 3 a 5 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Seco", "Acidez media", "Frutado"). Solo el atributo, sin explicación.
 - aromas: 3 a 6 aromas/sabores típicos (ej: "cereza", "vainilla", "pimienta").
 - foodPairing: 3 a 5 comidas que maridan bien.
 - alcohol: graduación típica del estilo (número, ej 14). 0 si no sabés.
@@ -173,6 +176,7 @@ const describeWine = async (wine) => {
   return {
     summary: clean(parsed?.summary),
     body: clean(parsed?.body),
+    profile: list(parsed?.profile, 5),
     aromas: list(parsed?.aromas, 6),
     foodPairing: list(parsed?.foodPairing, 5),
     alcohol: Number.isFinite(alcohol) && alcohol > 0 && alcohol < 25 ? alcohol : null,

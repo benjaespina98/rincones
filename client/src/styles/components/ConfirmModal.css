@@ -1,17 +1,15 @@
-/* Confirm Modal Styles */
+/* Confirm Modal: diálogo centrado (antes era un bottom-sheet que quedaba
+   flotando arriba de la nav, dejando un hueco raro abajo → se veía desfasado). */
 .confirm-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   z-index: 1300;
+  padding: 20px;
   animation: fadeIn 0.2s ease-out;
-  padding: 0 0 calc(92px + env(safe-area-inset-bottom));
 }
 
 @keyframes fadeIn {
@@ -25,24 +23,14 @@
 
 .confirm-modal {
   background: linear-gradient(180deg, rgba(18, 22, 36, 0.98), rgba(12, 14, 22, 0.99));
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius-xl);
   width: 100%;
-  max-width: 100%;
-  max-height: calc(100dvh - 92px - env(safe-area-inset-bottom));
+  max-width: 400px;
+  max-height: calc(100dvh - 40px);
   overflow-y: auto;
-  animation: slideUp 0.3s ease-out;
-  box-shadow: 0 -24px 56px rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(167, 130, 239, 0.18);
-  border-bottom: none;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+  animation: modalPop 0.24s var(--ease-out);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(167, 130, 239, 0.2);
 }
 
 .confirm-modal__header {
@@ -125,34 +113,13 @@
   filter: brightness(0.95);
 }
 
-/* Desktop: centered dialog instead of a full-width bottom sheet */
-@media (min-width: 1024px) {
-  .confirm-modal-overlay {
-    align-items: center;
-    padding: 24px;
-    background-color: rgba(0, 0, 0, 0.6);
-  }
-
-  .confirm-modal {
-    max-width: 420px;
-    max-height: none;
-    border-radius: var(--radius-xl);
-    border-bottom: 1px solid rgba(167, 130, 239, 0.18);
-    animation: modalPop 0.24s var(--ease-out);
-  }
-}
-
 @keyframes modalPop {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Mobile adjustments */
+/* Mobile: tipografía y paddings un poco más compactos */
 @media (max-width: 480px) {
-  .confirm-modal {
-    border-radius: 12px 12px 0 0;
-  }
-
   .confirm-modal__header {
     padding: 16px;
   }

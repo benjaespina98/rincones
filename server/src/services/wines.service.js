@@ -8,6 +8,7 @@ const wineImages = require("./wineImages.service");
 const imageStorage = require("./imageStorage.service");
 const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
+const { isCuratedWine } = require("./catalog.service");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -165,15 +166,18 @@ async function createWine(userId, payload) {
     });
   }
 
-  // La identidad del vino alimenta el catálogo comunitario (búsqueda de todos).
-  await communityWines.contribute({
-    name: savedWine.name,
-    winery: savedWine.winery,
-    region: savedWine.region,
-    varietal: savedWine.varietal,
-    type: savedWine.type,
-    image: resolvedImage,
-  });
+  // La identidad del vino alimenta el catálogo comunitario (búsqueda de todos),
+  // salvo que ya esté en el catálogo curado: ahí evitamos el gemelo duplicado.
+  if (!isCuratedWine(savedWine)) {
+    await communityWines.contribute({
+      name: savedWine.name,
+      winery: savedWine.winery,
+      region: savedWine.region,
+      varietal: savedWine.varietal,
+      type: savedWine.type,
+      image: resolvedImage,
+    });
+  }
 
   const user = await User.findById(userId);
   user.stats.winesCount = (user.stats.winesCount || 0) + 1;

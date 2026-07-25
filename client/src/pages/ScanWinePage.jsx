@@ -36,7 +36,7 @@ const toWinePayload = (draft) => ({
 
 export default function ScanWinePage() {
   const navigate = useNavigate();
-  const { showSuccess, showError, addToast } = useToast();
+  const { showSuccess, showError } = useToast();
   const { addWine } = useWineCollection();
 
   const [showScanner, setShowScanner] = useState(false);
@@ -51,8 +51,6 @@ export default function ScanWinePage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
-  const [addingId, setAddingId] = useState(null);
-  const [addedIds, setAddedIds] = useState(() => new Set());
   const [wishedIds, setWishedIds] = useState(() => new Set());
 
   useEffect(() => {
@@ -83,33 +81,18 @@ export default function ScanWinePage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Guarda y avisa. La edición vive en la ficha del vino, así que el toast
-  // ofrece ir directo ahí en lugar de abrir un formulario acá.
+  // Guarda el vino escaneado en la bodega y lleva directo a su ficha, que es
+  // donde el usuario ve la descripción y puede editar/agregar momentos.
   const saveWine = async (draft) => {
     const created = await addWine(toWinePayload(draft));
     successHaptic();
-    addToast(`"${created.name}" agregado a tu bodega`, "success", 5000, {
-      label: "Editar",
-      onClick: () => navigate(`/vino/${created._id}`),
-    });
+    showSuccess(`"${created.name}" agregado a tu bodega`);
+    navigate(`/vino/${created._id}`);
     return created;
   };
 
-  const handleAddResult = async (result) => {
-    if (addingId || addedIds.has(result.id)) return;
-    try {
-      setAddingId(result.id);
-      await saveWine(result);
-      setAddedIds((prev) => new Set(prev).add(result.id));
-    } catch {
-      showError("No se pudo agregar el vino. Probá de nuevo.");
-    } finally {
-      setAddingId(null);
-    }
-  };
-
-  // "Lo quiero": guarda un vino de la búsqueda en la lista de deseos, aunque no
-  // lo tengas todavía. Es el flujo "me gusta / lo quiero comprar".
+  // "Quiero probar": guarda un vino de la búsqueda en Guardados, aunque no lo
+  // tengas todavía. La bodega es solo stock real y entra por escaneo.
   const handleWishResult = async (result) => {
     if (wishedIds.has(result.id)) return;
     try {
@@ -120,10 +103,11 @@ export default function ScanWinePage() {
         region: result.region || "",
         varietal: result.varietal || "",
         type: result.type || "unknown",
+        image: result.image || "",
         source: "search",
       });
       successHaptic();
-      showSuccess(`"${result.name}" agregado a tu lista de deseos`);
+      showSuccess(`"${result.name}" guardado en tu lista`);
     } catch {
       setWishedIds((prev) => {
         const n = new Set(prev);
@@ -359,62 +343,56 @@ export default function ScanWinePage() {
             <ul className="wine-search__results">
               {searchResults.map((r) => (
                 <li key={r.id} className="wine-result-card">
-                  <div className="wine-result-card__media">
-                    <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} />
-                    {r.type && r.type !== "unknown" && (
-                      <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    className="wine-result-card__open"
+                    onClick={() => navigate("/descubrir/vino", { state: { wine: r } })}
+                    aria-label={`Ver detalle de ${r.name}`}
+                  >
+                    <div className="wine-result-card__media">
+                      <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} />
+                      {r.type && r.type !== "unknown" && (
+                        <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
+                      )}
+                    </div>
 
-                  <div className="wine-result-card__body">
-                    <p className="wine-result-card__name" title={r.name}>{r.name}</p>
-                    <p className="wine-result-card__winery">
-                      {r.winery || "Bodega no especificada"}
-                    </p>
+                    <div className="wine-result-card__body">
+                      <p className="wine-result-card__name" title={r.name}>{r.name}</p>
+                      <p className="wine-result-card__winery">
+                        {r.winery || "Bodega no especificada"}
+                      </p>
 
-                    {(r.region || r.vintage) && (
                       <div className="wine-result-card__meta">
+                        {r.varietal && <span className="wine-result-card__chip">{r.varietal}</span>}
+                        {r.vintage && <span className="wine-result-card__chip">{r.vintage}</span>}
                         {r.region && (
                           <span className="wine-result-card__chip">
                             <Icon name="map-pin" size={13} /> {r.region}
                           </span>
                         )}
-                        {r.vintage && <span className="wine-result-card__chip">{r.vintage}</span>}
                       </div>
-                    )}
 
-                    {r.rating > 0 && (
-                      <div className="wine-result-card__rating">
-                        <StarRating value={r.rating} size="sm" />
-                      </div>
-                    )}
-
-                    <div className="wine-result-card__actions">
-                      <button
-                        type="button"
-                        className={`wine-result-card__add ${addedIds.has(r.id) ? "is-added" : ""}`}
-                        onClick={() => handleAddResult(r)}
-                        disabled={addingId === r.id || addedIds.has(r.id)}
-                      >
-                        {addedIds.has(r.id) ? (
-                          <><Icon name="check" size={16} /> En tu bodega</>
-                        ) : addingId === r.id ? (
-                          "Agregando…"
-                        ) : (
-                          <><Icon name="plus" size={16} /> Agregar</>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className={`wine-result-card__wish ${wishedIds.has(r.id) ? "is-wished" : ""}`}
-                        onClick={() => handleWishResult(r)}
-                        disabled={wishedIds.has(r.id)}
-                        aria-label={wishedIds.has(r.id) ? "En tu lista de deseos" : "Agregar a la lista de deseos"}
-                        title={wishedIds.has(r.id) ? "En tu lista de deseos" : "Lo quiero (lista de deseos)"}
-                      >
-                        <Icon name="heart" filled={wishedIds.has(r.id)} size={16} />
-                      </button>
+                      {r.rating > 0 && (
+                        <div className="wine-result-card__rating">
+                          <StarRating value={r.rating} size="sm" />
+                        </div>
+                      )}
                     </div>
+                  </button>
+
+                  <div className="wine-result-card__actions">
+                    <button
+                      type="button"
+                      className={`wine-result-card__want ${wishedIds.has(r.id) ? "is-wished" : ""}`}
+                      onClick={() => handleWishResult(r)}
+                      disabled={wishedIds.has(r.id)}
+                    >
+                      {wishedIds.has(r.id) ? (
+                        <><Icon name="check" size={16} /> Guardado</>
+                      ) : (
+                        <><Icon name="heart" size={16} /> Quiero probar</>
+                      )}
+                    </button>
                   </div>
                 </li>
               ))}

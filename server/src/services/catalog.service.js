@@ -187,19 +187,63 @@ const searchWithAiCached = async (query) => {
 // que cargó la comunidad, el modelo, y al final OFF (datos sucios en AR).
 const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
 
-const dedupeAndRank = (lists) => {
-  const seen = new Set();
-  const merged = [];
-  for (const wine of lists.flat()) {
-    const key = `${fold(wine.name)}|${fold(wine.winery)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(wine);
+// Clave canónica que reconcilia las distintas fuentes. El catálogo curado
+// nombra los vinos como "<línea> <varietal>" ("Saint Felicien Malbec") y usa la
+// bodega paraguas ("Catena Zapata"), mientras que lo comunitario/escaneado suele
+// venir como "Saint Felicien" / "Catena". Para que colapsen: sacamos el token de
+// varietal del nombre y usamos el primer token de la bodega.
+const canonicalCore = (wine) => {
+  let name = fold(wine.name);
+  const varietal = fold(wine.varietal || "");
+  if (varietal && name.includes(varietal)) {
+    name = name.replace(varietal, " ").replace(/\s+/g, " ").trim();
   }
+  const wineryToken = fold(wine.winery || "").split(/\s+/)[0] || "";
+  return { core: name, varietal, wineryToken };
+};
+
+// Adopta en `target` los campos ricos (foto, rating, precio, cosecha…) que le
+// falten y sí tenga el duplicado `extra`. Así el resultado curado "hereda" la
+// foto que cargó la comunidad, en vez de aparecer dos veces.
+const mergeInto = (target, extra) => {
+  if (!target.image && extra.image) target.image = extra.image;
+  if (!(target.rating > 0) && extra.rating > 0) target.rating = extra.rating;
+  if (!target.price && extra.price) target.price = extra.price;
+  if (!target.vintage && extra.vintage) target.vintage = extra.vintage;
+  if (!target.varietal && extra.varietal) target.varietal = extra.varietal;
+  if (!target.region && extra.region) target.region = extra.region;
+  target.score = Math.max(target.score || 0, extra.score || 0);
+};
+
+const dedupeAndRank = (lists) => {
+  const byStrict = new Map(); // core|varietal|winery -> wine fusionado
+  const looseIndex = new Map(); // core|winery -> strictKey canónico
+  for (const wine of lists.flat()) {
+    const { core, varietal, wineryToken } = canonicalCore(wine);
+    const strict = `${core}|${varietal}|${wineryToken}`;
+    const loose = `${core}|${wineryToken}`;
+
+    if (byStrict.has(strict)) {
+      mergeInto(byStrict.get(strict), wine);
+      continue;
+    }
+    // Sin varietal no podemos distinguir la uva: lo absorbe el match del mismo
+    // loose (nunca fusiona dos varietales conocidos distintos entre sí).
+    if (!varietal && looseIndex.has(loose)) {
+      mergeInto(byStrict.get(looseIndex.get(loose)), wine);
+      continue;
+    }
+    byStrict.set(strict, { ...wine });
+    if (varietal || !looseIndex.has(loose)) looseIndex.set(loose, strict);
+  }
+
+  const merged = [...byStrict.values()];
   merged.sort((a, b) => {
     const rankA = SOURCE_RANK[a.source] ?? 9;
     const rankB = SOURCE_RANK[b.source] ?? 9;
     if (rankA !== rankB) return rankA - rankB;
+    // A igualdad de fuente, primero los que tienen foto.
+    if (!!a.image !== !!b.image) return a.image ? -1 : 1;
     return (b.score || 0) - (a.score || 0);
   });
   return merged.slice(0, MAX_RESULTS).map(({ score, haystack, ...wine }) => wine);
@@ -263,4 +307,21 @@ const getFeatured = (count = 8) => {
   return picked;
 };
 
-module.exports = { searchWines, searchCatalog, guessType, getFeatured };
+// Set de claves canónicas del catálogo curado, para saber si un vino ya está
+// verificado (y no ensuciar el catálogo comunitario con un duplicado).
+let curatedKeys = null;
+const buildCuratedKeys = () => {
+  const set = new Set();
+  for (const w of CATALOG) {
+    const { core, varietal, wineryToken } = canonicalCore(w);
+    set.add(`${core}|${varietal}|${wineryToken}`);
+  }
+  return set;
+};
+const isCuratedWine = (wine) => {
+  if (!curatedKeys) curatedKeys = buildCuratedKeys();
+  const { core, varietal, wineryToken } = canonicalCore(wine);
+  return curatedKeys.has(`${core}|${varietal}|${wineryToken}`);
+};
+
+module.exports = { searchWines, searchCatalog, guessType, getFeatured, isCuratedWine };

@@ -10,6 +10,11 @@ export const createWish = async (payload) => {
   return data.data;
 };
 
+export const updateWish = async (id, patch) => {
+  const { data } = await api.patch(`/wishes/${id}`, patch);
+  return data.data;
+};
+
 export const deleteWish = async (id) => {
   const { data } = await api.delete(`/wishes/${id}`);
   return data;

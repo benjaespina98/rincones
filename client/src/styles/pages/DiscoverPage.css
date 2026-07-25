@@ -97,7 +97,8 @@
 /* ── Vino del día / Sorpresa ── */
 .spotlight {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
   padding: 14px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-accent);
@@ -108,6 +109,36 @@
   box-shadow: var(--shadow-md);
   overflow: hidden;
   animation: spotlightIn 420ms var(--ease-out) both;
+}
+
+/* La zona foto+texto es un botón que abre la ficha del vino. */
+.spotlight__open {
+  display: flex;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.spotlight__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.spotlight__grape {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 @keyframes spotlightIn {
@@ -349,6 +380,16 @@
   margin: 0;
   font-size: 0.74rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.discover-wine__grape {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -16,6 +16,7 @@ const ScanWinePage = lazy(() => import("./pages/ScanWinePage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const WineDetailPage = lazy(() => import("./pages/WineDetailPage"));
 const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
+const GuardadosPage = lazy(() => import("./pages/GuardadosPage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 
 const RouteFallback = () => (
@@ -44,9 +45,12 @@ function App() {
         {/* Home = Descubrí (recomendaciones + contenido) */}
         <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />
 
-        {/* Mi bodega (antes era "/") */}
+        {/* Mi bodega (antes era "/") — solo stock real (escaneado) */}
         <Route path="/bodega" element={withLayout("Mi Bodega", <BodyPage />)} />
-        <Route path="/favoritos" element={withLayout("Favoritos", <BodyPage initialFilter="favorites" />)} />
+        {/* Guardados = vinos que querés probar / favoritos (no los tenés) */}
+        <Route path="/guardados" element={withLayout("Guardados", <GuardadosPage />)} />
+        {/* Rutas viejas de favoritos → filtro dentro de bodega */}
+        <Route path="/favoritos" element={<Navigate to="/bodega?filter=favorites" replace />} />
 
         {/* Sommelier (antes /explorar) y Agregar (antes /descubrir) */}
         <Route path="/sommelier" element={withLayout("Sommelier", <SuggestionsPage />)} />

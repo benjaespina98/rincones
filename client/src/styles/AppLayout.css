@@ -128,14 +128,18 @@
   padding-top: 0;
 }
 
-/* Transición de página: fade + leve subida al cambiar de sección. */
+/* Transición de página: fade al cambiar de sección.
+   Importante: NO dejar un transform residual — un translateY(0) persistente
+   (animation-fill-mode both) convierte a .app-content en containing block y los
+   modales con position:fixed se centran dentro de la página (larga) en vez del
+   viewport. Por eso animamos solo opacidad. */
 .app-content--enter {
   animation: pageEnter 300ms var(--ease-out) both;
 }
 
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

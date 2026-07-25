@@ -418,6 +418,14 @@ export default function WineDetailPage() {
                     {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
                     {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
 
+                    {aiInfo.profile?.length > 0 && (
+                      <div className="wine-about__profile">
+                        {aiInfo.profile.map((p) => (
+                          <span key={p} className="wine-about__pill">{p}</span>
+                        ))}
+                      </div>
+                    )}
+
                     {aiInfo.aromas?.length > 0 && (
                       <div className="wine-about__block">
                         <span className="wine-about__label">Aromas y sabores</span>
@@ -689,7 +697,7 @@ export default function WineDetailPage() {
 
             <button
               type="button"
-              className={`btn-icon ${wine.tasted ? "active" : ""}`}
+              className={`btn-icon btn-icon--tasted ${wine.tasted ? "tasted-active" : ""}`}
               disabled={pending}
               onClick={handleToggleTasted}
               aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}

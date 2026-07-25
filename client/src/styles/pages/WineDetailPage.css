@@ -615,6 +615,13 @@
   border-color: rgba(255, 101, 160, 0.35);
 }
 
+/* Probado activo: verde (antes reusaba el rosa de favorito). */
+.btn-icon--tasted.tasted-active {
+  background: rgba(47, 182, 123, 0.18);
+  color: #7fe3b4;
+  border-color: rgba(47, 182, 123, 0.4);
+}
+
 .btn-delete {
   background: var(--wine-soft);
   color: var(--wine);
@@ -902,4 +909,82 @@
 
 .catalog-add-cta:disabled {
   cursor: default;
+}
+
+/* ── Catálogo: fila de CTA (Quiero probar + favorito) + "Ya lo tengo" ── */
+.catalog-cta-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.catalog-cta-row .catalog-add-cta {
+  flex: 1;
+  margin-top: 0;
+}
+
+.catalog-fav-cta {
+  flex: 0 0 auto;
+  width: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: var(--glass);
+  color: #ff6ea0;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.catalog-fav-cta:hover:not(:disabled) {
+  background: rgba(255, 110, 160, 0.14);
+}
+
+.catalog-fav-cta:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.catalog-fav-cta:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.catalog-have-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-accent);
+  background: transparent;
+  color: var(--accent-soft);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.catalog-have-btn:hover {
+  background: var(--glass);
+}
+
+/* ── Perfil del vino (etiquetas cortas estilo Vivino) ── */
+.wine-about__profile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 2px 0 4px;
+}
+
+.wine-about__pill {
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(167, 130, 239, 0.18), rgba(126, 89, 201, 0.12));
+  border: 1px solid var(--line-accent);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
 }

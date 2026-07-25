@@ -4,7 +4,7 @@ import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
-import { useWineCollection } from "../hooks/useWineCollection";
+import { useWishlist } from "../hooks/useWishlist";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { shareWine } from "../utils/share";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -17,8 +17,8 @@ import "../styles/pages/WineDetailPage.css";
 export default function CatalogWinePage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { addWine } = useWineCollection();
-  const { showSuccess, showError, addToast } = useToast();
+  const { addWish } = useWishlist();
+  const { showSuccess, showError } = useToast();
 
   const wine = location.state?.wine || null;
 
@@ -68,26 +68,27 @@ export default function CatalogWinePage() {
     );
   }
 
-  const handleAdd = async () => {
+  // "Quiero probar": guarda el vino en Guardados (no en la bodega). Podés
+  // sumarlo como favorito. La bodega es solo stock real y entra por escaneo.
+  const handleWant = async (favorite = false) => {
     if (adding || added) return;
     try {
       setAdding(true);
-      const created = await addWine({
+      await addWish({
         name: wine.name,
         winery: wine.winery || "",
         region: wine.region || "",
         varietal: wine.varietal || "",
         type: wine.type || "unknown",
         image: wine.image || "",
-        quantity: 1,
+        vintage: wine.vintage,
+        favorite,
+        source: "search",
       });
       setAdded(true);
-      addToast(`"${created.name}" agregado a tu bodega`, "success", 5000, {
-        label: "Ver",
-        onClick: () => navigate(`/vino/${created._id}`),
-      });
+      showSuccess(favorite ? `"${wine.name}" guardado como favorito` : `"${wine.name}" guardado en tu lista`);
     } catch {
-      showError("No se pudo agregar el vino. Probá de nuevo.");
+      showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
       setAdding(false);
     }
@@ -154,6 +155,14 @@ export default function CatalogWinePage() {
               <>
                 {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
                 {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
+
+                {aiInfo.profile?.length > 0 && (
+                  <div className="wine-about__profile">
+                    {aiInfo.profile.map((p) => (
+                      <span key={p} className="wine-about__pill">{p}</span>
+                    ))}
+                  </div>
+                )}
 
                 {aiInfo.aromas?.length > 0 && (
                   <div className="wine-about__block">
@@ -225,20 +234,37 @@ export default function CatalogWinePage() {
           </a>
         </div>
 
-        {/* CTA principal: sumarlo a la bodega. */}
-        <button
-          type="button"
-          className={`catalog-add-cta ${added ? "is-added" : ""}`}
-          onClick={handleAdd}
-          disabled={adding || added}
-        >
-          {added ? (
-            <><Icon name="check" size={18} /> En tu bodega</>
-          ) : adding ? (
-            "Agregando…"
-          ) : (
-            <><Icon name="plus" size={18} /> Agregar a mi bodega</>
-          )}
+        {/* CTA: guardar en la lista (Guardados). No entra a la bodega: eso es
+            solo stock real y se suma escaneando la botella. */}
+        <div className="catalog-cta-row">
+          <button
+            type="button"
+            className={`catalog-add-cta ${added ? "is-added" : ""}`}
+            onClick={() => handleWant(false)}
+            disabled={adding || added}
+          >
+            {added ? (
+              <><Icon name="check" size={18} /> Guardado</>
+            ) : adding ? (
+              "Guardando…"
+            ) : (
+              <><Icon name="heart" size={18} /> Quiero probar</>
+            )}
+          </button>
+          <button
+            type="button"
+            className="catalog-fav-cta"
+            onClick={() => handleWant(true)}
+            disabled={adding || added}
+            aria-label="Guardar como favorito"
+            title="Guardar como favorito"
+          >
+            <Icon name="heart" filled size={18} />
+          </button>
+        </div>
+
+        <button type="button" className="catalog-have-btn" onClick={() => navigate("/agregar")}>
+          <Icon name="camera" size={16} /> Ya lo tengo — escanealo para tu bodega
         </button>
       </div>
     </div>

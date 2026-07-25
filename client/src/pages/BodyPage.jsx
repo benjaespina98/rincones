@@ -8,7 +8,6 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
-import { useWishlist } from "../hooks/useWishlist";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import "../styles/pages/BodyPage.css";
@@ -48,9 +47,18 @@ export default function BodyPage({ initialFilter = "all" }) {
     adjustStock,
   } = useWineCollection();
 
-  const [filterType, setFilterType] = useState(
-    FILTER_VALUES.has(initialFilter) ? initialFilter : "all"
-  );
+  // El filtro inicial puede venir por prop o por query (?filter=favorites),
+  // que es a donde redirige la ruta vieja /favoritos.
+  const initialFromQuery =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("filter")
+      : null;
+  const startFilter = FILTER_VALUES.has(initialFromQuery)
+    ? initialFromQuery
+    : FILTER_VALUES.has(initialFilter)
+      ? initialFilter
+      : "all";
+  const [filterType, setFilterType] = useState(startFilter);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [varietalFilter, setVarietalFilter] = useState("all");
@@ -58,16 +66,8 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [wishlistOpen, setWishlistOpen] = useState(false);
-  const [convertingWish, setConvertingWish] = useState(null);
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
-
-  const { wishes, loading: wishesLoading, removeWish, convertToWine } = useWishlist(
-    (wine) => {
-      showSuccess(`"${wine.name}" agregado a tu bodega`);
-    }
-  );
 
   useEffect(() => {
     if (FILTER_VALUES.has(initialFilter)) {
@@ -179,29 +179,6 @@ export default function BodyPage({ initialFilter = "all" }) {
       await toggleFavorite(wine._id, !wine.favorite);
       showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
     });
-
-  // Pasar un deseo a la bodega es un solo toque. Antes abría un formulario de
-  // precio/tienda/cantidad; ahora entra con lo mínimo y el toast ofrece editar
-  // para quien quiera cargar el resto.
-  const handleBuyWish = async (wish) => {
-    if (convertingWish) return;
-    try {
-      setConvertingWish(wish._id);
-      const created = await convertToWine(wish._id, { quantity: 1 });
-      addToast(
-        `"${wish.name}" pasó a tu bodega`,
-        "success",
-        5000,
-        created?._id
-          ? { label: "Editar", onClick: () => navigate(`/vino/${created._id}`) }
-          : null
-      );
-    } catch {
-      showError("No se pudo pasar el vino a tu bodega");
-    } finally {
-      setConvertingWish(null);
-    }
-  };
 
   const handleToggleTasted = (wine) =>
     withPendingAction(wine._id, async () => {
@@ -567,69 +544,6 @@ export default function BodyPage({ initialFilter = "all" }) {
             Limpiar filtros
           </button>
         </div>
-      )}
-
-      {/* Lista de deseos: sólo en la bodega, no en la vista de Favoritos
-          (son cosas distintas: deseos = vinos que querés comprar). */}
-      {initialFilter !== "favorites" && (
-      <section className="wishlist-section">
-        <button
-          type="button"
-          className="wishlist-toggle"
-          onClick={() => setWishlistOpen((o) => !o)}
-        >
-          <span>♡ Lista de deseos</span>
-          {wishes.length > 0 && <span className="wishlist-badge">{wishes.length}</span>}
-          <span className="wishlist-toggle__arrow">{wishlistOpen ? "▲" : "▼"}</span>
-        </button>
-
-        {wishlistOpen && (
-          <div className="wishlist-body">
-            {wishesLoading && <p className="wishlist-empty">Cargando...</p>}
-
-            {!wishesLoading && wishes.length === 0 && (
-              <div className="wishlist-empty">
-                <p>Guardá vinos que querés comprar. Buscalos o escaneálos desde el botón + y elegí "A la lista de deseos".</p>
-              </div>
-            )}
-
-            {!wishesLoading && wishes.length > 0 && (
-              <ul className="wishlist-list">
-                {wishes.map((wish) => (
-                  <li key={wish._id} className="wishlist-item">
-                    <div className="wishlist-item__info">
-                      <span className="wishlist-item__name">{wish.name}</span>
-                      {wish.winery && <span className="wishlist-item__winery">{wish.winery}</span>}
-                      {wish.type && wish.type !== "unknown" && (
-                        <span className="wishlist-item__type">{WINE_TYPE_LABELS[wish.type]}</span>
-                      )}
-                    </div>
-                    <div className="wishlist-item__actions">
-                      <button
-                        type="button"
-                        className="wishlist-buy-btn"
-                        disabled={convertingWish === wish._id}
-                        onClick={() => handleBuyWish(wish)}
-                      >
-                        {convertingWish === wish._id ? "Pasando…" : "Ya lo compré"}
-                      </button>
-                      <button
-                        type="button"
-                        className="wishlist-remove-btn"
-                        onClick={() => removeWish(wish._id)}
-                        aria-label={`Quitar ${wish.name} de la lista de deseos`}
-                        title="Quitar de la lista"
-                      >
-                        <Icon name="x" size={15} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </section>
       )}
 
       <ConfirmModal
