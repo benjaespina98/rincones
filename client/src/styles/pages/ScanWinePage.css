@@ -204,6 +204,19 @@
   }
 }
 
+/* La zona foto+texto es un botón que abre la ficha del vino. */
+.wine-result-card__open {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
 .wine-result-card__media {
   position: relative;
   aspect-ratio: 1 / 1.05;
@@ -305,14 +318,13 @@
   margin-top: 2px;
 }
 
-/* Fila de acciones: "Agregar" (a bodega) + corazón "lo quiero" (a deseos). */
+/* Acción: "Quiero probar" (guarda en Guardados, no en la bodega). */
 .wine-result-card__actions {
-  margin-top: auto;
   display: flex;
-  gap: 6px;
+  padding: 0 12px 12px;
 }
 
-.wine-result-card__add {
+.wine-result-card__want {
   flex: 1;
   min-width: 0;
   display: inline-flex;
@@ -331,50 +343,21 @@
   transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.wine-result-card__wish {
-  flex-shrink: 0;
-  width: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.wine-result-card__wish:hover:not(:disabled) {
-  border-color: rgba(198, 70, 95, 0.4);
-  color: var(--wine);
-}
-
-.wine-result-card__wish.is-wished {
-  background: var(--wine-soft);
-  border-color: rgba(198, 70, 95, 0.4);
-  color: var(--wine);
-  cursor: default;
-}
-
-.wine-result-card__add:hover {
+.wine-result-card__want:hover:not(:disabled) {
   filter: brightness(1.08);
 }
 
-.wine-result-card__add:active {
+.wine-result-card__want:active:not(:disabled) {
   transform: scale(0.96);
 }
 
-.wine-result-card__add:disabled {
-  cursor: default;
-}
-
-.wine-result-card__add.is-added {
+.wine-result-card__want.is-wished {
   background: rgba(47, 182, 123, 0.16);
   border-color: rgba(47, 182, 123, 0.4);
   color: #7fe3b4;
   box-shadow: none;
   filter: none;
+  cursor: default;
 }
 
 @media (min-width: 720px) {

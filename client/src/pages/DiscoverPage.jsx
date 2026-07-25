@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useWineCollection } from "../hooks/useWineCollection";
+import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines } from "../services/wineSearchApi";
 import { DISCOVER_CONTENT } from "../data/discoverContent";
@@ -23,8 +23,8 @@ const greeting = () => {
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addWine } = useWineCollection();
-  const { showError, addToast } = useToast();
+  const { addWish } = useWishlist();
+  const { showError, showSuccess } = useToast();
 
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,26 +68,26 @@ export default function DiscoverPage() {
     setSurprised(true);
   };
 
-  const handleAdd = async (wine) => {
+  // "Quiero probar": guarda el vino en Guardados (no en la bodega). La bodega
+  // es solo stock real y entra únicamente por escaneo.
+  const handleWant = async (wine) => {
     if (addingId || addedIds.has(wine.id)) return;
     try {
       setAddingId(wine.id);
-      const created = await addWine({
+      await addWish({
         name: wine.name,
         winery: wine.winery || "",
         region: wine.region || "",
         varietal: wine.varietal || "",
         type: wine.type || "unknown",
-        quantity: 1,
+        image: wine.image || "",
+        source: "recomendación",
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
       successHaptic();
-      addToast(`"${created.name}" agregado a tu bodega`, "success", 5000, {
-        label: "Ver",
-        onClick: () => navigate(`/vino/${created._id}`),
-      });
+      showSuccess(`"${wine.name}" guardado en tu lista`);
     } catch {
-      showError("No se pudo agregar el vino. Probá de nuevo.");
+      showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
       setAddingId(null);
     }
@@ -120,34 +120,49 @@ export default function DiscoverPage() {
       {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
       {spotlight && (
         <section className="spotlight" key={spotlight.id}>
-          <div className="spotlight__art">
-            <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={140} />
-          </div>
-          <div className="spotlight__body">
-            <span className="spotlight__kicker">
-              {surprised ? "🎲 Una sorpresa" : "✦ Vino del día"}
-            </span>
-            <h2 className="spotlight__name">{spotlight.name}</h2>
-            <p className="spotlight__meta">
-              {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
-            </p>
-            <div className="spotlight__actions">
-              <button
-                type="button"
-                className={`spotlight__add ${addedIds.has(spotlight.id) ? "is-added" : ""}`}
-                onClick={() => handleAdd(spotlight)}
-                disabled={addingId === spotlight.id || addedIds.has(spotlight.id)}
-              >
-                {addedIds.has(spotlight.id) ? (
-                  <><Icon name="check" size={16} /> En tu bodega</>
-                ) : (
-                  <><Icon name="plus" size={16} /> Agregar</>
-                )}
-              </button>
-              <button type="button" className="spotlight__surprise" onClick={surpriseMe}>
-                🎲 Sorprendeme
-              </button>
+          <button
+            type="button"
+            className="spotlight__open"
+            onClick={() => navigate("/descubrir/vino", { state: { wine: spotlight } })}
+            aria-label={`Ver detalle de ${spotlight.name}`}
+          >
+            <div className="spotlight__art">
+              <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={140} />
             </div>
+            <div className="spotlight__body">
+              <span className="spotlight__kicker">
+                {surprised ? "🎲 Una sorpresa" : "✦ Vino del día"}
+              </span>
+              <h2 className="spotlight__name">{spotlight.name}</h2>
+              <p className="spotlight__meta">
+                {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
+              </p>
+              {(spotlight.varietal || spotlight.type) && (
+                <span className="spotlight__tags">
+                  {spotlight.type && spotlight.type !== "unknown" && (
+                    <span className="wine-type-badge">{WINE_TYPE_LABELS[spotlight.type]}</span>
+                  )}
+                  {spotlight.varietal && <span className="spotlight__grape">{spotlight.varietal}</span>}
+                </span>
+              )}
+            </div>
+          </button>
+          <div className="spotlight__actions">
+            <button
+              type="button"
+              className={`spotlight__add ${addedIds.has(spotlight.id) ? "is-added" : ""}`}
+              onClick={() => handleWant(spotlight)}
+              disabled={addingId === spotlight.id || addedIds.has(spotlight.id)}
+            >
+              {addedIds.has(spotlight.id) ? (
+                <><Icon name="check" size={16} /> Guardado</>
+              ) : (
+                <><Icon name="heart" size={16} /> Quiero probar</>
+              )}
+            </button>
+            <button type="button" className="spotlight__surprise" onClick={surpriseMe}>
+              🎲 Sorprendeme
+            </button>
           </div>
         </section>
       )}
@@ -165,15 +180,29 @@ export default function DiscoverPage() {
           <div className="discover-rail">
             {featured.map((wine) => (
               <article key={wine.id} className="discover-wine">
-                <div className="discover-wine__art">
-                  <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
-                  {wine.type && wine.type !== "unknown" && (
-                    <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="discover-wine__open"
+                  onClick={() => navigate("/descubrir/vino", { state: { wine } })}
+                  aria-label={`Ver detalle de ${wine.name}`}
+                >
+                  <div className="discover-wine__art">
+                    <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
+                    {wine.type && wine.type !== "unknown" && (
+                      <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
+                    )}
+                  </div>
+                </button>
                 <div className="discover-wine__body">
-                  <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
+                  <button
+                    type="button"
+                    className="discover-wine__namebtn"
+                    onClick={() => navigate("/descubrir/vino", { state: { wine } })}
+                  >
+                    <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
+                  </button>
                   <p className="discover-wine__winery">{wine.winery}</p>
+                  {wine.varietal && <p className="discover-wine__grape">{wine.varietal}</p>}
                   {wine.region && (
                     <p className="discover-wine__region">
                       <Icon name="map-pin" size={12} /> {wine.region}
@@ -182,15 +211,15 @@ export default function DiscoverPage() {
                   <button
                     type="button"
                     className={`discover-wine__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
-                    onClick={() => handleAdd(wine)}
+                    onClick={() => handleWant(wine)}
                     disabled={addingId === wine.id || addedIds.has(wine.id)}
                   >
                     {addedIds.has(wine.id) ? (
-                      <><Icon name="check" size={15} /> En tu bodega</>
+                      <><Icon name="check" size={15} /> Guardado</>
                     ) : addingId === wine.id ? (
-                      "Agregando…"
+                      "Guardando…"
                     ) : (
-                      <><Icon name="plus" size={15} /> Agregar</>
+                      <><Icon name="heart" size={15} /> Quiero probar</>
                     )}
                   </button>
                 </div>

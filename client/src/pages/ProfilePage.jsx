@@ -11,6 +11,8 @@ import { errorHaptic } from "../utils/haptics";
 import { getLevel, getAchievements, countUnlocked } from "../utils/gamification";
 import Icon from "../components/Icon";
 import ProfileEditor from "../components/ProfileEditor";
+import PreferencesEditor from "../components/PreferencesEditor";
+import PasswordEditor from "../components/PasswordEditor";
 import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
@@ -25,6 +27,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPrefs, setShowPrefs] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -125,6 +129,18 @@ export default function ProfilePage() {
         <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
           <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
           <span className="account-item__label">Editar perfil</span>
+          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+        </button>
+
+        <button className="account-item" type="button" onClick={() => setShowPrefs(true)}>
+          <span className="account-item__icon"><Icon name="sparkles" size={18} /></span>
+          <span className="account-item__label">Preferencias de gusto</span>
+          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+        </button>
+
+        <button className="account-item" type="button" onClick={() => setShowPassword(true)}>
+          <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+          <span className="account-item__label">Cambiar contraseña</span>
           <Icon name="chevron-down" size={16} className="account-item__chevron" />
         </button>
 
@@ -346,6 +362,17 @@ export default function ProfilePage() {
           onSave={handleSaveProfile}
         />
       )}
+
+      {showPrefs && (
+        <PreferencesEditor
+          initialTypes={profileData.favoriteTypes || []}
+          initialVarietals={profileData.favoriteVarietals || []}
+          onClose={() => setShowPrefs(false)}
+          onSaved={(prefs) => setProfileData((p) => ({ ...p, ...prefs }))}
+        />
+      )}
+
+      {showPassword && <PasswordEditor onClose={() => setShowPassword(false)} />}
     </div>
   );
 }

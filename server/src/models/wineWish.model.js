@@ -23,6 +23,9 @@ const wineWishSchema = new mongoose.Schema(
     varietal: { type: String, trim: true, default: "" },
     vintage:  { type: Number },
     notes:    { type: String, trim: true, default: "" },
+    image:    { type: String, trim: true, default: "" },
+    // Un guardado puede marcarse como favorito (además de "lo quiero probar").
+    favorite: { type: Boolean, default: false },
     source: {
       type: String,
       enum: ["manual", "ocr", "recomendación", "search"],

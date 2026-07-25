@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecommendations } from "../hooks/useRecommendations";
-import { useWineCollection } from "../hooks/useWineCollection";
+import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
-import { searchWines, describeWine } from "../services/wineSearchApi";
+import { searchWines } from "../services/wineSearchApi";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -11,27 +11,16 @@ import WinePhoto from "../components/WinePhoto";
 import {
   WINE_TYPE_LABELS,
   FOOD_LABELS,
-  MOOD_LABELS,
   FOOD_PAIRINGS,
 } from "../data/wineReference";
 import "../styles/pages/SuggestionsPage.css";
 
 const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
-const MOOD_OPTIONS = Object.entries(MOOD_LABELS).map(([value, label]) => ({ value, label }));
-
-// Varietales típicos por estilo, para poder sugerir del catálogo argentino
-// cuando la bodega del usuario todavía no tiene nada que coincida.
-const MOOD_VARIETALS = {
-  liviano: ["Pinot Noir", "Torrontés", "Sauvignon Blanc"],
-  cuerpo: ["Malbec", "Cabernet Sauvignon", "Tannat"],
-  festivo: ["Extra Brut", "Chardonnay"],
-  cualquiera: ["Malbec", "Torrontés"],
-};
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
-  const { wines, addWine } = useWineCollection();
-  const { showError, addToast } = useToast();
+  const { addWish } = useWishlist();
+  const { showError, showSuccess } = useToast();
   const { suggestions, loading, error, context, fetchSuggestions, clearContext } =
     useRecommendations();
 
@@ -40,35 +29,21 @@ export default function SuggestionsPage() {
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
-  // Descripción expandible por card (lazy: se pide al tocar).
-  const [expandedId, setExpandedId] = useState(null);
-  const [descById, setDescById] = useState({});
 
-  const toggleDiscover = (wine) => {
-    const open = expandedId === wine.id;
-    setExpandedId(open ? null : wine.id);
-    if (open || descById[wine.id]) return;
-    setDescById((m) => ({ ...m, [wine.id]: { loading: true } }));
-    describeWine(wine)
-      .then((info) => setDescById((m) => ({ ...m, [wine.id]: { info } })))
-      .catch(() => setDescById((m) => ({ ...m, [wine.id]: { failed: true } })));
-  };
+  // Abre el detalle del vino de catálogo (no está en la bodega): le pasamos el
+  // vino por router state para que la ficha no tenga que volver a buscarlo.
+  const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
-  const hasContext = Boolean(context.food || context.mood);
+  const hasContext = Boolean(context.food);
 
-  const defaultWines = [...wines]
-    .filter((w) => Number(w.quantity) > 0)
-    .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
-    .slice(0, 3);
-
-  const cellarWines = hasContext ? suggestions : defaultWines;
+  // Sin contexto no mostramos nada de la bodega: el Sommelier sugiere solo
+  // cuando elegís con qué vas a comer. Si entre las sugerencias hay vinos que
+  // ya tenés, aparecen ahí (eso está bien), pero no se listan por defecto.
+  const cellarWines = hasContext ? suggestions : [];
 
   // Buscamos en el catálogo los varietales que pegan con el contexto elegido.
   const loadDiscover = useCallback(async (ctx) => {
-    const varietals = [
-      ...(FOOD_PAIRINGS[ctx.food]?.varietals || []),
-      ...(MOOD_VARIETALS[ctx.mood] || []),
-    ];
+    const varietals = [...(FOOD_PAIRINGS[ctx.food]?.varietals || [])];
     const queries = [...new Set(varietals)].slice(0, 3);
     if (queries.length === 0) {
       setDiscover([]);
@@ -107,36 +82,31 @@ export default function SuggestionsPage() {
 
   const applyContext = (patch) => {
     const next = { ...context, ...patch };
-    if (next.food || next.mood) fetchSuggestions(next);
+    if (next.food) fetchSuggestions(next);
     else clearContext();
   };
 
   const handleFood = (value) =>
     applyContext({ food: context.food === value ? null : value });
 
-  const handleMood = (value) =>
-    applyContext({ mood: context.mood === value ? null : value });
-
-  const handleAddDiscover = async (wine) => {
+  // "Quiero probar": guarda el vino en Guardados (no en la bodega).
+  const handleWantDiscover = async (wine) => {
     if (addingId || addedIds.has(wine.id)) return;
     try {
       setAddingId(wine.id);
-      const created = await addWine({
+      await addWish({
         name: wine.name,
         winery: wine.winery || "",
         region: wine.region || "",
         varietal: wine.varietal || "",
         type: wine.type || "unknown",
         image: wine.image || "",
-        quantity: 1,
+        source: "recomendación",
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
-      addToast(`"${created.name}" agregado a tu bodega`, "success", 5000, {
-        label: "Ver",
-        onClick: () => navigate(`/vino/${created._id}`),
-      });
+      showSuccess(`"${wine.name}" guardado en tu lista`);
     } catch {
-      showError("No se pudo agregar el vino. Probá de nuevo.");
+      showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
       setAddingId(null);
     }
@@ -166,22 +136,6 @@ export default function SuggestionsPage() {
           </div>
         </div>
 
-        <div className="context-group">
-          <span className="context-label">¿Qué estilo buscás?</span>
-          <div className="chip-row">
-            {MOOD_OPTIONS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                className={`context-chip ${context.mood === value ? "context-chip--active" : ""}`}
-                onClick={() => handleMood(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {hasContext && (
           <button type="button" className="clear-context-btn" onClick={clearContext}>
             Quitar filtros
@@ -192,7 +146,7 @@ export default function SuggestionsPage() {
       <section className="suggestions-results">
         {!hasContext && (
           <p className="suggestions-hint">
-            Elegí una comida o un estilo y te decimos qué abrir.
+            Elegí una comida y te decimos qué abrir.
           </p>
         )}
 
@@ -201,9 +155,7 @@ export default function SuggestionsPage() {
 
         {!loading && !error && cellarWines.length > 0 && (
           <>
-            <p className="suggestions-results__label">
-              {hasContext ? "De tu bodega" : "Destacados de tu bodega"}
-            </p>
+            <p className="suggestions-results__label">De tu bodega</p>
             <ul className="suggestions-list">
               {cellarWines.map((wine) => (
                 <li
@@ -256,76 +208,53 @@ export default function SuggestionsPage() {
                     : "No tenés nada que pegue, pero probá estos"}
                 </p>
                 <ul className="discover-list">
-                  {discover.map((wine) => {
-                    const expanded = expandedId === wine.id;
-                    const d = descById[wine.id];
-                    return (
-                      <li key={wine.id} className={`discover-card ${expanded ? "is-expanded" : ""}`}>
-                        <div className="discover-card__row">
-                          <button
-                            type="button"
-                            className="discover-card__main"
-                            onClick={() => toggleDiscover(wine)}
-                            aria-expanded={expanded}
-                          >
-                            <span className="discover-card__thumb">
-                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} />
+                  {discover.map((wine) => (
+                    <li key={wine.id} className="discover-card">
+                      <div className="discover-card__row">
+                        <button
+                          type="button"
+                          className="discover-card__main"
+                          onClick={() => openCatalog(wine)}
+                        >
+                          <span className="discover-card__thumb">
+                            <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} />
+                          </span>
+                          <span className="discover-card__body">
+                            <span className="discover-card__name">{wine.name}</span>
+                            <span className="discover-card__winery">{wine.winery}</span>
+                            <span className="discover-card__meta">
+                              {wine.type && wine.type !== "unknown" && (
+                                <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
+                              )}
+                              {wine.varietal && (
+                                <span className="discover-card__chip">{wine.varietal}</span>
+                              )}
+                              {wine.vintage && (
+                                <span className="discover-card__chip">{wine.vintage}</span>
+                              )}
+                              {wine.region && (
+                                <span className="discover-card__chip">
+                                  <Icon name="map-pin" size={12} /> {wine.region}
+                                </span>
+                              )}
                             </span>
-                            <span className="discover-card__body">
-                              <span className="discover-card__name">{wine.name}</span>
-                              <span className="discover-card__winery">{wine.winery}</span>
-                              <span className="discover-card__meta">
-                                {wine.type && wine.type !== "unknown" && (
-                                  <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
-                                )}
-                                {wine.region && (
-                                  <span className="discover-card__chip">
-                                    <Icon name="map-pin" size={12} /> {wine.region}
-                                  </span>
-                                )}
-                              </span>
-                            </span>
-                            <Icon name="chevron-down" size={18} className="discover-card__caret" />
-                          </button>
+                          </span>
+                          <Icon name="arrow-right" size={18} className="discover-card__caret" />
+                        </button>
 
-                          <button
-                            type="button"
-                            className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
-                            onClick={() => handleAddDiscover(wine)}
-                            disabled={addingId === wine.id || addedIds.has(wine.id)}
-                            aria-label={`Agregar ${wine.name} a mi bodega`}
-                          >
-                            {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="plus" size={16} />}
-                          </button>
-                        </div>
-
-                        {expanded && (
-                          <div className="discover-card__detail">
-                            {d?.loading && <LoadingSkeleton type="inline" count={2} />}
-                            {d?.failed && <p className="discover-card__failed">No pudimos cargar la descripción ahora.</p>}
-                            {d?.info && (
-                              <>
-                                {d.info.summary && <p className="discover-card__summary">{d.info.summary}</p>}
-                                {d.info.aromas?.length > 0 && (
-                                  <div className="discover-card__chips">
-                                    {d.info.aromas.map((a) => (
-                                      <span key={a} className="discover-card__aroma">{a}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                {d.info.foodPairing?.length > 0 && (
-                                  <p className="discover-card__pair">
-                                    <Icon name="sparkles" size={13} /> Marida con: {d.info.foodPairing.slice(0, 3).join(", ")}
-                                  </p>
-                                )}
-                                <p className="discover-card__ia">Descripción orientativa generada con IA.</p>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
+                        <button
+                          type="button"
+                          className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
+                          onClick={() => handleWantDiscover(wine)}
+                          disabled={addingId === wine.id || addedIds.has(wine.id)}
+                          aria-label={`Guardar ${wine.name} en tu lista`}
+                          title="Quiero probar"
+                        >
+                          {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="heart" size={16} />}
+                        </button>
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               </>
             )}

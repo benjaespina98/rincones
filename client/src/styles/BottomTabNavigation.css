@@ -188,9 +188,11 @@
   }
 
   .sidebar-brand__mark {
-    font-size: 26px;
-    line-height: 1;
-    filter: drop-shadow(0 4px 10px rgba(167, 130, 239, 0.4));
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: block;
+    filter: drop-shadow(0 4px 10px rgba(167, 130, 239, 0.35));
   }
 
   .sidebar-brand__name {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getWishes, createWish, deleteWish, convertWishToWine } from "../services/wishApi";
+import { getWishes, createWish, updateWish, deleteWish, convertWishToWine } from "../services/wishApi";
 
 export function useWishlist(onWineAdded) {
   const [wishes, setWishes] = useState([]);
@@ -30,6 +30,12 @@ export function useWishlist(onWineAdded) {
     setWishes((prev) => prev.filter((w) => w._id !== id));
   }, []);
 
+  const toggleWishFavorite = useCallback(async (id, favorite) => {
+    const updated = await updateWish(id, { favorite });
+    setWishes((prev) => prev.map((w) => (w._id === id ? updated : w)));
+    return updated;
+  }, []);
+
   const convertToWine = useCallback(async (id, purchaseData) => {
     const wine = await convertWishToWine(id, purchaseData);
     setWishes((prev) => prev.filter((w) => w._id !== id));
@@ -37,5 +43,5 @@ export function useWishlist(onWineAdded) {
     return wine;
   }, [onWineAdded]);
 
-  return { wishes, loading, addWish, removeWish, convertToWine, reload: loadWishes };
+  return { wishes, loading, addWish, removeWish, toggleWishFavorite, convertToWine, reload: loadWishes };
 }

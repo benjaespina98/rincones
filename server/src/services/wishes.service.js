@@ -6,20 +6,50 @@ async function listWishes(userId) {
 }
 
 async function createWish(userId, payload) {
-  const { name, winery, type, region, varietal, vintage, notes, source, priority } = payload;
+  const { name, winery, type, region, varietal, vintage, notes, source, priority, image, favorite } = payload;
+  const cleanName = String(name || "").trim();
+  const cleanWinery = winery?.trim() || "";
+
+  // Evitar duplicados: si ya está guardado el mismo vino, actualizamos datos que
+  // falten (foto, favorito) en vez de crear otra fila.
+  const existing = await WineWish.findOne({
+    userId,
+    name: new RegExp(`^${cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+    winery: new RegExp(`^${cleanWinery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+  });
+  if (existing) {
+    if (image && !existing.image) existing.image = image;
+    if (favorite) existing.favorite = true;
+    if (varietal && !existing.varietal) existing.varietal = varietal.trim();
+    if (region && !existing.region) existing.region = region.trim();
+    await existing.save();
+    return existing;
+  }
 
   return WineWish.create({
     userId,
-    name: String(name || "").trim(),
-    winery: winery?.trim() || "",
+    name: cleanName,
+    winery: cleanWinery,
     type: type || "unknown",
     region: region?.trim() || "",
     varietal: varietal?.trim() || "",
     vintage: vintage ? parseInt(vintage) : undefined,
     notes: notes?.trim() || "",
+    image: image?.trim() || "",
+    favorite: Boolean(favorite),
     source: source || "manual",
     priority: priority ? parseInt(priority) : 2,
   });
+}
+
+async function updateWish(userId, id, patch = {}) {
+  const wish = await WineWish.findOne({ _id: id, userId });
+  if (!wish) return null;
+  if (typeof patch.favorite === "boolean") wish.favorite = patch.favorite;
+  if (typeof patch.notes === "string") wish.notes = patch.notes.trim();
+  if (patch.priority) wish.priority = parseInt(patch.priority);
+  await wish.save();
+  return wish;
 }
 
 async function deleteWish(userId, id) {
@@ -52,4 +82,4 @@ async function convertWishToWine(userId, id, purchaseData = {}) {
   return wine;
 }
 
-module.exports = { listWishes, createWish, deleteWish, convertWishToWine };
+module.exports = { listWishes, createWish, updateWish, deleteWish, convertWishToWine };
