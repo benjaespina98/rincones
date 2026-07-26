@@ -38,7 +38,10 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ addToast, removeToast, showSuccess, showError, showWarning, showInfo }}>
       {children}
-      <div className="toast-container">
+      {/* Región viva: casi todo el feedback de la app (guardar, borrar, favoritos,
+          errores) vive en toasts, así que sin esto un lector de pantalla no
+          anuncia nada. Los errores además usan role="alert" en cada Toast. */}
+      <div className="toast-container" role="status" aria-live="polite" aria-atomic="false">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}

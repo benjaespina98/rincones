@@ -15,14 +15,22 @@
   /* Accent Colors */
   --accent: #7e59c9;
   --accent-light: #a782ef;
+  --accent-strong: #6c48b4;
   --accent-soft: #cbb5f7;
   --accent-muted: rgba(126, 89, 201, 0.18);
   --wine: #c6465f;
   --wine-soft: rgba(198, 70, 95, 0.16);
   --success: #2fb67b;
+  --success-soft: rgba(47, 182, 123, 0.16);
+  --success-text: #7fe3b4;
   --gold: #f2b737;
   --gold-soft: #ffd98a;
-  
+  --danger: #e2555f;
+  --danger-soft: rgba(226, 85, 95, 0.16);
+  --danger-text: #f0a9b6;
+  --favorite: #ff6ea0;
+  --favorite-soft: rgba(255, 110, 160, 0.14);
+
   /* Text Colors */
   --text: #f3f5ff;
   --text-secondary: #c3bddd;
@@ -75,6 +83,40 @@
   --font-family-serif: "Fraunces", "Times New Roman", serif;
   --font-family-sans: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-family-base: var(--font-family-sans);
+
+  /* Escala tipográfica. Antes había 68 tamaños distintos (0.72/0.74/0.78/0.8/
+     0.82/0.85/0.86rem…), lo que hacía que dos textos del mismo rango se vieran
+     apenas diferentes sin motivo. Estos 10 pasos cubren toda la app. */
+  --text-2xs: 0.7rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8rem;
+  --text-base: 0.85rem;
+  --text-md: 0.9rem;
+  --text-lg: 1rem;
+  --text-xl: 1.1rem;
+  --text-2xl: 1.25rem;
+  --text-3xl: 1.5rem;
+  --text-display: clamp(1.6rem, 5vw, 2.1rem);
+
+  /* Alturas de control: los botones iban de 32 a 50px sin criterio. */
+  --control-sm: 34px;
+  --control-md: 42px;
+  --control-lg: 48px;
+
+  /* Escala de z-index. Antes eran 13 valores sueltos y había una colisión real
+     (Onboarding y SettingsSheet ambos en 1400) y un bug: ProfileEditor en 200
+     quedaba DEBAJO de la barra de navegación (1000). */
+  --z-base: 1;
+  --z-sticky: 90;
+  --z-dropdown: 500;
+  --z-nav: 1000;
+  --z-overlay: 1200;
+  --z-modal: 1300;
+  --z-toast: 1500;
+
+  /* Anillo de foco: estaba copiado 11 veces con 5 alfas y 2 colores distintos. */
+  --focus-ring: 0 0 0 3px rgba(167, 130, 239, 0.35);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -170,6 +212,34 @@ button:not(:disabled):active {
    del evento puede ser el <svg> y romper delegación o handlers con closest(). */
 button svg {
   pointer-events: none;
+}
+
+/* ── Vocabulario de motion compartido ──────────────────────────────────────
+   Las keyframes de CSS son globales por nombre, así que tenerlas repetidas por
+   archivo no solo duplicaba código: `fadeIn` estaba definida dos veces con
+   cuerpos DISTINTOS (una desplazaba, la otra no) y ganaba la que cargara última.
+   Estas cuatro cubren todo lo que hace la app. */
+@keyframes rincon-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Entrada estándar: aparece subiendo. Reemplaza a onbUp, settingsPop, modalPop,
+   profileEditorIn, rowIn, spotlightIn, discoverWineIn, suggestionIn, authIn… */
+@keyframes rincon-enter-up {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Entrada desde arriba: para cosas que se despliegan bajo su disparador
+   (filas expandidas, paneles del scanner). */
+@keyframes rincon-enter-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rincon-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -272,14 +342,5 @@ img {
   color: var(--text);
 }
 
-/* Respect users who prefer less motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* (El bloque prefers-reduced-motion vive junto al vocabulario de motion, más
+   arriba en este mismo archivo. Acá había una copia idéntica.) */

@@ -64,7 +64,7 @@
   outline: none;
   border-color: var(--accent-light);
   background: var(--surface-2);
-  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 /* Ocultar la X nativa del type=search para no chocar con nuestro botón. */
@@ -109,6 +109,15 @@
   box-shadow: var(--shadow-md);
   overflow: hidden;
   animation: spotlightIn 420ms var(--ease-out) both;
+}
+
+/* Placeholder del vino del día mientras carga: reserva el alto exacto para que
+   la home no salte cuando llegan los datos. */
+.spotlight--skeleton {
+  min-height: 208px;
+  animation: none;
+  background: var(--elevated);
+  border-color: var(--line);
 }
 
 /* La zona foto+texto es un botón que abre la ficha del vino. */

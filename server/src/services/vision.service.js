@@ -3,8 +3,13 @@
 // Si no hay GEMINI_API_KEY, no está configurado y el controlador cae al OCR.
 
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
+const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 12000;
+// Tope total de la llamada. El cliente aborta a los 30s: el server tiene que
+// perder esa carrera siempre, para que el usuario vea un error real y no una
+// petición colgada mientras seguimos quemando cuota.
+const BUDGET_MS = 22000;
 
 const isVisionConfigured = isGeminiConfigured;
 
@@ -45,34 +50,89 @@ const normalizeVintage = (raw = "") => {
 };
 
 const PROMPT = `Sos un sommelier experto en reconocer vinos por su etiqueta.
-Analizá esta foto de la etiqueta de una botella de vino y extraé SOLO lo que puedas leer con seguridad.
+Analizá esta foto y extraé SOLO lo que puedas leer con seguridad.
 
-Campos:
-- name: nombre del vino tal como aparece (la línea principal/marca del vino), sin incluir la bodega si se puede separar.
-- winery: bodega o productor.
-- vintage: año de cosecha (4 dígitos, ej: 2019). Buscá el año en cualquier parte de la etiqueta (frente, cuello, contraetiqueta). NO confundas con graduación alcohólica, volumen (750 ml) ni códigos. Si no ves ningún año, vacío.
-- varietal: cepa/uva (ej: Malbec, Cabernet Sauvignon, Cabernet Franc, Chardonnay, Sauvignon Blanc, Torrontés, Bonarda, Syrah, Merlot, Pinot Noir, Tempranillo, Tannat). Si es un corte/blend de varias, poné "Blend". Usá el nombre completo y bien escrito de la uva aunque en la etiqueta esté abreviado (ej: "Cab. Sauv." -> "Cabernet Sauvignon").
-- region: región o país de origen si aparece (ej: Luján de Cuyo, Mendoza; Valle de Uco).
-- type: tipo de vino que veas (red, white, rosé, sparkling, fortified) o "unknown". Inferí por la uva si no lo dice: Malbec/Cabernet/Syrah/Bonarda/Merlot = red; Chardonnay/Sauvignon Blanc/Torrontés = white.
+${FIELD_CONVENTION}
+
+Además:
+- vintage: año de cosecha (4 dígitos, ej: 2019). Buscalo en cualquier parte de la etiqueta
+  (frente, cuello, contraetiqueta). NO confundas con la graduación alcohólica, el volumen
+  (750 ml) ni códigos de lote. Si no ves ningún año, vacío.
+- region: región o país de origen si aparece (ej: "Luján de Cuyo, Mendoza", "Valle de Uco").
+- type: red, white, rosé, sparkling, fortified o "unknown". Si no lo dice la etiqueta, inferilo
+  por la uva: Malbec/Cabernet/Syrah/Bonarda/Merlot = red; Chardonnay/Sauvignon Blanc/Torrontés = white.
 - isWineLabel: true si la imagen realmente es la etiqueta de un vino; false si no lo es.
 
-Reglas: si un dato no está visible o no estás seguro, devolvé string vacío. No inventes datos.`;
+CONFIANZA (objeto "confidence", un entero 0-100 por campo). Puntuá según lo que hiciste
+para obtener el dato, no según tu impresión general:
+- 95-100: el texto está nítido y el dato aparece LITERAL en la etiqueta.
+- 70-94: lo leí, pero con alguna duda (letra tapada, brillo, cursiva difícil).
+- 40-69: lo INFERÍ, no lo leí (deduje el tipo por la uva, la región por la bodega).
+- 1-39: es una adivinanza.
+- 0: el campo va vacío.
 
+Reglas obligatorias de la confianza:
+1. Todo campo que devuelvas vacío DEBE tener confianza 0.
+2. Si dudás entre si un texto es "line" o "name", ambos van con 60 o menos.
+3. Un "type" inferido desde la uva nunca supera 69.
+
+Si un dato no está visible o no estás seguro, devolvé string vacío. No inventes datos.`;
+
+// El objeto `confidence` va ÚLTIMO a propósito: Gemini emite en el orden del
+// schema, así escribe primero el valor y después lo puntúa (si no, tiende a
+// poner 95 en todo por reflejo).
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
-    name: { type: "string" },
     winery: { type: "string" },
-    vintage: { type: "string" },
+    line: { type: "string" },
+    name: { type: "string" },
     varietal: { type: "string" },
+    vintage: { type: "string" },
     region: { type: "string" },
     type: {
       type: "string",
       enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
     },
     isWineLabel: { type: "boolean" },
+    confidence: {
+      type: "object",
+      properties: {
+        winery: { type: "integer" },
+        line: { type: "integer" },
+        name: { type: "integer" },
+        varietal: { type: "integer" },
+        vintage: { type: "integer" },
+        region: { type: "integer" },
+        type: { type: "integer" },
+      },
+      required: ["winery", "line", "name", "varietal", "vintage", "region", "type"],
+    },
   },
-  required: ["name", "isWineLabel"],
+  required: ["winery", "line", "name", "varietal", "isWineLabel", "confidence"],
+};
+
+const CONFIDENCE_FIELDS = ["winery", "line", "name", "varietal", "vintage", "region", "type"];
+
+/**
+ * Sanea la confianza que devolvió el modelo.
+ *
+ * La regla "campo vacío ⇒ confianza 0" es mecánicamente verificable, así que la
+ * aplicamos acá en vez de confiar en que el modelo la respete. También acota a
+ * 0-100 y trata un campo faltante como 0 (desconocido), nunca como alta certeza.
+ */
+const clampConfidence = (raw, values) => {
+  const out = {};
+  for (const field of CONFIDENCE_FIELDS) {
+    const empty = !values[field] || (field === "type" && values[field] === "unknown");
+    if (empty) {
+      out[field] = 0;
+      continue;
+    }
+    const n = Number(raw?.[field]);
+    out[field] = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
+  }
+  return out;
 };
 
 /**
@@ -92,16 +152,25 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
     ],
     schema: RESPONSE_SCHEMA,
     timeoutMs: TIMEOUT_MS,
+    budgetMs: BUDGET_MS,
   });
 
-  return {
-    name: String(parsed.name || "").trim(),
+  const values = {
     winery: String(parsed.winery || "").trim(),
-    vintage: normalizeVintage(parsed.vintage),
+    line: String(parsed.line || "").trim(),
+    name: String(parsed.name || "").trim(),
     varietal: normalizeVarietal(parsed.varietal),
+    vintage: normalizeVintage(parsed.vintage),
     region: String(parsed.region || "").trim(),
     type: String(parsed.type || "unknown").trim() || "unknown",
+  };
+
+  return {
+    ...values,
+    // Nombre visible, compuesto con la MISMA regla que el catálogo curado.
+    displayName: composeDisplayName(values),
     isWineLabel: parsed.isWineLabel !== false,
+    confidence: clampConfidence(parsed.confidence, values),
   };
 };
 

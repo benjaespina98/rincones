@@ -4,6 +4,8 @@ import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
@@ -11,11 +13,9 @@ import { createWish } from "../services/wishApi";
 import { searchWines } from "../services/wineSearchApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic } from "../utils/haptics";
+import ScanReview from "../components/ScanReview";
+import { matchCatalogWine } from "../services/wineSearchApi";
 import "../styles/pages/ScanWinePage.css";
-
-// Umbral de confianza para guardar sin preguntar. Por debajo pedimos confirmar
-// el nombre, que es el único dato que realmente no podemos inventar.
-const CONFIDENCE_THRESHOLD = 45;
 
 // Atajos rápidos por varietal para arrancar la búsqueda sin escribir.
 const QUICK_VARIETALS = [
@@ -26,6 +26,7 @@ const QUICK_VARIETALS = [
 const toWinePayload = (draft) => ({
   name: draft.name?.trim() || "Vino sin nombre",
   winery: draft.winery?.trim() || "",
+  line: draft.line?.trim() || "",
   region: draft.region?.trim() || "",
   varietal: draft.varietal?.trim() || "",
   vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
@@ -40,8 +41,9 @@ export default function ScanWinePage() {
   const { addWine } = useWineCollection();
 
   const [showScanner, setShowScanner] = useState(false);
-  // Sólo se usa cuando la lectura fue dudosa: pedimos confirmar el nombre.
-  const [pending, setPending] = useState(null);
+  // Lectura pendiente de revisión. SIEMPRE pasamos por acá tras una foto: es lo
+  // que evita que un dato mal leído entre a la bodega sin que nadie lo vea.
+  const [review, setReview] = useState(null);
   const [saving, setSaving] = useState(false);
 
   // Prefill desde la home Descubrí (?q=…): buscás allá y llegás acá con resultados.
@@ -52,6 +54,9 @@ export default function ScanWinePage() {
   const [searched, setSearched] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
   const [wishedIds, setWishedIds] = useState(() => new Set());
+  // Cambia al tocar "Reintentar" y vuelve a disparar la búsqueda sin que el
+  // usuario tenga que tocar el texto del buscador.
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -79,7 +84,7 @@ export default function ScanWinePage() {
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, retryToken]);
 
   // Guarda el vino escaneado en la bodega y lleva directo a su ficha, que es
   // donde el usuario ve la descripción y puede editar/agregar momentos.
@@ -114,65 +119,79 @@ export default function ScanWinePage() {
         n.delete(result.id);
         return n;
       });
-      showError("No se pudo agregar a la lista de deseos");
+      showError("No se pudo guardar el vino en tu lista");
     }
   };
 
+  // Tras la foto SIEMPRE mostramos la revisión. Enriquecemos con el catálogo,
+  // pero sólo si hay una coincidencia confiable (el server aplica vetos duros):
+  // antes se tomaba el primer resultado a ciegas y podía pisar región/uva/cosecha
+  // con las de otra botella.
   const handleCapture = async (payload) => {
     setShowScanner(false);
-    const detected = (payload.label || "").trim();
 
-    // Completamos huecos con el catálogo antes de guardar, así el vino entra
-    // con bodega/región/tipo aunque la etiqueta se haya leído a medias.
-    let match = null;
-    if (detected.length >= 3) {
+    const values = {
+      winery: payload.winery || "",
+      line: payload.line || "",
+      properName: payload.properName || "",
+      varietal: payload.varietal || "",
+      vintage: payload.vintage || "",
+      region: payload.region || "",
+      type: payload.type || "unknown",
+    };
+    const confidence = { ...(payload.confidence || {}) };
+
+    let matchedFrom = null;
+    if (values.winery || values.line || values.properName) {
       try {
-        [match] = await searchWines(detected);
+        const match = await matchCatalogWine(values);
+        if (match) {
+          matchedFrom = match.source;
+          // Sólo rellenamos huecos; nunca pisamos algo que se leyó con seguridad.
+          for (const field of ["winery", "line", "varietal", "region", "type"]) {
+            const current = values[field];
+            const isEmpty = !current || (field === "type" && current === "unknown");
+            if (isEmpty && match[field]) {
+              values[field] = match[field];
+              // Dato del catálogo: bueno, pero no leído de ESTA botella.
+              confidence[field] = Math.max(confidence[field] || 0, 75);
+            }
+          }
+        }
       } catch {
-        // Sin enriquecimiento: guardamos lo que leyó el escáner.
+        // Sin enriquecimiento: revisamos lo que leyó el escáner.
       }
     }
 
-    const draft = {
-      name: detected || match?.name || "",
-      winery: payload.winery || match?.winery || "",
-      region: payload.region || match?.region || "",
-      varietal: payload.varietal || match?.varietal || "",
-      vintage: payload.vintage || match?.vintage || "",
-      type: payload.type && payload.type !== "unknown" ? payload.type : match?.type || "unknown",
-      image: payload.preview || match?.image || "",
-    };
-
-    const confident =
-      !payload.ocrFailed &&
-      draft.name.length >= 3 &&
-      (payload.confidence == null || payload.confidence >= CONFIDENCE_THRESHOLD);
-
-    if (!confident) {
-      setPending(draft);
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await saveWine(draft);
-    } catch {
-      showError("No se pudo guardar el vino. Probá de nuevo.");
-      setPending(draft);
-    } finally {
-      setSaving(false);
-    }
+    setReview({
+      photo: payload.preview || "",
+      source: payload.source || "",
+      values,
+      confidence,
+      matchedFrom,
+    });
   };
 
-  const handleConfirmPending = async () => {
-    if (!pending?.name.trim()) {
-      showError("Falta el nombre del vino");
+  // Carga manual: la misma pantalla de revisión, con todo vacío. Antes "Cargar a
+  // mano" sólo dejaba escribir el nombre y el vino entraba con type "unknown".
+  const startManual = () =>
+    setReview({
+      photo: "",
+      source: "manual",
+      values: { winery: "", line: "", properName: "", varietal: "", vintage: "", region: "", type: "unknown" },
+      confidence: {},
+      matchedFrom: null,
+    });
+
+  const handleConfirmReview = async (draft) => {
+    if (!draft.name?.trim()) {
+      showError("Escribí al menos la bodega o la línea del vino");
       return;
     }
     try {
       setSaving(true);
-      await saveWine(pending);
-      setPending(null);
+      await saveWine({ ...draft, image: review?.photo || "" });
+      setReview(null);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
@@ -180,88 +199,45 @@ export default function ScanWinePage() {
     }
   };
 
-  const handleWishPending = async () => {
-    if (!pending?.name.trim()) {
-      showError("Falta el nombre del vino");
+  const handleWishReview = async (draft) => {
+    if (!draft.name?.trim()) {
+      showError("Escribí al menos la bodega o la línea del vino");
       return;
     }
     try {
       setSaving(true);
       await createWish({
-        name: pending.name.trim(),
-        winery: pending.winery || "",
-        region: pending.region || "",
-        varietal: pending.varietal || "",
-        type: pending.type || "unknown",
-        source: "ocr",
+        name: draft.name.trim(),
+        winery: draft.winery || "",
+        region: draft.region || "",
+        varietal: draft.varietal || "",
+        type: draft.type || "unknown",
+        source: review?.source === "manual" ? "manual" : "ocr",
       });
-      showSuccess(`"${pending.name.trim()}" agregado a tu lista de deseos`);
-      setPending(null);
+      successHaptic();
+      showSuccess(`"${draft.name.trim()}" guardado en tu lista`);
+      setReview(null);
     } catch {
-      showError("No se pudo agregar a la lista de deseos");
+      showError("No se pudo guardar el vino en tu lista");
     } finally {
       setSaving(false);
     }
   };
 
-  // --- Confirmación de lectura dudosa ---
-  if (pending) {
+  // --- Revisión de la lectura (siempre, tras foto o carga manual) ---
+  if (review) {
     return (
       <div className="scan-wine-page">
-        <div className="scan-confirm">
-          <div className="scan-confirm__media">
-            {pending.image ? (
-              <img src={pending.image} alt="Etiqueta escaneada" />
-            ) : (
-              <span aria-hidden="true">🍷</span>
-            )}
-          </div>
-
-          <p className="scan-confirm__title">¿Cómo se llama este vino?</p>
-          <p className="scan-confirm__hint">
-            {pending.manual
-              ? "Con el nombre alcanza para empezar. El resto lo completás después si querés."
-              : "No pudimos leer la etiqueta con claridad. Confirmá el nombre y listo — el resto lo completás después."}
-          </p>
-
-          <input
-            type="text"
-            className="scan-confirm__input"
-            placeholder="Nombre del vino"
-            value={pending.name}
-            onChange={(e) => setPending((p) => ({ ...p, name: e.target.value }))}
-            aria-label="Nombre del vino"
-            autoFocus
-          />
-
-          {(pending.winery || pending.region) && (
-            <div className="scan-confirm__meta">
-              {pending.winery && <span className="scan-confirm__chip">{pending.winery}</span>}
-              {pending.region && (
-                <span className="scan-confirm__chip">
-                  <Icon name="map-pin" size={13} /> {pending.region}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="result-actions result-actions--column">
-            <button type="button" className="btn-add" onClick={handleConfirmPending} disabled={saving}>
-              {saving ? "Guardando…" : "Agregar a mi bodega"}
-            </button>
-            <button type="button" className="btn-wish" onClick={handleWishPending} disabled={saving}>
-              ♡ A la lista de deseos
-            </button>
-            <button
-              type="button"
-              className="btn-cancel"
-              onClick={() => setPending(null)}
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
+        <ScanReview
+          photo={review.photo}
+          reading={review}
+          matchedFrom={review.matchedFrom}
+          saving={saving}
+          onConfirm={handleConfirmReview}
+          onWish={handleWishReview}
+          onCancel={() => setReview(null)}
+          onRescan={review.source === "manual" ? undefined : () => { setReview(null); setShowScanner(true); }}
+        />
       </div>
     );
   }
@@ -271,7 +247,11 @@ export default function ScanWinePage() {
     return (
       <div className="scan-wine-page">
         <div className="scanner-shell">
-          <LabelScanner onCapture={handleCapture} onCancel={() => setShowScanner(false)} />
+          <LabelScanner
+            onCapture={handleCapture}
+            onCancel={() => setShowScanner(false)}
+            onManual={() => { setShowScanner(false); startManual(); }}
+          />
         </div>
       </div>
     );
@@ -328,15 +308,23 @@ export default function ScanWinePage() {
           {searchLoading && <LoadingSkeleton type="list" count={3} />}
 
           {!searchLoading && searched && searchFailed && (
-            <p className="wine-search__empty">
-              No pudimos completar la búsqueda. Probá de nuevo o escaneá la etiqueta.
-            </p>
+            <ErrorState
+              title="No pudimos completar la búsqueda"
+              hint="Revisá tu conexión, o sacale una foto a la etiqueta."
+              onRetry={() => setRetryToken((t) => t + 1)}
+              compact
+            />
           )}
 
           {!searchLoading && searched && !searchFailed && searchResults.length === 0 && (
-            <p className="wine-search__empty">
-              Sin resultados. Probá otro nombre o escaneá la etiqueta.
-            </p>
+            <EmptyState
+              icon="search"
+              title={`Sin resultados para “${searchQuery.trim()}”`}
+              hint="Probá con el nombre de la bodega, o sacale una foto a la etiqueta y la leemos por vos."
+              actionLabel="Escanear etiqueta"
+              onAction={() => setShowScanner(true)}
+              compact
+            />
           )}
 
           {searchResults.length > 0 && (
@@ -414,22 +402,7 @@ export default function ScanWinePage() {
           <span className="scan-hint">Sacá una foto y lo agregamos solo</span>
         </button>
 
-        <button
-          type="button"
-          className="btn-manual-entry"
-          onClick={() =>
-            setPending({
-              name: "",
-              winery: "",
-              region: "",
-              varietal: "",
-              vintage: "",
-              type: "unknown",
-              image: "",
-              manual: true,
-            })
-          }
-        >
+        <button type="button" className="btn-manual-entry" onClick={startManual}>
           <Icon name="pencil" size={15} /> Cargar a mano
         </button>
       </div>

@@ -30,7 +30,7 @@ export const useWineCollection = () => {
       const statsData = await getWineStats();
       setStats(statsData);
     } catch (err) {
-      setError("Error al cargar los vinos");
+      setError("No pudimos cargar tu bodega.");
       console.error(err);
     } finally {
       setLoading(false);

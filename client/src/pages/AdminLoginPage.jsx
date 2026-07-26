@@ -108,7 +108,7 @@ const AdminLoginPage = () => {
       await login(email, password);
       navigate(nextPath, { replace: true });
     } catch (requestError) {
-      const message = requestError.response?.data?.message || "No se pudo iniciar sesion";
+      const message = requestError.response?.data?.message || "No se pudo iniciar sesión";
       setError(message);
     } finally {
       setLoading(false);
@@ -323,7 +323,7 @@ const AdminLoginPage = () => {
           {error && <p className="admin-error-text">{error}</p>}
 
           <button className="button button--primary admin-submit" type="submit" disabled={loading}>
-            {loading ? "Ingresando..." : "Ingresar al panel"}
+            {loading ? "Ingresando…" : "Ingresar al panel"}
           </button>
         </form>
       </div>

@@ -101,7 +101,7 @@
   outline: none;
   border-color: var(--accent-light);
   background: var(--surface-2);
-  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .wine-search__clear {
@@ -193,7 +193,7 @@
   background: var(--elevated);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
-  animation: wineCardIn 320ms var(--ease-out) both;
+  animation: rincon-enter-up 320ms var(--ease-out) both;
 }
 
 @media (hover: hover) {

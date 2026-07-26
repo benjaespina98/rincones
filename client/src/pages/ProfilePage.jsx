@@ -52,7 +52,7 @@ export default function ProfilePage() {
           setProfileData((prev) => ({ ...prev, ...profile }));
         }
       } catch (err) {
-        showError?.("Error al cargar perfil");
+        showError?.("No pudimos cargar tu perfil");
         console.error(err);
       } finally {
         if (mounted) setLoading(false);
@@ -165,7 +165,11 @@ export default function ProfilePage() {
       <h2 className="profile-section-title">Tu perfil de vino</h2>
 
       {/* Nivel + progreso + logros (gamificación derivada de tus stats) */}
-      {(() => {
+      {/* Sin guard, esto renderizaba "Nv 1 / 0 logros" durante la carga y después
+          saltaba al valor real: un parpadeo de datos falsos. */}
+      {statsLoading && <div className="level-card level-card--skeleton" aria-hidden="true" />}
+
+      {!statsLoading && (() => {
         const total = wineStats?.totals?.total || 0;
         const lvl = getLevel(total);
         const achievements = getAchievements(wineStats);
@@ -214,20 +218,38 @@ export default function ProfilePage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="value">{statsLoading ? "…" : wineStats?.totals?.total || 0}</div>
+          <div className={`value ${statsLoading ? "is-loading" : ""}`}>
+            {statsLoading ? "" : wineStats?.totals?.total || 0}
+          </div>
           <div className="label">Vinos</div>
         </div>
         <div className="stat-card">
-          <div className="value">{statsLoading ? "…" : wineStats?.totals?.consumed || 0}</div>
+          <div className={`value ${statsLoading ? "is-loading" : ""}`}>
+            {statsLoading ? "" : wineStats?.totals?.consumed || 0}
+          </div>
           <div className="label">Probados</div>
         </div>
         <div className="stat-card">
-          <div className="value">
-            {statsLoading ? "…" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "-"}
+          <div className={`value ${statsLoading ? "is-loading" : ""}`}>
+            {statsLoading ? "" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "—"}
           </div>
           <div className="label">Rating</div>
         </div>
       </div>
+
+      {/* Usuario nuevo: sin esto, después de los tres ceros la pantalla se
+          cortaba sin explicar que el perfil de gusto se construye solo. */}
+      {!statsLoading && (wineStats?.totals?.total || 0) === 0 && (
+        <div className="profile-empty">
+          <p className="profile-empty__title">Tu perfil de gusto se arma solo</p>
+          <p className="profile-empty__hint">
+            A medida que cargues vinos vas a ver acá tus uvas y regiones preferidas, y cómo puntuás.
+          </p>
+          <button type="button" className="empty-cta" onClick={() => navigate("/agregar")}>
+            Escanear mi primer vino
+          </button>
+        </div>
+      )}
 
       {wineStats && !statsLoading && (
         <section className="wine-insights">

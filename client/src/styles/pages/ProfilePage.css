@@ -579,3 +579,49 @@
 
   .profile-header { padding: 28px; }
 }
+
+/* ── Estados de carga y vacío del perfil ── */
+
+/* Placeholder del bloque de nivel: reserva el alto para que no salte. */
+.level-card--skeleton {
+  min-height: 104px;
+  background: var(--elevated);
+  border-color: var(--line);
+}
+
+/* Número de stat mientras carga: una barra tenue, no "…" como texto. */
+.stat-card .value.is-loading {
+  display: inline-block;
+  min-width: 2.2ch;
+  height: 1em;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 20px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--line-accent);
+  background: var(--glass);
+}
+
+.profile-empty__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profile-empty__hint {
+  margin: 0;
+  max-width: 320px;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}

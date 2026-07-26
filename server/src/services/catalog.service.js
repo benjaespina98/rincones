@@ -9,6 +9,7 @@
 // extra (con imagen y código de barras) y se ordena por debajo.
 
 const { CATALOG, fold } = require("../data/argentineWines");
+const { identityKey, composeDisplayName } = require("../data/wineIdentity");
 const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
 const communityWines = require("./communityWines.service");
 const CatalogSearch = require("../models/catalogSearch.model");
@@ -187,20 +188,9 @@ const searchWithAiCached = async (query) => {
 // que cargó la comunidad, el modelo, y al final OFF (datos sucios en AR).
 const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
 
-// Clave canónica que reconcilia las distintas fuentes. El catálogo curado
-// nombra los vinos como "<línea> <varietal>" ("Saint Felicien Malbec") y usa la
-// bodega paraguas ("Catena Zapata"), mientras que lo comunitario/escaneado suele
-// venir como "Saint Felicien" / "Catena". Para que colapsen: sacamos el token de
-// varietal del nombre y usamos el primer token de la bodega.
-const canonicalCore = (wine) => {
-  let name = fold(wine.name);
-  const varietal = fold(wine.varietal || "");
-  if (varietal && name.includes(varietal)) {
-    name = name.replace(varietal, " ").replace(/\s+/g, " ").trim();
-  }
-  const wineryToken = fold(wine.winery || "").split(/\s+/)[0] || "";
-  return { core: name, varietal, wineryToken };
-};
+// Clave canónica que reconcilia las distintas fuentes. Vive en wineIdentity.js
+// para que la compartan la visión, la búsqueda IA y el catálogo curado.
+const canonicalCore = identityKey;
 
 // Adopta en `target` los campos ricos (foto, rating, precio, cosecha…) que le
 // falten y sí tenga el duplicado `extra`. Así el resultado curado "hereda" la
@@ -212,6 +202,7 @@ const mergeInto = (target, extra) => {
   if (!target.vintage && extra.vintage) target.vintage = extra.vintage;
   if (!target.varietal && extra.varietal) target.varietal = extra.varietal;
   if (!target.region && extra.region) target.region = extra.region;
+  if (!target.line && extra.line) target.line = extra.line;
   target.score = Math.max(target.score || 0, extra.score || 0);
 };
 
@@ -307,6 +298,57 @@ const getFeatured = (count = 8) => {
   return picked;
 };
 
+// --- Match seguro contra el catálogo (para enriquecer un escaneo) ---
+
+// Similitud por conjunto de tokens: 1 = todos los tokens del más corto están en
+// el más largo. Suficiente para "Catena" vs "Catena Zapata" sin traer una lib.
+const tokenOverlap = (a, b) => {
+  const ta = new Set(fold(a).split(/\s+/).filter(Boolean));
+  const tb = new Set(fold(b).split(/\s+/).filter(Boolean));
+  if (!ta.size || !tb.size) return 0;
+  let hits = 0;
+  for (const t of ta) if (tb.has(t)) hits += 1;
+  return hits / Math.min(ta.size, tb.size);
+};
+
+const MATCH_THRESHOLD = 0.72;
+
+/**
+ * Busca en el catálogo el vino que corresponde a una lectura de etiqueta.
+ *
+ * Existe porque el cliente tomaba `results[0]` a ciegas y copiaba sus campos:
+ * si Gemini leía bien el nombre pero el primer resultado era otra botella de la
+ * misma bodega, el vino quedaba con la región/uva/cosecha equivocadas y el
+ * usuario no se enteraba. Acá preferimos no devolver nada antes que mentir.
+ */
+const findMatch = async ({ winery, line, name, varietal, vintage } = {}) => {
+  const query = composeDisplayName({ name, line, varietal, winery }) || name || "";
+  if (String(query).trim().length < 2) return null;
+
+  const { results } = await searchWines(query);
+  if (!results?.length) return null;
+
+  let best = null;
+  for (const cand of results) {
+    // Vetos duros: mejor no enriquecer que enriquecer mal.
+    if (varietal && cand.varietal && fold(varietal) !== fold(cand.varietal)) continue;
+    if (winery && cand.winery && tokenOverlap(winery, cand.winery) === 0) continue;
+
+    const wineryScore = winery && cand.winery ? tokenOverlap(winery, cand.winery) : 0.5;
+    const coreScore = tokenOverlap(line || name || query, cand.line || cand.name || "");
+    const varietalScore = varietal && cand.varietal
+      ? (fold(varietal) === fold(cand.varietal) ? 1 : 0)
+      : 0.5;
+
+    const score = 0.45 * wineryScore + 0.35 * coreScore + 0.2 * varietalScore;
+    if (!best || score > best.score) best = { score, wine: cand };
+  }
+
+  if (!best || best.score < MATCH_THRESHOLD) return null;
+  // La cosecha nunca se adopta del catálogo: es propia de la botella.
+  return { ...best.wine, vintage: vintage || best.wine.vintage || "", matchScore: Number(best.score.toFixed(2)) };
+};
+
 // Set de claves canónicas del catálogo curado, para saber si un vino ya está
 // verificado (y no ensuciar el catálogo comunitario con un duplicado).
 let curatedKeys = null;
@@ -324,4 +366,4 @@ const isCuratedWine = (wine) => {
   return curatedKeys.has(`${core}|${varietal}|${wineryToken}`);
 };
 
-module.exports = { searchWines, searchCatalog, guessType, getFeatured, isCuratedWine };
+module.exports = { searchWines, searchCatalog, guessType, getFeatured, isCuratedWine, findMatch };

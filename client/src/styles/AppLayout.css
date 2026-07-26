@@ -10,7 +10,7 @@
 .app-topbar {
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: flex-start;

@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
@@ -26,14 +28,16 @@ export default function CatalogWinePage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
   const [communityPrice, setCommunityPrice] = useState(null);
+  const [priceLoading, setPriceLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
   const wineName = wine?.name;
   const wineWinery = wine?.winery;
 
-  useEffect(() => {
-    if (!wineName) return;
+  // Callback (no inline) para poder reintentar desde la UI.
+  const loadDescription = useCallback(() => {
+    if (!wineName) return undefined;
     let active = true;
     setAiLoading(true);
     setAiFailed(false);
@@ -48,22 +52,33 @@ export default function CatalogWinePage() {
       .then((info) => { if (active) setAiInfo(info); })
       .catch(() => { if (active) setAiFailed(true); })
       .finally(() => { if (active) setAiLoading(false); });
-    getWinePrice(wineName, wineWinery)
-      .then((p) => { if (active) setCommunityPrice(p); })
-      .catch(() => {});
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wineName, wineWinery]);
+
+  useEffect(() => loadDescription(), [loadDescription]);
+
+  useEffect(() => {
+    if (!wineName) return undefined;
+    let active = true;
+    setPriceLoading(true);
+    getWinePrice(wineName, wineWinery)
+      .then((p) => { if (active) setCommunityPrice(p); })
+      .catch(() => { if (active) setCommunityPrice(null); })
+      .finally(() => { if (active) setPriceLoading(false); });
+    return () => { active = false; };
   }, [wineName, wineWinery]);
 
   if (!wine) {
     return (
       <div className="wine-detail-page">
-        <div className="wine-detail-notfound">
-          <p>No encontramos el vino. Volvé y elegí uno de la lista.</p>
-          <button type="button" className="wine-detail-back-btn" onClick={() => navigate(-1)}>
-            Volver
-          </button>
-        </div>
+        <EmptyState
+          icon="bottle"
+          title="No encontramos el vino"
+          hint="Volvé a la lista y elegí uno para ver su ficha."
+          actionLabel="Volver"
+          onAction={() => navigate(-1)}
+        />
       </div>
     );
   }
@@ -146,9 +161,12 @@ export default function CatalogWinePage() {
             {aiLoading && <LoadingSkeleton type="inline" count={3} />}
 
             {aiFailed && !aiLoading && (
-              <p className="wine-about__failed">
-                No pudimos cargar la descripción ahora. Probá reabrir el vino más tarde.
-              </p>
+              <ErrorState
+                title="No pudimos generar la descripción"
+                hint="La ficha del vino se arma con IA y a veces tarda."
+                onRetry={loadDescription}
+                compact
+              />
             )}
 
             {aiInfo && !aiLoading && (
@@ -212,7 +230,9 @@ export default function CatalogWinePage() {
           <div className="wine-price__row">
             <div className="wine-price__info">
               <span className="wine-price__label">Precio de referencia</span>
-              {communityPrice ? (
+              {priceLoading ? (
+                <span className="wine-price__empty">Buscando precios…</span>
+              ) : communityPrice ? (
                 <span className="wine-price__value">
                   ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
                   <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
@@ -264,7 +284,7 @@ export default function CatalogWinePage() {
         </div>
 
         <button type="button" className="catalog-have-btn" onClick={() => navigate("/agregar")}>
-          <Icon name="camera" size={16} /> Ya lo tengo — escanealo para tu bodega
+          <Icon name="camera" size={16} /> Ya lo tengo — escaneálo para tu bodega
         </button>
       </div>
     </div>

@@ -1,64 +1,25 @@
 import { useRef, useState } from "react";
 import api from "../services/api";
 import Icon from "./Icon";
+import { fileToDataUrl, resizeImage } from "../utils/image";
 import "./LabelScanner.css";
 
-const fileToDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-// Reduce la imagen antes de subirla: baja la latencia del análisis y el peso de red.
-const resizeImage = (file, maxDim = 1280, quality = 0.85) =>
-  new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (Math.max(width, height) > maxDim) {
-        if (width >= height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL("image/jpeg", quality);
-      canvas.toBlob(
-        (blob) => (blob ? resolve({ blob, dataUrl }) : reject(new Error("resize-failed"))),
-        "image/jpeg",
-        quality
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("image-decode-failed"));
-    };
-    img.src = url;
-  });
-
-const LabelScanner = ({ onCapture, onCancel }) => {
+const LabelScanner = ({ onCapture, onCancel, onManual }) => {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
 
+  // El server rechaza por encima de 8 MB (multer); avisamos antes de subir.
+  const MAX_UPLOAD_BYTES = 7 * 1024 * 1024;
+
   const handleFile = async (file) => {
     if (!file) return;
     setAnalyzeError("");
 
-    // Reducimos la imagen; si el navegador no la puede decodificar (ej. HEIC),
-    // usamos el archivo original como respaldo.
+    // Reducimos la imagen; si el navegador no la puede decodificar (ej. HEIC en
+    // algunos Safari), reintentamos con createImageBitmap antes de rendirnos.
     let uploadBlob = file;
     let dataUrl;
     try {
@@ -66,7 +27,24 @@ const LabelScanner = ({ onCapture, onCancel }) => {
       uploadBlob = resized.blob;
       dataUrl = resized.dataUrl;
     } catch {
-      dataUrl = await fileToDataUrl(file);
+      try {
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        uploadBlob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+      } catch {
+        // Ni así: subir el original puede rebotar contra el límite del server,
+        // así que lo decimos claro en vez de fallar con un error genérico.
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setAnalyzeError("Esa foto es muy pesada y no la pudimos procesar. Probá sacarla de nuevo con la cámara.");
+          return;
+        }
+        dataUrl = await fileToDataUrl(file);
+      }
     }
 
     setPreview(dataUrl);
@@ -80,22 +58,21 @@ const LabelScanner = ({ onCapture, onCancel }) => {
 
       onCapture({
         preview: dataUrl,
-        label: analysis.estimatedName || "",
-        vintage: analysis.estimatedVintage || "",
         winery: analysis.winery || "",
+        line: analysis.line || "",
+        properName: analysis.properName || "",
         varietal: analysis.varietal || "",
+        vintage: analysis.vintage || analysis.estimatedVintage || "",
         region: analysis.region || "",
         type: analysis.type || "unknown",
-        confidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
+        confidence: analysis.confidence || {},
         source: analysis.source || "",
         rawText: analysis.rawText || "",
-        ocrFailed: analysis.isWineLabel === false,
       });
     } catch {
-      setAnalyzeError(
-        "No pudimos leer la etiqueta automáticamente. Podés completar los datos a mano."
-      );
-      onCapture({ preview: dataUrl, label: "", vintage: "", winery: "", varietal: "", region: "", type: "unknown", confidence: null, source: "", rawText: "", ocrFailed: true });
+      // NO llamamos a onCapture: si lo hacíamos, el padre desmontaba el escáner
+      // y este mensaje nunca llegaba a verse. Ahora el usuario decide.
+      setAnalyzeError("No pudimos leer la etiqueta. Probá con otra foto o cargá los datos a mano.");
     } finally {
       setAnalyzing(false);
     }
@@ -172,9 +149,25 @@ const LabelScanner = ({ onCapture, onCancel }) => {
             </div>
           )}
           {analyzeError && (
-            <p className="label-scanner__error">
-              <Icon name="alert-triangle" size={15} /> {analyzeError}
-            </p>
+            <div className="label-scanner__failure" role="alert">
+              <p className="label-scanner__error">
+                <Icon name="alert-triangle" size={15} /> {analyzeError}
+              </p>
+              <div className="label-scanner__failure-actions">
+                <button
+                  type="button"
+                  className="label-scanner__btn label-scanner__btn--primary"
+                  onClick={() => { setPreview(null); setAnalyzeError(""); cameraInputRef.current?.click(); }}
+                >
+                  <Icon name="camera" size={17} /> Sacar otra foto
+                </button>
+                {onManual && (
+                  <button type="button" className="label-scanner__btn" onClick={onManual}>
+                    <Icon name="pencil" size={16} /> Cargar a mano
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

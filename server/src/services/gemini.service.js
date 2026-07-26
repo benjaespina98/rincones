@@ -41,9 +41,28 @@ const shouldTryNextModel = (status) => status === 429 || status === 404 || statu
  * Devuelve el JSON parseado de la respuesta.
  * Lanza sólo si fallaron todos los modelos.
  */
-const generateJson = async ({ parts, schema, timeoutMs = 10000 }) => {
+// Algunos modelos devuelven el JSON envuelto en un bloque ```json … ```.
+const parseJsonLoose = (text) => {
+  const clean = String(text)
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/, "")
+    .trim();
+  return JSON.parse(clean);
+};
+
+/**
+ * @param {number} timeoutMs  Tope por modelo.
+ * @param {number} budgetMs   Tope TOTAL de la llamada. Sin esto el timeout se
+ *   aplicaba por modelo y, con 5 modelos en cadena, una visión de 15s podía
+ *   bloquear 75s — mucho más que los 30s que espera el cliente, así que el
+ *   usuario ya había visto el error mientras el server seguía gastando cuota.
+ */
+const generateJson = async ({ parts, schema, timeoutMs = 10000, budgetMs }) => {
   const apiKey = String(process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) throw new Error("GEMINI_API_KEY no configurada");
+
+  const deadline = Date.now() + (budgetMs ?? timeoutMs * 2);
 
   const body = JSON.stringify({
     contents: [{ parts }],
@@ -57,8 +76,15 @@ const generateJson = async ({ parts, schema, timeoutMs = 10000 }) => {
   let lastError = null;
 
   for (const model of getModelChain()) {
+    const remaining = deadline - Date.now();
+    // Sin margen para una llamada útil: cortamos en vez de encadenar timeouts.
+    if (remaining < 500) {
+      lastError = lastError || new Error("Gemini agotó el presupuesto de tiempo");
+      break;
+    }
+
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, remaining));
     try {
       const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
         method: "POST",
@@ -75,13 +101,27 @@ const generateJson = async ({ parts, schema, timeoutMs = 10000 }) => {
       }
 
       const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const candidate = data?.candidates?.[0];
+      // Una respuesta truncada produce JSON inválido: la tratamos como fallo.
+      if (candidate?.finishReason === "MAX_TOKENS") {
+        lastError = new Error(`Gemini ${model} cortó la respuesta (MAX_TOKENS)`);
+        continue;
+      }
+
+      const text = candidate?.content?.parts?.[0]?.text;
       if (!text) {
         lastError = new Error(`Gemini ${model} devolvió una respuesta vacía`);
         continue;
       }
 
-      return JSON.parse(text);
+      // JSON.parse sin proteger mataba toda la cadena por un solo modelo que
+      // devolviera basura, aunque el siguiente hubiera respondido bien.
+      try {
+        return parseJsonLoose(text);
+      } catch {
+        lastError = new Error(`Gemini ${model} devolvió JSON inválido`);
+        continue;
+      }
     } catch (error) {
       // Timeout o red: probamos el siguiente modelo.
       lastError = error;

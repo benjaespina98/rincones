@@ -16,4 +16,7 @@ router.get("/featured", authenticate, catalogController.featured);
 // GET /api/catalog/price - precio comunitario (promedio de lo que pagó la gente).
 router.get("/price", authenticate, catalogController.price);
 
+// POST /api/catalog/match - completa datos de un escaneo desde el catálogo.
+router.post("/match", authenticate, catalogController.match);
+
 module.exports = router;

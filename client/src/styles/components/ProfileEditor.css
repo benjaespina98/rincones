@@ -1,7 +1,7 @@
 .profile-editor {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-modal);
   background: var(--bg, #0b0d14);
   display: flex;
   justify-content: center;
@@ -147,7 +147,7 @@
 .profile-editor__avatar-chip.is-selected {
   border-color: var(--accent-light);
   background: var(--accent-muted);
-  box-shadow: 0 0 0 2px rgba(167, 130, 239, 0.3);
+  box-shadow: var(--focus-ring);
 }
 
 /* ── Grupos de campos ── */
@@ -209,7 +209,7 @@
 .profile-editor__field textarea:focus {
   outline: none;
   border-color: var(--accent-light);
-  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.18);
+  box-shadow: var(--focus-ring);
 }
 
 .profile-editor__field textarea {

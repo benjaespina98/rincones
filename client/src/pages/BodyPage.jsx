@@ -5,6 +5,8 @@ import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import Dropdown from "../components/Dropdown";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
@@ -45,6 +47,7 @@ export default function BodyPage({ initialFilter = "all" }) {
     toggleFavorite,
     updateWineTasted,
     adjustStock,
+    recargar,
   } = useWineCollection();
 
   // El filtro inicial puede venir por prop o por query (?filter=favorites),
@@ -81,9 +84,8 @@ export default function BodyPage({ initialFilter = "all" }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (error) showError(error);
-  }, [error, showError]);
+  // El error de carga se muestra en la pantalla (con reintento), no en un toast
+  // que se va solo: si no, un fallo de red se confunde con "tu bodega está vacía".
 
   const varietalOptions = useMemo(
     () => [...new Set(wines.map((wine) => wine.varietal).filter(Boolean))].sort(),
@@ -168,7 +170,7 @@ export default function BodyPage({ initialFilter = "all" }) {
     try {
       await action();
     } catch {
-      showError("No se pudo completar la acción. Intenta de nuevo.");
+      showError("No se pudo completar la acción. Probá de nuevo.");
     } finally {
       setPendingActionId(null);
     }
@@ -284,7 +286,7 @@ export default function BodyPage({ initialFilter = "all" }) {
         <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
         <input
           type="text"
-          placeholder="Buscar por nombre, bodega, varietal o notas..."
+          placeholder="Buscá por nombre, bodega, varietal o notas…"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           className="search-input"
@@ -416,7 +418,15 @@ export default function BodyPage({ initialFilter = "all" }) {
 
       {loading && <LoadingSkeleton type="card" count={4} />}
 
-      {!loading && sortedWines.length > 0 && (
+      {!loading && error && (
+        <ErrorState
+          title="No pudimos cargar tu bodega"
+          hint="Tus vinos están guardados. Revisá tu conexión y probá de nuevo."
+          onRetry={recargar}
+        />
+      )}
+
+      {!loading && !error && sortedWines.length > 0 && (
         <div className="wines-list">
           {sortedWines.map((wine) => {
             const isPending = pendingActionId === wine._id;
@@ -517,33 +527,27 @@ export default function BodyPage({ initialFilter = "all" }) {
         </div>
       )}
 
-      {!loading && wines.length === 0 && (
-        <div className="empty-state">
-          <p className="empty-icon" aria-hidden="true">🍷</p>
-          <p className="empty-title">Tu bodega está vacía</p>
-          <p className="empty-subtitle">Buscá un vino por nombre o escaneá su etiqueta para empezar tu colección.</p>
-          <button type="button" className="empty-cta" onClick={() => navigate("/agregar")}>
-            Agregar mi primer vino
-          </button>
-        </div>
+      {!loading && !error && wines.length === 0 && (
+        <EmptyState
+          icon="bottle"
+          title="Tu bodega está vacía"
+          hint="Sacale una foto a la etiqueta y la cargamos por vos."
+          actionLabel="Escanear mi primer vino"
+          onAction={() => navigate("/agregar")}
+        />
       )}
 
-      {!loading && wines.length > 0 && sortedWines.length === 0 && (
-        <div className="empty-state">
-          <p className="empty-icon" aria-hidden="true">🔍</p>
-          <p className="empty-title">Sin resultados</p>
-          <p className="empty-subtitle">Probá limpiando la búsqueda o cambiando los filtros.</p>
-          <button
-            type="button"
-            className="empty-cta"
-            onClick={() => {
-              setSearchTerm("");
-              clearAllFilters();
-            }}
-          >
-            Limpiar filtros
-          </button>
-        </div>
+      {!loading && !error && wines.length > 0 && sortedWines.length === 0 && (
+        <EmptyState
+          icon="search"
+          title="Sin resultados"
+          hint="Probá limpiando la búsqueda o cambiando los filtros."
+          actionLabel="Limpiar filtros"
+          onAction={() => {
+            setSearchTerm("");
+            clearAllFilters();
+          }}
+        />
       )}
 
       <ConfirmModal

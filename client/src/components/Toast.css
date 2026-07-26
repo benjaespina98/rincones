@@ -3,7 +3,7 @@
   top: calc(76px + env(safe-area-inset-top, 0px));
   right: 16px;
   left: 16px;
-  z-index: 1500;
+  z-index: var(--z-toast);
   pointer-events: none;
   display: flex;
   flex-direction: column;

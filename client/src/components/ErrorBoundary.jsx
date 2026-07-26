@@ -58,7 +58,7 @@ class ErrorBoundary extends React.Component {
               ⚠️ Algo salió mal
             </h1>
             <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-lg)" }}>
-              Lo sentimos, algo inesperado ocurrió. Intenta recargar la página.
+              Algo salió mal. Probá recargar la página.
             </p>
             {import.meta.env.DEV && this.state.error && (
               <details

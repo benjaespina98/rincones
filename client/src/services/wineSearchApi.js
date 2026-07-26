@@ -57,3 +57,19 @@ export const describeWine = async (wine) => {
   });
   return data?.data || null;
 };
+
+/**
+ * Busca en el catálogo el vino que corresponde a una lectura de etiqueta.
+ * Devuelve null si no hay coincidencia confiable — el server prefiere no
+ * completar nada antes que completar con otra botella.
+ */
+export const matchCatalogWine = async (reading) => {
+  const { data } = await api.post("/catalog/match", {
+    winery: reading.winery || "",
+    line: reading.line || "",
+    name: reading.properName || reading.name || "",
+    varietal: reading.varietal || "",
+    vintage: reading.vintage || "",
+  });
+  return data?.data || null;
+};

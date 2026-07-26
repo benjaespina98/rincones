@@ -132,7 +132,7 @@
   outline: none;
   border-color: var(--accent-light);
   background: rgba(13, 17, 31, 0.98);
-  box-shadow: 0 0 0 3px rgba(167, 130, 239, 0.16);
+  box-shadow: var(--focus-ring);
 }
 
 .auth-input-wrap .auth-input::placeholder {

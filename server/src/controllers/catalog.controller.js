@@ -95,4 +95,22 @@ const price = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, featured, price };
+// POST /api/catalog/match - busca en el catálogo el vino que corresponde a una
+// lectura de etiqueta. Devuelve null si no hay una coincidencia confiable: es
+// preferible no completar campos a completarlos con otra botella.
+const match = async (req, res, next) => {
+  try {
+    const data = await catalogService.findMatch({
+      winery: String(req.body.winery || ""),
+      line: String(req.body.line || ""),
+      name: String(req.body.name || ""),
+      varietal: String(req.body.varietal || ""),
+      vintage: String(req.body.vintage || ""),
+    });
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { search, describe, featured, price, match };
