@@ -151,11 +151,11 @@ export default function DiscoverPage() {
                 {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
               </p>
               {(spotlight.varietal || spotlight.type) && (
-                <span className="spotlight__tags">
+                <span className="spotlight__tags chip-row">
                   {spotlight.type && spotlight.type !== "unknown" && (
-                    <span className="wine-type-badge">{WINE_TYPE_LABELS[spotlight.type]}</span>
+                    <span className="chip chip--type">{WINE_TYPE_LABELS[spotlight.type]}</span>
                   )}
-                  {spotlight.varietal && <span className="spotlight__grape">{spotlight.varietal}</span>}
+                  {spotlight.varietal && <span className="chip chip--grape">{spotlight.varietal}</span>}
                 </span>
               )}
             </div>
@@ -216,7 +216,7 @@ export default function DiscoverPage() {
                   <div className="discover-wine__art">
                     <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
                     {wine.type && wine.type !== "unknown" && (
-                      <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
+                      <span className="chip chip--type chip--overlay discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
                     )}
                   </div>
                 </button>
@@ -229,7 +229,7 @@ export default function DiscoverPage() {
                     <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
                   </button>
                   <p className="discover-wine__winery">{wine.winery}</p>
-                  {wine.varietal && <p className="discover-wine__grape">{wine.varietal}</p>}
+                  {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
                   {wine.region && (
                     <p className="discover-wine__region">
                       <Icon name="map-pin" size={12} /> {wine.region}

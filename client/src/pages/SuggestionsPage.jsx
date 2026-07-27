@@ -185,12 +185,12 @@ export default function SuggestionsPage() {
                   <div className="suggestion-card__body">
                     <p className="suggestion-card__name">{wine.name}</p>
                     {wine.winery && <p className="suggestion-card__winery">{wine.winery}</p>}
-                    <div className="suggestion-card__meta">
+                    <div className="suggestion-card__meta chip-row">
                       {wine.type && wine.type !== "unknown" && (
-                        <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
+                        <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type]}</span>
                       )}
                       {wine.varietal && (
-                        <span className="suggestion-card__varietal">{wine.varietal}</span>
+                        <span className="chip chip--grape">{wine.varietal}</span>
                       )}
                       <span className="suggestion-card__stock">x{wine.quantity}</span>
                     </div>
@@ -245,18 +245,18 @@ export default function SuggestionsPage() {
                           <span className="discover-card__body">
                             <span className="discover-card__name">{wine.name}</span>
                             <span className="discover-card__winery">{wine.winery}</span>
-                            <span className="discover-card__meta">
+                            <span className="discover-card__meta chip-row">
                               {wine.type && wine.type !== "unknown" && (
-                                <span className="wine-type-badge">{WINE_TYPE_LABELS[wine.type]}</span>
+                                <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type]}</span>
                               )}
                               {wine.varietal && (
-                                <span className="discover-card__chip">{wine.varietal}</span>
+                                <span className="chip">{wine.varietal}</span>
                               )}
                               {wine.vintage && (
-                                <span className="discover-card__chip">{wine.vintage}</span>
+                                <span className="chip">{wine.vintage}</span>
                               )}
                               {wine.region && (
-                                <span className="discover-card__chip">
+                                <span className="chip">
                                   <Icon name="map-pin" size={12} /> {wine.region}
                                 </span>
                               )}

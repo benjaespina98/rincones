@@ -1,0 +1,100 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background:
+    radial-gradient(120% 80% at 50% 30%, rgba(167, 130, 239, 0.16), transparent 60%),
+    linear-gradient(180deg, #0b0d14 0%, #07080f 100%);
+  animation: rincon-fade 260ms var(--ease-out) both;
+}
+
+/* Halo que respira detrás de la marca. Es lo único que se mueve solo: da
+   sensación de vida sin competir con el llenado de la copa. */
+.splash__mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: #efeaff;
+}
+
+.splash__mark::before {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 130, 239, 0.22), transparent 68%);
+  animation: splashHalo 2600ms var(--ease-out) infinite;
+}
+
+@keyframes splashHalo {
+  0%, 100% { transform: scale(0.9); opacity: 0.55; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+.splash__word {
+  margin: 14px 0 0;
+  font-family: var(--font-family-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  animation: rincon-enter-up 520ms var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+.splash__label {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  animation: rincon-fade 700ms var(--ease-out) both;
+  animation-delay: 320ms;
+}
+
+/* ── El logo en modo animado: la copa se llena ── */
+
+/* El trazo se dibuja solo al abrir. */
+.logo--animated .logo__stroke path {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: splashDraw 900ms var(--ease-out) forwards;
+}
+
+.logo--animated .logo__stroke path:nth-child(2) { animation-delay: 160ms; }
+.logo--animated .logo__stroke path:nth-child(3) { animation-delay: 300ms; }
+.logo--animated .logo__stroke path:nth-child(4) { animation-delay: 380ms; }
+
+@keyframes splashDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* El vino sube dentro del cáliz, en loop mientras dure la carga. */
+.logo--animated .logo__wine {
+  transform-origin: 50% 56px;
+  animation: splashFill 2200ms var(--ease-out) 700ms infinite;
+}
+
+@keyframes splashFill {
+  0% { transform: scaleY(0); opacity: 0.9; }
+  45% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+/* Accesibilidad: sin movimiento, la marca aparece completa y quieta. */
+@media (prefers-reduced-motion: reduce) {
+  .splash__mark::before,
+  .logo--animated .logo__wine {
+    animation: none;
+  }
+  .logo--animated .logo__stroke path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}

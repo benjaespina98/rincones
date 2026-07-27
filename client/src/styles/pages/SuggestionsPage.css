@@ -224,21 +224,6 @@
   align-items: center;
 }
 
-.wine-type-badge {
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: rgba(126, 89, 201, 0.16);
-  color: var(--accent-soft);
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.suggestion-card__varietal {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
 .suggestion-card__stock {
   font-size: 0.72rem;
   font-weight: 600;
@@ -365,7 +350,7 @@
   color: var(--text-secondary);
 }
 
-.discover-card__chips {
+.discover-card__meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -405,14 +390,6 @@
   align-items: center;
   gap: 6px;
   margin-top: 2px;
-}
-
-.discover-card__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
 }
 
 .discover-card__add {

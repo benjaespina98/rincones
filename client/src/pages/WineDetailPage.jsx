@@ -401,10 +401,10 @@ export default function WineDetailPage() {
       <div className="wine-detail-body">
         {!editing ? (
           <>
-            <div className="wine-detail-meta">
-              <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-              {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-              {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
+            <div className="wine-detail-meta chip-row">
+              <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+              {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
+              {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
               {(() => {
                 const cs = getCellarStatus(wine);
                 if (!cs.label) return null;

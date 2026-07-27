@@ -454,9 +454,9 @@ export default function BodyPage({ initialFilter = "all" }) {
                   <span className="wine-row__info">
                     <span className="wine-row__name">{wine.name}</span>
                     <span className="wine-row__sub">{origin}</span>
-                    <span className="wine-row__chips">
-                      <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-                      {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
+                    <span className="wine-row__chips chip-row">
+                      <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+                      {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
                       {wine.rating > 0 && <StarRating value={wine.rating} size="sm" />}
                     </span>
                   </span>

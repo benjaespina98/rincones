@@ -133,16 +133,6 @@
   margin-top: 2px;
 }
 
-.guardados-card__chip {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(126, 89, 201, 0.14);
-  border: 1px solid var(--line);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 .guardados-card__caret {
   align-self: center;
   color: var(--text-muted);

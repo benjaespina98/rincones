@@ -340,7 +340,7 @@ export default function ScanWinePage() {
                     <div className="wine-result-card__media">
                       <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} />
                       {r.type && r.type !== "unknown" && (
-                        <span className="wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
+                        <span className="chip chip--type chip--overlay wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
                       )}
                     </div>
 
@@ -350,11 +350,11 @@ export default function ScanWinePage() {
                         {r.winery || "Bodega no especificada"}
                       </p>
 
-                      <div className="wine-result-card__meta">
-                        {r.varietal && <span className="wine-result-card__chip">{r.varietal}</span>}
-                        {r.vintage && <span className="wine-result-card__chip">{r.vintage}</span>}
+                      <div className="wine-result-card__meta chip-row">
+                        {r.varietal && <span className="chip">{r.varietal}</span>}
+                        {r.vintage && <span className="chip">{r.vintage}</span>}
                         {r.region && (
-                          <span className="wine-result-card__chip">
+                          <span className="chip">
                             <Icon name="map-pin" size={13} /> {r.region}
                           </span>
                         )}

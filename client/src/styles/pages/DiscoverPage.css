@@ -140,16 +140,6 @@
   margin-top: 2px;
 }
 
-.spotlight__grape {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--line);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 @keyframes spotlightIn {
   from { opacity: 0; transform: translateY(8px) scale(0.99); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -389,16 +379,6 @@
   margin: 0;
   font-size: 0.74rem;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.discover-wine__grape {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--accent-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
