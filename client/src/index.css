@@ -79,9 +79,17 @@
   --transition-smooth: 220ms var(--ease-out);
   --transition-slow: 320ms var(--ease-out);
   
-  /* Typography */
-  --font-family-serif: "Fraunces", "Times New Roman", serif;
-  --font-family-sans: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Typography
+     Una sola familia para toda la app. Antes convivían Manrope (UI) y Fraunces
+     (títulos): Fraunces es una serif expresiva y editorial, que le daba un aire
+     de boutique en vez de app moderna. Plus Jakarta Sans es geométrica y de x
+     alta — la familia de Uber Move y las apps de delivery —, y aguanta bien
+     tanto en 0.7rem como en un display de 2rem.
+     `--font-family-serif` se mantiene como alias para no romper las ~40
+     referencias que ya existen; los títulos ahora se distinguen por peso y
+     tracking, no por cambio de familia. */
+  --font-family-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-family-serif: var(--font-family-sans);
   --font-family-base: var(--font-family-sans);
 
   /* Escala tipográfica. Antes había 68 tamaños distintos (0.72/0.74/0.78/0.8/
@@ -156,9 +164,9 @@ h4,
 h5,
 h6 {
   margin-top: 0;
-  font-family: var(--font-family-serif);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--font-family-sans);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 h1 {
