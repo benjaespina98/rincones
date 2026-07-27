@@ -61,6 +61,8 @@ const ensureDescription = async (wine) => {
             summary: info.summary || "",
             body: info.body || "",
             profile: info.profile || [],
+            structure: info.structure || undefined,
+            similarTo: info.similarTo || [],
             aromas: info.aromas || [],
             foodPairing: info.foodPairing || [],
             alcohol: info.alcohol ?? undefined,

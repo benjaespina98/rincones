@@ -17,6 +17,8 @@ const wineInfoSchema = new mongoose.Schema(
       summary: String,
       body: String,
       profile: [String],
+      structure: { body: Number, acidity: Number, tannin: Number, sweetness: Number },
+      similarTo: [String],
       aromas: [String],
       foodPairing: [String],
       alcohol: Number,

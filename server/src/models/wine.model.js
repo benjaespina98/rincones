@@ -87,6 +87,8 @@ const wineSchema = new mongoose.Schema(
         trim: true,
       },
       profile: [String], // ["Cuerpo medio", "Taninos suaves"]
+      structure: { body: Number, acidity: Number, tannin: Number, sweetness: Number },
+      similarTo: [String],
       aromas: [String], // ["cereza", "roble", "especias"]
       foodPairing: [String], // ["carne roja", "queso", "pasta"]
       alcohol: {

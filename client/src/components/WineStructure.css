@@ -1,0 +1,57 @@
+.wine-structure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wine-structure__title {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.wine-structure__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Etiqueta a la izquierda, barra al medio, extremo a la derecha: las cuatro
+   barras quedan alineadas entre sí y se comparan de un vistazo. */
+.wine-structure__row {
+  display: grid;
+  grid-template-columns: 62px 1fr 74px;
+  align-items: center;
+  gap: 10px;
+}
+
+.wine-structure__label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.wine-structure__track {
+  display: flex;
+  gap: 3px;
+}
+
+.wine-structure__step {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  transition: background var(--transition-smooth);
+}
+
+.wine-structure__step.is-on {
+  background: linear-gradient(90deg, var(--accent-light), var(--accent));
+}
+
+.wine-structure__end {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: right;
+}
