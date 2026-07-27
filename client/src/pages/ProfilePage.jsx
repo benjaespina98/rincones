@@ -387,10 +387,12 @@ export default function ProfilePage() {
 
       {showPrefs && (
         <PreferencesEditor
-          initialTypes={profileData.favoriteTypes || []}
-          initialVarietals={profileData.favoriteVarietals || []}
+          initialTypes={profileData.preferences?.favoriteTypes || []}
+          initialVarietals={profileData.preferences?.favoriteVarietals || []}
           onClose={() => setShowPrefs(false)}
-          onSaved={(prefs) => setProfileData((p) => ({ ...p, ...prefs }))}
+          onSaved={(prefs) =>
+            setProfileData((p) => ({ ...p, preferences: { ...p.preferences, ...prefs } }))
+          }
         />
       )}
 

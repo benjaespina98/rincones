@@ -209,3 +209,90 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* ── Preferencias de gusto ──
+   Antes eran dos hileras de etiquetas idénticas de ancho variable: dieciséis
+   controles iguales, imposibles de barrer con la vista. Ahora los tipos son
+   tarjetas con el color del vino y las uvas una grilla pareja. */
+.pref-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.pref-type {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: var(--control-lg);
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+
+.pref-type.is-sel {
+  border-color: var(--accent-light);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+/* El punto lleva el color real del vino: se reconoce sin leer. */
+.pref-type__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.pref-type--red    .pref-type__dot { background: #7a1024; }
+.pref-type--white  .pref-type__dot { background: #e8d99a; }
+.pref-type--rosé   .pref-type__dot { background: #e79bad; }
+.pref-type--sparkling .pref-type__dot { background: #cfe3f2; }
+.pref-type--fortified .pref-type__dot { background: #8a4b28; }
+.pref-type--unknown   .pref-type__dot { background: var(--text-subtle); }
+
+.pref-type__check { margin-left: auto; color: var(--accent-soft); }
+
+.pref-grapes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 7px;
+}
+
+.pref-grape {
+  min-height: var(--control-md);
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+
+.pref-grape.is-sel {
+  border-color: var(--accent-light);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+.settings-sheet__count {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-muted);
+}
