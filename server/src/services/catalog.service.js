@@ -13,6 +13,7 @@ const { identityKey, composeDisplayName } = require("../data/wineIdentity");
 const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
 const communityWines = require("./communityWines.service");
 const CatalogSearch = require("../models/catalogSearch.model");
+const wineReviews = require("./wineReviews.service");
 
 const OFF_BASE = "https://world.openfoodfacts.org";
 const OFF_TIMEOUT = 6000;
@@ -241,6 +242,25 @@ const dedupeAndRank = (lists) => {
 };
 
 /**
+ * Adosa el rating comunitario a cada resultado, en UNA sola consulta.
+ *
+ * El campo `rating` de las tarjetas existía pero siempre llegaba en 0 porque
+ * ninguna fuente lo llenaba; ahora es el promedio real de las reseñas.
+ */
+const withReviews = async (results) => {
+  if (!results?.length) return results;
+  try {
+    const summaries = await wineReviews.getSummaries(results);
+    return results.map((w) => {
+      const s = summaries.get(wineReviews.wineKey(w.name, w.winery));
+      return s ? { ...w, rating: s.avg, reviewCount: s.count } : w;
+    });
+  } catch {
+    return results;
+  }
+};
+
+/**
  * Busca vinos por texto combinando fuentes:
  *   1. Catálogo argentino curado (instantáneo, verificado).
  *   2. Catálogo comunitario (vinos que cargaron los usuarios; crece con el uso).
@@ -260,7 +280,7 @@ const searchWines = async (query) => {
   // Si entre lo curado y lo comunitario ya hay suficiente, cortamos acá y no
   // gastamos cuota de IA ni esperamos a fuentes externas.
   if (local.length + community.length >= AI_THRESHOLD) {
-    return { results: dedupeAndRank([local, community]), degraded: false };
+    return { results: await withReviews(dedupeAndRank([local, community])), degraded: false };
   }
 
   const [aiResults, offResult] = await Promise.all([
@@ -270,7 +290,7 @@ const searchWines = async (query) => {
 
   const external = offResult || [];
   const offFailed = offResult === null;
-  const results = dedupeAndRank([local, community, aiResults, external]);
+  const results = await withReviews(dedupeAndRank([local, community, aiResults, external]));
   return { results, degraded: offFailed && results.length === 0 };
 };
 

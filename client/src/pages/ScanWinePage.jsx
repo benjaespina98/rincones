@@ -363,6 +363,11 @@ export default function ScanWinePage() {
                       {r.rating > 0 && (
                         <div className="wine-result-card__rating">
                           <StarRating value={r.rating} size="sm" />
+                          {r.reviewCount > 0 && (
+                            <span className="wine-result-card__reviews">
+                              ({r.reviewCount})
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

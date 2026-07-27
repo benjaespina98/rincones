@@ -4,6 +4,7 @@ import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
+import WineReviews from "../components/WineReviews";
 import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
@@ -224,6 +225,10 @@ export default function CatalogWinePage() {
             )}
           </div>
         )}
+
+        {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
+            la ficha de un vino que todavía no tiene. */}
+        <WineReviews name={wine.name} winery={wine.winery} />
 
         {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
         <div className="wine-price">

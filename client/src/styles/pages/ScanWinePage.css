@@ -547,3 +547,16 @@
     margin: 0 auto;
   }
 }
+
+/* Promedio de reseñas de la comunidad junto a las estrellas. */
+.wine-result-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wine-result-card__reviews {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}

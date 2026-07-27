@@ -1,4 +1,6 @@
 const catalogService = require("../services/catalog.service");
+const wineReviews = require("../services/wineReviews.service");
+const User = require("../models/user.model");
 const { describeWine } = require("../services/wineAi.service");
 const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
@@ -113,4 +115,73 @@ const match = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, featured, price, match };
+// GET /api/catalog/reviews?name=&winery= - reseñas públicas de un vino.
+const reviews = async (req, res, next) => {
+  try {
+    const data = await wineReviews.listReviews(
+      String(req.query.name || ""),
+      String(req.query.winery || ""),
+      req.user.id
+    );
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// POST /api/catalog/reviews - publica o edita tu reseña de un vino.
+//
+// Publicar es explícito: el rating privado del vino NO se expone solo. Sólo
+// cuando el usuario manda esto, su puntuación y su texto se vuelven públicos.
+const publishReview = async (req, res, next) => {
+  try {
+    const { name, winery, rating, text } = req.body;
+    if (!String(name || "").trim()) {
+      return res.status(400).json({ message: "Falta el nombre del vino" });
+    }
+
+    // El autor se muestra con nombre de pila + avatar. Nunca apellido ni mail.
+    let author = { name: "", avatar: "" };
+    try {
+      const u = await User.findById(req.user.id).select("firstName avatar email").lean();
+      author = {
+        name: (u?.firstName || "").trim() || (u?.email || "").split("@")[0] || "Alguien",
+        avatar: u?.avatar || "",
+      };
+    } catch {
+      // Sin perfil: la reseña se publica igual, sin nombre.
+    }
+
+    const doc = await wineReviews.upsertReview({
+      userId: req.user.id,
+      name,
+      winery,
+      rating,
+      text,
+      author,
+    });
+    return res.status(201).json({ data: doc });
+  } catch (error) {
+    if (/puntuación|datos del vino/i.test(error.message)) {
+      return res.status(400).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+// DELETE /api/catalog/reviews - borra tu reseña (deja de ser pública).
+const removeReview = async (req, res, next) => {
+  try {
+    const ok = await wineReviews.deleteReview({
+      userId: req.user.id,
+      name: String(req.query.name || req.body?.name || ""),
+      winery: String(req.query.winery || req.body?.winery || ""),
+    });
+    if (!ok) return res.status(404).json({ message: "No tenías una reseña de este vino" });
+    return res.status(200).json({ message: "Reseña eliminada" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { search, describe, featured, price, match, reviews, publishReview, removeReview };

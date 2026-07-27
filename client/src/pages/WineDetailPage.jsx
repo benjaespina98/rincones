@@ -6,6 +6,7 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
+import WineReviews from "../components/WineReviews";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -416,7 +417,9 @@ export default function WineDetailPage() {
             </div>
 
             <div className="wine-detail-rating">
-              <span className="wine-detail-rating__label">Tu rating</span>
+              <span className="wine-detail-rating__label">
+                Tu rating <em>· privado</em>
+              </span>
               <div className="rating-input" role="group" aria-label="Calificar vino">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -432,6 +435,9 @@ export default function WineDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Reseñas públicas de la comunidad (distintas del rating privado). */}
+            <WineReviews name={wine.name} winery={wine.winery} />
 
             {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
             {(aiLoading || aiInfo || aiFailed) && (
