@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import Icon from "../components/Icon";
 import { getChangeLogs, getUsers } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
+import AdminReviewsPage from "./AdminReviewsPage";
 import "./styles/AdminLoginPage.css";
 
 const ACTION_LABELS = {
@@ -40,11 +42,7 @@ const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [usersSummary, setUsersSummary] = useState({
-    total: 0,
-    adminsInSample: 0,
-    sampleSize: 0,
-  });
+  const [usersSummary, setUsersSummary] = useState({ total: 0, admins: 0 });
   const [activeTab, setActiveTab] = useState("resumen");
 
   const nextPath = location.state?.from || "/admin";
@@ -59,19 +57,19 @@ const AdminLoginPage = () => {
         setLoadingDashboard(true);
         const [logsData, usersData] = await Promise.all([
           getChangeLogs(60),
-          getUsers(1, 100),
+          getUsers({ page: 1, limit: 100 }),
         ]);
 
         const sampleUsers = usersData.data || [];
         setLogs(logsData);
         setUsersSummary({
           total: usersData.pagination?.total || sampleUsers.length,
-          adminsInSample: sampleUsers.filter((item) => item.role === "admin").length,
-          sampleSize: sampleUsers.length,
+          // Conteo exacto que devuelve el server, no una estimación de la muestra.
+          admins: usersData.meta?.admins ?? sampleUsers.filter((u) => u.role === "admin").length,
         });
       } catch {
         setLogs([]);
-        setUsersSummary({ total: 0, adminsInSample: 0, sampleSize: 0 });
+        setUsersSummary({ total: 0, admins: 0 });
       } finally {
         setLoadingDashboard(false);
       }
@@ -90,8 +88,7 @@ const AdminLoginPage = () => {
 
     return {
       totalUsers: usersSummary.total,
-      adminsInSample: usersSummary.adminsInSample,
-      sampleSize: usersSummary.sampleSize,
+      admins: usersSummary.admins,
       logsToday,
       createEvents,
       updateEvents,
@@ -120,49 +117,57 @@ const AdminLoginPage = () => {
       <div className="admin-shell">
         <section className="admin-hero">
           <div className="admin-hero__left">
-            <span className="admin-kicker">Panel de control</span>
-            <h1>Administración Rincones</h1>
+            <span className="admin-kicker">
+              <span className="admin-kicker__shield"><Icon name="lock" size={13} /></span>
+              Modo administrador
+            </span>
+            <h1>Panel de Rincones</h1>
             <p>
-              Gestiona roles, monitorea actividad y entra a la experiencia completa de usuario.
+              Estás viendo y editando datos de <strong>todos los usuarios</strong>, no sólo los tuyos.
             </p>
-            <small>Sesión activa: {user?.email}</small>
+            <div className="admin-hero__session">
+              <span className="admin-hero__avatar">{(user?.email || "?")[0].toUpperCase()}</span>
+              <span className="admin-hero__who">
+                <strong>{user?.email}</strong>
+                <em>Permisos totales</em>
+              </span>
+            </div>
           </div>
 
           <div className="admin-hero__actions">
-            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>Ver app usuario</button>
+            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+              Salir a la app
+            </button>
             <button className="button button--danger" type="button" onClick={logout}>Cerrar sesión</button>
           </div>
         </section>
 
-        <nav className="admin-nav-tabs">
-          <button
-            className={`admin-nav-tab ${activeTab === "resumen" ? "active" : ""}`}
-            onClick={() => setActiveTab("resumen")}
-            type="button"
-          >
-            Resumen
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "roles" ? "active" : ""}`}
-            onClick={() => setActiveTab("roles")}
-            type="button"
-          >
-            Roles
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "actividad" ? "active" : ""}`}
-            onClick={() => setActiveTab("actividad")}
-            type="button"
-          >
-            Logs
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "app" ? "active" : ""}`}
-            onClick={() => setActiveTab("app")}
-            type="button"
-          >
-            Vista App
-          </button>
+        {/* Qué puede hacer un admin, en una línea. Antes había que deducirlo
+            abriendo cada pestaña. */}
+        <ul className="admin-powers">
+          <li><Icon name="user" size={14} /> Cambiar roles y eliminar cuentas</li>
+          <li><Icon name="chat" size={14} /> Borrar cualquier reseña pública</li>
+          <li><Icon name="eye" size={14} /> Ver la actividad de todas las bodegas</li>
+        </ul>
+
+        <nav className="admin-nav-tabs" aria-label="Secciones del panel">
+          {[
+            { id: "resumen", label: "Resumen", icon: "home" },
+            { id: "roles", label: "Usuarios", icon: "user" },
+            { id: "resenas", label: "Reseñas", icon: "chat" },
+            { id: "actividad", label: "Actividad", icon: "calendar" },
+            { id: "app", label: "Vista app", icon: "eye" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              className={`admin-nav-tab ${activeTab === t.id ? "active" : ""}`}
+              onClick={() => setActiveTab(t.id)}
+              aria-current={activeTab === t.id ? "page" : undefined}
+              type="button"
+            >
+              <Icon name={t.icon} size={16} /> {t.label}
+            </button>
+          ))}
         </nav>
 
         <section className="admin-panel-surface">
@@ -181,9 +186,9 @@ const AdminLoginPage = () => {
               </article>
 
               <article className="admin-metric-card">
-                <span>Admins detectados</span>
-                <strong>{metrics.adminsInSample}</strong>
-                <small>Muestra de {metrics.sampleSize} usuarios</small>
+                <span>Administradores</span>
+                <strong>{metrics.admins}</strong>
+                <small>Con acceso a este panel</small>
               </article>
 
               <article className="admin-wide-card">
@@ -198,8 +203,8 @@ const AdminLoginPage = () => {
               <article className="admin-wide-card">
                 <h2>Acciones rápidas</h2>
                 <div className="admin-action-grid">
-                  <button className="button" type="button" onClick={() => setActiveTab("roles")}>Gestionar roles</button>
-                  <button className="button" type="button" onClick={() => setActiveTab("actividad")}>Revisar logs</button>
+                  <button className="button" type="button" onClick={() => setActiveTab("roles")}>Gestionar usuarios</button>
+                  <button className="button" type="button" onClick={() => setActiveTab("resenas")}>Moderar reseñas</button>
                   <button className="button" type="button" onClick={() => setActiveTab("app")}>Abrir vista app</button>
                 </div>
               </article>
@@ -209,10 +214,20 @@ const AdminLoginPage = () => {
           {activeTab === "roles" && (
             <section>
               <div className="admin-section-head">
-                <h2>Administración de roles</h2>
-                <p>Promueve o revoca permisos de administración en segundos.</p>
+                <h2>Usuarios y roles</h2>
+                <p>Buscá una cuenta, cambiale el rol o eliminala junto con todo su contenido.</p>
               </div>
               <AdminUsersPage embedded />
+            </section>
+          )}
+
+          {activeTab === "resenas" && (
+            <section>
+              <div className="admin-section-head">
+                <h2>Moderación de reseñas</h2>
+                <p>Las reseñas son lo único público que escriben los usuarios. Cada baja queda registrada.</p>
+              </div>
+              <AdminReviewsPage embedded />
             </section>
           )}
 
@@ -254,32 +269,32 @@ const AdminLoginPage = () => {
               <div className="admin-section-head">
                 <h2>Vista de usuario común</h2>
                 <p>
-                  Como admin también puedes navegar exactamente las secciones de usuario para revisar UX y contenido.
+                  Como admin también podés recorrer las mismas secciones que un usuario para revisar UX y contenido.
                 </p>
               </div>
 
               <div className="admin-view-grid">
                 <article className="admin-view-card">
                   <h3>Mi Bodega</h3>
-                  <p>Gestiona colección y favoritos como usuario final.</p>
+                  <p>Gestioná la colección y los guardados como usuario final.</p>
                   <button className="button" type="button" onClick={() => navigate("/bodega")}>Abrir bodega</button>
                 </article>
 
                 <article className="admin-view-card">
-                  <h3>Explorar</h3>
-                  <p>Revisa recomendaciones y tarjetas de sugerencias.</p>
-                  <button className="button" type="button" onClick={() => navigate("/sommelier")}>Abrir explorar</button>
+                  <h3>Sommelier</h3>
+                  <p>Revisá las recomendaciones y las sugerencias.</p>
+                  <button className="button" type="button" onClick={() => navigate("/sommelier")}>Abrir Sommelier</button>
                 </article>
 
                 <article className="admin-view-card">
-                  <h3>Descubrir</h3>
-                  <p>Valida flujo de escaneo y alta de vinos.</p>
-                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Abrir descubrir</button>
+                  <h3>Agregar</h3>
+                  <p>Validá el flujo de escaneo y el alta de vinos.</p>
+                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Abrir Agregar</button>
                 </article>
 
                 <article className="admin-view-card">
                   <h3>Perfil</h3>
-                  <p>Controla edición de perfil y cierre de sesión.</p>
+                  <p>Controlá la edición de perfil y el cierre de sesión.</p>
                   <button className="button" type="button" onClick={() => navigate("/perfil")}>Abrir perfil</button>
                 </article>
               </div>

@@ -134,12 +134,15 @@
 
 .admin-nav-tabs {
   margin-top: 0.85rem;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.55rem;
 }
 
 .admin-nav-tab {
+  flex: 1 1 auto;
+  justify-content: center;
+  padding: 0 16px;
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid rgba(171, 146, 255, 0.25);
@@ -315,7 +318,7 @@
 
 @media (min-width: 900px) {
   .admin-nav-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex-wrap: nowrap;
   }
 
   .admin-dashboard-grid {
@@ -329,5 +332,138 @@
   .admin-action-grid,
   .admin-view-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ══ Identidad visual de "modo administrador" ═══════════════════════════
+   El panel se veía casi igual que la app de usuario, así que no quedaba claro
+   que ahí adentro tenés permisos sobre datos ajenos. La franja ámbar superior,
+   la chapita con candado y el listado de poderes existen para eso: que se note
+   de un vistazo que NO estás en tu cuenta común. */
+
+.admin-shell {
+  position: relative;
+}
+
+/* Franja de advertencia: marca todo el panel como zona de permisos elevados. */
+.admin-shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: var(--z-nav);
+  background: linear-gradient(90deg, var(--gold), var(--accent-light), var(--gold));
+}
+
+.admin-hero {
+  border-color: rgba(242, 183, 55, 0.28);
+}
+
+.admin-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--gold-soft);
+}
+
+.admin-kicker__shield {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(242, 183, 55, 0.16);
+  border: 1px solid rgba(242, 183, 55, 0.4);
+}
+
+.admin-hero p strong {
+  color: var(--gold-soft);
+}
+
+/* Con qué cuenta estás operando: lo primero que se pregunta un admin. */
+.admin-hero__session {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(12, 13, 30, 0.6);
+  border: 1px solid var(--line-accent);
+}
+
+.admin-hero__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--text-base);
+}
+
+.admin-hero__who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.admin-hero__who strong {
+  font-size: var(--text-base);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.admin-hero__who em {
+  font-style: normal;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+
+/* Qué podés hacer acá adentro, explícito. */
+.admin-powers {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-powers li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--radius-full);
+  background: rgba(242, 183, 55, 0.08);
+  border: 1px solid rgba(242, 183, 55, 0.22);
+  color: var(--gold-soft);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* Pestañas con ícono */
+.admin-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .admin-powers li {
+    font-size: var(--text-2xs);
+    padding: 6px 10px;
+  }
+  .admin-hero__session {
+    width: 100%;
   }
 }

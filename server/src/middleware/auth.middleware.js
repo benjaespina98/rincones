@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -38,16 +39,43 @@ const authenticate = (req, res, next) => {
   }
 };
 
-const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== "admin") {
-    return res.status(403).json({ 
-      message: "Acceso denegado. Se requieren permisos de administrador.",
-      requiredRole: "admin",
-      userRole: req.user?.role,
-    });
-  }
+/**
+ * Exige rol admin, verificándolo contra la BASE y no contra el token.
+ *
+ * El JWT lleva el rol que tenía el usuario cuando inició sesión, así que
+ * confiar en él tenía dos consecuencias malas:
+ *  - Promover a alguien no surtía efecto hasta que cerrara y volviera a abrir
+ *    sesión (parecía que la promoción no había funcionado).
+ *  - Peor: QUITAR el admin no revocaba nada. El token viejo seguía teniendo
+ *    permisos de administrador hasta vencer.
+ *
+ * Es una consulta extra, pero sólo en rutas de admin (bajísimo tráfico).
+ */
+const requireAdmin = async (req, res, next) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Token requerido" });
+    }
 
-  return next();
+    const user = await User.findById(req.user.id).select("role").lean();
+    if (!user) {
+      return res.status(401).json({ message: "La cuenta ya no existe" });
+    }
+
+    if (user.role !== "admin") {
+      return res.status(403).json({
+        message: "Acceso denegado. Se requieren permisos de administrador.",
+        requiredRole: "admin",
+        userRole: user.role,
+      });
+    }
+
+    // El rol real manda sobre el del token para todo lo que venga después.
+    req.user.role = user.role;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
 
 module.exports = {
