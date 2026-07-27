@@ -4,6 +4,7 @@ import { saveOnboarding } from "../services/authApi";
 import { useToast } from "../context/ToastContext";
 import Icon from "./Icon";
 import "../styles/components/SettingsSheet.css";
+import Portal from "./Portal";
 
 const POPULAR_VARIETALS = [
   "Malbec", "Cabernet Sauvignon", "Merlot", "Syrah", "Pinot Noir",
@@ -47,78 +48,89 @@ export default function PreferencesEditor({ initialTypes = [], initialVarietals 
   };
 
   return (
-    <div className="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="prefs-editor-title">
-      <div className="settings-sheet__panel">
-        <div className="settings-sheet__head">
-          <h2 id="prefs-editor-title">Preferencias de gusto</h2>
-          <button
-            type="button"
-            className="settings-sheet__close"
-            onClick={onClose}
-            disabled={saving}
-            aria-label="Cerrar"
-          >
-            <Icon name="x" size={20} />
-          </button>
-        </div>
-
-        <div className="settings-sheet__body">
-          <p className="settings-sheet__label" id="prefs-types">¿Qué tipos preferís?</p>
-          <div className="settings-chips" role="group" aria-labelledby="prefs-types">
-            {WINE_TYPES.map(({ value, label }) => {
-              const on = types.includes(value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={`settings-chip ${on ? "is-sel" : ""}`}
-                  aria-pressed={on}
-                  disabled={saving}
-                  onClick={() => { setTypes((t) => toggle(t, value)); setError(""); }}
-                >
-                  {on && <Icon name="check" size={14} />} {label}
-                </button>
-              );
-            })}
+    <Portal>
+      <div className="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="prefs-editor-title">
+        <div className="settings-sheet__panel">
+          <div className="settings-sheet__head">
+            <h2 id="prefs-editor-title">Preferencias de gusto</h2>
+            <button
+              type="button"
+              className="settings-sheet__close"
+              onClick={onClose}
+              disabled={saving}
+              aria-label="Cerrar"
+            >
+              <Icon name="x" size={20} />
+            </button>
           </div>
 
-          <p className="settings-sheet__label" id="prefs-grapes">¿Y qué uvas?</p>
-          <div className="settings-chips" role="group" aria-labelledby="prefs-grapes">
-            {POPULAR_VARIETALS.map((v) => {
-              const on = varietals.includes(v);
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  className={`settings-chip ${on ? "is-sel" : ""}`}
-                  aria-pressed={on}
-                  disabled={saving}
-                  onClick={() => { setVarietals((l) => toggle(l, v)); setError(""); }}
-                >
-                  {on && <Icon name="check" size={14} />} {v}
-                </button>
-              );
-            })}
-          </div>
+          <div className="settings-sheet__body">
+            {/* Tipos: son pocos y excluyentes entre sí visualmente, así que van
+                como tarjetas con color propio en vez de etiquetas iguales. */}
+            <p className="settings-sheet__label" id="prefs-types">¿Qué solés tomar?</p>
+            <div className="pref-types" role="group" aria-labelledby="prefs-types">
+              {WINE_TYPES.map(({ value, label }) => {
+                const on = types.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`pref-type pref-type--${value} ${on ? "is-sel" : ""}`}
+                    aria-pressed={on}
+                    disabled={saving}
+                    onClick={() => { setTypes((t) => toggle(t, value)); setError(""); }}
+                  >
+                    <span className="pref-type__dot" aria-hidden="true" />
+                    {label}
+                    {on && <Icon name="check" size={14} className="pref-type__check" />}
+                  </button>
+                );
+              })}
+            </div>
 
-          <p className="settings-hint">Usamos esto para afinar lo que te recomendamos.</p>
-
-          {error && (
-            <p className="settings-error" role="alert">
-              <Icon name="alert-triangle" size={15} /> {error}
+            {/* Uvas: son once. Como grilla compacta se barren de un vistazo;
+                como etiquetas sueltas de ancho variable eran un amontonamiento. */}
+            <p className="settings-sheet__label" id="prefs-grapes">
+              ¿Y qué uvas te gustan?
+              {varietals.length > 0 && <em className="settings-sheet__count"> {varietals.length} elegidas</em>}
             </p>
-          )}
-        </div>
+            <div className="pref-grapes" role="group" aria-labelledby="prefs-grapes">
+              {POPULAR_VARIETALS.map((v) => {
+                const on = varietals.includes(v);
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`pref-grape ${on ? "is-sel" : ""}`}
+                    aria-pressed={on}
+                    disabled={saving}
+                    onClick={() => { setVarietals((l) => toggle(l, v)); setError(""); }}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
 
-        <div className="settings-sheet__footer">
-          <button type="button" className="settings-sheet__cancel" onClick={onClose} disabled={saving}>
-            Cancelar
-          </button>
-          <button type="button" className="settings-sheet__save" onClick={save} disabled={saving}>
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
+            <p className="settings-hint">Con esto afinamos lo que te recomendamos. Podés cambiarlo cuando quieras.</p>
+
+            {error && (
+              <p className="settings-error" role="alert">
+                <Icon name="alert-triangle" size={15} /> {error}
+              </p>
+            )}
+          </div>
+
+          <div className="settings-sheet__footer">
+            <button type="button" className="settings-sheet__cancel" onClick={onClose} disabled={saving}>
+              Cancelar
+            </button>
+            <button type="button" className="settings-sheet__save" onClick={save} disabled={saving}>
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+  </Portal>
   );
 }

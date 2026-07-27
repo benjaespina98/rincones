@@ -122,12 +122,12 @@ export default function GuardadosPage() {
                 <span className="guardados-card__body">
                   <span className="guardados-card__name">{wish.name}</span>
                   {wish.winery && <span className="guardados-card__winery">{wish.winery}</span>}
-                  <span className="guardados-card__meta">
+                  <span className="guardados-card__meta chip-row">
                     {wish.type && wish.type !== "unknown" && (
-                      <span className="wine-type-badge">{WINE_TYPE_LABELS[wish.type]}</span>
+                      <span className="chip chip--type">{WINE_TYPE_LABELS[wish.type]}</span>
                     )}
-                    {wish.varietal && <span className="guardados-card__chip">{wish.varietal}</span>}
-                    {wish.vintage && <span className="guardados-card__chip">{wish.vintage}</span>}
+                    {wish.varietal && <span className="chip">{wish.varietal}</span>}
+                    {wish.vintage && <span className="chip">{wish.vintage}</span>}
                   </span>
                 </span>
                 <Icon name="arrow-right" size={18} className="guardados-card__caret" />

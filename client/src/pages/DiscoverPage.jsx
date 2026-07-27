@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useWineStats } from "../hooks/useWineStats";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines } from "../services/wineSearchApi";
-import { DISCOVER_CONTENT } from "../data/discoverContent";
+import { visibleContent, itemSubtitle } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
+import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -15,18 +17,11 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import "../styles/pages/DiscoverPage.css";
 
-const greeting = () => {
-  const h = new Date().getHours();
-  if (h < 6) return "Buenas noches";
-  if (h < 13) return "Buen día";
-  if (h < 20) return "Buenas tardes";
-  return "Buenas noches";
-};
-
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { addWish } = useWishlist();
+  const { stats } = useWineStats();
   const { showError, showSuccess } = useToast();
 
   const [featured, setFeatured] = useState([]);
@@ -58,6 +53,8 @@ export default function DiscoverPage() {
   useEffect(() => loadFeatured(), [loadFeatured]);
 
   const name = displayName(user);
+  // Se calcula una vez por render: oculta los eventos ya pasados.
+  const content = visibleContent();
 
   const submitSearch = (e) => {
     e.preventDefault();
@@ -107,7 +104,9 @@ export default function DiscoverPage() {
     <div className="discover-page">
       <header className="discover-hero">
         <p className="discover-hero__greeting">{greeting()}{name ? `, ${name}` : ""} 👋</p>
-        <h1 className="discover-hero__title">¿Qué vino descubrimos hoy?</h1>
+        {/* El título sale del estado real de la bodega: si no hay nada que
+            contar cae a la pregunta neutra. Ver utils/momentCopy.js. */}
+        <h1 className="discover-hero__title">{homeTitle({ stats })}</h1>
 
         <form className="discover-search" onSubmit={submitSearch} role="search">
           <span className="discover-search__icon" aria-hidden="true">
@@ -143,19 +142,23 @@ export default function DiscoverPage() {
               <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={140} />
             </div>
             <div className="spotlight__body">
+              {/* Decir POR QUÉ este vino vale más que rotularlo "Vino del día":
+                  el motivo sale de la propia bodega, no de un modelo. */}
               <span className="spotlight__kicker">
-                {surprised ? "🎲 Una sorpresa" : "✦ Vino del día"}
+                {surprised
+                  ? "Al azar, para salir de la rutina"
+                  : whyThisWine(spotlight, stats) || "Elegido para hoy"}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
                 {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
               </p>
               {(spotlight.varietal || spotlight.type) && (
-                <span className="spotlight__tags">
+                <span className="spotlight__tags chip-row">
                   {spotlight.type && spotlight.type !== "unknown" && (
-                    <span className="wine-type-badge">{WINE_TYPE_LABELS[spotlight.type]}</span>
+                    <span className="chip chip--type">{WINE_TYPE_LABELS[spotlight.type]}</span>
                   )}
-                  {spotlight.varietal && <span className="spotlight__grape">{spotlight.varietal}</span>}
+                  {spotlight.varietal && <span className="chip chip--grape">{spotlight.varietal}</span>}
                 </span>
               )}
             </div>
@@ -216,7 +219,7 @@ export default function DiscoverPage() {
                   <div className="discover-wine__art">
                     <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
                     {wine.type && wine.type !== "unknown" && (
-                      <span className="discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
+                      <span className="chip chip--type chip--overlay discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
                     )}
                   </div>
                 </button>
@@ -229,7 +232,7 @@ export default function DiscoverPage() {
                     <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
                   </button>
                   <p className="discover-wine__winery">{wine.winery}</p>
-                  {wine.varietal && <p className="discover-wine__grape">{wine.varietal}</p>}
+                  {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
                   {wine.region && (
                     <p className="discover-wine__region">
                       <Icon name="map-pin" size={12} /> {wine.region}
@@ -260,11 +263,11 @@ export default function DiscoverPage() {
       <section className="discover-section">
         <div className="discover-section__head">
           <h2>Aprendé y explorá</h2>
-          <span className="discover-section__hint">Contenido para saber más de vino</span>
+          <span className="discover-section__hint">Todo con enlace a la fuente original</span>
         </div>
 
         <div className="discover-content">
-          {DISCOVER_CONTENT.map((group) => (
+          {content.map((group) => (
             <div key={group.id} className="content-group">
               <span className="content-group__label" style={{ color: group.accent }}>
                 {group.label}
@@ -272,20 +275,22 @@ export default function DiscoverPage() {
               <div className="content-group__items">
                 {group.items.map((item) => (
                   <a
-                    key={item.title}
+                    key={item.id}
                     className="content-card"
-                    href={item.url}
+                    href={item.source.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => tapHaptic()}
                     style={{ "--accent-content": group.accent }}
                   >
+                    {/* El ícono puede venir del ítem; si no, del grupo. */}
                     <span className="content-card__icon">
-                      <Icon name={group.icon} size={18} />
+                      <Icon name={item.icon || group.icon} size={18} />
                     </span>
                     <div className="content-card__text">
                       <span className="content-card__title">{item.title}</span>
-                      <span className="content-card__subtitle">{item.subtitle}</span>
+                      <span className="content-card__summary">{item.summary}</span>
+                      <span className="content-card__subtitle">{itemSubtitle(item)}</span>
                     </div>
                     <Icon name="arrow-right" size={16} className="content-card__arrow" />
                   </a>
@@ -295,7 +300,7 @@ export default function DiscoverPage() {
           ))}
         </div>
 
-        <p className="discover-foot">Curado para vos · más contenido en camino.</p>
+        <p className="discover-foot">Selección propia · sumamos más cada tanto.</p>
       </section>
     </div>
   );

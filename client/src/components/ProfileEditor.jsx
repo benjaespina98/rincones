@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import Icon from "./Icon";
 import "../styles/components/ProfileEditor.css";
+import Portal from "./Portal";
 
 const AVATAR_OPTIONS = ["👤", "🍷", "🍇", "🥂", "🍾", "🧑‍🌾", "😎", "🌟"];
 
@@ -85,144 +86,146 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
   const displayName = `${form.firstName} ${form.lastName}`.trim() || "Tu nombre";
 
   return (
-    <div className="profile-editor" role="dialog" aria-modal="true" aria-label="Editar perfil">
-      <form className="profile-editor__panel" onSubmit={handleSubmit}>
-        <header className="profile-editor__bar">
-          <button
-            type="button"
-            className="profile-editor__bar-btn"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancelar
-          </button>
-          <span className="profile-editor__bar-title">Editar perfil</span>
-          <button
-            type="submit"
-            className="profile-editor__bar-btn profile-editor__bar-btn--primary"
-            disabled={saving}
-          >
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-        </header>
+    <Portal>
+      <div className="profile-editor" role="dialog" aria-modal="true" aria-label="Editar perfil">
+        <form className="profile-editor__panel" onSubmit={handleSubmit}>
+          <header className="profile-editor__bar">
+            <button
+              type="button"
+              className="profile-editor__bar-btn"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+            <span className="profile-editor__bar-title">Editar perfil</span>
+            <button
+              type="submit"
+              className="profile-editor__bar-btn profile-editor__bar-btn--primary"
+              disabled={saving}
+            >
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+          </header>
 
-        <div className="profile-editor__scroll">
-          <section className="profile-editor__avatar-section">
-            <div className="profile-editor__avatar">{form.avatar}</div>
-            <p className="profile-editor__avatar-label">Elegí tu avatar</p>
-            <div className="profile-editor__avatar-options">
-              {AVATAR_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className={`profile-editor__avatar-chip ${
-                    form.avatar === emoji ? "is-selected" : ""
-                  }`}
-                  onClick={() => setField("avatar", emoji)}
-                  aria-label={`Avatar ${emoji}`}
-                  aria-pressed={form.avatar === emoji}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </section>
+          <div className="profile-editor__scroll">
+            <section className="profile-editor__avatar-section">
+              <div className="profile-editor__avatar">{form.avatar}</div>
+              <p className="profile-editor__avatar-label">Elegí tu avatar</p>
+              <div className="profile-editor__avatar-options">
+                {AVATAR_OPTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={`profile-editor__avatar-chip ${
+                      form.avatar === emoji ? "is-selected" : ""
+                    }`}
+                    onClick={() => setField("avatar", emoji)}
+                    aria-label={`Avatar ${emoji}`}
+                    aria-pressed={form.avatar === emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-          <section className="profile-editor__group">
-            <span className="profile-editor__group-title">Datos personales</span>
+            <section className="profile-editor__group">
+              <span className="profile-editor__group-title">Datos personales</span>
 
-            <div className="profile-editor__row">
+              <div className="profile-editor__row">
+                <label className="profile-editor__field">
+                  <span>Nombre</span>
+                  <input
+                    ref={firstFieldRef}
+                    type="text"
+                    value={form.firstName}
+                    maxLength={NAME_MAX}
+                    onChange={(e) => setField("firstName", e.target.value)}
+                    placeholder="Benjamín"
+                  />
+                </label>
+                <label className="profile-editor__field">
+                  <span>Apellido</span>
+                  <input
+                    type="text"
+                    value={form.lastName}
+                    maxLength={NAME_MAX}
+                    onChange={(e) => setField("lastName", e.target.value)}
+                    placeholder="Espina"
+                  />
+                </label>
+              </div>
+
               <label className="profile-editor__field">
-                <span>Nombre</span>
+                <span>Fecha de nacimiento</span>
                 <input
-                  ref={firstFieldRef}
-                  type="text"
-                  value={form.firstName}
-                  maxLength={NAME_MAX}
-                  onChange={(e) => setField("firstName", e.target.value)}
-                  placeholder="Benjamín"
+                  type="date"
+                  value={form.birthDate}
+                  max={maxBirthDateForAge()}
+                  onChange={(e) => setField("birthDate", e.target.value)}
                 />
               </label>
+
+              <div className="profile-editor__readonly">
+                <span>Correo</span>
+                <p title={email}>{email || "—"}</p>
+              </div>
+            </section>
+
+            <section className="profile-editor__group">
+              <span className="profile-editor__group-title">Ubicación</span>
+              <div className="profile-editor__row">
+                <label className="profile-editor__field">
+                  <span>Ciudad</span>
+                  <input
+                    type="text"
+                    value={form.city}
+                    onChange={(e) => setField("city", e.target.value)}
+                    placeholder="Mendoza"
+                  />
+                </label>
+                <label className="profile-editor__field">
+                  <span>País</span>
+                  <input
+                    type="text"
+                    value={form.country}
+                    onChange={(e) => setField("country", e.target.value)}
+                    placeholder="Argentina"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="profile-editor__group">
+              <span className="profile-editor__group-title">Sobre vos</span>
               <label className="profile-editor__field">
-                <span>Apellido</span>
-                <input
-                  type="text"
-                  value={form.lastName}
-                  maxLength={NAME_MAX}
-                  onChange={(e) => setField("lastName", e.target.value)}
-                  placeholder="Espina"
+                <span>Bio</span>
+                <textarea
+                  value={form.bio}
+                  maxLength={BIO_MAX}
+                  rows={4}
+                  onChange={(e) => setField("bio", e.target.value)}
+                  placeholder="Amante del Malbec y las tardes de picada…"
                 />
+                <small className="profile-editor__count">
+                  {form.bio.length}/{BIO_MAX}
+                </small>
               </label>
-            </div>
+            </section>
 
-            <label className="profile-editor__field">
-              <span>Fecha de nacimiento</span>
-              <input
-                type="date"
-                value={form.birthDate}
-                max={maxBirthDateForAge()}
-                onChange={(e) => setField("birthDate", e.target.value)}
-              />
-            </label>
+            {error && (
+              <p className="profile-editor__error" role="alert">
+                <Icon name="alert-triangle" size={15} /> {error}
+              </p>
+            )}
 
-            <div className="profile-editor__readonly">
-              <span>Correo</span>
-              <p title={email}>{email || "—"}</p>
-            </div>
-          </section>
-
-          <section className="profile-editor__group">
-            <span className="profile-editor__group-title">Ubicación</span>
-            <div className="profile-editor__row">
-              <label className="profile-editor__field">
-                <span>Ciudad</span>
-                <input
-                  type="text"
-                  value={form.city}
-                  onChange={(e) => setField("city", e.target.value)}
-                  placeholder="Mendoza"
-                />
-              </label>
-              <label className="profile-editor__field">
-                <span>País</span>
-                <input
-                  type="text"
-                  value={form.country}
-                  onChange={(e) => setField("country", e.target.value)}
-                  placeholder="Argentina"
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className="profile-editor__group">
-            <span className="profile-editor__group-title">Sobre vos</span>
-            <label className="profile-editor__field">
-              <span>Bio</span>
-              <textarea
-                value={form.bio}
-                maxLength={BIO_MAX}
-                rows={4}
-                onChange={(e) => setField("bio", e.target.value)}
-                placeholder="Amante del Malbec y las tardes de picada…"
-              />
-              <small className="profile-editor__count">
-                {form.bio.length}/{BIO_MAX}
-              </small>
-            </label>
-          </section>
-
-          {error && (
-            <p className="profile-editor__error" role="alert">
-              <Icon name="alert-triangle" size={15} /> {error}
+            <p className="profile-editor__preview-hint">
+              Aparecerás como <strong>{displayName}</strong>
             </p>
-          )}
-
-          <p className="profile-editor__preview-hint">
-            Aparecerás como <strong>{displayName}</strong>
-          </p>
-        </div>
-      </form>
-    </div>
+          </div>
+        </form>
+      </div>
+  </Portal>
   );
 }

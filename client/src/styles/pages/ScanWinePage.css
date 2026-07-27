@@ -297,23 +297,6 @@
   margin-top: 2px;
 }
 
-.wine-result-card__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(126, 89, 201, 0.14);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  font-weight: 600;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .wine-result-card__rating {
   margin-top: 2px;
 }

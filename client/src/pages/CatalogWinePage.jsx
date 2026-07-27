@@ -5,6 +5,7 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import WineReviews from "../components/WineReviews";
+import WineStructure from "../components/WineStructure";
 import WinePhoto from "../components/WinePhoto";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
@@ -141,10 +142,10 @@ export default function CatalogWinePage() {
       </div>
 
       <div className="wine-detail-body">
-        <div className="wine-detail-meta">
-          <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-          {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-          {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
+        <div className="wine-detail-meta chip-row">
+          <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+          {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
+          {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
         </div>
 
         {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
@@ -174,6 +175,8 @@ export default function CatalogWinePage() {
               <>
                 {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
                 {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
+
+                <WineStructure structure={aiInfo.structure} />
 
                 {aiInfo.profile?.length > 0 && (
                   <div className="wine-about__profile">

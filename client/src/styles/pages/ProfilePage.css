@@ -393,16 +393,6 @@
    ver styles/components/ProfileEditor.css. */
 
 /* Empty profile state */
-.empty-profile {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  padding:40px 16px;
-  color:#999;
-}
-
 /* Wine Insights (Spotify-style) */
 .wine-insights {
   display: flex;
@@ -460,7 +450,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #d8cdff;
-  text-capitalize: capitalize;
+  text-transform: capitalize;
 }
 
 .type-count {
@@ -624,4 +614,11 @@
   font-size: var(--text-base);
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+/* Los logros y los tipos de vino se veían clickeables (tienen `transition`)
+   pero no reaccionaban a nada. Son informativos: alcanza con un realce suave. */
+.ach__item:hover,
+.type-item:hover {
+  border-color: var(--line-strong);
 }

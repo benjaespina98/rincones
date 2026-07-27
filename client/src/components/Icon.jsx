@@ -106,6 +106,22 @@ const PATHS = {
       <circle cx="12" cy="13" r="3.2" />
     </>
   ),
+  grid: (
+    <>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="1.6" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" />
+      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <circle cx="3.8" cy="6" r="1.1" />
+      <circle cx="3.8" cy="12" r="1.1" />
+      <circle cx="3.8" cy="18" r="1.1" />
+    </>
+  ),
   image: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

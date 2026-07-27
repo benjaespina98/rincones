@@ -7,6 +7,8 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import WineReviews from "../components/WineReviews";
+import WineStructure from "../components/WineStructure";
+import WineOpinion from "../components/WineOpinion";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -208,8 +210,6 @@ export default function WineDetailPage() {
       wine.tasted ? "Marcado como no probado" : "Vino marcado como probado"
     );
 
-  const handleRate = (value) => applyUpdate({ rating: value }, "Rating actualizado");
-
   const handleAdjustQuantity = async (delta) => {
     if (delta < 0 && Number(wine.quantity) <= 0) return;
     setPending(true);
@@ -401,10 +401,10 @@ export default function WineDetailPage() {
       <div className="wine-detail-body">
         {!editing ? (
           <>
-            <div className="wine-detail-meta">
-              <span className="wine-type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-              {wine.vintage && <span className="wine-year">{wine.vintage}</span>}
-              {wine.varietal && <span className="wine-year">{wine.varietal}</span>}
+            <div className="wine-detail-meta chip-row">
+              <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+              {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
+              {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
               {(() => {
                 const cs = getCellarStatus(wine);
                 if (!cs.label) return null;
@@ -416,27 +416,20 @@ export default function WineDetailPage() {
               })()}
             </div>
 
-            <div className="wine-detail-rating">
-              <span className="wine-detail-rating__label">
-                Tu rating <em>· privado</em>
-              </span>
-              <div className="rating-input" role="group" aria-label="Calificar vino">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`rating-input__star ${value <= (wine.rating || 0) ? "filled" : ""}`}
-                    onClick={() => handleRate(value)}
-                    disabled={pending}
-                    aria-label={`Calificar con ${value} estrellas`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
+                dos widgets de estrellas en esta misma pantalla. */}
+            <WineOpinion
+              name={wine.name}
+              winery={wine.winery}
+              onRated={(value) => {
+                // Se guarda también en el vino para que las estadísticas, los
+                // filtros y el orden de Bodega sigan funcionando.
+                setWine((w) => ({ ...w, rating: value }));
+                updateWine(id, { rating: value }).catch(() => {});
+              }}
+            />
 
-            {/* Reseñas públicas de la comunidad (distintas del rating privado). */}
+            {/* Opiniones de otros (el promedio y las reseñas ajenas). */}
             <WineReviews name={wine.name} winery={wine.winery} />
 
             {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
@@ -467,7 +460,9 @@ export default function WineDetailPage() {
                     {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
                     {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
 
-                    {aiInfo.profile?.length > 0 && (
+                    <WineStructure structure={aiInfo.structure} />
+
+                {aiInfo.profile?.length > 0 && (
                       <div className="wine-about__profile">
                         {aiInfo.profile.map((p) => (
                           <span key={p} className="wine-about__pill">{p}</span>
@@ -549,14 +544,14 @@ export default function WineDetailPage() {
 
             {wine.notes && (
               <div className="wine-detail-notes">
-                <h3>Notas</h3>
+                <h3>Tus notas <em>· privadas</em></h3>
                 <p>{wine.notes}</p>
               </div>
             )}
 
             {(wine.cellar?.location || wine.cellar?.drinkFrom || wine.cellar?.drinkUntil) && (
               <div className="wine-detail-meta-section">
-                <h3>Bodega</h3>
+                <h3>Dónde lo guardás</h3>
                 <div className="wine-meta-row">
                   {wine.cellar.location && (
                     <span className="wine-meta-chip">📍 {wine.cellar.location}</span>
@@ -572,7 +567,7 @@ export default function WineDetailPage() {
 
             {wine.purchase?.price > 0 && (
               <div className="wine-detail-meta-section">
-                <h3>Compra</h3>
+                <h3>Cómo lo conseguiste</h3>
                 <div className="wine-meta-row">
                   <span className="wine-meta-chip">
                     💰 ${wine.purchase.price.toLocaleString("es-AR")} {wine.purchase.currency || "ARS"}
@@ -781,7 +776,7 @@ export default function WineDetailPage() {
 
         <section className="wine-moments">
           <div className="wine-moments__header">
-            <h3>Momentos de degustación</h3>
+            <h3>Tus momentos con este vino</h3>
             {!showMomentForm && (
               <button type="button" className="wine-moments__add-btn" onClick={() => setShowMomentForm(true)}>
                 + Agregar

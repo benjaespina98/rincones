@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
 import AppLayout from "./components/AppLayout";
+import SplashScreen from "./components/SplashScreen";
 import "./App.css";
 
 // Páginas cargadas de forma diferida para achicar el bundle inicial.
@@ -19,11 +20,9 @@ const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
 const GuardadosPage = lazy(() => import("./pages/GuardadosPage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 
-const RouteFallback = () => (
-  <div className="page-loading" style={{ minHeight: "100vh" }}>
-    <span className="spinner" aria-hidden="true" />
-  </div>
-);
+// Mismo lenguaje que el arranque: al saltar entre secciones lazy se ve la
+// marca, no un spinner suelto sin contexto.
+const RouteFallback = () => <SplashScreen label="Un momento" />;
 
 const withLayout = (title, element) => (
   <PrivateRoute>

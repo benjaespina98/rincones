@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
+import Logo from "./Logo";
 import { tapHaptic } from "../utils/haptics";
 import "../styles/BottomTabNavigation.css";
 
@@ -42,7 +43,7 @@ export default function BottomTabNavigation() {
     <nav className="bottom-tabs-container" aria-label="Navegación principal">
       <div className="bottom-tabs">
         <div className="sidebar-brand" aria-hidden="true">
-          <img className="sidebar-brand__mark" src="/favicon.svg" alt="" width={26} height={26} />
+          <Logo size={26} className="sidebar-brand__mark" />
           <span className="sidebar-brand__name">Rincones</span>
         </div>
         {tabs.map((tab) => (
