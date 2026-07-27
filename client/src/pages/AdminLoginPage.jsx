@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import Icon from "../components/Icon";
 import { getChangeLogs, getUsers } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminReviewsPage from "./AdminReviewsPage";
@@ -116,56 +117,57 @@ const AdminLoginPage = () => {
       <div className="admin-shell">
         <section className="admin-hero">
           <div className="admin-hero__left">
-            <span className="admin-kicker">Panel de control</span>
-            <h1>Administración Rincones</h1>
+            <span className="admin-kicker">
+              <span className="admin-kicker__shield"><Icon name="lock" size={13} /></span>
+              Modo administrador
+            </span>
+            <h1>Panel de Rincones</h1>
             <p>
-              Gestioná roles, mirá la actividad y entrá a la app como un usuario más.
+              Estás viendo y editando datos de <strong>todos los usuarios</strong>, no sólo los tuyos.
             </p>
-            <small>Sesión activa: {user?.email}</small>
+            <div className="admin-hero__session">
+              <span className="admin-hero__avatar">{(user?.email || "?")[0].toUpperCase()}</span>
+              <span className="admin-hero__who">
+                <strong>{user?.email}</strong>
+                <em>Permisos totales</em>
+              </span>
+            </div>
           </div>
 
           <div className="admin-hero__actions">
-            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>Ver app usuario</button>
+            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+              Salir a la app
+            </button>
             <button className="button button--danger" type="button" onClick={logout}>Cerrar sesión</button>
           </div>
         </section>
 
-        <nav className="admin-nav-tabs">
-          <button
-            className={`admin-nav-tab ${activeTab === "resumen" ? "active" : ""}`}
-            onClick={() => setActiveTab("resumen")}
-            type="button"
-          >
-            Resumen
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "roles" ? "active" : ""}`}
-            onClick={() => setActiveTab("roles")}
-            type="button"
-          >
-            Usuarios
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "resenas" ? "active" : ""}`}
-            onClick={() => setActiveTab("resenas")}
-            type="button"
-          >
-            Reseñas
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "actividad" ? "active" : ""}`}
-            onClick={() => setActiveTab("actividad")}
-            type="button"
-          >
-            Actividad
-          </button>
-          <button
-            className={`admin-nav-tab ${activeTab === "app" ? "active" : ""}`}
-            onClick={() => setActiveTab("app")}
-            type="button"
-          >
-            Vista App
-          </button>
+        {/* Qué puede hacer un admin, en una línea. Antes había que deducirlo
+            abriendo cada pestaña. */}
+        <ul className="admin-powers">
+          <li><Icon name="user" size={14} /> Cambiar roles y eliminar cuentas</li>
+          <li><Icon name="chat" size={14} /> Borrar cualquier reseña pública</li>
+          <li><Icon name="eye" size={14} /> Ver la actividad de todas las bodegas</li>
+        </ul>
+
+        <nav className="admin-nav-tabs" aria-label="Secciones del panel">
+          {[
+            { id: "resumen", label: "Resumen", icon: "home" },
+            { id: "roles", label: "Usuarios", icon: "user" },
+            { id: "resenas", label: "Reseñas", icon: "chat" },
+            { id: "actividad", label: "Actividad", icon: "calendar" },
+            { id: "app", label: "Vista app", icon: "eye" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              className={`admin-nav-tab ${activeTab === t.id ? "active" : ""}`}
+              onClick={() => setActiveTab(t.id)}
+              aria-current={activeTab === t.id ? "page" : undefined}
+              type="button"
+            >
+              <Icon name={t.icon} size={16} /> {t.label}
+            </button>
+          ))}
         </nav>
 
         <section className="admin-panel-surface">
