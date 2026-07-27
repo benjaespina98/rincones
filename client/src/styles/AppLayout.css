@@ -193,3 +193,26 @@
     max-width: 1280px;
   }
 }
+
+/* Rol en el header. Sólo aparece para admins: a un usuario común decirle
+   "usuario" es ruido. Sirve para saber de un vistazo con qué cuenta entraste. */
+.app-topbar__role {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-muted);
+  border: 1px solid var(--line-accent);
+  color: var(--accent-soft);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  /* En pantallas chicas el nombre ya se oculta; la chapita se queda, porque
+     saber que estás como admin importa más que el nombre. */
+  .app-topbar__role {
+    padding: 2px 6px;
+  }
+}

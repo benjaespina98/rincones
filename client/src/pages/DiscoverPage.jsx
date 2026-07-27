@@ -7,6 +7,7 @@ import { getFeaturedWines } from "../services/wineSearchApi";
 import { DISCOVER_CONTENT } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
+import { displayName } from "../utils/identity";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -56,7 +57,7 @@ export default function DiscoverPage() {
 
   useEffect(() => loadFeatured(), [loadFeatured]);
 
-  const name = (user?.email || "").split("@")[0] || "";
+  const name = displayName(user);
 
   const submitSearch = (e) => {
     e.preventDefault();
