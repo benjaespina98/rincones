@@ -9,8 +9,10 @@
 // source "gemini" para poder distinguirlos del catálogo verificado.
 
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
+const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
 
 const TIMEOUT_MS = 9000;
+const BUDGET_MS = 14000;
 const MAX_ITEMS = 8;
 
 const isAiSearchConfigured = isGeminiConfigured;
@@ -26,8 +28,9 @@ Reglas:
 - Sólo vinos que existan de verdad. Si no estás seguro de que un vino exista, no lo incluyas.
 - Es mejor devolver 2 vinos correctos que 8 inventados. Si no conocés ninguno, devolvé una lista vacía.
 - No inventes añadas: dejá "vintage" vacío salvo que el vino sea de una cosecha específica famosa.
-- "name" es la línea del vino sin la bodega (ej: bodega "Catena Zapata", name "Catena Alta Malbec").
-- "region" con formato "Subregión, Provincia" cuando lo sepas (ej: "Valle de Uco, Mendoza").`;
+- "region" con formato "Subregión, Provincia" cuando lo sepas (ej: "Valle de Uco, Mendoza").
+
+${FIELD_CONVENTION}`;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -37,8 +40,9 @@ const RESPONSE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          name: { type: "string" },
           winery: { type: "string" },
+          line: { type: "string" },
+          name: { type: "string" },
           region: { type: "string" },
           varietal: { type: "string" },
           vintage: { type: "string" },
@@ -47,7 +51,7 @@ const RESPONSE_SCHEMA = {
             enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
           },
         },
-        required: ["name", "winery"],
+        required: ["winery", "line", "name", "varietal"],
       },
     },
   },
@@ -73,21 +77,29 @@ const searchWinesWithAi = async (query) => {
     parts: [{ text: buildPrompt(query) }],
     schema: RESPONSE_SCHEMA,
     timeoutMs: TIMEOUT_MS,
+    budgetMs: BUDGET_MS,
   });
 
   const wines = Array.isArray(parsed?.wines) ? parsed.wines : [];
 
   return wines
     .map((w) => {
-      const name = String(w.name || "").trim();
       const winery = String(w.winery || "").trim();
+      const line = String(w.line || "").trim();
+      const properName = String(w.name || "").trim();
+      const varietal = String(w.varietal || "").trim();
+      // El nombre visible se compone igual que en el catálogo curado, así los
+      // resultados de las dos fuentes se pueden deduplicar entre sí.
+      const name = composeDisplayName({ name: properName, line, varietal, winery });
       if (!name || !winery) return null;
       return {
-        id: `ai-${slug(`${winery}-${name}`)}`,
+        id: `ai-${slug(`${winery}-${line || properName}-${varietal}`)}`,
         name,
+        line,
+        properName,
         winery,
         region: String(w.region || "").trim(),
-        varietal: String(w.varietal || "").trim(),
+        varietal,
         vintage: String(w.vintage || "").trim(),
         type: String(w.type || "unknown").trim() || "unknown",
         image: "",

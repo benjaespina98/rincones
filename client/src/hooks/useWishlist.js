@@ -4,14 +4,18 @@ import { getWishes, createWish, updateWish, deleteWish, convertWishToWine } from
 export function useWishlist(onWineAdded) {
   const [wishes, setWishes] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Distinguir "no tenés guardados" de "no pudimos cargarlos": mostrar el estado
+  // vacío ante un fallo de red hace creer al usuario que perdió sus vinos.
+  const [error, setError] = useState(null);
 
   const loadWishes = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getWishes();
       setWishes(data);
     } catch {
-      setWishes([]);
+      setError("No pudimos cargar tus guardados.");
     } finally {
       setLoading(false);
     }
@@ -43,5 +47,5 @@ export function useWishlist(onWineAdded) {
     return wine;
   }, [onWineAdded]);
 
-  return { wishes, loading, addWish, removeWish, toggleWishFavorite, convertToWine, reload: loadWishes };
+  return { wishes, loading, error, addWish, removeWish, toggleWishFavorite, convertToWine, reload: loadWishes };
 }

@@ -4,7 +4,7 @@
 .onb {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,12 +12,7 @@
   background: rgba(6, 8, 14, 0.72);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: onbFade 220ms var(--ease-out) both;
-}
-
-@keyframes onbFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: rincon-fade 220ms var(--ease-out) both;
 }
 
 .onb__panel {
@@ -31,13 +26,8 @@
   background:
     radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.22), transparent 55%),
     linear-gradient(180deg, rgba(30, 24, 52, 0.98), rgba(14, 17, 30, 0.99));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-  animation: onbUp 320ms var(--ease-spring) both;
-}
-
-@keyframes onbUp {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  box-shadow: var(--shadow-modal);
+  animation: rincon-enter-up 320ms var(--ease-spring) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

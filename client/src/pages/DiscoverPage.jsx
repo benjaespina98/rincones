@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWishlist } from "../hooks/useWishlist";
@@ -10,6 +10,8 @@ import { successHaptic, tapHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import "../styles/pages/DiscoverPage.css";
 
 const greeting = () => {
@@ -28,6 +30,7 @@ export default function DiscoverPage() {
 
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [query, setQuery] = useState("");
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
@@ -36,16 +39,22 @@ export default function DiscoverPage() {
   const [spotlightIdx, setSpotlightIdx] = useState(0);
   const [surprised, setSurprised] = useState(false);
 
-  useEffect(() => {
+  // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
+  // pantalla quedaba con un carrusel vacío, sin explicación ni salida.
+  const loadFeatured = useCallback(() => {
     let active = true;
+    setLoading(true);
+    setLoadFailed(false);
     getFeaturedWines()
       .then((w) => active && setFeatured(w))
-      .catch(() => active && setFeatured([]))
+      .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => loadFeatured(), [loadFeatured]);
 
   const name = (user?.email || "").split("@")[0] || "";
 
@@ -117,8 +126,11 @@ export default function DiscoverPage() {
         </form>
       </header>
 
+      {/* Vino del día: skeleton mientras carga, para que no aparezca de golpe. */}
+      {loading && <div className="spotlight spotlight--skeleton" aria-hidden="true" />}
+
       {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
-      {spotlight && (
+      {!loading && spotlight && (
         <section className="spotlight" key={spotlight.id}>
           <button
             type="button"
@@ -176,6 +188,20 @@ export default function DiscoverPage() {
 
         {loading ? (
           <LoadingSkeleton type="list" count={3} />
+        ) : loadFailed ? (
+          <ErrorState
+            title="No pudimos traer las recomendaciones"
+            hint="Puede ser tu conexión. Probá de nuevo en un momento."
+            onRetry={loadFeatured}
+            compact
+          />
+        ) : featured.length === 0 ? (
+          <EmptyState
+            icon="search"
+            title="No hay recomendaciones ahora"
+            hint="Volvé más tarde o buscá un vino que tengas en mente."
+            compact
+          />
         ) : (
           <div className="discover-rail">
             {featured.map((wine) => (

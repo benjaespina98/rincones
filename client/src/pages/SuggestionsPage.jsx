@@ -7,6 +7,8 @@ import { searchWines } from "../services/wineSearchApi";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import WinePhoto from "../components/WinePhoto";
 import {
   WINE_TYPE_LABELS,
@@ -138,20 +140,30 @@ export default function SuggestionsPage() {
 
         {hasContext && (
           <button type="button" className="clear-context-btn" onClick={clearContext}>
-            Quitar filtros
+            Empezar de nuevo
           </button>
         )}
       </section>
 
       <section className="suggestions-results">
         {!hasContext && (
-          <p className="suggestions-hint">
-            Elegí una comida y te decimos qué abrir.
-          </p>
+          <EmptyState
+            icon="wine-glass"
+            title="Contanos qué vas a comer"
+            hint="Elegí un plato arriba y te decimos qué abrir de tu bodega — y qué probar si todavía no lo tenés."
+            compact
+          />
         )}
 
         {loading && <LoadingSkeleton type="list" count={3} />}
-        {error && <p className="suggestions-error">{error}</p>}
+        {error && !loading && (
+          <ErrorState
+            title="No pudimos armar las sugerencias"
+            hint="Probá de nuevo; si sigue, elegí otra comida."
+            onRetry={() => fetchSuggestions(context)}
+            compact
+          />
+        )}
 
         {!loading && !error && cellarWines.length > 0 && (
           <>
@@ -200,12 +212,23 @@ export default function SuggestionsPage() {
           <>
             {discoverLoading && <LoadingSkeleton type="list" count={3} />}
 
+            {/* Si no hay nada de la bodega NI del catálogo, la pantalla quedaba
+                literalmente en blanco después de elegir la comida. */}
+            {!discoverLoading && discover.length === 0 && cellarWines.length === 0 && !error && (
+              <EmptyState
+                icon="search"
+                title="No encontramos nada para ese plato"
+                hint="Probá con otra comida, o buscá un vino puntual desde Agregar."
+                compact
+              />
+            )}
+
             {!discoverLoading && discover.length > 0 && (
               <>
                 <p className="suggestions-results__label">
                   {cellarWines.length > 0
                     ? "Para descubrir — vinos argentinos"
-                    : "No tenés nada que pegue, pero probá estos"}
+                    : "Para descubrir — todavía no lo tenés"}
                 </p>
                 <ul className="discover-list">
                   {discover.map((wine) => (

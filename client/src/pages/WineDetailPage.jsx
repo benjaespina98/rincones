@@ -3,7 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
+import WineReviews from "../components/WineReviews";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -17,6 +20,7 @@ import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSea
 import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
+import { toUploadableDataUrl } from "../utils/image";
 import WinePhoto from "../components/WinePhoto";
 import Dropdown from "../components/Dropdown";
 import "../styles/pages/WineDetailPage.css";
@@ -49,15 +53,6 @@ const EMPTY_MOMENT = {
   photos: [],
 };
 
-// Lee un archivo de imagen como data URL (para previsualizar y enviar).
-const fileToDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
 export default function WineDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -72,8 +67,11 @@ export default function WineDetailPage() {
   const [pending, setPending] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const [moments, setMoments] = useState([]);
   const [momentsLoading, setMomentsLoading] = useState(true);
+  const [momentsFailed, setMomentsFailed] = useState(false);
   const [showMomentForm, setShowMomentForm] = useState(false);
   const [momentDraft, setMomentDraft] = useState(EMPTY_MOMENT);
   const [savingMoment, setSavingMoment] = useState(false);
@@ -82,20 +80,27 @@ export default function WineDetailPage() {
   const [aiInfo, setAiInfo] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
-  // Precio comunitario (promedio de lo que pagó la gente).
+  // Precio comunitario (promedio de lo que pagó la gente). `priceLoading` evita
+  // afirmar "sin datos aún" mientras la petición sigue en vuelo.
   const [communityPrice, setCommunityPrice] = useState(null);
+  const [priceLoading, setPriceLoading] = useState(true);
 
   const loadWine = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const data = await getWineById(id);
       if (!data) {
         setNotFound(true);
       } else {
         setWine(data);
       }
-    } catch {
-      setNotFound(true);
+    } catch (err) {
+      // Un 404 sí es "no existe"; cualquier otra cosa (red caída, 500) es un
+      // fallo de carga. Antes todo caía en "puede que ya lo hayas eliminado",
+      // que es una atribución alarmante y falsa.
+      if (err?.response?.status === 404) setNotFound(true);
+      else setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -104,10 +109,11 @@ export default function WineDetailPage() {
   const loadMoments = useCallback(async () => {
     try {
       setMomentsLoading(true);
+      setMomentsFailed(false);
       const data = await getWineMoments(id);
       setMoments(data);
     } catch {
-      setMoments([]);
+      setMomentsFailed(true);
     } finally {
       setMomentsLoading(false);
     }
@@ -121,8 +127,20 @@ export default function WineDetailPage() {
   // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.
   const wineName = wine?.name;
   const wineWinery = wine?.winery;
-  useEffect(() => {
-    if (!wineName) return;
+
+  // Extraído a callback para poder reintentar desde la UI sin recargar la página.
+  const loadDescription = useCallback((force = false) => {
+    if (!wineName) return undefined;
+
+    // Si el vino ya trae la ficha persistida (se genera al crearlo), la usamos
+    // y no gastamos una llamada por cada apertura del detalle.
+    if (!force && wine?.description?.generatedAt) {
+      setAiInfo(wine.description);
+      setAiLoading(false);
+      setAiFailed(false);
+      return undefined;
+    }
+
     let active = true;
     setAiLoading(true);
     setAiFailed(false);
@@ -143,15 +161,26 @@ export default function WineDetailPage() {
       .finally(() => {
         if (active) setAiLoading(false);
       });
-    getWinePrice(wineName, wineWinery)
-      .then((p) => { if (active) setCommunityPrice(p); })
-      .catch(() => {});
-
     return () => {
       active = false;
     };
     // Sólo depende del vino (nombre+bodega); el resto son datos estables del mismo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wineName, wineWinery, wine?.description?.generatedAt]);
+
+  useEffect(() => loadDescription(), [loadDescription]);
+
+  useEffect(() => {
+    if (!wineName) return undefined;
+    let active = true;
+    setPriceLoading(true);
+    getWinePrice(wineName, wineWinery)
+      .then((p) => { if (active) setCommunityPrice(p); })
+      .catch(() => { if (active) setCommunityPrice(null); })
+      .finally(() => { if (active) setPriceLoading(false); });
+    return () => {
+      active = false;
+    };
   }, [wineName, wineWinery]);
 
   const applyUpdate = async (payload, successMessage) => {
@@ -244,7 +273,7 @@ export default function WineDetailPage() {
       setEditing(false);
       showSuccess("Cambios guardados");
     } catch {
-      showError("No se pudo guardar los cambios");
+      showError("No se pudieron guardar los cambios");
     } finally {
       setSaving(false);
     }
@@ -294,17 +323,29 @@ export default function WineDetailPage() {
     );
   }
 
+  // Fallo de carga ≠ vino inexistente: acá ofrecemos reintentar.
+  if (loadFailed) {
+    return (
+      <div className="wine-detail-page">
+        <ErrorState
+          title="No pudimos cargar el vino"
+          hint="Puede ser tu conexión. El vino sigue en tu bodega."
+          onRetry={loadWine}
+        />
+      </div>
+    );
+  }
+
   if (notFound || !wine) {
     return (
       <div className="wine-detail-page">
-        <div className="empty-state">
-          <p className="empty-icon" aria-hidden="true">🍷</p>
-          <p className="empty-title">No encontramos este vino</p>
-          <p className="empty-subtitle">Puede que ya lo hayas eliminado de tu bodega.</p>
-          <button type="button" className="empty-cta" onClick={() => navigate("/bodega")}>
-            Volver a Mi Bodega
-          </button>
-        </div>
+        <EmptyState
+          icon="bottle"
+          title="No encontramos este vino"
+          hint="Puede que ya lo hayas eliminado de tu bodega."
+          actionLabel="Volver a mi bodega"
+          onAction={() => navigate("/bodega")}
+        />
       </div>
     );
   }
@@ -376,7 +417,9 @@ export default function WineDetailPage() {
             </div>
 
             <div className="wine-detail-rating">
-              <span className="wine-detail-rating__label">Tu rating</span>
+              <span className="wine-detail-rating__label">
+                Tu rating <em>· privado</em>
+              </span>
               <div className="rating-input" role="group" aria-label="Calificar vino">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -393,6 +436,9 @@ export default function WineDetailPage() {
               </div>
             </div>
 
+            {/* Reseñas públicas de la comunidad (distintas del rating privado). */}
+            <WineReviews name={wine.name} winery={wine.winery} />
+
             {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
             {(aiLoading || aiInfo || aiFailed) && (
               <div className="wine-about">
@@ -408,9 +454,12 @@ export default function WineDetailPage() {
                 {aiLoading && <LoadingSkeleton type="inline" count={3} />}
 
                 {aiFailed && !aiLoading && (
-                  <p className="wine-about__failed">
-                    No pudimos cargar la descripción ahora. Probá reabrir el vino más tarde.
-                  </p>
+                  <ErrorState
+                    title="No pudimos generar la descripción"
+                    hint="La ficha del vino se arma con IA y a veces tarda."
+                    onRetry={() => loadDescription(true)}
+                    compact
+                  />
                 )}
 
                 {aiInfo && !aiLoading && (
@@ -474,7 +523,9 @@ export default function WineDetailPage() {
               <div className="wine-price__row">
                 <div className="wine-price__info">
                   <span className="wine-price__label">Precio de referencia</span>
-                  {communityPrice ? (
+                  {priceLoading ? (
+                    <span className="wine-price__empty">Buscando precios…</span>
+                  ) : communityPrice ? (
                     <span className="wine-price__value">
                       ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
                       <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
@@ -544,6 +595,7 @@ export default function WineDetailPage() {
               type="text"
               className="scan-edit-input"
               placeholder="Nombre del vino *"
+                aria-label="Nombre del vino"
               value={draft.name}
               onChange={(event) => updateDraftField("name", event.target.value)}
             />
@@ -551,6 +603,7 @@ export default function WineDetailPage() {
               type="text"
               className="scan-edit-input"
               placeholder="Bodega"
+                aria-label="Bodega (productor)"
               list="wine-wineries"
               value={draft.winery}
               onChange={(event) => updateDraftField("winery", event.target.value)}
@@ -559,6 +612,7 @@ export default function WineDetailPage() {
               type="text"
               className="scan-edit-input"
               placeholder="Región"
+                aria-label="Región"
               list="wine-regions"
               value={draft.region}
               onChange={(event) => updateDraftField("region", event.target.value)}
@@ -567,12 +621,17 @@ export default function WineDetailPage() {
               type="text"
               className="scan-edit-input"
               placeholder="Varietal"
+                aria-label="Varietal"
               list="wine-varietals"
               value={draft.varietal}
               onChange={(event) => updateDraftField("varietal", event.target.value)}
             />
             <input
               type="number"
+              inputMode="numeric"
+              min="1900"
+              max={new Date().getFullYear()}
+              aria-label="Año de cosecha"
               className="scan-edit-input"
               placeholder="Año"
               value={draft.vintage}
@@ -583,13 +642,14 @@ export default function WineDetailPage() {
               value={draft.type}
               onChange={(v) => updateDraftField("type", v)}
               options={[
-                { value: "unknown", label: "Tipo de vino..." },
+                { value: "unknown", label: "Tipo de vino…" },
                 ...WINE_TYPES.map(({ value, label }) => ({ value, label })),
               ]}
             />
             <textarea
               className="scan-edit-textarea"
               placeholder="Notas"
+                aria-label="Notas"
               value={draft.notes}
               onChange={(event) => updateDraftField("notes", event.target.value)}
             />
@@ -607,6 +667,9 @@ export default function WineDetailPage() {
             <div className="scan-edit-grid scan-edit-grid--two">
               <input
                 type="number"
+                inputMode="numeric"
+                min="1900"
+                aria-label="Beber desde (año)"
                 className="scan-edit-input"
                 placeholder="Beber desde (año)"
                 value={draft.drinkFrom}
@@ -614,6 +677,9 @@ export default function WineDetailPage() {
               />
               <input
                 type="number"
+                inputMode="numeric"
+                min="1900"
+                aria-label="Beber hasta (año)"
                 className="scan-edit-input"
                 placeholder="Beber hasta (año)"
                 value={draft.drinkUntil}
@@ -626,6 +692,8 @@ export default function WineDetailPage() {
             </div>
             <input
               type="number"
+              inputMode="decimal"
+              aria-label="Precio pagado"
               className="scan-edit-input"
               placeholder="Precio"
               min="0"
@@ -667,7 +735,7 @@ export default function WineDetailPage() {
                 Cancelar
               </button>
               <button className="btn-add" type="button" disabled={saving} onClick={handleSaveEdit}>
-                {saving ? "Guardando..." : "Guardar cambios"}
+                {saving ? "Guardando…" : "Guardar cambios"}
               </button>
             </div>
           </div>
@@ -728,7 +796,7 @@ export default function WineDetailPage() {
                 value={momentDraft.occasion}
                 onChange={(v) => setMomentDraft((p) => ({ ...p, occasion: v }))}
                 options={[
-                  { value: "", label: "Ocasión..." },
+                  { value: "", label: "Ocasión…" },
                   ...OCCASIONS.map((o) => ({ value: o.value, label: o.label })),
                 ]}
               />
@@ -750,17 +818,20 @@ export default function WineDetailPage() {
               <input
                 type="text"
                 placeholder="Lugar"
+                aria-label="Lugar"
                 value={momentDraft.place}
                 onChange={(e) => setMomentDraft((p) => ({ ...p, place: e.target.value }))}
               />
               <input
                 type="text"
                 placeholder="Maridaje (qué comiste)"
+                aria-label="Maridaje: qué comiste"
                 value={momentDraft.foodPairing}
                 onChange={(e) => setMomentDraft((p) => ({ ...p, foodPairing: e.target.value }))}
               />
               <textarea
                 placeholder="Notas del momento"
+                aria-label="Notas del momento"
                 value={momentDraft.notes}
                 onChange={(e) => setMomentDraft((p) => ({ ...p, notes: e.target.value }))}
               />
@@ -795,7 +866,7 @@ export default function WineDetailPage() {
                           e.target.value = "";
                           if (!file) return;
                           try {
-                            const url = await fileToDataUrl(file);
+                            const url = await toUploadableDataUrl(file);
                             setMomentDraft((p) => ({ ...p, photos: [...p.photos, url].slice(0, 2) }));
                           } catch {
                             showError("No se pudo cargar la foto");
@@ -813,7 +884,14 @@ export default function WineDetailPage() {
                     key={value}
                     type="button"
                     className={`rating-input__star ${value <= momentDraft.rating ? "filled" : ""}`}
-                    onClick={() => setMomentDraft((p) => ({ ...p, rating: value }))}
+                    // Tocar la estrella ya puesta la saca: sin esto no había forma
+                    // de volver a "sin calificar".
+                    onClick={() =>
+                      setMomentDraft((p) => ({ ...p, rating: p.rating === value ? 0 : value }))
+                    }
+                    aria-label={`Calificar con ${value} ${value === 1 ? "estrella" : "estrellas"}`}
+                    aria-pressed={value <= momentDraft.rating}
+                    disabled={savingMoment}
                   >
                     ★
                   </button>
@@ -824,7 +902,7 @@ export default function WineDetailPage() {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-add" disabled={savingMoment}>
-                  {savingMoment ? "Guardando..." : "Guardar momento"}
+                  {savingMoment ? "Guardando…" : "Guardar momento"}
                 </button>
               </div>
             </form>
@@ -832,8 +910,24 @@ export default function WineDetailPage() {
 
           {momentsLoading ? (
             <LoadingSkeleton type="inline" count={2} />
+          ) : momentsFailed ? (
+            <ErrorState
+              title="No pudimos cargar tus momentos"
+              hint="Están guardados. Probá de nuevo en un momento."
+              onRetry={loadMoments}
+              compact
+            />
           ) : moments.length === 0 ? (
-            !showMomentForm && <p className="wine-moments__empty">Todavía no registraste ningún momento con este vino.</p>
+            !showMomentForm && (
+              <EmptyState
+                icon="calendar"
+                title="Todavía no registraste ningún momento"
+                hint="Anotá con quién y dónde lo tomaste: es lo que después te hace acordar del vino."
+                actionLabel="Registrar el primero"
+                onAction={() => setShowMomentForm(true)}
+                compact
+              />
+            )
           ) : (
             <ul className="moment-list">
               {moments.map((moment) => (

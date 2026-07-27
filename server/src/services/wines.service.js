@@ -83,6 +83,7 @@ async function createWine(userId, payload) {
   const {
     name,
     winery,
+    line,
     vintage,
     region,
     varietal,
@@ -121,6 +122,7 @@ async function createWine(userId, payload) {
     userId,
     name: String(name || "").trim(),
     winery: winery?.trim() || "",
+    line: line?.trim() || "",
     vintage: vintage ? parseInt(vintage) : null,
     region: region?.trim() || "",
     varietal: varietal?.trim() || "",
@@ -179,6 +181,15 @@ async function createWine(userId, payload) {
     });
   }
 
+  // Ficha IA en segundo plano: el alta es el camino crítico en mobile y no debe
+  // esperar a Gemini. Si falla, la ficha se genera al abrir el vino.
+  {
+    // require diferido: wineDescription -> wineAi -> gemini, y no queremos
+    // sumar ese árbol al arranque del módulo.
+    const { ensureDescription } = require("./wineDescription.service");
+    void ensureDescription(savedWine).catch(() => {});
+  }
+
   const user = await User.findById(userId);
   user.stats.winesCount = (user.stats.winesCount || 0) + 1;
   if (tasted) user.stats.tastedWines = (user.stats.tastedWines || 0) + 1;
@@ -198,6 +209,7 @@ async function updateWine(userId, id, payload) {
   const {
     name,
     winery,
+    line,
     vintage,
     region,
     varietal,
@@ -221,6 +233,7 @@ async function updateWine(userId, id, payload) {
 
   if (name !== undefined) wine.name = String(name).trim();
   if (winery !== undefined) wine.winery = String(winery).trim();
+  if (line !== undefined) wine.line = String(line).trim();
   if (vintage !== undefined) wine.vintage = vintage ? parseInt(vintage) : null;
   if (region !== undefined) wine.region = String(region).trim();
   if (varietal !== undefined) wine.varietal = String(varietal).trim();

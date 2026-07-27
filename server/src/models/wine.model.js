@@ -16,6 +16,14 @@ const wineSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Gama/línea de la bodega ("Reserva", "Broquel", "Serie A"). Aditivo: los
+    // documentos viejos no lo tienen y siguen funcionando — todo lector cae al
+    // `name` guardado, que sigue siendo el nombre visible.
+    line: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     vintage: {
       type: Number,
       min: [1900, "El año debe ser válido"],
@@ -70,11 +78,15 @@ const wineSchema = new mongoose.Schema(
       enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
       default: "unknown",
     },
+    // Ficha generada por IA, persistida al crear el vino. Antes se re-pedía en
+    // cada apertura de la ficha aunque el modelo ya tenía dónde guardarla.
     description: {
+      summary: { type: String, trim: true },
       body: {
         type: String, // Descripción del cuerpo del vino
         trim: true,
       },
+      profile: [String], // ["Cuerpo medio", "Taninos suaves"]
       aromas: [String], // ["cereza", "roble", "especias"]
       foodPairing: [String], // ["carne roja", "queso", "pasta"]
       alcohol: {
@@ -82,6 +94,9 @@ const wineSchema = new mongoose.Schema(
         min: 0,
         max: 20,
       },
+      serve: { type: String, trim: true }, // "16-18 °C"
+      known: { type: Boolean },
+      generatedAt: { type: Date },
     },
     cellar: {
       location: { type: String, trim: true },

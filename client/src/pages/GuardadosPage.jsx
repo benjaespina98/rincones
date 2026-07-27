@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -15,7 +17,7 @@ import "../styles/pages/GuardadosPage.css";
 export default function GuardadosPage() {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { wishes, loading, removeWish, toggleWishFavorite } = useWishlist();
+  const { wishes, loading, error, removeWish, toggleWishFavorite, reload } = useWishlist();
   const [filter, setFilter] = useState("all"); // all | favorites
   const [busyId, setBusyId] = useState(null);
 
@@ -64,7 +66,7 @@ export default function GuardadosPage() {
     <div className="guardados-page">
       <header className="guardados-header">
         <h1>Guardados</h1>
-        <p>Vinos que querés probar. Cuando consigas uno, escanealo para sumarlo a tu bodega.</p>
+        <p>Vinos que querés probar. Cuando consigas uno, escaneálo para sumarlo a tu bodega.</p>
       </header>
 
       <div className="guardados-filters">
@@ -87,22 +89,29 @@ export default function GuardadosPage() {
 
       {loading && <LoadingSkeleton type="list" count={4} />}
 
-      {!loading && visible.length === 0 && (
-        <div className="guardados-empty">
-          <span className="guardados-empty__icon"><Icon name="heart" size={30} /></span>
-          <p className="guardados-empty__title">
-            {filter === "favorites" ? "Todavía no marcaste favoritos" : "Sin vinos guardados"}
-          </p>
-          <p className="guardados-empty__hint">
-            Buscá o descubrí vinos y tocá <strong>Quiero probar</strong> para guardarlos acá.
-          </p>
-          <button type="button" className="guardados-empty__cta" onClick={() => navigate("/")}>
-            <Icon name="sparkles" size={16} /> Descubrir vinos
-          </button>
-        </div>
+      {!loading && error && (
+        <ErrorState
+          title="No pudimos cargar tus guardados"
+          hint="Tus vinos siguen ahí. Revisá tu conexión y probá de nuevo."
+          onRetry={reload}
+        />
       )}
 
-      {!loading && visible.length > 0 && (
+      {!loading && !error && visible.length === 0 && (
+        <EmptyState
+          icon="heart"
+          title={filter === "favorites" ? "Todavía no marcaste favoritos" : "Sin vinos guardados"}
+          hint={
+            filter === "favorites"
+              ? "Tocá el corazón de un vino guardado para tenerlo a mano acá."
+              : "Buscá o descubrí vinos y tocá “Quiero probar” para guardarlos acá."
+          }
+          actionLabel={filter === "favorites" ? undefined : "Descubrir vinos"}
+          onAction={filter === "favorites" ? undefined : () => navigate("/")}
+        />
+      )}
+
+      {!loading && !error && visible.length > 0 && (
         <ul className="guardados-list">
           {visible.map((wish) => (
             <li key={wish._id} className="guardados-card">
@@ -139,7 +148,7 @@ export default function GuardadosPage() {
                   type="button"
                   className="guardados-have"
                   onClick={() => navigate("/agregar")}
-                  title="Ya lo tengo: escanealo para sumarlo a tu bodega"
+                  title="Ya lo tengo: escaneálo para sumarlo a tu bodega"
                 >
                   <Icon name="camera" size={15} /> Ya lo tengo
                 </button>

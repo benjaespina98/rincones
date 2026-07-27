@@ -322,6 +322,9 @@ const CATALOG = RAW.map(([winery, line, varietal, region, type]) => {
   return {
     id: `ar-${slug(`${winery}-${line}-${varietal}`)}`,
     name,
+    // `line` como campo propio: es lo que permite deduplicar contra lo escaneado
+    // y lo comunitario sin recortar substrings del nombre.
+    line,
     winery,
     region,
     varietal,

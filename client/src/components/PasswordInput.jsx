@@ -28,12 +28,14 @@ export default function PasswordInput({
         disabled={disabled}
         autoComplete={autoComplete}
       />
+      {/* Sin tabIndex={-1}: quien navega por teclado también necesita poder
+          revelar la contraseña que está escribiendo. */}
       <button
         type="button"
         className="auth-toggle-eye"
         onClick={() => setShow((s) => !s)}
         aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
-        tabIndex={-1}
+        aria-pressed={show}
       >
         <Icon name={show ? "eye-off" : "eye"} size={18} />
       </button>

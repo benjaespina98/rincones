@@ -1,7 +1,7 @@
 .settings-sheet {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,12 +9,7 @@
   background: rgba(6, 8, 14, 0.72);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: settingsFade 200ms var(--ease-out) both;
-}
-
-@keyframes settingsFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: rincon-fade 200ms var(--ease-out) both;
 }
 
 .settings-sheet__panel {
@@ -27,13 +22,8 @@
   border-radius: var(--radius-2xl);
   border: 1px solid var(--line-accent);
   background: linear-gradient(180deg, rgba(30, 24, 52, 0.98), rgba(14, 17, 30, 0.99));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-  animation: settingsPop 240ms var(--ease-out) both;
-}
-
-@keyframes settingsPop {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  box-shadow: var(--shadow-modal);
+  animation: rincon-enter-up 240ms var(--ease-out) both;
 }
 
 .settings-sheet__head {
@@ -131,6 +121,58 @@
 .settings-field input:focus {
   outline: none;
   border-color: var(--accent-light);
+}
+
+/* Medidor de fuerza + hint + error inline (mismo lenguaje que Registro). */
+.settings-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-strength__bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.settings-strength__bars span {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+  transition: background var(--transition-smooth);
+}
+
+.settings-strength__bars .is-on--weak { background: var(--wine); }
+.settings-strength__bars .is-on--medium { background: var(--gold); }
+.settings-strength__bars .is-on--strong { background: var(--success); }
+
+.settings-strength__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.settings-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.settings-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--wine-soft);
+  border: 1px solid rgba(198, 70, 95, 0.35);
+  color: #f0a9b6;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .settings-sheet__footer {

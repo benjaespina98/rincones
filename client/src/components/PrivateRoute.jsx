@@ -8,7 +8,7 @@ const PrivateRoute = ({ children }) => {
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <p>Cargando sesión...</p>
+        <p>Cargando sesión…</p>
       </div>
     );
   }

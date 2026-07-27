@@ -28,9 +28,17 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
     setTimeout(() => onClose?.(), 300);
   };
 
+  // Los errores interrumpen (alert); el resto se anuncia con la región polite
+  // del contenedor, para no cortar lo que el usuario esté leyendo.
+  const isError = type === "error";
+
   return (
-    <div className={`toast toast--${type} ${isClosing ? "toast--closing" : ""}`}>
-      <div className="toast__icon"><Icon name={TYPE_ICONS[type] || "info"} size={18} /></div>
+    <div
+      className={`toast toast--${type} ${isClosing ? "toast--closing" : ""}`}
+      role={isError ? "alert" : undefined}
+      aria-live={isError ? "assertive" : undefined}
+    >
+      <div className="toast__icon" aria-hidden="true"><Icon name={TYPE_ICONS[type] || "info"} size={18} /></div>
       <div className="toast__message">{message}</div>
       {action?.label && typeof action?.onClick === "function" && (
         <button
@@ -43,6 +51,7 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
       )}
       <button
         className="toast__close"
+        type="button"
         onClick={handleClose}
         aria-label="Cerrar notificación"
       >

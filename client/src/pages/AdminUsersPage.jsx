@@ -21,8 +21,8 @@ const AdminUsersPage = ({ embedded = false }) => {
       setUsers(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cargar usuarios");
-      showError("Error al cargar usuarios");
+      setError(err.response?.data?.message || "No pudimos cargar los usuarios");
+      showError("No pudimos cargar los usuarios");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ const AdminUsersPage = ({ embedded = false }) => {
       setEditingUserId(null);
       await loadUsers();
     } catch (err) {
-      showError(err.response?.data?.message || "Error al actualizar rol");
+      showError(err.response?.data?.message || "No pudimos actualizar el rol");
     } finally {
       setUpdatingRole(false);
     }

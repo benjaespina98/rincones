@@ -70,7 +70,7 @@
 .admin-login-form input:focus {
   outline: none;
   border-color: rgba(203, 174, 255, 0.88);
-  box-shadow: 0 0 0 3px rgba(143, 102, 255, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .admin-error-text {
