@@ -418,3 +418,11 @@
   color: #7fe3b4;
   cursor: default;
 }
+
+.discover-card:hover {
+  border-color: var(--line-strong);
+}
+
+.discover-card:active {
+  transform: scale(0.99);
+}

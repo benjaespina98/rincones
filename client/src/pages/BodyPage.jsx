@@ -349,7 +349,7 @@ export default function BodyPage({ initialFilter = "all" }) {
               aria-label="Ver en grilla"
               title="Grilla"
             >
-              <Icon name="image" size={16} />
+              <Icon name="grid" size={16} />
             </button>
             <button
               type="button"
@@ -359,7 +359,7 @@ export default function BodyPage({ initialFilter = "all" }) {
               aria-label="Ver en lista"
               title="Lista"
             >
-              <Icon name="minus" size={16} />
+              <Icon name="list" size={16} />
             </button>
           </div>
 

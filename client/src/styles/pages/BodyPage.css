@@ -129,8 +129,9 @@
   cursor: pointer;
   color: var(--text-muted);
   font-size: 16px;
-  min-width: 32px;
-  min-height: 32px;
+  /* Piso táctil: 32px era la mitad de lo que un pulgar acierta con confianza. */
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-full);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
@@ -382,7 +383,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
@@ -416,7 +417,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 42px;
+  min-height: 44px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
   background: rgba(126, 89, 201, 0.14);
@@ -433,8 +434,8 @@
 }
 
 .wine-row__icon-btn {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -619,7 +620,7 @@
 }
 
 .wishlist-buy-btn {
-  min-height: 38px;
+  min-height: 44px;
   padding: 6px 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--accent-light);
@@ -641,8 +642,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: none;
@@ -738,7 +739,7 @@
 .bodega-view__btn {
   display: grid;
   place-items: center;
-  width: 34px;
+  width: 44px;
   height: var(--control-sm);
   border: 0;
   background: none;

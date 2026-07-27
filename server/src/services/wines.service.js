@@ -450,9 +450,12 @@ function scoreWine(wine, context) {
 
   const pairing = context.food ? FOOD_PAIRINGS[context.food] : null;
 
-  // Maridaje — tipo
+  // Maridaje — tipo. Es la regla que MÁS puntaje da (+20) y hasta ahora era
+  // muda: el vino subía al primer puesto sin decir por qué, y la tarjeta caía a
+  // "Disponible en tu bodega", que no explica nada.
   if (pairing && pairing.types.length > 0 && pairing.types.includes(wine.type)) {
     score += 20;
+    reasons.push(`Va bien con ${context.food}`);
   }
 
   // Maridaje — varietal
@@ -468,12 +471,25 @@ function scoreWine(wine, context) {
 
   // Estilo buscado (refina; la comida es el driver principal).
   const m = context.mood;
-  if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) score += 12;
-  if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) score += 12;
-  if (m === "festivo" && wine.type === "sparkling") score += 15;
+  if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) {
+    score += 12;
+    reasons.push("Liviano, como pediste");
+  }
+  if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) {
+    score += 12;
+    reasons.push("Con el cuerpo que buscabas");
+  }
+  if (m === "festivo" && wine.type === "sparkling") {
+    score += 15;
+    reasons.push("Para brindar");
+  }
 
-  // Novedad — bonus si nunca fue probado
-  if (!wine.tasted) score += 5;
+  // Novedad — bonus si nunca fue probado. Se dice sólo si no hay un motivo
+  // mejor: es el más débil de todos y no debería tapar al maridaje.
+  if (!wine.tasted) {
+    score += 5;
+    if (reasons.length === 0) reasons.push("Todavía no lo probaste");
+  }
 
   // Penalización por consumo reciente
   if (wine.lastConsumedAt && daysSince(wine.lastConsumedAt) < 7) score -= 10;
