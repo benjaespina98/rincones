@@ -5,37 +5,24 @@
       <stop offset="1" stop-color="#05060a"/>
     </linearGradient>
     <linearGradient id="wine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9e1f37"/>
-      <stop offset="0.55" stop-color="#7a1024"/>
-      <stop offset="1" stop-color="#4a0a17"/>
+      <stop offset="0" stop-color="#b4223d"/>
+      <stop offset="1" stop-color="#6d0f20"/>
     </linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
-      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.02"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0.10"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.34" r="0.6">
-      <stop offset="0" stop-color="#a782ef" stop-opacity="0.32"/>
+    <radialGradient id="glow" cx="0.5" cy="0.3" r="0.62">
+      <stop offset="0" stop-color="#a782ef" stop-opacity="0.30"/>
       <stop offset="1" stop-color="#a782ef" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <!-- Fondo full-bleed: el sistema recorta las esquinas (maskable). -->
   <rect x="0" y="0" width="100" height="100" fill="url(#bg)"/>
   <rect x="0" y="0" width="100" height="100" fill="url(#glow)"/>
-
-  <!-- Copa dentro de la zona segura (~74%). -->
-  <g transform="translate(50 52) scale(0.74) translate(-50 -52)">
-    <g stroke="#e9e4f5" stroke-opacity="0.55" stroke-width="1.5" stroke-linecap="round">
-      <path d="M31 27 C31 45 39.5 57 50 57 C60.5 57 69 45 69 27 Z" fill="url(#glass)"/>
-      <path d="M36 35 C36.6 48 43.2 54.6 50 54.6 C56.8 54.6 63.4 48 64 35 A14 3 0 0 1 36 35 Z"
-            fill="url(#wine)" stroke="none"/>
-      <ellipse cx="50" cy="35" rx="14" ry="3" fill="#a8324a" stroke="none"/>
-      <ellipse cx="50" cy="27" rx="19" ry="4" fill="none"/>
-      <path d="M50 57 V77" stroke-width="2.6"/>
-      <path d="M37 78.5 C37 76 63 76 63 78.5 C63 81 37 81 37 78.5 Z" fill="url(#glass)"/>
-    </g>
-    <path d="M38 30 C38.5 42 43 51 47 53" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.7" stroke-linecap="round"/>
-    <ellipse cx="45" cy="34" rx="1.5" ry="3.4" fill="#ffffff" fill-opacity="0.35"/>
+  <g transform="translate(50 53) scale(0.76) translate(-50 -53)">
+  <path d="M32 22 h23 a17 17 0 0 1 0 34 h-23 Z" fill="url(#wine)"/>
+  <g fill="none" stroke="#efeaff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 22 h23 a17 17 0 0 1 0 34 h-23"/>
+    <path d="M32 22 V84"/>
+    <path d="M21 84 q11 -6 22 0"/>
+    <path d="M52 56 L70 84"/>
+  </g>
   </g>
 </svg>

@@ -69,6 +69,9 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Con pocos vinos la lista se lee bien; a partir de ~8 la grilla gana.
+  const [viewMode, setViewMode] = useState("list");
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
@@ -158,6 +161,10 @@ export default function BodyPage({ initialFilter = "all" }) {
   ].filter(Boolean);
 
   const hasActiveFilters = filterType !== "all" || activeCharacteristicFilters.length > 0;
+  // Marca el botón "Filtros" cuando hay algo aplicado ahí adentro, para que no
+  // quede un filtro activo invisible con el panel cerrado.
+  const hasAdvanced =
+    sortBy !== "recent" || varietalFilter !== "all" || regionFilter !== "all";
 
   const clearAllFilters = () => {
     setFilterType("all");
@@ -305,53 +312,109 @@ export default function BodyPage({ initialFilter = "all" }) {
         )}
       </div>
 
-      <div className="controls">
-        <Dropdown
-          ariaLabel="Filtrar vinos"
-          value={filterType}
-          onChange={setFilterType}
-          options={[
-            { value: "all", label: "Todos" },
-            { value: "favorites", label: "Favoritos" },
-            { value: "tasted", label: "Probados" },
-            { value: "nottasted", label: "Pendientes" },
-            { value: "lowstock", label: "Stock bajo" },
-            { value: "cellarready", label: "Listos para abrir" },
-            { value: "red", label: "Tintos" },
-            { value: "white", label: "Blancos" },
-            { value: "rosé", label: "Rosados" },
-            { value: "sparkling", label: "Espumantes" },
-            { value: "fortified", label: "Fortificados" },
-          ]}
-        />
+      {/* Una sola barra de filtros. Antes convivían CUATRO combos y CUATRO chips
+          que hacían lo mismo (el combo "Todos" y el chip "Favoritos" son el
+          mismo filtro), apilados en tres filas antes de ver un solo vino. */}
+      <div className="bodega-tools">
+        <div className="bodega-tools__chips" role="group" aria-label="Filtros rápidos">
+          {[
+            { id: "all", label: "Todos", count: wines.length },
+            { id: "favorites", label: "Favoritos", count: stats.favorites },
+            { id: "nottasted", label: "Pendientes", count: wines.length - stats.tasted },
+            { id: "lowstock", label: "Stock bajo", count: stats.lowStock },
+            { id: "cellarready", label: "Listos para abrir", count: null },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`bodega-chip ${filterType === f.id ? "is-active" : ""}`}
+              aria-pressed={filterType === f.id}
+              onClick={() => setFilterType(filterType === f.id ? "all" : f.id)}
+            >
+              {f.label}
+              {f.count != null && <span className="bodega-chip__n">{f.count}</span>}
+            </button>
+          ))}
+        </div>
 
-        <Dropdown
-          ariaLabel="Ordenar vinos"
-          value={sortBy}
-          onChange={setSortBy}
-          options={[
-            { value: "recent", label: "Recientes" },
-            { value: "rating", label: "Rating" },
-            { value: "year", label: "Año" },
-            { value: "name", label: "Nombre" },
-          ]}
-        />
+        <div className="bodega-tools__right">
+          {/* Grilla o lista: con muchos vinos, la lista obliga a leer fila por
+              fila; la grilla deja reconocer por la etiqueta de un vistazo. */}
+          <div className="bodega-view" role="group" aria-label="Forma de ver la lista">
+            <button
+              type="button"
+              className={`bodega-view__btn ${viewMode === "grid" ? "is-active" : ""}`}
+              onClick={() => setViewMode("grid")}
+              aria-pressed={viewMode === "grid"}
+              aria-label="Ver en grilla"
+              title="Grilla"
+            >
+              <Icon name="image" size={16} />
+            </button>
+            <button
+              type="button"
+              className={`bodega-view__btn ${viewMode === "list" ? "is-active" : ""}`}
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+              aria-label="Ver en lista"
+              title="Lista"
+            >
+              <Icon name="minus" size={16} />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className={`bodega-more ${advancedOpen ? "is-open" : ""} ${hasAdvanced ? "has-active" : ""}`}
+            onClick={() => setAdvancedOpen((o) => !o)}
+            aria-expanded={advancedOpen}
+          >
+            <Icon name="settings" size={15} />
+            Filtros
+            {hasAdvanced && <span className="bodega-more__dot" aria-hidden="true" />}
+          </button>
+        </div>
       </div>
 
-      {(varietalOptions.length > 1 || regionOptions.length > 1) && (
-        <div className="controls">
+      {/* Lo específico (orden, tipo, varietal, región) se despliega sólo si lo
+          pedís: la mayoría de las veces alcanza con los chips de arriba. */}
+      {advancedOpen && (
+        <div className="bodega-advanced">
+          <Dropdown
+            ariaLabel="Ordenar vinos"
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: "recent", label: "Más recientes" },
+              { value: "rating", label: "Mejor puntuados" },
+              { value: "year", label: "Por cosecha" },
+              { value: "name", label: "Por nombre" },
+            ]}
+          />
+          <Dropdown
+            ariaLabel="Filtrar por tipo"
+            value={filterType}
+            onChange={setFilterType}
+            options={[
+              { value: "all", label: "Todos los tipos" },
+              { value: "red", label: "Tintos" },
+              { value: "white", label: "Blancos" },
+              { value: "rosé", label: "Rosados" },
+              { value: "sparkling", label: "Espumantes" },
+              { value: "fortified", label: "Fortificados" },
+            ]}
+          />
           {varietalOptions.length > 1 && (
             <Dropdown
               ariaLabel="Filtrar por varietal"
               value={varietalFilter}
               onChange={setVarietalFilter}
               options={[
-                { value: "all", label: "Todos los varietales" },
+                { value: "all", label: "Todas las uvas" },
                 ...varietalOptions.map((v) => ({ value: v, label: v })),
               ]}
             />
           )}
-
           {regionOptions.length > 1 && (
             <Dropdown
               ariaLabel="Filtrar por región"
@@ -365,37 +428,6 @@ export default function BodyPage({ initialFilter = "all" }) {
           )}
         </div>
       )}
-
-      <div className="quick-filters" aria-label="Filtros rápidos de bodega">
-        <button
-          type="button"
-          className={`quick-filter-chip ${filterType === "favorites" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType(filterType === "favorites" ? "all" : "favorites")}
-        >
-          Favoritos ({stats.favorites})
-        </button>
-        <button
-          type="button"
-          className={`quick-filter-chip ${filterType === "nottasted" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType(filterType === "nottasted" ? "all" : "nottasted")}
-        >
-          Pendientes ({wines.length - stats.tasted})
-        </button>
-        <button
-          type="button"
-          className={`quick-filter-chip ${filterType === "lowstock" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType(filterType === "lowstock" ? "all" : "lowstock")}
-        >
-          Stock bajo ({stats.lowStock})
-        </button>
-        <button
-          type="button"
-          className={`quick-filter-chip ${filterType === "cellarready" ? "quick-filter-chip--active" : ""}`}
-          onClick={() => setFilterType(filterType === "cellarready" ? "all" : "cellarready")}
-        >
-          Listos para abrir
-        </button>
-      </div>
 
       {hasActiveFilters && (
         <p className="active-filter-note">
@@ -427,7 +459,7 @@ export default function BodyPage({ initialFilter = "all" }) {
       )}
 
       {!loading && !error && sortedWines.length > 0 && (
-        <div className="wines-list">
+        <div className={`wines-list wines-list--${viewMode}`}>
           {sortedWines.map((wine) => {
             const isPending = pendingActionId === wine._id;
             const expanded = expandedId === wine._id;
