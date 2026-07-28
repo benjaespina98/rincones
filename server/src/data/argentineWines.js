@@ -1,13 +1,21 @@
 // Catálogo de vinos argentinos, escrito a mano.
 //
 // ── DE DÓNDE SALEN ESTOS DATOS ──────────────────────────────────────────────
-// Los cargó Claude a partir de su conocimiento del mercado argentino, línea por
-// línea. NO vienen de una API, de scraping ni de una base oficial, y NO están
-// contrastados contra las webs de las bodegas.
+// La primera carga la hizo Claude desde su conocimiento del mercado argentino,
+// sin contrastar contra ninguna fuente. Se está verificando bodega por bodega
+// contra los sitios OFICIALES; las que ya pasaron por eso están marcadas abajo
+// con "verificado". El resto sigue sin confirmar y puede tener errores: una
+// línea discontinuada, una región mal atribuida, un varietal que esa bodega no
+// produce.
 //
-// Puede haber errores: una línea discontinuada, una región mal atribuida, un
-// varietal que esa bodega no produce. Si encontrás uno, corregí la fila: es un
-// array y el cambio se aplica sin tocar nada más.
+// Cómo verificar una bodega: abrir su sitio oficial (suele ser /wines o /vinos),
+// comparar línea por línea y corregir las filas. Es un array; el cambio se
+// aplica sin tocar nada más.
+//
+// Lo que encontró la primera verificación (Catena Zapata) da una idea del error
+// esperable: de 14 filas, 1 estaba MAL (Nicolás Catena Zapata figuraba como
+// Cabernet Sauvignon y es un blend) y faltaban 15 líneas que la bodega sí
+// produce. O sea: más incompleto que incorrecto, pero con errores reales.
 //
 // Entonces, ¿por qué manda por sobre lo que devuelve el modelo? No porque esté
 // mejor verificado —el origen es parecido—, sino porque acá está CONGELADO y es
@@ -22,17 +30,32 @@
 // El nombre visible se arma como "<línea> <varietal>", que es como se busca.
 
 const RAW = [
-  // --- Catena Zapata ---
+  // --- Catena Zapata --- (verificado contra catenazapata.com, jul 2026)
   ["Catena Zapata", "Catena", "Malbec", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Catena Alta", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Catena Alta", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena Alta", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
-  ["Catena Zapata", "Nicolás Catena Zapata", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Nicolás Catena Zapata", "Blend", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Adrianna Vineyard White Stones", "Chardonnay", "Gualtallary, Mendoza", "white"],
   ["Catena Zapata", "Angélica Zapata", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Cabernet Franc", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Merlot", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Saint Felicien", "Malbec", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Saint Felicien", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Cabernet Franc", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Bonarda", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Sangiovese", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Syrah", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Catena Zapata", "Saint Felicien", "Sauvignon Blanc", "Luján de Cuyo, Mendoza", "white"],
+  ["Catena Zapata", "DV Catena", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Syrah", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Alamos", "Malbec", "Mendoza", "red"],
   ["Catena Zapata", "Alamos", "Torrontés", "Cafayate, Salta", "white"],
 
