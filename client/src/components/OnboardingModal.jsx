@@ -4,6 +4,7 @@ import { saveOnboarding } from "../services/authApi";
 import { useToast } from "../context/ToastContext";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import Icon from "./Icon";
+import Logo from "./Logo";
 import "../styles/components/OnboardingModal.css";
 import Portal from "./Portal";
 
@@ -67,7 +68,10 @@ export default function OnboardingModal({ onDone }) {
 
           {step === 0 && (
             <div className="onb__step">
-              <span className="onb__mark"><Icon name="wine-glass" filled size={30} /></span>
+              {/* "Bienvenido a Rincones" es una presentación de la marca: va el
+                  monograma, no una copa del set general. El segundo paso ya no
+                  presenta nada, así que ahí el ícono temático está bien. */}
+              <span className="onb__mark"><Logo size={34} /></span>
               <h1 className="onb__title">Bienvenido a Rincones 🍷</h1>
               <p className="onb__sub">Para arrancar, ¿qué estilos de vino te gustan más?</p>
 

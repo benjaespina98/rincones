@@ -14,10 +14,16 @@
   background: linear-gradient(135deg, rgba(140, 95, 246, 0.48), rgba(64, 44, 146, 0.82));
 }
 
+/* Con el buscador afuera, la pantalla tiene UNA decisión: escanear (o cargar a
+   mano si la etiqueta no ayuda). Un botón arrimado al techo y media pantalla
+   vacía abajo se lee como algo que no terminó de cargar, así que el bloque se
+   centra y el escaneo toma la presencia que le corresponde. */
 .scan-options {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
   padding: 0.6rem 0.95rem;
 }
@@ -73,8 +79,8 @@
    escanear es la alternativa. Con el cuadrado de 220px ambas competían. */
 .btn-scan-large {
   width: 100%;
-  min-height: 76px;
-  padding: 14px 18px;
+  min-height: 108px;
+  padding: 20px 18px;
   border: 1px solid rgba(167, 130, 239, 0.34);
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, rgba(143, 96, 255, 0.92) 0%, rgba(92, 67, 218, 0.92) 100%);
