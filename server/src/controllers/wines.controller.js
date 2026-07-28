@@ -1,11 +1,12 @@
 const winesService = require("../services/wines.service");
+const { fail } = require("../utils/apiError");
 
 const list = async (req, res) => {
   try {
     const wines = await winesService.listWines(req.user.id);
     return res.json({ success: true, data: wines, count: wines.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -16,7 +17,7 @@ const search = async (req, res) => {
     const wines = await winesService.searchWines(req.user.id, query);
     return res.json({ success: true, data: wines, count: wines.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -25,7 +26,7 @@ const statsSummary = async (req, res) => {
     const summary = await winesService.getStatsSummary(req.user.id);
     return res.json({ success: true, data: summary });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -35,7 +36,7 @@ const getOne = async (req, res) => {
     if (!wine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: wine });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -51,7 +52,7 @@ const create = async (req, res) => {
     // cliente lo usa para decir "sumamos 1, ahora tenés 3" en vez de "agregado".
     return res.status(merged ? 200 : 201).json({ success: true, data: wine, merged, added });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -61,7 +62,7 @@ const update = async (req, res) => {
     if (!updatedWine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: updatedWine });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -71,7 +72,7 @@ const adjustStock = async (req, res) => {
     if (!updatedWine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: updatedWine });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -81,7 +82,7 @@ const getMoments = async (req, res) => {
     if (moments === null) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: moments, count: moments.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -91,7 +92,7 @@ const addMoment = async (req, res) => {
     if (!moment) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.status(201).json({ success: true, data: moment });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -100,7 +101,7 @@ const spendingStats = async (req, res) => {
     const data = await winesService.getSpendingStats(req.user.id);
     return res.json({ success: true, data });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -110,7 +111,7 @@ const suggest = async (req, res) => {
     const results = await winesService.suggestWines(req.user.id, { food, mood, maxResults });
     return res.json({ success: true, data: results, count: results.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -119,7 +120,7 @@ const cellarReady = async (req, res) => {
     const wines = await winesService.getCellarReady(req.user.id);
     return res.json({ success: true, data: wines, count: wines.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -129,7 +130,7 @@ const remove = async (req, res) => {
     if (!ok) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, message: "Vino eliminado" });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 

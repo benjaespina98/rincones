@@ -4,6 +4,7 @@ const { authenticate } = require("../middleware/auth.middleware");
 const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const { calculateAge, validateBirthDate } = require("../utils/age");
+const { fail } = require("../utils/apiError");
 
 // GET /api/users/profile - Obtener perfil del usuario actual
 router.get("/profile", authenticate, async (req, res) => {
@@ -34,7 +35,7 @@ router.get("/profile", authenticate, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    fail(res, error, req);
   }
 });
 
@@ -114,7 +115,7 @@ router.put("/profile", authenticate, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    fail(res, error, req);
   }
 });
 
@@ -152,7 +153,7 @@ router.put("/password", authenticate, async (req, res) => {
       message: "Contraseña actualizada",
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    fail(res, error, req);
   }
 });
 
@@ -174,7 +175,7 @@ router.get("/stats", authenticate, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    fail(res, error, req);
   }
 });
 
@@ -192,7 +193,7 @@ router.get("/:id/wine-stats", authenticate, async (req, res) => {
 
     res.json({ success: true, data: stats });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    fail(res, error, req);
   }
 });
 

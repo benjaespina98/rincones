@@ -310,19 +310,46 @@ async function updateWine(userId, id, payload) {
   if (purchasedAt !== undefined) wine.purchase = { ...wine.purchase, purchasedAt: purchasedAt ? new Date(purchasedAt) : null };
 
   const wasTasted = wine.tasted;
-  if (tasted !== undefined) wine.tasted = tasted === true;
 
-  // Marcar "probado" significa que abriste una botella, así que se descuenta
-  // una del stock. Sin esto, un vino del que tenías una sola botella seguía
-  // figurando "en stock" después de tomártelo.
+  // Marcar "probado" significa que abriste una botella, así que se descuenta una
+  // del stock. Sin esto, un vino del que tenías una sola botella seguía
+  // figurando "en stock" después de tomártelo. Es simétrico a propósito:
+  // destildar la devuelve, porque el botón es un toggle y un toque por error no
+  // puede costarte una unidad de tu cava.
   //
-  // Es simétrico a propósito: destildar devuelve la botella. El botón es un
-  // toggle y un toque por error no puede costarte una unidad de tu bodega.
-  // Sólo se toca el stock cuando el usuario NO lo está editando a mano en la
-  // misma llamada, para no pisar lo que acaba de escribir.
-  if (wasTasted !== wine.tasted && quantity === undefined) {
-    const actual = Number(wine.quantity) || 0;
-    wine.quantity = wine.tasted ? Math.max(0, actual - 1) : actual + 1;
+  // El cambio se hace ATÓMICO y CONDICIONADO al valor anterior: el filtro exige
+  // `tasted: !objetivo`, así que si dos peticiones llegan casi juntas —dos
+  // toques rápidos, un reintento de red— la segunda no matchea y no vuelve a
+  // descontar. Sin esto se perdían botellas sin que apareciera ningún error.
+  //
+  // Sólo se toca el stock si el usuario NO está editando la cantidad a mano en
+  // la misma llamada, para no pisar lo que acaba de escribir.
+  const quiereCambiarTasted = tasted !== undefined && (tasted === true) !== wasTasted;
+  if (quiereCambiarTasted && quantity === undefined) {
+    const objetivo = tasted === true;
+    const res = await Wine.updateOne(
+      { _id: wine._id, userId, tasted: !objetivo },
+      [
+        {
+          $set: {
+            tasted: objetivo,
+            quantity: {
+              $max: [0, { $add: [{ $ifNull: ["$quantity", 0] }, objetivo ? -1 : 1] }],
+            },
+          },
+        },
+      ],
+      { updatePipeline: true }
+    );
+    if (res.matchedCount > 0) {
+      // Refrescamos el documento en memoria para que el resto de la función
+      // trabaje sobre los valores que quedaron realmente en la base.
+      const fresco = await Wine.findById(wine._id).select("tasted quantity");
+      wine.tasted = fresco.tasted;
+      wine.quantity = fresco.quantity;
+    }
+  } else if (tasted !== undefined) {
+    wine.tasted = tasted === true;
   }
 
   wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status: wine.status });
@@ -345,17 +372,54 @@ async function updateWine(userId, id, payload) {
   return updatedWine;
 }
 
+/**
+ * Ajusta el stock de forma ATÓMICA.
+ *
+ * Antes era leer, sumar en Node y guardar. Dos toques rápidos en "+" salían
+ * casi juntos, los dos leían quantity=1 y los dos escribían 2: una de las dos
+ * botellas se perdía sin ningún error. Es el patrón clásico de lost update, y
+ * en un teléfono —donde tocar dos veces seguido es lo normal— pasa de verdad.
+ *
+ * Ahora la suma la hace Mongo dentro del propio documento con un pipeline de
+ * actualización, así que las dos operaciones se serializan y ninguna pisa a la
+ * otra. `status` se recalcula en el mismo paso, sobre la cantidad ya resuelta,
+ * para que no pueda quedar desincronizado de `quantity`.
+ */
 async function adjustStock(userId, id, { delta, quantity }) {
-  const wine = await Wine.findOne({ _id: id, userId });
-  if (!wine) return null;
+  let nuevaCantidad;
+  if (quantity !== undefined) {
+    // Fijar un valor exacto es idempotente: no hay problema de concurrencia.
+    // Si lo que llega no es un número válido NO se toca el stock: poner 0 ante
+    // un dato inválido sería vaciar la cava por un error de tipeo.
+    const parsed = parseInt(quantity, 10);
+    nuevaCantidad =
+      Number.isFinite(parsed) && parsed >= 0 ? { $literal: parsed } : "$quantity";
+  } else {
+    nuevaCantidad = { $max: [0, { $add: [{ $ifNull: ["$quantity", 0] }, Number(delta) || 0] }] };
+  }
 
-  const nextQuantity = quantity !== undefined ? parseQuantity(quantity, wine.quantity) : Math.max(0, Number(wine.quantity || 0) + Number(delta || 0));
-  wine.quantity = nextQuantity;
-  wine.status = toWineStatus({ tasted: wine.tasted, quantity: nextQuantity, status: wine.status });
-  wine.updatedAt = new Date();
+  const updated = await Wine.findOneAndUpdate(
+    { _id: id, userId },
+    [
+      { $set: { quantity: nuevaCantidad } },
+      {
+        $set: {
+          // Mismas reglas que toWineStatus, expresadas para el motor.
+          status: {
+            $cond: [
+              { $lte: ["$quantity", 0] },
+              { $cond: ["$tasted", "archived", "stock"] },
+              { $cond: ["$tasted", "tasted", "stock"] },
+            ],
+          },
+          updatedAt: "$$NOW",
+        },
+      },
+    ],
+    { returnDocument: "after", updatePipeline: true }
+  );
 
-  const updatedWine = await wine.save();
-  return updatedWine;
+  return updated;
 }
 
 async function getMoments(userId, id) {
