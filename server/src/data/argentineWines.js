@@ -465,6 +465,32 @@ const RAW = [
   ["Familia Zuccardi", "Santa Julia Orgánico", "Malbec", "Maipú, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia Orgánico", "Cabernet Sauvignon", "Maipú, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia Orgánico", "Torrontés", "Maipú, Mendoza", "white"],
+
+  // --- Mosquita Muerta Wines y otros populares --- (SIN VERIFICAR el varietal de cada etiqueta)
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Extra Brut", "Valle de Uco, Mendoza", "sparkling"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Blanc de Blancs", "Valle de Uco, Mendoza", "sparkling"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Mosquita Muerta", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Mosquita Muerta", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Pispi", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Otro Loco Más", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Otro Loco Más", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Sapo de Otro Pozo", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Malcriado", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Margarita para los Chanchos", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Finca Las Moras", "Alma Mora", "Malbec", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Alma Mora", "Cabernet Sauvignon", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Alma Mora", "Chardonnay", "Valle de Tulum, San Juan", "white"],
+  ["Finca Las Moras", "Alma Mora", "Rosé", "Valle de Tulum, San Juan", "rosé"],
+  ["Finca Flichman", "Latitud 33", "Malbec", "Mendoza", "red"],
+  ["Finca Flichman", "Latitud 33", "Cabernet Sauvignon", "Mendoza", "red"],
+  ["Finca Flichman", "Latitud 33", "Chardonnay", "Mendoza", "white"],
+  ["Finca Flichman", "Latitud 33", "Blend", "Mendoza", "red"],
 ];
 
 // Normaliza texto para comparar sin acentos ni mayúsculas.
