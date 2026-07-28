@@ -8,9 +8,23 @@
 // línea discontinuada, una región mal atribuida, un varietal que esa bodega no
 // produce.
 //
-// Cómo verificar una bodega: abrir su sitio oficial (suele ser /wines o /vinos),
-// comparar línea por línea y corregir las filas. Es un array; el cambio se
-// aplica sin tocar nada más.
+// CÓMO VERIFICAR UNA BODEGA (el método que funciona):
+// Las webs de bodega son SPAs y bajar el HTML crudo no sirve — llega el
+// esqueleto sin contenido. Hay que renderizarlas. Con el navegador abierto en
+// la home de la bodega:
+//
+//   1. Sacar las URLs de cada línea:
+//        [...document.querySelectorAll("a")].map(a => a.href)
+//   2. Traerlas todas de una y quedarse con lo que nombre un varietal:
+//        for (const u of urls) {
+//          const html = await (await fetch(u)).text();
+//          const doc = new DOMParser().parseFromString(html, "text/html");
+//          ...
+//        }
+//
+// Sale el catálogo completo de la bodega en una sola pasada. Si el sitio nombra
+// la línea pero NO el varietal, la fila NO se carga: completarla de memoria es
+// exactamente el problema que esta verificación viene a resolver.
 //
 // Lo que encontró la primera verificación (Catena Zapata) da una idea del error
 // esperable: de 14 filas, 1 estaba MAL (Nicolás Catena Zapata figuraba como
@@ -59,15 +73,61 @@ const RAW = [
   ["Catena Zapata", "Alamos", "Malbec", "Mendoza", "red"],
   ["Catena Zapata", "Alamos", "Torrontés", "Cafayate, Salta", "white"],
 
-  // --- Rutini Wines ---
-  ["Rutini Wines", "Rutini", "Malbec", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Cabernet Malbec", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Chardonnay", "Tupungato, Mendoza", "white"],
+  // --- Rutini Wines --- (verificado contra rutiniwines.com, jul 2026)
+  ["Rutini Wines", "Apartado", "Gran Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Apartado", "Gran Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Apartado", "Gran Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Chardonnay", "Gualtallary, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Cabernet Sauvignon", "Gualtallary, Mendoza", "red"],
   ["Rutini Wines", "Rutini Single Vineyard", "Malbec", "Gualtallary, Mendoza", "red"],
-  ["Rutini Wines", "Trumpeter", "Malbec", "Valle de Uco, Mendoza", "red"],
-  ["Rutini Wines", "Trumpeter", "Torrontés", "Cafayate, Salta", "white"],
-  ["Rutini Wines", "Antología", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Merlot", "Gualtallary, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Cabernet Franc", "Gualtallary, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Blend de Blancs", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Rosé", "Tupungato, Mendoza", "rosé"],
+  ["Rutini Wines", "Rutini Colección", "Syrah", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Chardonnay", "Tupungato, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Colección", "Sauvignon Blanc", "Tupungato, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Colección", "Brut Nature", "Tupungato, Mendoza", "sparkling"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Franc", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Malbec", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Merlot", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Sauvignon", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Syrah", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Finca Centenaria", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Gran Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Dominio", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Dominio", "Extra Brut", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Dominio", "Gran Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Gran Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Chardonnay", "Valle de Uco, Mendoza", "white"],
   ["Rutini Wines", "Encuentro", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Barrel Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Encuentro", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Rosé", "Valle de Uco, Mendoza", "rosé"],
+  ["Rutini Wines", "Trumpeter Reserve", "Torrontés", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter Reserve", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Bonarda", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter Reserve", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Petit Verdot", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Pinot Noir", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Merlot", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter", "Syrah", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Trumpeter", "Cabernet Franc", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter", "Torrontés", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Antología", "Blend", "Valle de Uco, Mendoza", "red"],
 
   // --- Luigi Bosca ---
   ["Luigi Bosca", "Luigi Bosca", "Malbec", "Luján de Cuyo, Mendoza", "red"],
@@ -85,7 +145,7 @@ const RAW = [
   ["Trapiche", "Trapiche Broquel", "Malbec", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Broquel", "Bonarda", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Oak Cask", "Malbec", "Maipú, Mendoza", "red"],
-  ["Trapiche", "Trapiche Iscay", "Malbec Cabernet Franc", "Maipú, Mendoza", "red"],
+  ["Trapiche", "Trapiche Iscay", "Blend", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Costa & Pampa", "Chardonnay", "Chapadmalal, Buenos Aires", "white"],
   ["Trapiche", "Fond de Cave", "Malbec", "Maipú, Mendoza", "red"],
 
@@ -260,8 +320,6 @@ const RAW = [
   // --- Más clásicas y varietales menos comunes ---
   ["Trapiche", "Trapiche Medalla", "Malbec", "Maipú, Mendoza", "red"],
   ["Luigi Bosca", "Luigi Bosca", "Riesling", "Luján de Cuyo, Mendoza", "white"],
-  ["Rutini Wines", "Rutini", "Cabernet Franc", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Sauvignon Blanc", "Tupungato, Mendoza", "white"],
   ["Doña Paula", "Doña Paula Estate", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
   ["Bodegas Salentein", "Salentein Reserve", "Chardonnay", "Valle de Uco, Mendoza", "white"],
   ["Familia Zuccardi", "Zuccardi Serie A", "Bonarda", "Valle de Uco, Mendoza", "red"],
