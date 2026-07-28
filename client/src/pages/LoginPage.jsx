@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import Icon from "../components/Icon";
+import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import "./Auth.css";
 
@@ -45,8 +46,11 @@ const LoginPage = () => {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
+          {/* La marca, no una copa genérica: es la primera pantalla que ve
+              alguien que abre la app, y el mismo monograma que va a tener en
+              el ícono del teléfono, el splash y la barra. */}
           <span className="auth-brand__mark" aria-hidden="true">
-            <Icon name="wine-glass" filled size={32} />
+            <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Rincones</h1>
           <p className="auth-brand__subtitle">Tu bodega personal, siempre en el bolsillo.</p>
