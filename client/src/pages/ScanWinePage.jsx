@@ -19,7 +19,10 @@ const toWinePayload = (draft) => ({
   vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
   type: draft.type || "unknown",
   image: draft.image || "",
-  quantity: 1,
+  // Las botellas que elegiste en la revisión. Estaba fijo en 1, así que el
+  // selector "¿Cuántas botellas?" —presets de media docena y caja incluidos—
+  // no servía para nada: comprabas doce, cargabas una.
+  quantity: Math.max(1, Number.parseInt(draft.quantity, 10) || 1),
 });
 
 export default function ScanWinePage() {
