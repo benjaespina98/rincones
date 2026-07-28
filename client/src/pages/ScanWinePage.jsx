@@ -360,6 +360,12 @@ export default function ScanWinePage() {
                         )}
                       </div>
 
+                      {/* Una línea sobre a qué sabe o con qué va, cuando el
+                          modelo tenía algo concreto para decir de ESE vino.
+                          Viaja en la búsqueda que ya se hacía y ya está
+                          cacheada, así que no cuesta una petición extra. */}
+                      {r.note && <p className="wine-result-card__note">{r.note}</p>}
+
                       {r.rating > 0 && (
                         <div className="wine-result-card__rating">
                           <StarRating value={r.rating} size="sm" />

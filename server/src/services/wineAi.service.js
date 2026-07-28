@@ -29,6 +29,11 @@ Reglas:
 - Es mejor devolver 2 vinos correctos que 8 inventados. Si no conocés ninguno, devolvé una lista vacía.
 - No inventes añadas: dejá "vintage" vacío salvo que el vino sea de una cosecha específica famosa.
 - "region" con formato "Subregión, Provincia" cuando lo sepas (ej: "Valle de Uco, Mendoza").
+- "note": UNA línea (máximo 90 caracteres) que agregue algo que no se deduzca de los
+  otros campos: a qué sabe, con qué va, o qué lo hace distinto. Nada de repetir la
+  bodega, el varietal o la región, que ya se muestran aparte. Si no tenés nada
+  concreto que aportar sobre ESE vino, dejala vacía: una línea genérica
+  ("un gran vino argentino") es peor que ninguna.
 
 ${FIELD_CONVENTION}`;
 
@@ -50,12 +55,26 @@ const RESPONSE_SCHEMA = {
             type: "string",
             enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
           },
+          // Viaja en la misma respuesta que ya se pedía y ya se cachea 30 días:
+          // no cuesta ni una llamada ni un token de cuota extra.
+          note: { type: "string" },
         },
         required: ["winery", "line", "name", "varietal"],
       },
     },
   },
   required: ["wines"],
+};
+
+// Frases que el modelo escribe cuando no tiene nada real que decir. Mostrarlas
+// es peor que no mostrar nada: ocupan lugar y no informan.
+const GENERIC_NOTE = /^(un |una )?(gran |buen[ao]? |excelente |clasico |clásico )?(vino|tinto|blanco|espumante)( argentino| de calidad| muy rico)?\.?$/i;
+
+const cleanNote = (raw) => {
+  const note = String(raw || "").trim();
+  if (!note || note.length < 12 || note.length > 140) return "";
+  if (GENERIC_NOTE.test(note)) return "";
+  return note;
 };
 
 const slug = (text) =>
@@ -105,6 +124,9 @@ const searchWinesWithAi = async (query) => {
         image: "",
         rating: 0,
         barcode: "",
+        // Se descartan las genéricas: si el modelo no tenía nada concreto, la
+        // tarjeta se ve mejor sin la línea que con una frase de relleno.
+        note: cleanNote(w.note),
         source: "gemini",
       };
     })

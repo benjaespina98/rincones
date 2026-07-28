@@ -101,12 +101,25 @@ export default function BodyPage({ initialFilter = "all" }) {
   const filteredWines = useMemo(
     () =>
       wines.filter((wine) => {
-        const normalizedSearch = normalizeSearchText(searchTerm);
-        const matchesSearch =
-          !normalizedSearch ||
-          [wine.name, wine.region, wine.winery, wine.varietal, wine.notes]
-            .map(normalizeSearchText)
-            .some((field) => field.includes(normalizedSearch));
+        // Cada palabra tiene que aparecer en ALGÚN campo, no la frase entera en
+        // uno solo: así "rutini 2019" y "malbec uco" encuentran lo que
+        // corresponde, cosa que antes fallaba porque se buscaba el texto
+        // completo dentro de un único campo.
+        const terms = normalizeSearchText(searchTerm).split(/\s+/).filter(Boolean);
+        const haystack = [
+          wine.name,
+          wine.region,
+          wine.winery,
+          wine.varietal,
+          wine.notes,
+          // Faltaban los dos: buscar "2019" o "tinto" en tu propia bodega no
+          // devolvía nada, aunque son de las primeras cosas que uno escribe.
+          wine.vintage,
+          WINE_TYPE_LABELS[wine.type],
+        ]
+          .map(normalizeSearchText)
+          .join(" ");
+        const matchesSearch = terms.every((term) => haystack.includes(term));
 
         if (!matchesSearch) return false;
         if (varietalFilter !== "all" && wine.varietal !== varietalFilter) return false;

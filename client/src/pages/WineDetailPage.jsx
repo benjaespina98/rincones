@@ -410,7 +410,7 @@ export default function WineDetailPage() {
                 if (!cs.label) return null;
                 return (
                   <span className={`cellar-badge cellar-badge--${cs.status}`}>
-                    {cs.status === "peak" ? "🟢" : cs.status === "early" ? "🟡" : "🔴"} {cs.label}
+                    <span className="cellar-dot" aria-hidden="true" /> {cs.label}
                   </span>
                 );
               })()}
@@ -486,7 +486,7 @@ export default function WineDetailPage() {
                         <span className="wine-about__label">Marida con</span>
                         <div className="wine-about__chips">
                           {aiInfo.foodPairing.map((f) => (
-                            <span key={f} className="wine-about__chip wine-about__chip--food">🍽 {f}</span>
+                            <span key={f} className="wine-about__chip wine-about__chip--food"><Icon name="utensils" size={13} /> {f}</span>
                           ))}
                         </div>
                       </div>
@@ -554,11 +554,11 @@ export default function WineDetailPage() {
                 <h3>Dónde lo guardás</h3>
                 <div className="wine-meta-row">
                   {wine.cellar.location && (
-                    <span className="wine-meta-chip">📍 {wine.cellar.location}</span>
+                    <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
                   )}
                   {(wine.cellar.drinkFrom || wine.cellar.drinkUntil) && (
                     <span className="wine-meta-chip">
-                      🗓 {wine.cellar.drinkFrom || "—"} – {wine.cellar.drinkUntil || "—"}
+                      <Icon name="calendar" size={13} /> {wine.cellar.drinkFrom || "—"} – {wine.cellar.drinkUntil || "—"}
                     </span>
                   )}
                 </div>
@@ -570,10 +570,10 @@ export default function WineDetailPage() {
                 <h3>Cómo lo conseguiste</h3>
                 <div className="wine-meta-row">
                   <span className="wine-meta-chip">
-                    💰 ${wine.purchase.price.toLocaleString("es-AR")} {wine.purchase.currency || "ARS"}
+                    <Icon name="tag" size={13} /> ${wine.purchase.price.toLocaleString("es-AR")} {wine.purchase.currency || "ARS"}
                   </span>
                   {wine.purchase.store && (
-                    <span className="wine-meta-chip">🏪 {wine.purchase.store}</span>
+                    <span className="wine-meta-chip"><Icon name="store" size={13} /> {wine.purchase.store}</span>
                   )}
                   {wine.purchase.purchasedAt && (
                     <span className="wine-meta-chip">
@@ -933,9 +933,9 @@ export default function WineDetailPage() {
                   </div>
                   {!!moment.rating && <StarRating value={moment.rating} size="sm" />}
                   <div className="moment-item__meta">
-                    {moment.place && <span>📍 {moment.place}</span>}
-                    {moment.companions && <span>👥 {moment.companions}</span>}
-                    {moment.emotion && <span>🙂 {emotionLabel(moment.emotion)}</span>}
+                    {moment.place && <span><Icon name="map-pin" size={12} /> {moment.place}</span>}
+                    {moment.companions && <span><Icon name="users" size={12} /> {moment.companions}</span>}
+                    {moment.emotion && <span><Icon name="sparkle" size={12} /> {emotionLabel(moment.emotion)}</span>}
                   </div>
                   {moment.notes && <p className="moment-item__notes">{moment.notes}</p>}
                   {moment.photos?.length > 0 && (
