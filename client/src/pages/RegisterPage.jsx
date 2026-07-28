@@ -6,6 +6,7 @@ import { register as registerRequest } from "../services/authApi";
 import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import Icon from "../components/Icon";
+import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import "./Auth.css";
 
@@ -73,7 +74,7 @@ const RegisterPage = () => {
       <div className="auth-card">
         <div className="auth-brand">
           <span className="auth-brand__mark" aria-hidden="true">
-            <Icon name="wine-glass" filled size={32} />
+            <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Creá tu cuenta</h1>
           <p className="auth-brand__subtitle">Empezá a coleccionar y a descubrir tu próximo vino favorito.</p>
