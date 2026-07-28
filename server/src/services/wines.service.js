@@ -10,6 +10,7 @@ const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
 const { identityKey } = require("../data/wineIdentity");
+const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -144,20 +145,21 @@ async function createWine(userId, payload) {
   // fila sigue ahí con quantity 0 y vuelve a stock sin perder lo vivido.
   const yaLoTengo = await findSameWine(userId, { name, winery, line, varietal, vintage });
   if (yaLoTengo) {
-    const suman = parseQuantity(quantity, 1);
-    yaLoTengo.quantity = (Number(yaLoTengo.quantity) || 0) + Math.max(1, suman);
-    yaLoTengo.status = toWineStatus({
-      tasted: yaLoTengo.tasted,
-      quantity: yaLoTengo.quantity,
-      status: yaLoTengo.status,
-    });
-    // Marca de la última reposición. `createdAt` se respeta a propósito: es la
-    // fecha en que el vino entró a tu cava y no debería moverse nunca.
-    yaLoTengo.restockedAt = new Date();
-    yaLoTengo.updatedAt = new Date();
-    await yaLoTengo.save();
-    const full = await Wine.findById(yaLoTengo._id);
-    return { wine: full, merged: true, added: Math.max(1, suman) };
+    const suman = Math.max(1, parseQuantity(quantity, 1));
+    // Las botellas que entran hoy son un LOTE nuevo, con la fecha de hoy: es la
+    // diferencia entre "tengo 8 desde 2019" y "3 de 2019 y 5 de este mes", que
+    // es lo que uno realmente tiene. `createdAt` se respeta a propósito —la
+    // fecha en que el vino entró a tu cava no se mueve nunca— y el lote más
+    // viejo con stock es el que manda para el "en cava hace X".
+    //
+    // Todo en un solo update para que la suma la haga Mongo: cargar el mismo
+    // vino dos veces seguidas desde el teléfono no puede perder botellas.
+    const full = await Wine.findOneAndUpdate(
+      { _id: yaLoTengo._id, userId },
+      [...buildStockStages("restock", { $literal: suman }), { $set: { restockedAt: "$$NOW" } }],
+      { returnDocument: "after", updatePipeline: true }
+    );
+    return { wine: full, merged: true, added: suman };
   }
 
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
@@ -187,6 +189,9 @@ async function createWine(userId, payload) {
     rating: rating ? parseInt(rating) : 0,
     tasted: tasted === true,
     favorite: favorite === true,
+    // El lote inicial (estas botellas, con la fecha de alta) lo arma el hook
+    // `pre("validate")` del modelo, que es el que sostiene la invariante
+    // quantity === suma de los `remaining` en todo camino de escritura.
     quantity: parseQuantity(quantity, 1),
     status: toWineStatus({ tasted: tasted === true, quantity: parseQuantity(quantity, 1), status }),
     lastConsumedAt: lastConsumedAt ? new Date(lastConsumedAt) : undefined,
@@ -296,7 +301,19 @@ async function updateWine(userId, id, payload) {
   if (type !== undefined) wine.type = type;
   if (rating !== undefined) wine.rating = parseInt(rating);
   if (favorite !== undefined) wine.favorite = favorite === true;
-  if (quantity !== undefined) wine.quantity = parseQuantity(quantity, wine.quantity);
+  // Editar la cantidad a mano fija un total, y los lotes se acomodan hacia
+  // donde haga falta: si baja se descuenta FIFO (se vacía primero lo más viejo)
+  // y si sube, la diferencia entra como lote de hoy. Se resuelve acá y no en el
+  // hook del modelo porque acá todavía tenemos la cantidad ANTERIOR, que es la
+  // que le da su lote inicial a un vino cargado antes de que existieran.
+  if (quantity !== undefined) {
+    const nuevaCantidad = parseQuantity(quantity, wine.quantity);
+    wine.lots = reconcileLots(wine.lots, nuevaCantidad, {
+      createdAt: wine.createdAt,
+      currentQuantity: wine.quantity,
+    });
+    wine.quantity = availableFromLots(wine.lots);
+  }
   if (status !== undefined) wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status });
   if (lastConsumedAt !== undefined) wine.lastConsumedAt = lastConsumedAt ? new Date(lastConsumedAt) : null;
   if (consumptionCount !== undefined) wine.consumptionCount = parseQuantity(consumptionCount, wine.consumptionCount || 0);
@@ -327,26 +344,25 @@ async function updateWine(userId, id, payload) {
   const quiereCambiarTasted = tasted !== undefined && (tasted === true) !== wasTasted;
   if (quiereCambiarTasted && quantity === undefined) {
     const objetivo = tasted === true;
+    // Abrir una botella descuenta del lote más viejo con stock (FIFO).
+    // Destildar la devuelve al lote del que salió —el último que se abrió— en
+    // vez de crear uno nuevo: es un deshacer, no una compra, y un lote de hoy
+    // haría figurar como recién llegado a un vino que tenés desde hace años.
     const res = await Wine.updateOne(
       { _id: wine._id, userId, tasted: !objetivo },
       [
-        {
-          $set: {
-            tasted: objetivo,
-            quantity: {
-              $max: [0, { $add: [{ $ifNull: ["$quantity", 0] }, objetivo ? -1 : 1] }],
-            },
-          },
-        },
+        { $set: { tasted: objetivo } },
+        ...buildStockStages(objetivo ? "consume" : "return", { $literal: 1 }),
       ],
       { updatePipeline: true }
     );
     if (res.matchedCount > 0) {
       // Refrescamos el documento en memoria para que el resto de la función
       // trabaje sobre los valores que quedaron realmente en la base.
-      const fresco = await Wine.findById(wine._id).select("tasted quantity");
+      const fresco = await Wine.findById(wine._id).select("tasted quantity lots");
       wine.tasted = fresco.tasted;
       wine.quantity = fresco.quantity;
+      wine.lots = fresco.lots;
     }
   } else if (tasted !== undefined) {
     wine.tasted = tasted === true;
@@ -382,42 +398,42 @@ async function updateWine(userId, id, payload) {
  *
  * Ahora la suma la hace Mongo dentro del propio documento con un pipeline de
  * actualización, así que las dos operaciones se serializan y ninguna pisa a la
- * otra. `status` se recalcula en el mismo paso, sobre la cantidad ya resuelta,
- * para que no pueda quedar desincronizado de `quantity`.
+ * otra. Los lotes se mueven en ESE MISMO pipeline —y `quantity` sale de su
+ * suma— para que nunca puedan quedar dos escrituras compitiendo por el stock,
+ * ni `status` desincronizarse de la cantidad ya resuelta.
+ *
+ * Qué significa cada movimiento:
+ *   delta > 0    → repusiste: lote nuevo, con fecha de hoy.
+ *   delta < 0    → abriste botellas: FIFO, del lote más viejo que tenga stock.
+ *   quantity = n → fijás el total: los lotes se acomodan hacia donde haga falta.
  */
 async function adjustStock(userId, id, { delta, quantity }) {
-  let nuevaCantidad;
+  // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
+  // vino cargado antes de que existieran y recalcula status, que es justo lo
+  // que hacía la versión anterior ante una entrada inválida.
+  let stages = buildStockStages("consume", { $literal: 0 });
+
   if (quantity !== undefined) {
     // Fijar un valor exacto es idempotente: no hay problema de concurrencia.
     // Si lo que llega no es un número válido NO se toca el stock: poner 0 ante
     // un dato inválido sería vaciar la cava por un error de tipeo.
     const parsed = parseInt(quantity, 10);
-    nuevaCantidad =
-      Number.isFinite(parsed) && parsed >= 0 ? { $literal: parsed } : "$quantity";
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      stages = buildStockStages("set", { $literal: parsed });
+    }
   } else {
-    nuevaCantidad = { $max: [0, { $add: [{ $ifNull: ["$quantity", 0] }, Number(delta) || 0] }] };
+    const movimiento = Number.parseInt(delta, 10);
+    if (Number.isFinite(movimiento) && movimiento !== 0) {
+      stages = buildStockStages(movimiento > 0 ? "restock" : "consume", {
+        $literal: Math.abs(movimiento),
+      });
+    }
   }
 
-  const updated = await Wine.findOneAndUpdate(
-    { _id: id, userId },
-    [
-      { $set: { quantity: nuevaCantidad } },
-      {
-        $set: {
-          // Mismas reglas que toWineStatus, expresadas para el motor.
-          status: {
-            $cond: [
-              { $lte: ["$quantity", 0] },
-              { $cond: ["$tasted", "archived", "stock"] },
-              { $cond: ["$tasted", "tasted", "stock"] },
-            ],
-          },
-          updatedAt: "$$NOW",
-        },
-      },
-    ],
-    { returnDocument: "after", updatePipeline: true }
-  );
+  const updated = await Wine.findOneAndUpdate({ _id: id, userId }, stages, {
+    returnDocument: "after",
+    updatePipeline: true,
+  });
 
   return updated;
 }

@@ -5,9 +5,7 @@
  * "12/03/2020" no cuenta, aunque sea el mismo dato. La fecha exacta queda en la
  * ficha para quien la quiera.
  *
- * Se calcula desde `createdAt`, que es cuándo el vino entró a tu bodega. Reponer
- * botellas NO la mueve: si lo tenés desde 2019 y comprás más hoy, lo seguís
- * teniendo desde 2019.
+ * Recibe una fecha; la que corresponde sale de `enCavaDesde`.
  */
 export const tiempoEnCava = (desde, { corto = false } = {}) => {
   if (!desde) return "";
@@ -35,6 +33,49 @@ export const tiempoEnCava = (desde, { corto = false } = {}) => {
   // En la tarjeta el espacio manda: "2 años" con el ícono de cava alcanza; la
   // frase completa vive en la ficha, donde hay lugar para leerla.
   return corto ? t : `En cava hace ${t}`;
+};
+
+/**
+ * Los lotes que todavía tienen botellas.
+ *
+ * `lots` es el historial completo de compras e incluye las que ya se
+ * terminaron (`remaining: 0`, con su `depletedAt`): sirven para saber de dónde
+ * salió cada botella que te tomaste, pero no son stock. Todo lo que hable del
+ * presente tiene que filtrarlas.
+ *
+ * `remaining` ausente es un lote anterior a esa distinción: todo lo que entró
+ * sigue estando.
+ */
+const lotesConStock = (wine) =>
+  (Array.isArray(wine?.lots) ? wine.lots : []).filter((l) => {
+    if (!l?.addedAt) return false;
+    const quedan = l.remaining === undefined || l.remaining === null ? l.quantity : l.remaining;
+    return Number(quedan) > 0;
+  });
+
+/**
+ * Desde cuándo está en cava lo que TODAVÍA tenés.
+ *
+ * El stock se guarda por lote (cada compra con su fecha) y se consume del más
+ * viejo al más nuevo. La antigüedad que importa es la del lote más viejo que
+ * siga teniendo botellas: si te tomaste toda la compra de 2019 y lo que queda
+ * es de este mes, "en cava hace 6 años" está hablando de botellas vacías —y el
+ * lote de 2019 sigue ahí, en el historial, pero vacío.
+ *
+ * Reponer no la mueve mientras quede algo de la compra vieja: si lo tenés desde
+ * 2019 y comprás más hoy, lo seguís teniendo desde 2019.
+ *
+ * Para un vino cargado antes de los lotes (o ya sin stock) cae a `createdAt`,
+ * que es la respuesta que se daba hasta ahora.
+ */
+export const enCavaDesde = (wine) => {
+  const conStock = lotesConStock(wine);
+  if (conStock.length === 0) return wine?.createdAt;
+
+  return conStock.reduce(
+    (masViejo, l) => (new Date(l.addedAt) < new Date(masViejo) ? l.addedAt : masViejo),
+    conStock[0].addedAt
+  );
 };
 
 /**

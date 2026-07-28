@@ -10,7 +10,7 @@ import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { normalizeSearchText } from "../utils/text";
-import { tiempoEnCava, stockLabel } from "../utils/cellarTime";
+import { tiempoEnCava, enCavaDesde, stockLabel } from "../utils/cellarTime";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import "../styles/pages/BodyPage.css";
@@ -589,7 +589,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
             const isPending = pendingActionId === wine._id;
             const expanded = expandedId === wine._id;
             const origin = [wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen";
-            const enCava = tiempoEnCava(wine.createdAt, { corto: true });
+            const enCava = tiempoEnCava(enCavaDesde(wine), { corto: true });
             // Corte de grupo: sólo cuando cambia respecto del vino anterior.
             const group = groupOf(wine);
             const showGroup = group && (i === 0 || groupOf(sortedWines[i - 1]) !== group);

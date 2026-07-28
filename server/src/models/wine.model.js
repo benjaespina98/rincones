@@ -1,4 +1,56 @@
 const mongoose = require("mongoose");
+const { availableFromLots, normalizeLots, reconcileLots } = require("../utils/lots");
+
+/**
+ * Un lote es una compra: cuántas botellas entraron, cuándo, y cuántas quedan.
+ *
+ * `quantity` y `remaining` son dos cosas distintas y ahí está todo el asunto:
+ * `quantity` es lo que trajo esa compra y no baja nunca, `remaining` es lo que
+ * sigue en la cava. Un lote agotado (`remaining: 0`) se QUEDA en el array: es el
+ * registro de qué botellas te tomaste y de dónde salieron. El stock del vino es
+ * la suma de los `remaining`; ver `utils/lots.js`.
+ *
+ * Sin `_id` a propósito: los ajustes de stock reescriben el array desde un
+ * pipeline de agregación (para que la cuenta sea atómica) y Mongo no genera
+ * ObjectIds ahí. Un lote se identifica por su fecha.
+ */
+const lotSchema = new mongoose.Schema(
+  {
+    addedAt: {
+      type: Date,
+      default: Date.now,
+      required: true,
+    },
+    // Cuántas botellas entraron con esta compra. Inmutable salvo devolución.
+    quantity: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    // Cuántas de ésas siguen estando. 0 = lote agotado, que igual se conserva.
+    remaining: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    // Cuándo se terminó la última botella de este lote. Sólo en los agotados.
+    depletedAt: {
+      type: Date,
+    },
+    // Preparados para cuando la ficha deje registrar qué pagaste por CADA
+    // compra —hoy `purchase` guarda una sola, la última—. Nadie los escribe
+    // todavía, pero todo el manejo de lotes los conserva si aparecen.
+    price: {
+      type: Number,
+      min: 0,
+    },
+    store: {
+      type: String,
+      trim: true,
+    },
+  },
+  { _id: false, versionKey: false }
+);
 
 const wineSchema = new mongoose.Schema(
   {
@@ -50,10 +102,21 @@ const wineSchema = new mongoose.Schema(
       enum: ["stock", "tasted", "archived"],
       default: "stock",
     },
+    // Stock disponible. Sigue siendo el campo que consultan los filtros, los
+    // índices y la UI; `lots` lo desagrega por compra pero no lo reemplaza.
+    // Es SIEMPRE la suma de los `remaining` de los lotes (ver el hook de abajo).
     quantity: {
       type: Number,
       default: 1,
       min: 0,
+    },
+    // El historial completo de compras, del más viejo al más nuevo. Incluye los
+    // lotes agotados: el consumo es FIFO y el lote que se vacía queda con
+    // `remaining: 0` y `depletedAt`, para poder saber de dónde salió cada
+    // botella que ya te tomaste.
+    lots: {
+      type: [lotSchema],
+      default: undefined,
     },
     lastConsumedAt: {
       type: Date,
@@ -62,10 +125,9 @@ const wineSchema = new mongoose.Schema(
     // fecha de ingreso a la cava y no se mueve nunca; esto cuenta la reposición
     // más reciente.
     //
-    // Es el primer paso hacia un modelo de lotes sin comprometerse a él: el día
-    // que haga falta guardar cada compra por separado (precio, tienda y fecha
-    // de CADA lote), se agrega un array `lots` y estos campos pasan a ser el
-    // resumen derivado. Nada de lo que hay hoy tiene que rehacerse.
+    // Con `lots` ya en el modelo, esto quedó como el resumen derivado que se
+    // preveía: el detalle de cada compra vive en los lotes y este campo es el
+    // atajo para "¿cuándo repusiste por última vez?".
     restockedAt: {
       type: Date,
     },
@@ -195,6 +257,44 @@ wineSchema.index({ userId: 1, "purchase.purchasedAt": -1 });
 // Keep `updatedAt` fresh
 wineSchema.pre("save", function () {
   this.updatedAt = Date.now();
+});
+
+/**
+ * La invariante `quantity === suma de los remaining`, sostenida en cada `save()`.
+ *
+ * Los updates atómicos ya la garantizan por su lado (los pipelines de
+ * `utils/lots.js` recalculan quantity desde los lotes en el mismo paso). Este
+ * hook cubre el otro camino: todo el código que trabaja con el documento en
+ * memoria —crear un vino, editar la cantidad a mano desde la ficha— y que
+ * escribe `quantity` sin saber que existen los lotes.
+ *
+ * Quién manda depende de qué tocaron:
+ *  - no hay lotes todavía (vino nuevo, o anterior a esta versión) → se deriva
+ *    el lote inicial de `quantity` + `createdAt`, igual que la migración;
+ *  - tocaron `quantity` y no los lotes → los lotes se acomodan (FIFO al bajar,
+ *    lote nuevo al subir): es lo que espera quien escribe un número en la ficha;
+ *  - en cualquier otro caso mandan los lotes y `quantity` sale de su suma.
+ *
+ * Va en `validate` y no en `save` para que el `min: 0` del esquema se valide
+ * sobre los valores ya reconciliados.
+ */
+wineSchema.pre("validate", function () {
+  const lotes = Array.isArray(this.lots) ? this.lots : [];
+  const cantidad = Number(this.quantity) || 0;
+
+  if (lotes.length === 0) {
+    this.lots = normalizeLots([], { quantity: cantidad, createdAt: this.createdAt });
+    this.quantity = availableFromLots(this.lots);
+    return;
+  }
+
+  if (this.isModified("quantity") && !this.isModified("lots")) {
+    this.lots = reconcileLots(lotes, cantidad, { createdAt: this.createdAt });
+  } else {
+    this.lots = normalizeLots(lotes, { createdAt: this.createdAt });
+  }
+
+  this.quantity = availableFromLots(this.lots);
 });
 
 // Instance helper: add a consumption "moment" to a wine
