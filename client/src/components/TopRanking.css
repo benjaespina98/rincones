@@ -1,0 +1,61 @@
+.rank {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rank__label {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rank__list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Nombre, barra y cuenta en una sola línea: las dos listas quedan alineadas
+   entre sí y se comparan sin tener que leer los números. */
+.rank__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px 16px;
+  align-items: center;
+  gap: 7px;
+}
+
+.rank__name {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank__bar {
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.rank__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--accent-light), var(--accent));
+}
+
+.rank__n {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}

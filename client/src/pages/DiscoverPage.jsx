@@ -9,7 +9,7 @@ import { visibleContent, itemSubtitle } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
-import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
+import { greeting, homeTitle, whyThisWine, recoHint } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -187,7 +187,7 @@ export default function DiscoverPage() {
       <section className="discover-section">
         <div className="discover-section__head">
           <h2>Recomendados para vos</h2>
-          <span className="discover-section__hint">Vinos argentinos para sumar</span>
+          <span className="discover-section__hint">{recoHint({ stats })}</span>
         </div>
 
         {loading ? (

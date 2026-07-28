@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
@@ -7,7 +7,6 @@ import Dropdown from "../components/Dropdown";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
-import StarRating from "../components/StarRating";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -117,12 +116,30 @@ export default function BodyPage({ initialFilter = "all" }) {
         if (filterType === "tasted") return wine.tasted;
         if (filterType === "nottasted") return !wine.tasted;
         if (filterType === "favorites") return wine.favorite;
-        if (filterType === "lowstock") return Number(wine.quantity) <= 1;
+        if (filterType === "instock") return Number(wine.quantity) > 0;
         if (filterType === "cellarready") return Number(wine.quantity) > 0 && getCellarStatus(wine).status === "peak";
         return wine.type === filterType;
       }),
     [wines, searchTerm, filterType, varietalFilter, regionFilter]
   );
+
+  /**
+   * Encabezado del grupo al que pertenece un vino, según el orden activo.
+   *
+   * Con 30 vinos una lista plana se recorre; con 300 te perdés. Estos cortes
+   * dan orientación mientras scrolleás —"voy por la C", "estos son los 2019"—
+   * sin agregar una pantalla ni un control más: salen del orden que ya elegiste.
+   * Devuelve null cuando agrupar no aportaría nada (orden por fecha de alta).
+   */
+  const groupOf = (wine) => {
+    if (sortBy === "name") return (wine.name?.[0] || "#").toUpperCase();
+    if (sortBy === "year") return wine.vintage ? String(wine.vintage) : "Sin cosecha";
+    if (sortBy === "rating") {
+      if (!wine.rating) return "Sin puntuar";
+      return `${Math.floor(wine.rating)}★ y más`;
+    }
+    return null;
+  };
 
   const sortedWines = useMemo(() => {
     return [...filteredWines].sort((a, b) => {
@@ -133,12 +150,16 @@ export default function BodyPage({ initialFilter = "all" }) {
     });
   }, [filteredWines, sortBy]);
 
+  // Rincones es una colección personal, no un inventario comercial: las
+  // estadísticas describen lo que tenés, no disparan alertas de reposición.
   const stats = {
     total: wines.length,
+    bottles: wines.reduce((n, w) => n + (Number(w.quantity) || 0), 0),
+    inStock: wines.filter((w) => Number(w.quantity) > 0).length,
     favorites: wines.filter((wine) => wine.favorite).length,
     tasted: wines.filter((wine) => wine.tasted).length,
-    lowStock: wines.filter((wine) => Number(wine.quantity) <= 1).length,
   };
+  stats.pending = stats.total - stats.tasted;
 
   const activeFilterLabel =
     filterType === "all"
@@ -151,8 +172,8 @@ export default function BodyPage({ initialFilter = "all" }) {
             ? "Pendientes"
             : filterType === "cellarready"
               ? "Listos para abrir"
-              : filterType === "lowstock"
-              ? "Stock bajo"
+              : filterType === "instock"
+              ? "En stock"
               : WINE_TYPE_LABELS[filterType] || filterType;
 
   const activeCharacteristicFilters = [
@@ -163,8 +184,9 @@ export default function BodyPage({ initialFilter = "all" }) {
   const hasActiveFilters = filterType !== "all" || activeCharacteristicFilters.length > 0;
   // Marca el botón "Filtros" cuando hay algo aplicado ahí adentro, para que no
   // quede un filtro activo invisible con el panel cerrado.
-  const hasAdvanced =
-    sortBy !== "recent" || varietalFilter !== "all" || regionFilter !== "all";
+  // El orden ya no cuenta acá: pasó a estar siempre visible en la fila de
+  // resumen, así que no puede quedar "escondido" dentro del panel.
+  const hasAdvanced = varietalFilter !== "all" || regionFilter !== "all";
 
   const clearAllFilters = () => {
     setFilterType("all");
@@ -270,22 +292,24 @@ export default function BodyPage({ initialFilter = "all" }) {
     <div className="body-page">
       {(loading || wines.length > 0) && (
         <>
-      <div className="stats-strip" role="group" aria-label="Resumen de tu bodega">
+      {/* Botellas y vinos distintos son cosas distintas: 12 botellas pueden ser
+          3 etiquetas. Es el dato que un coleccionista mira primero. */}
+      <div className="stats-strip" role="group" aria-label="Resumen de tu colección">
         <div className="stat">
-          <span className="stat-number">{stats.total}</span>
-          <span className="stat-label">Vinos</span>
+          <span className="stat-number">{stats.bottles}</span>
+          <span className="stat-label">Botellas</span>
         </div>
         <div className="stat">
-          <span className="stat-number">{stats.favorites}</span>
-          <span className="stat-label">Favoritos</span>
+          <span className="stat-number">{stats.total}</span>
+          <span className="stat-label">Etiquetas</span>
+        </div>
+        <div className="stat">
+          <span className="stat-number">{stats.pending}</span>
+          <span className="stat-label">Por probar</span>
         </div>
         <div className="stat">
           <span className="stat-number">{stats.tasted}</span>
           <span className="stat-label">Probados</span>
-        </div>
-        <div className="stat">
-          <span className="stat-number stat-number--warn">{stats.lowStock}</span>
-          <span className="stat-label">Stock bajo</span>
         </div>
       </div>
 
@@ -318,10 +342,11 @@ export default function BodyPage({ initialFilter = "all" }) {
       <div className="bodega-tools">
         <div className="bodega-tools__chips" role="group" aria-label="Filtros rápidos">
           {[
-            { id: "all", label: "Todos", count: wines.length },
+            { id: "all", label: "Todos", count: stats.total },
+            { id: "instock", label: "En stock", count: stats.inStock },
+            { id: "tasted", label: "Probados", count: stats.tasted },
+            { id: "nottasted", label: "Por probar", count: stats.pending },
             { id: "favorites", label: "Favoritos", count: stats.favorites },
-            { id: "nottasted", label: "Pendientes", count: wines.length - stats.tasted },
-            { id: "lowstock", label: "Stock bajo", count: stats.lowStock },
             { id: "cellarready", label: "Listos para abrir", count: null },
           ].map((f) => (
             <button
@@ -337,7 +362,31 @@ export default function BodyPage({ initialFilter = "all" }) {
           ))}
         </div>
 
-        <div className="bodega-tools__right">
+      </div>
+
+      {/* Cuántos estás viendo y en qué orden. El orden vivía adentro del panel
+          plegado, así que no se sabía por qué la lista estaba como estaba; en
+          CellarTracker y Vivino filtro y orden son controles hermanos, arriba
+          de la lista y siempre a la vista. */}
+      <div className="bodega-summary">
+        <span className="bodega-summary__count">
+          {sortedWines.length === wines.length
+            ? `${wines.length} ${wines.length === 1 ? "vino" : "vinos"}`
+            : `${sortedWines.length} de ${wines.length}`}
+        </span>
+        <Dropdown
+          ariaLabel="Ordenar vinos"
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: "recent", label: "Agregados hace poco" },
+            { value: "name", label: "A → Z" },
+            { value: "rating", label: "Mejor puntuados" },
+            { value: "year", label: "Cosecha más nueva" },
+          ]}
+        />
+
+        <div className="bodega-summary__tools">
           {/* Grilla o lista: con muchos vinos, la lista obliga a leer fila por
               fila; la grilla deja reconocer por la etiqueta de un vistazo. */}
           <div className="bodega-view" role="group" aria-label="Forma de ver la lista">
@@ -368,29 +417,20 @@ export default function BodyPage({ initialFilter = "all" }) {
             className={`bodega-more ${advancedOpen ? "is-open" : ""} ${hasAdvanced ? "has-active" : ""}`}
             onClick={() => setAdvancedOpen((o) => !o)}
             aria-expanded={advancedOpen}
+            aria-label="Más filtros"
+            title="Más filtros"
           >
-            <Icon name="settings" size={15} />
-            Filtros
+            <Icon name="settings" size={16} />
+            <span className="sr-only">Filtros</span>
             {hasAdvanced && <span className="bodega-more__dot" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {/* Lo específico (orden, tipo, varietal, región) se despliega sólo si lo
-          pedís: la mayoría de las veces alcanza con los chips de arriba. */}
+      {/* Lo específico (tipo, varietal, región) se despliega sólo si lo pedís:
+          la mayoría de las veces alcanza con los chips de arriba. */}
       {advancedOpen && (
         <div className="bodega-advanced">
-          <Dropdown
-            ariaLabel="Ordenar vinos"
-            value={sortBy}
-            onChange={setSortBy}
-            options={[
-              { value: "recent", label: "Más recientes" },
-              { value: "rating", label: "Mejor puntuados" },
-              { value: "year", label: "Por cosecha" },
-              { value: "name", label: "Por nombre" },
-            ]}
-          />
           <Dropdown
             ariaLabel="Filtrar por tipo"
             value={filterType}
@@ -460,13 +500,19 @@ export default function BodyPage({ initialFilter = "all" }) {
 
       {!loading && !error && sortedWines.length > 0 && (
         <div className={`wines-list wines-list--${viewMode}`}>
-          {sortedWines.map((wine) => {
+          {sortedWines.map((wine, i) => {
             const isPending = pendingActionId === wine._id;
             const expanded = expandedId === wine._id;
             const origin = [wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen";
+            // Corte de grupo: sólo cuando cambia respecto del vino anterior.
+            const group = groupOf(wine);
+            const showGroup = group && (i === 0 || groupOf(sortedWines[i - 1]) !== group);
             return (
+              <Fragment key={wine._id}>
+              {showGroup && (
+                <h3 className="wines-list__group" aria-hidden="true">{group}</h3>
+              )}
               <article
-                key={wine._id}
                 className={`wine-row ${expanded ? "is-expanded" : ""} ${isPending ? "is-pending" : ""}`}
               >
                 {/* Fila compacta: tocar expande la info y las acciones. */}
@@ -477,25 +523,40 @@ export default function BodyPage({ initialFilter = "all" }) {
                   aria-expanded={expanded}
                 >
                   <span className="wine-row__thumb">
-                    <WinePhoto src={wine.image} type={wine.type} alt="" artSize={54} />
-                    {wine.tasted && (
-                      <span className="wine-row__tasted" title="Probado"><Icon name="check" size={12} /></span>
-                    )}
+                    <WinePhoto src={wine.image} type={wine.type} alt="" artSize={46} />
+                    {/* Probado o por probar, siempre explícito: la ausencia de
+                        marca no se lee como "pendiente", se lee como nada. */}
+                    <span
+                      className={`wine-row__state ${wine.tasted ? "is-tasted" : "is-pending"}`}
+                      title={wine.tasted ? "Probado" : "Todavía no lo probaste"}
+                    >
+                      <Icon name={wine.tasted ? "check" : "circle"} size={11} />
+                    </span>
                   </span>
 
                   <span className="wine-row__info">
-                    <span className="wine-row__name">{wine.name}</span>
+                    <span className="wine-row__title">
+                      <span className="wine-row__name">{wine.name}</span>
+                      {wine.favorite && (
+                        <Icon name="heart" filled size={13} className="wine-row__fav" aria-label="Favorito" />
+                      )}
+                    </span>
                     <span className="wine-row__sub">{origin}</span>
                     <span className="wine-row__chips chip-row">
                       <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
+                      {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
                       {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
-                      {wine.rating > 0 && <StarRating value={wine.rating} size="sm" />}
                     </span>
                   </span>
 
                   <span className="wine-row__right">
-                    {wine.favorite && (
-                      <span className="wine-row__fav" aria-label="Favorito"><Icon name="heart" filled size={14} /></span>
+                    {/* Numérico en vez de cinco estrellas: dice lo mismo en un
+                        cuarto del ancho, que es lo que hace falta para que la
+                        fila entre completa en un teléfono. */}
+                    {wine.rating > 0 && (
+                      <span className="wine-row__rating" aria-label={`${wine.rating} de 5`}>
+                        <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
+                      </span>
                     )}
                     <span className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""}`}>
                       {Number(wine.quantity) <= 0 ? "Sin stock" : `x${wine.quantity}`}
@@ -554,6 +615,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                   </div>
                 )}
               </article>
+              </Fragment>
             );
           })}
         </div>
