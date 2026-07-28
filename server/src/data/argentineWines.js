@@ -1,42 +1,157 @@
-// Catálogo curado de vinos argentinos.
+// Catálogo de vinos argentinos, escrito a mano.
 //
-// Es la fuente PRIMARIA de la búsqueda: Open Food Facts tiene muy poca cobertura
-// de vino argentino y sus nombres vienen sucios, así que apoyarse sólo en él hacía
-// que búsquedas obvias ("Catena Malbec") no devolvieran nada.
+// ── DE DÓNDE SALEN ESTOS DATOS ──────────────────────────────────────────────
+// La primera carga la hizo Claude desde su conocimiento del mercado argentino,
+// sin contrastar contra ninguna fuente. Se está verificando bodega por bodega
+// contra los sitios OFICIALES; las que ya pasaron por eso están marcadas abajo
+// con "verificado". El resto sigue sin confirmar y puede tener errores: una
+// línea discontinuada, una región mal atribuida, un varietal que esa bodega no
+// produce.
 //
-// Cada entrada es una línea real de una bodega argentina. El nombre visible se
-// arma como "<línea> <varietal>" para que coincida con cómo la gente busca.
+// CÓMO VERIFICAR UNA BODEGA (el método que funciona):
+// Las webs de bodega son SPAs y bajar el HTML crudo no sirve — llega el
+// esqueleto sin contenido. Hay que renderizarlas. Con el navegador abierto en
+// la home de la bodega:
+//
+//   1. Sacar las URLs de cada línea:
+//        [...document.querySelectorAll("a")].map(a => a.href)
+//   2. Traerlas todas de una y quedarse con lo que nombre un varietal:
+//        for (const u of urls) {
+//          const html = await (await fetch(u)).text();
+//          const doc = new DOMParser().parseFromString(html, "text/html");
+//          ...
+//        }
+//
+// Sale el catálogo completo de la bodega en una sola pasada. Si el sitio nombra
+// la línea pero NO el varietal, la fila NO se carga: completarla de memoria es
+// exactamente el problema que esta verificación viene a resolver.
+//
+// Lo que encontró la primera verificación (Catena Zapata) da una idea del error
+// esperable: de 14 filas, 1 estaba MAL (Nicolás Catena Zapata figuraba como
+// Cabernet Sauvignon y es un blend) y faltaban 15 líneas que la bodega sí
+// produce. O sea: más incompleto que incorrecto, pero con errores reales.
+//
+// Entonces, ¿por qué manda por sobre lo que devuelve el modelo? No porque esté
+// mejor verificado —el origen es parecido—, sino porque acá está CONGELADO y es
+// AUDITABLE: siempre devuelve lo mismo, se puede leer entero, corregir y
+// revisar en el historial de git. Lo que genera el modelo en vivo cambia entre
+// llamadas y nadie lo mira antes de mostrarlo.
+//
+// Es además la fuente PRIMARIA por una razón práctica: Open Food Facts tiene muy
+// poca cobertura de vino argentino y sus nombres vienen sucios, así que apoyarse
+// sólo en él hacía que búsquedas obvias ("Catena Malbec") no devolvieran nada.
+//
+// El nombre visible se arma como "<línea> <varietal>", que es como se busca.
 
 const RAW = [
-  // --- Catena Zapata ---
+  // --- Catena Zapata --- (verificado contra catenazapata.com, jul 2026)
   ["Catena Zapata", "Catena", "Malbec", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Catena Alta", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Catena Alta", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Catena Alta", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
-  ["Catena Zapata", "Nicolás Catena Zapata", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Nicolás Catena Zapata", "Blend", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Adrianna Vineyard White Stones", "Chardonnay", "Gualtallary, Mendoza", "white"],
   ["Catena Zapata", "Angélica Zapata", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Cabernet Franc", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Merlot", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Angélica Zapata", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Saint Felicien", "Malbec", "Luján de Cuyo, Mendoza", "red"],
   ["Catena Zapata", "Saint Felicien", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Cabernet Franc", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Bonarda", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Sangiovese", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Syrah", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "Saint Felicien", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Catena Zapata", "Saint Felicien", "Sauvignon Blanc", "Luján de Cuyo, Mendoza", "white"],
+  ["Catena Zapata", "DV Catena", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Syrah", "Luján de Cuyo, Mendoza", "red"],
+  ["Catena Zapata", "DV Catena", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
   ["Catena Zapata", "Alamos", "Malbec", "Mendoza", "red"],
   ["Catena Zapata", "Alamos", "Torrontés", "Cafayate, Salta", "white"],
 
-  // --- Rutini Wines ---
-  ["Rutini Wines", "Rutini", "Malbec", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Cabernet Malbec", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Chardonnay", "Tupungato, Mendoza", "white"],
+  // --- Rutini Wines --- (verificado contra rutiniwines.com, jul 2026)
+  ["Rutini Wines", "Apartado", "Gran Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Apartado", "Gran Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Apartado", "Gran Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Chardonnay", "Gualtallary, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Cabernet Sauvignon", "Gualtallary, Mendoza", "red"],
   ["Rutini Wines", "Rutini Single Vineyard", "Malbec", "Gualtallary, Mendoza", "red"],
-  ["Rutini Wines", "Trumpeter", "Malbec", "Valle de Uco, Mendoza", "red"],
-  ["Rutini Wines", "Trumpeter", "Torrontés", "Cafayate, Salta", "white"],
-  ["Rutini Wines", "Antología", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Merlot", "Gualtallary, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Single Vineyard", "Cabernet Franc", "Gualtallary, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Blend de Blancs", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Blend of Terroirs", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Rosé", "Tupungato, Mendoza", "rosé"],
+  ["Rutini Wines", "Rutini Colección", "Syrah", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Chardonnay", "Tupungato, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Colección", "Sauvignon Blanc", "Tupungato, Mendoza", "white"],
+  ["Rutini Wines", "Rutini Colección", "Brut Nature", "Tupungato, Mendoza", "sparkling"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Franc", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Malbec", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Merlot", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Sauvignon", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Colección", "Cabernet Syrah", "Tupungato, Mendoza", "red"],
+  ["Rutini Wines", "Rutini Finca Centenaria", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Gran Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Dominio", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Dominio", "Extra Brut", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Dominio", "Gran Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Dominio", "Gran Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Chardonnay", "Valle de Uco, Mendoza", "white"],
   ["Rutini Wines", "Encuentro", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Barrel Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Encuentro", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Encuentro", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Rosé", "Valle de Uco, Mendoza", "rosé"],
+  ["Rutini Wines", "Trumpeter Reserve", "Torrontés", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter Reserve", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Bonarda", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter Reserve", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Petit Verdot", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter Reserve", "Pinot Noir", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Merlot", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter", "Syrah", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Brut Nature", "Valle de Uco, Mendoza", "sparkling"],
+  ["Rutini Wines", "Trumpeter", "Cabernet Franc", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Rutini Wines", "Trumpeter", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Trumpeter", "Torrontés", "Valle de Uco, Mendoza", "white"],
+  ["Rutini Wines", "Antología", "Blend", "Valle de Uco, Mendoza", "red"],
 
-  // --- Luigi Bosca ---
-  ["Luigi Bosca", "Luigi Bosca", "Malbec", "Luján de Cuyo, Mendoza", "red"],
-  ["Luigi Bosca", "Luigi Bosca", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
-  ["Luigi Bosca", "Luigi Bosca", "Sauvignon Blanc", "Luján de Cuyo, Mendoza", "white"],
-  ["Luigi Bosca", "Luigi Bosca De Sangre", "Blend", "Luján de Cuyo, Mendoza", "red"],
+  // --- Luigi Bosca --- (verificado contra luigibosca.com, jul 2026)
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Sauvignon Blanc", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Pinot Noir", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Rosé", "Luján de Cuyo, Mendoza", "rosé"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Gewürztraminer", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Insignia", "Riesling", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "White Blend", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "Cabernet Franc", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca De Sangre", "Corte", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Apuntes", "Semillón", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Apuntes", "Naranjo", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Apuntes", "Malbec Orgánico", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Apuntes", "Grenache", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Legado", "León", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Legado", "Filos Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Luigi Bosca", "Luigi Bosca Legado", "Paraíso", "Luján de Cuyo, Mendoza", "red"],
+  ["Luigi Bosca", "Luigi Bosca Legado", "Malbec", "Luján de Cuyo, Mendoza", "red"],
   ["Luigi Bosca", "Finca Los Nobles", "Cabernet Bouchet", "Luján de Cuyo, Mendoza", "red"],
   ["Luigi Bosca", "Gala 1", "Malbec Petit Verdot", "Luján de Cuyo, Mendoza", "red"],
   ["Luigi Bosca", "Gala 3", "Blend Blanco", "Luján de Cuyo, Mendoza", "white"],
@@ -48,7 +163,7 @@ const RAW = [
   ["Trapiche", "Trapiche Broquel", "Malbec", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Broquel", "Bonarda", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Oak Cask", "Malbec", "Maipú, Mendoza", "red"],
-  ["Trapiche", "Trapiche Iscay", "Malbec Cabernet Franc", "Maipú, Mendoza", "red"],
+  ["Trapiche", "Trapiche Iscay", "Blend", "Maipú, Mendoza", "red"],
   ["Trapiche", "Trapiche Costa & Pampa", "Chardonnay", "Chapadmalal, Buenos Aires", "white"],
   ["Trapiche", "Fond de Cave", "Malbec", "Maipú, Mendoza", "red"],
 
@@ -67,7 +182,11 @@ const RAW = [
   ["Familia Zuccardi", "Zuccardi Q", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
   ["Familia Zuccardi", "Zuccardi Aluvional", "Malbec", "Gualtallary, Mendoza", "red"],
   ["Familia Zuccardi", "Zuccardi Concreto", "Malbec", "Valle de Uco, Mendoza", "red"],
-  ["Familia Zuccardi", "Zuccardi Poligonos", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Tito Zuccardi", "Blend", "Paraje Altamira, Mendoza", "red"],
+  ["Familia Zuccardi", "José Zuccardi", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Emma Zuccardi", "Bonarda", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Zuccardi Q", "Cabernet Franc", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Zuccardi Polígonos", "Malbec", "Valle de Uco, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia", "Malbec", "Maipú, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia", "Torrontés", "Maipú, Mendoza", "white"],
 
@@ -219,8 +338,6 @@ const RAW = [
   // --- Más clásicas y varietales menos comunes ---
   ["Trapiche", "Trapiche Medalla", "Malbec", "Maipú, Mendoza", "red"],
   ["Luigi Bosca", "Luigi Bosca", "Riesling", "Luján de Cuyo, Mendoza", "white"],
-  ["Rutini Wines", "Rutini", "Cabernet Franc", "Tupungato, Mendoza", "red"],
-  ["Rutini Wines", "Rutini", "Sauvignon Blanc", "Tupungato, Mendoza", "white"],
   ["Doña Paula", "Doña Paula Estate", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
   ["Bodegas Salentein", "Salentein Reserve", "Chardonnay", "Valle de Uco, Mendoza", "white"],
   ["Familia Zuccardi", "Zuccardi Serie A", "Bonarda", "Valle de Uco, Mendoza", "red"],
@@ -294,6 +411,86 @@ const RAW = [
   ["Valentín Bianchi", "Don Valentín Lacrado", "Tinto", "San Rafael, Mendoza", "red"],
   ["Goyenechea", "Goyenechea Centenario", "Cabernet Sauvignon", "San Rafael, Mendoza", "red"],
   ["Suter", "Etiqueta Marrón", "Tinto", "San Rafael, Mendoza", "red"],
+
+  // --- Populares que faltaban --- (SIN VERIFICAR contra sitio oficial)
+  ["Familia Zuccardi", "Fuzión", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Fuzión", "Shiraz Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Fuzión", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Fuzión", "Torrontés", "Valle de Uco, Mendoza", "white"],
+  ["Familia Zuccardi", "Fuzión", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Finca Las Moras", "Dadá", "Blend", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Dadá", "Malbec", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Dadá", "Cabernet Sauvignon", "Valle de Tulum, San Juan", "red"],
+  ["Nieto Senetiner", "Benjamín Nieto Senetiner", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Nieto Senetiner", "Benjamín Nieto Senetiner", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Nieto Senetiner", "Benjamín Nieto Senetiner", "Chardonnay", "Luján de Cuyo, Mendoza", "white"],
+  ["Nieto Senetiner", "Benjamín Nieto Senetiner", "Bonarda", "Luján de Cuyo, Mendoza", "red"],
+  ["Trivento", "Tilia", "Malbec", "Mendoza", "red"],
+  ["Trivento", "Tilia", "Cabernet Sauvignon", "Mendoza", "red"],
+  ["Trivento", "Tilia", "Chardonnay", "Mendoza", "white"],
+  ["Trivento", "Tilia", "Torrontés", "Mendoza", "white"],
+  ["Bodega La Mascota", "La Mascota", "Malbec", "Maipú, Mendoza", "red"],
+  ["Bodega La Mascota", "La Mascota", "Cabernet Sauvignon", "Maipú, Mendoza", "red"],
+  ["Bodega La Mascota", "La Mascota", "Chardonnay", "Maipú, Mendoza", "white"],
+  ["Fincas Patagónicas", "Zolo", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Fincas Patagónicas", "Zolo", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Fincas Patagónicas", "Zolo", "Torrontés", "Luján de Cuyo, Mendoza", "white"],
+  ["Antigal", "Antigal Uno", "Malbec", "Luján de Cuyo, Mendoza", "red"],
+  ["Antigal", "Antigal Uno", "Cabernet Sauvignon", "Luján de Cuyo, Mendoza", "red"],
+  ["Bodega Gouguenheim", "Gouguenheim", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Bodega Gouguenheim", "Gouguenheim", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Bodega Gouguenheim", "Gouguenheim", "Chardonnay", "Valle de Uco, Mendoza", "white"],
+  ["Pascual Toso", "Pascual Toso", "Malbec", "Maipú, Mendoza", "red"],
+  ["Pascual Toso", "Pascual Toso", "Cabernet Sauvignon", "Maipú, Mendoza", "red"],
+  ["Pascual Toso", "Pascual Toso", "Chardonnay", "Maipú, Mendoza", "white"],
+  ["Bodegas Balbo", "Viñas de Balbo", "Malbec", "Mendoza", "red"],
+  ["Bodegas Balbo", "Viñas de Balbo", "Cabernet Sauvignon", "Mendoza", "red"],
+  ["Bodegas Balbo", "Viñas de Balbo", "Blend", "Mendoza", "red"],
+  ["Bodega Callia", "Callia Elementos", "Malbec", "Valle de Tulum, San Juan", "red"],
+  ["Bodega Callia", "Callia Elementos", "Syrah", "Valle de Tulum, San Juan", "red"],
+  ["Bodega Callia", "Callia Elementos", "Torrontés", "Valle de Tulum, San Juan", "white"],
+  ["Bodega Estancia Mendoza", "Estancia Mendoza", "Malbec", "Mendoza", "red"],
+  ["Bodega Estancia Mendoza", "Estancia Mendoza", "Cabernet Sauvignon", "Mendoza", "red"],
+  ["Bodega Estancia Mendoza", "Estancia Mendoza", "Chardonnay", "Mendoza", "white"],
+
+  // --- Santa Julia --- (verificado contra santajulia.com.ar, jul 2026)
+  ["Familia Zuccardi", "Santa Julia Varietales", "Malbec", "Maipú, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Varietales", "Cabernet Sauvignon", "Maipú, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Varietales", "Cabernet Franc", "Maipú, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Varietales", "Torrontés", "Maipú, Mendoza", "white"],
+  ["Familia Zuccardi", "Santa Julia Varietales", "Pinot Grigio", "Maipú, Mendoza", "white"],
+  ["Familia Zuccardi", "Santa Julia Varietales", "Rosé", "Maipú, Mendoza", "rosé"],
+  ["Familia Zuccardi", "Santa Julia Valle de Uco", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Valle de Uco", "Cabernet Franc", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Orgánico", "Malbec", "Maipú, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Orgánico", "Cabernet Sauvignon", "Maipú, Mendoza", "red"],
+  ["Familia Zuccardi", "Santa Julia Orgánico", "Torrontés", "Maipú, Mendoza", "white"],
+
+  // --- Mosquita Muerta Wines y otros populares --- (SIN VERIFICAR el varietal de cada etiqueta)
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Extra Brut", "Valle de Uco, Mendoza", "sparkling"],
+  ["Mosquita Muerta Wines", "Cordero con Piel de Lobo", "Blanc de Blancs", "Valle de Uco, Mendoza", "sparkling"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Sauvignon Blanc", "Valle de Uco, Mendoza", "white"],
+  ["Mosquita Muerta Wines", "Perro Callejero", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Mosquita Muerta", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Mosquita Muerta", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Pispi", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Otro Loco Más", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Otro Loco Más", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Sapo de Otro Pozo", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Malcriado", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Mosquita Muerta Wines", "Margarita para los Chanchos", "Blend", "Valle de Uco, Mendoza", "red"],
+  ["Finca Las Moras", "Alma Mora", "Malbec", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Alma Mora", "Cabernet Sauvignon", "Valle de Tulum, San Juan", "red"],
+  ["Finca Las Moras", "Alma Mora", "Chardonnay", "Valle de Tulum, San Juan", "white"],
+  ["Finca Las Moras", "Alma Mora", "Rosé", "Valle de Tulum, San Juan", "rosé"],
+  ["Finca Flichman", "Latitud 33", "Malbec", "Mendoza", "red"],
+  ["Finca Flichman", "Latitud 33", "Cabernet Sauvignon", "Mendoza", "red"],
+  ["Finca Flichman", "Latitud 33", "Chardonnay", "Mendoza", "white"],
+  ["Finca Flichman", "Latitud 33", "Blend", "Mendoza", "red"],
 ];
 
 // Normaliza texto para comparar sin acentos ni mayúsculas.

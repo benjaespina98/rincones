@@ -13,7 +13,7 @@
 
 .discover-hero__greeting {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--text-secondary);
 }
 
@@ -53,7 +53,7 @@
   border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--text);
-  font-size: 1rem;
+  font-size: var(--text-lg);
 }
 
 .discover-search .discover-search__input::placeholder {
@@ -177,7 +177,7 @@
 .spotlight__name {
   margin: 2px 0 0;
   font-family: var(--font-family-serif);
-  font-size: 1.25rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   line-height: 1.15;
   color: var(--text);
@@ -185,7 +185,7 @@
 
 .spotlight__meta {
   margin: 0 0 6px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -205,7 +205,7 @@
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--accent-light), var(--accent));
   color: #fff;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
@@ -228,7 +228,7 @@
   border-radius: var(--radius-full);
   background: var(--glass);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
@@ -257,13 +257,13 @@
 .discover-section__head h2 {
   margin: 0;
   font-family: var(--font-family-serif);
-  font-size: 1.25rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--text);
 }
 
 .discover-section__hint {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
@@ -350,7 +350,7 @@
   left: 8px;
   padding: 3px 9px;
   border-radius: var(--radius-full);
-  font-size: 0.64rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: #fff;
   background: rgba(12, 15, 25, 0.72);
@@ -367,7 +367,7 @@
 
 .discover-wine__name {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--text);
   line-height: 1.25;
@@ -379,7 +379,7 @@
 
 .discover-wine__winery {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -391,7 +391,7 @@
   align-items: center;
   gap: 4px;
   margin: 0;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -410,7 +410,7 @@
   border-radius: var(--radius-md);
   background: rgba(126, 89, 201, 0.16);
   color: var(--accent-soft);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -471,7 +471,7 @@
 
 .explore__title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: var(--text-2xl);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text);
@@ -490,18 +490,31 @@
    arriba: aquel es una botella, éste es contenido, y el borde superior de la
    sección los separa. */
 .explore__hero {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 18px;
+  padding: 20px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-accent);
   background:
-    radial-gradient(120% 130% at 100% 0%, rgba(47, 182, 123, 0.14), transparent 62%),
+    radial-gradient(130% 120% at 100% 0%, rgba(126, 89, 201, 0.2), transparent 60%),
     var(--elevated);
   box-shadow: var(--shadow-md);
   text-decoration: none;
+  overflow: hidden;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Filete de acento sobre el borde superior: el recurso con el que las revistas
+   marcan la nota principal. Cuesta una línea de CSS y separa el destacado del
+   resto sin agregarle peso ni otro color de fondo. */
+.explore__hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-light), var(--wine));
 }
 
 @media (hover: hover) {
@@ -527,7 +540,7 @@
 
 .explore__hero-title {
   margin: 0;
-  font-size: 1.22rem;
+  font-size: var(--text-2xl);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;

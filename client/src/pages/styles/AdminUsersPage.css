@@ -28,7 +28,7 @@
 .user-count {
   margin: 0;
   color: #bcaedf;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
 }
 
 .error-banner {
@@ -63,7 +63,7 @@
   text-align: center;
   padding: 3rem 1rem;
   color: #b7aadb;
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
 }
 
 .table-container {
@@ -89,7 +89,7 @@
   text-align: left;
   font-weight: 600;
   color: #e9e2ff;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
 }
 
 .users-table tbody tr {
@@ -103,12 +103,12 @@
 
 .users-table td {
   padding: 0.75rem 1rem;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
 }
 
 .email-cell {
   font-family: "Courier New", monospace;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   color: #d2c6f5;
 }
 
@@ -133,7 +133,7 @@
   display: inline-block;
   padding: 0.35rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -154,7 +154,7 @@
   padding: 0.35rem 0.5rem;
   border: 1px solid rgba(174, 146, 255, 0.28);
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   cursor: pointer;
   background: rgba(25, 23, 53, 0.95);
   color: #f3eeff;
@@ -178,7 +178,7 @@
 
 .date-cell {
   color: #a799ce;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   min-width: 100px;
 }
 
@@ -191,7 +191,7 @@
   padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -242,7 +242,7 @@
   background: rgba(24, 22, 48, 0.95);
   color: #eee8ff;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   transition: all 0.2s;
 }
 
@@ -257,7 +257,7 @@
 }
 
 .page-info {
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   color: #cfbfed;
   font-weight: 500;
 }
@@ -269,7 +269,7 @@
   }
 
   .admin-header h1 {
-    font-size: 1.5rem;
+    font-size: var(--text-3xl);
   }
 
   .table-container {
@@ -280,22 +280,22 @@
   .users-table th,
   .users-table td {
     padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    font-size: var(--text-base);
   }
 
   .email-cell code {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
   }
 
   .role-badge {
     padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
   }
 
   .btn-edit,
   .btn-cancel {
     padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
   }
 
   .pagination {
@@ -305,11 +305,11 @@
 
   .pagination-btn {
     padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+    font-size: var(--text-base);
   }
 
   .page-info {
-    font-size: 0.85rem;
+    font-size: var(--text-base);
   }
 
   /* Hide columns on very small screens */

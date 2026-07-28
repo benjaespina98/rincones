@@ -57,7 +57,7 @@
 
 .stat-number {
   font-family: var(--font-family-serif);
-  font-size: 1.55rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--text);
   line-height: 1;
@@ -69,7 +69,10 @@
 }
 
 .stat-label {
-  font-size: 0.64rem;
+  /* Si algún día una etiqueta no entra, que se achique antes de partirse:
+     un rótulo en dos líneas empuja el número y descuadra toda la fila. */
+  white-space: nowrap;
+  font-size: var(--text-2xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -103,7 +106,7 @@
   padding: 0 44px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-full);
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   background: var(--surface);
   color: var(--text);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
@@ -319,7 +322,7 @@
 
 .wine-row__name {
   font-family: var(--font-family-serif);
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -328,7 +331,7 @@
 }
 
 .wine-row__sub {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -366,13 +369,27 @@
 }
 
 .wine-row__rating,
-.wine-row__qty {
+.wine-row__qty,
+.wine-row__aged {
   grid-column: 1;
   justify-self: end;
 }
 
+/* El stock es lo que más pesa después del nombre: es el dato con el que decidís
+   si este vino puede ser el de hoy. */
+.wine-row__aged {
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.wine-row__qty.is-last {
+  color: var(--gold-soft);
+}
+
 .wine-row__qty {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text-secondary);
   padding: 3px 9px;
@@ -428,7 +445,7 @@
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
@@ -461,7 +478,7 @@
   border: 1px solid var(--line-accent);
   background: rgba(126, 89, 201, 0.14);
   color: var(--accent-soft);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -561,7 +578,7 @@
   background: none;
   border: none;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
   text-align: left;
@@ -576,7 +593,7 @@
   border-radius: 999px;
   background: rgba(126, 89, 201, 0.3);
   color: var(--accent-light);
-  font-size: 0.72rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   padding: 0 5px;
 }
@@ -584,7 +601,7 @@
 .wishlist-toggle__arrow {
   margin-left: auto;
   color: var(--text-secondary);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
 }
 
 .wishlist-body {
@@ -596,7 +613,7 @@
 
 .wishlist-empty {
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--text-md);
   text-align: center;
   padding: 8px 0;
   display: grid;
@@ -608,7 +625,7 @@
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   color: var(--accent-light);
-  font-size: 0.84rem;
+  font-size: var(--text-base);
   padding: 8px 16px;
   cursor: pointer;
 }
@@ -638,7 +655,7 @@
 }
 
 .wishlist-item__name {
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -648,7 +665,7 @@
 
 .wishlist-item__winery,
 .wishlist-item__type {
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
@@ -665,7 +682,7 @@
   border: 1px solid var(--accent-light);
   background: rgba(126, 89, 201, 0.14);
   color: var(--accent-light);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -941,12 +958,71 @@
   }
 }
 
-/* Corte de grupo: con 300 vinos, saber que "acá empiezan los de la C" es la
-   diferencia entre navegar y perderse.
+/* Corte de grupo, plegable: con 300 vinos, poder cerrar "Tinto" y quedarte con
+   los blancos es la diferencia entre navegar y scrollear.
 
    NO es sticky a propósito: .app-content declara overflow-y:auto (App.css), y
    un ancestro con overflow distinto de visible cancela el position:sticky de
    todos sus descendientes. Dejarlo puesto sería CSS que no hace nada. */
+.wines-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  margin: 12px 0 2px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--accent-soft);
+}
+
+.wines-group:first-child {
+  margin-top: 0;
+}
+
+.wines-group__caret {
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.wines-group.is-collapsed .wines-group__caret {
+  transform: rotate(-90deg);
+}
+
+.wines-group__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.wines-group__count {
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Sin botellas: sigue siendo tuyo y cuenta tu historia, pero no responde
+   "¿qué abro hoy?". Se atenúa en vez de esconderse. */
+.wine-row.is-history {
+  background: var(--surface);
+  border-style: dashed;
+}
+
+.wine-row.is-history .wine-row__thumb,
+.wine-row.is-history .wine-row__name {
+  opacity: 0.7;
+}
+
 .wines-list__group {
   margin: 14px 0 2px;
   padding: 5px 10px;
@@ -970,4 +1046,21 @@
 .wines-list--grid .wines-list__group {
   grid-column: 1 / -1;
   justify-self: start;
+}
+
+/* Agrupar y ordenar comparten fila: dos desplegables apilados empujaban la
+   lista media pantalla hacia abajo. */
+.bodega-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.bodega-controls .dropdown {
+  flex: 1;
+  min-width: 0;
+}
+
+.bodega-controls .dropdown__trigger {
+  min-height: 40px;
+  font-size: var(--text-xs);
 }

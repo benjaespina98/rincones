@@ -249,8 +249,11 @@ const searchWithAiCached = async (query) => {
 
 // --- API pública del servicio ---
 
-// Orden de confianza de las fuentes: primero lo verificado a mano, después lo
-// que cargó la comunidad, el modelo, y al final OFF (datos sucios en AR).
+// Orden de confianza. El catálogo va primero no porque esté verificado contra
+// una fuente oficial —no lo está, ver argentineWines.js— sino porque es estable
+// y auditable: siempre devuelve lo mismo y se puede leer y corregir. Después lo
+// que cargó gente real, después el modelo (que puede alucinar y cambia entre
+// llamadas), y al final OFF, que en Argentina trae datos sucios.
 const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
 
 // Clave canónica que reconcilia las distintas fuentes. Vive en wineIdentity.js

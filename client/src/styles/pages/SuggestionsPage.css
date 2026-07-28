@@ -12,7 +12,7 @@
 .sommelier-header h1 {
   margin: 0 0 3px;
   font-family: var(--font-family-serif);
-  font-size: 1.5rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -21,7 +21,7 @@
 .sommelier-header p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--text-md);
 }
 
 /* Context selector — compacto para no comerse la pantalla. */
@@ -40,7 +40,7 @@
 }
 
 .context-label {
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   font-weight: 800;
   color: var(--accent-soft);
   text-transform: uppercase;
@@ -59,7 +59,7 @@
   border: 1px solid var(--line);
   background: var(--glass);
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
@@ -88,7 +88,7 @@
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
@@ -97,7 +97,7 @@
 /* Hints and states */
 .suggestions-hint {
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--text-md);
   text-align: center;
   padding: 8px 0;
 }
@@ -105,7 +105,7 @@
 .suggestions-error {
   color: var(--error, #f87171);
   text-align: center;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 /* Contenedor de resultados: da aire entre el selector, "De tu bodega" y
@@ -119,7 +119,7 @@
 .suggestions-results__label {
   margin: 12px 0 2px;
   font-family: var(--font-family-serif);
-  font-size: 1.15rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text);
 }
@@ -203,7 +203,7 @@
 
 .suggestion-card__name {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -213,7 +213,7 @@
 
 .suggestion-card__winery {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -225,7 +225,7 @@
 }
 
 .suggestion-card__stock {
-  font-size: 0.72rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-secondary);
   margin-left: auto;
@@ -240,7 +240,7 @@
   gap: 6px;
   margin: 4px 0 0;
   padding: 8px 12px;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.4;
   color: var(--accent-soft);
   background: linear-gradient(135deg, rgba(126, 89, 201, 0.16), rgba(126, 89, 201, 0.06));
@@ -309,7 +309,7 @@
 .discover-card__name {
   margin: 0;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -318,7 +318,7 @@
 
 .discover-card__winery {
   margin: 0;
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -345,7 +345,7 @@
 
 .discover-card__summary {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -362,7 +362,7 @@
   background: rgba(126, 89, 201, 0.14);
   border: 1px solid var(--line-accent);
   color: var(--accent-soft);
-  font-size: 0.72rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 
@@ -371,14 +371,14 @@
   align-items: center;
   gap: 5px;
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .discover-card__ia,
 .discover-card__failed {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--text-subtle);
 }
 

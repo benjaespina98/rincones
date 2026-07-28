@@ -53,6 +53,9 @@ export default function ScanReview({
   // Al editar un campo, deja de estar en duda: es dato del usuario.
   const [touched, setTouched] = useState(() => new Set());
   const [showAll, setShowAll] = useState(false);
+  // Cuántas botellas entran a la cava. Obligar a escanear doce veces la misma
+  // etiqueta porque compraste una caja no tiene sentido.
+  const [cantidad, setCantidad] = useState(1);
 
   const conf = reading?.confidence || {};
   const isManual = reading?.source === "manual";
@@ -86,7 +89,7 @@ export default function ScanReview({
   const submit = (e) => {
     e.preventDefault();
     if (saving) return;
-    onConfirm?.({ ...values, type: derivedType, name: title });
+    onConfirm?.({ ...values, type: derivedType, name: title, quantity: cantidad });
   };
 
   return (
@@ -180,9 +183,49 @@ export default function ScanReview({
         {showAll ? "Ocultar los que están bien" : "Editar todos los datos"}
       </button>
 
+      {/* Cuántas botellas. Los atajos cubren los casos reales —media docena,
+          una caja— sin obligar a tocar doce veces el más. */}
+      <div className="scan-qty">
+        <span className="scan-qty__label">¿Cuántas botellas?</span>
+        <div className="scan-qty__row">
+          <div className="scan-qty__stepper">
+            <button
+              type="button"
+              onClick={() => setCantidad((n) => Math.max(1, n - 1))}
+              disabled={saving || cantidad <= 1}
+              aria-label="Una botella menos"
+            >
+              <Icon name="minus" size={16} />
+            </button>
+            <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
+            <button
+              type="button"
+              onClick={() => setCantidad((n) => Math.min(99, n + 1))}
+              disabled={saving || cantidad >= 99}
+              aria-label="Una botella más"
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
+          <div className="scan-qty__presets">
+            {[6, 12].map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
+                onClick={() => setCantidad(n)}
+                disabled={saving}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="scan-review__actions">
         <button type="submit" className="scan-review__save" disabled={saving}>
-          {saving ? "Guardando…" : <><Icon name="check" size={17} /> Agregar a mi bodega</>}
+          {saving ? "Guardando…" : <><Icon name="check" size={17} /> {cantidad === 1 ? "Agregar a mi bodega" : `Agregar ${cantidad} botellas`}</>}
         </button>
         <button type="button" className="scan-review__wish" onClick={() => onWish?.({ ...values, type: derivedType, name: title })} disabled={saving}>
           <Icon name="heart" size={16} /> Solo guardarlo

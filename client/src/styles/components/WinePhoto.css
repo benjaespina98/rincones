@@ -31,3 +31,21 @@
     transition: none;
   }
 }
+
+/* Crédito de Open Food Facts. Sus fotos son CC BY-SA 3.0 y la licencia pide
+   acreditar la fuente donde se muestran. Va discreto —una sigla en una esquina,
+   con el detalle en el title— para cumplir sin ensuciar la tarjeta. */
+.wine-photo__credito {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  pointer-events: auto;
+}

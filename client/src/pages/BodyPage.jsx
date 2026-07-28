@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
@@ -9,16 +9,19 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { normalizeSearchText } from "../utils/text";
+import { tiempoEnCava, enCavaDesde, stockLabel } from "../utils/cellarTime";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import "../styles/pages/BodyPage.css";
 
 const FILTER_VALUES = new Set([
   "all",
+  "instock",
+  "historial",
   "favorites",
   "tasted",
   "nottasted",
-  "lowstock",
   "cellarready",
   "red",
   "white",
@@ -27,14 +30,7 @@ const FILTER_VALUES = new Set([
   "fortified",
 ]);
 
-const normalizeSearchText = (value = "") =>
-  String(value)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .trim();
-
-export default function BodyPage({ initialFilter = "all" }) {
+export default function BodyPage({ initialFilter = "instock" }) {
   const navigate = useNavigate();
   const { addToast, removeToast, showSuccess, showError } = useToast();
   const {
@@ -59,7 +55,7 @@ export default function BodyPage({ initialFilter = "all" }) {
     ? initialFromQuery
     : FILTER_VALUES.has(initialFilter)
       ? initialFilter
-      : "all";
+      : "instock";
   const [filterType, setFilterType] = useState(startFilter);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
@@ -71,6 +67,9 @@ export default function BodyPage({ initialFilter = "all" }) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   // Con pocos vinos la lista se lee bien; a partir de ~8 la grilla gana.
   const [viewMode, setViewMode] = useState("list");
+  // "auto" agrupa sola cuando la lista se vuelve larga; el resto son ejes fijos.
+  const [groupBy, setGroupBy] = useState("auto");
+  const [collapsed, setCollapsed] = useState(() => new Set());
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
@@ -130,6 +129,9 @@ export default function BodyPage({ initialFilter = "all" }) {
         if (filterType === "nottasted") return !wine.tasted;
         if (filterType === "favorites") return wine.favorite;
         if (filterType === "instock") return Number(wine.quantity) > 0;
+        // Historial: lo que ya no tenés en casa. Sigue siendo parte de tu
+        // colección —dice por dónde pasaste— pero no responde "¿qué abro hoy?".
+        if (filterType === "historial") return Number(wine.quantity) <= 0;
         if (filterType === "cellarready") return Number(wine.quantity) > 0 && getCellarStatus(wine).status === "peak";
         return wine.type === filterType;
       }),
@@ -137,31 +139,62 @@ export default function BodyPage({ initialFilter = "all" }) {
   );
 
   /**
-   * Encabezado del grupo al que pertenece un vino, según el orden activo.
+   * Agrupación: el eje con el que se corta la lista.
    *
-   * Con 30 vinos una lista plana se recorre; con 300 te perdés. Estos cortes
-   * dan orientación mientras scrolleás —"voy por la C", "estos son los 2019"—
-   * sin agregar una pantalla ni un control más: salen del orden que ya elegiste.
-   * Devuelve null cuando agrupar no aportaría nada (orden por fecha de alta).
+   * Antes salía del orden elegido, que mezclaba dos decisiones distintas: no se
+   * podía ver "por bodega, ordenado por puntaje". Ahora es un control propio.
+   *
+   * Con pocos vinos agrupar sólo agrega ruido, así que el modo automático no
+   * agrupa hasta que la lista deja de recorrerse de un vistazo.
    */
-  const groupOf = (wine) => {
-    if (sortBy === "name") return (wine.name?.[0] || "#").toUpperCase();
-    if (sortBy === "year") return wine.vintage ? String(wine.vintage) : "Sin cosecha";
-    if (sortBy === "rating") {
-      if (!wine.rating) return "Sin puntuar";
-      return `${Math.floor(wine.rating)}★ y más`;
-    }
-    return null;
-  };
+  const AUTO_GROUP_FROM = 25;
+
+  const effectiveGroupBy = useMemo(() => {
+    if (groupBy !== "auto") return groupBy;
+    return filteredWines.length >= AUTO_GROUP_FROM ? "type" : "none";
+  }, [groupBy, filteredWines.length]);
+
+  const groupOf = useCallback(
+    (wine) => {
+      switch (effectiveGroupBy) {
+        case "type":
+          return WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown;
+        case "winery":
+          return wine.winery || "Sin bodega";
+        case "region":
+          return wine.region || "Sin región";
+        case "varietal":
+          return wine.varietal || "Sin varietal";
+        case "letter":
+          return (wine.name?.[0] || "#").toUpperCase();
+        default:
+          return null;
+      }
+    },
+    [effectiveGroupBy]
+  );
 
   const sortedWines = useMemo(() => {
-    return [...filteredWines].sort((a, b) => {
+    const porOrden = (a, b) => {
       if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
       if (sortBy === "year") return (b.vintage || 0) - (a.vintage || 0);
       if (sortBy === "name") return a.name.localeCompare(b.name);
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    };
+
+    // Con agrupación activa hay que ordenar PRIMERO por grupo: si no, los vinos
+    // de cada grupo quedan intercalados y el corte salta en cada cambio —con 92
+    // vinos aparecían 35 encabezados repitiendo "Tinto / Blanco / Tinto".
+    // El orden elegido sigue mandando, pero adentro de cada sección.
+    if (effectiveGroupBy === "none") return [...filteredWines].sort(porOrden);
+
+    return [...filteredWines].sort((a, b) => {
+      const ga = groupOf(a) || "";
+      const gb = groupOf(b) || "";
+      if (ga !== gb) return ga.localeCompare(gb, "es");
+      return porOrden(a, b);
     });
-  }, [filteredWines, sortBy]);
+  }, [filteredWines, sortBy, effectiveGroupBy, groupOf]);
 
   // Rincones es una colección personal, no un inventario comercial: las
   // estadísticas describen lo que tenés, no disparan alertas de reposición.
@@ -173,28 +206,59 @@ export default function BodyPage({ initialFilter = "all" }) {
     tasted: wines.filter((wine) => wine.tasted).length,
   };
   stats.pending = stats.total - stats.tasted;
+  stats.historial = stats.total - stats.inStock;
 
-  const activeFilterLabel =
-    filterType === "all"
-      ? "Todos"
-      : filterType === "favorites"
-        ? "Favoritos"
-        : filterType === "tasted"
-          ? "Probados"
-          : filterType === "nottasted"
-            ? "Pendientes"
-            : filterType === "cellarready"
-              ? "Listos para abrir"
-              : filterType === "instock"
-              ? "En stock"
-              : WINE_TYPE_LABELS[filterType] || filterType;
+  // Cuántos vinos tiene cada grupo, para poder mostrarlo en el encabezado
+  // incluso cuando la sección está plegada.
+  const groupCounts = useMemo(() => {
+    const acc = {};
+    for (const w of sortedWines) {
+      const g = groupOf(w);
+      if (g) acc[g] = (acc[g] || 0) + 1;
+    }
+    return acc;
+  }, [sortedWines, groupOf]);
 
-  const activeCharacteristicFilters = [
-    varietalFilter !== "all" ? varietalFilter : null,
-    regionFilter !== "all" ? regionFilter : null,
-  ].filter(Boolean);
+  const toggleGroup = (name) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
 
-  const hasActiveFilters = filterType !== "all" || activeCharacteristicFilters.length > 0;
+  // Cambiar de eje de agrupación con secciones cerradas dejaría plegado algo
+  // que el usuario nunca cerró.
+  useEffect(() => setCollapsed(new Set()), [effectiveGroupBy]);
+
+  /**
+   * Qué colección estás mirando ahora mismo: "18 en stock", "8 Malbec en
+   * stock", "6 de Catena Zapata". Se arma con los filtros realmente aplicados.
+   */
+  const contextLabel = useMemo(() => {
+    const n = sortedWines.length;
+    const unidad = n === 1 ? "vino" : "vinos";
+    if (searchTerm.trim()) {
+      return `${n} ${n === 1 ? "resultado" : "resultados"}`;
+    }
+    const partes = [];
+    if (varietalFilter !== "all") partes.push(varietalFilter);
+    if (regionFilter !== "all") partes.push(`de ${regionFilter}`);
+    const nombreFiltro = {
+      instock: "en stock",
+      historial: "en tu historial",
+      favorites: "favoritos",
+      nottasted: "por probar",
+      tasted: "probados",
+      cellarready: "listos para abrir",
+    }[filterType];
+    if (nombreFiltro) partes.push(nombreFiltro);
+    else if (filterType !== "all") partes.push(WINE_TYPE_LABELS[filterType]?.toLowerCase());
+
+    const cola = partes.filter(Boolean).join(" ");
+    return cola ? `${n} ${cola}` : `${n} ${unidad}`;
+  }, [sortedWines.length, searchTerm, filterType, varietalFilter, regionFilter]);
+
   // Marca el botón "Filtros" cuando hay algo aplicado ahí adentro, para que no
   // quede un filtro activo invisible con el panel cerrado.
   // El orden ya no cuenta acá: pasó a estar siempre visible en la fila de
@@ -318,7 +382,7 @@ export default function BodyPage({ initialFilter = "all" }) {
         </div>
         <div className="stat">
           <span className="stat-number">{stats.pending}</span>
-          <span className="stat-label">Por probar</span>
+          <span className="stat-label">Pendientes</span>
         </div>
         <div className="stat">
           <span className="stat-number">{stats.tasted}</span>
@@ -355,19 +419,23 @@ export default function BodyPage({ initialFilter = "all" }) {
       <div className="bodega-tools">
         <div className="bodega-tools__chips" role="group" aria-label="Filtros rápidos">
           {[
-            { id: "all", label: "Todos", count: stats.total },
+            /* El stock va primero porque es la pregunta con la que uno abre la
+               app: "¿qué tengo para tomar hoy?". El historial va último y
+               separado: cuenta por dónde pasaste, no qué podés abrir. */
             { id: "instock", label: "En stock", count: stats.inStock },
-            { id: "tasted", label: "Probados", count: stats.tasted },
-            { id: "nottasted", label: "Por probar", count: stats.pending },
             { id: "favorites", label: "Favoritos", count: stats.favorites },
+            { id: "nottasted", label: "Pendientes", count: stats.pending },
+            { id: "tasted", label: "Probados", count: stats.tasted },
             { id: "cellarready", label: "Listos para abrir", count: null },
+            { id: "historial", label: "Historial", count: stats.historial },
+            { id: "all", label: "Todos", count: stats.total },
           ].map((f) => (
             <button
               key={f.id}
               type="button"
               className={`bodega-chip ${filterType === f.id ? "is-active" : ""}`}
               aria-pressed={filterType === f.id}
-              onClick={() => setFilterType(filterType === f.id ? "all" : f.id)}
+              onClick={() => setFilterType(filterType === f.id ? "instock" : f.id)}
             >
               {f.label}
               {f.count != null && <span className="bodega-chip__n">{f.count}</span>}
@@ -382,23 +450,10 @@ export default function BodyPage({ initialFilter = "all" }) {
           CellarTracker y Vivino filtro y orden son controles hermanos, arriba
           de la lista y siempre a la vista. */}
       <div className="bodega-summary">
-        <span className="bodega-summary__count">
-          {sortedWines.length === wines.length
-            ? `${wines.length} ${wines.length === 1 ? "vino" : "vinos"}`
-            : `${sortedWines.length} de ${wines.length}`}
-        </span>
-        <Dropdown
-          ariaLabel="Ordenar vinos"
-          value={sortBy}
-          onChange={setSortBy}
-          options={[
-            { value: "recent", label: "Agregados hace poco" },
-            { value: "name", label: "A → Z" },
-            { value: "rating", label: "Mejor puntuados" },
-            { value: "year", label: "Cosecha más nueva" },
-          ]}
-        />
-
+        {/* Siempre decir qué estás mirando. "62 vinos" no distingue entre la
+            colección entera y un recorte; con filtros puestos, saber que son
+            "8 Malbec en stock" es la mitad de la orientación. */}
+        <span className="bodega-summary__count">{contextLabel}</span>
         <div className="bodega-summary__tools">
           {/* Grilla o lista: con muchos vinos, la lista obliga a leer fila por
               fila; la grilla deja reconocer por la etiqueta de un vistazo. */}
@@ -438,6 +493,39 @@ export default function BodyPage({ initialFilter = "all" }) {
             {hasAdvanced && <span className="bodega-more__dot" aria-hidden="true" />}
           </button>
         </div>
+      </div>
+
+      <div className="bodega-controls">
+        {/* Agrupar y ordenar son decisiones distintas: antes el corte de la
+            lista salía del orden, así que no se podía ver "por bodega,
+            ordenado por puntaje". */}
+        <Dropdown
+          ariaLabel="Agrupar vinos"
+          value={groupBy}
+          onChange={setGroupBy}
+          options={[
+            { value: "auto", label: "Agrupar: automático" },
+            { value: "none", label: "Sin agrupar" },
+            { value: "type", label: "Por tipo" },
+            { value: "winery", label: "Por bodega" },
+            { value: "region", label: "Por región" },
+            { value: "varietal", label: "Por varietal" },
+            { value: "letter", label: "Por letra" },
+          ]}
+        />
+
+        <Dropdown
+          ariaLabel="Ordenar vinos"
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: "recent", label: "Agregados hace poco" },
+            { value: "name", label: "A → Z" },
+            { value: "rating", label: "Mejor puntuados" },
+            { value: "year", label: "Cosecha más nueva" },
+          ]}
+        />
+
       </div>
 
       {/* Lo específico (tipo, varietal, región) se despliega sólo si lo pedís:
@@ -482,22 +570,6 @@ export default function BodyPage({ initialFilter = "all" }) {
         </div>
       )}
 
-      {hasActiveFilters && (
-        <p className="active-filter-note">
-          Mostrando:{" "}
-          <strong>
-            {[
-              filterType !== "all" ? activeFilterLabel : null,
-              ...activeCharacteristicFilters,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </strong>
-          <button type="button" className="active-filter-note__clear" onClick={clearAllFilters}>
-            Quitar filtros
-          </button>
-        </p>
-      )}
         </>
       )}
 
@@ -517,16 +589,34 @@ export default function BodyPage({ initialFilter = "all" }) {
             const isPending = pendingActionId === wine._id;
             const expanded = expandedId === wine._id;
             const origin = [wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen";
+            const enCava = tiempoEnCava(enCavaDesde(wine), { corto: true });
             // Corte de grupo: sólo cuando cambia respecto del vino anterior.
             const group = groupOf(wine);
             const showGroup = group && (i === 0 || groupOf(sortedWines[i - 1]) !== group);
+            // Plegar una sección la saca de la pantalla entera: con 300 vinos,
+            // poder cerrar "Tinto" y quedarte con los blancos es la diferencia
+            // entre navegar y scrollear.
+            if (group && collapsed.has(group) && !showGroup) return null;
+            const sinAbrir = group && collapsed.has(group);
             return (
               <Fragment key={wine._id}>
               {showGroup && (
-                <h3 className="wines-list__group" aria-hidden="true">{group}</h3>
+                <button
+                  type="button"
+                  className={`wines-group ${sinAbrir ? "is-collapsed" : ""}`}
+                  onClick={() => toggleGroup(group)}
+                  aria-expanded={!sinAbrir}
+                >
+                  <Icon name="chevron-down" size={15} className="wines-group__caret" />
+                  <span className="wines-group__name">{group}</span>
+                  <span className="wines-group__count">{groupCounts[group]}</span>
+                </button>
               )}
+              {sinAbrir ? null : (
               <article
-                className={`wine-row ${expanded ? "is-expanded" : ""} ${isPending ? "is-pending" : ""}`}
+                className={`wine-row ${expanded ? "is-expanded" : ""} ${isPending ? "is-pending" : ""} ${
+                  Number(wine.quantity) <= 0 ? "is-history" : ""
+                }`}
               >
                 {/* Fila compacta: tocar expande la info y las acciones. */}
                 <button
@@ -571,9 +661,17 @@ export default function BodyPage({ initialFilter = "all" }) {
                         <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
                       </span>
                     )}
-                    <span className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""}`}>
-                      {Number(wine.quantity) <= 0 ? "Sin stock" : `x${wine.quantity}`}
+                    <span
+                      className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""} ${
+                        Number(wine.quantity) === 1 ? "is-last" : ""
+                      }`}
+                      title={stockLabel(wine.quantity)}
+                    >
+                      {Number(wine.quantity) <= 0 ? "—" : `×${wine.quantity}`}
                     </span>
+                    {/* Una cava se mide en años: cuánto hace que lo tenés dice
+                        algo que la cosecha no dice. */}
+                    {enCava && <span className="wine-row__aged">{enCava}</span>}
                     <Icon name="chevron-down" size={18} className="wine-row__caret" />
                   </span>
                 </button>
@@ -628,6 +726,7 @@ export default function BodyPage({ initialFilter = "all" }) {
                   </div>
                 )}
               </article>
+              )}
               </Fragment>
             );
           })}

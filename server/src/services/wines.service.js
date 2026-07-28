@@ -9,6 +9,8 @@ const imageStorage = require("./imageStorage.service");
 const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
+const { identityKey } = require("../data/wineIdentity");
+const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -79,6 +81,36 @@ async function getWineById(userId, id) {
   return Wine.findOne({ _id: id, userId });
 }
 
+/**
+ * Busca en la bodega del usuario un vino que sea ESTE mismo vino.
+ *
+ * Una cava se administra durante años: volvés a comprar lo que te gustó, y a
+ * veces lo cargás escaneando otra vez la etiqueta. Sin esto, cada compra creaba
+ * una fila nueva y a los dos años la bodega tenía el mismo Malbec cinco veces,
+ * con el rating y las notas repartidas entre las copias.
+ *
+ * La cosecha SÍ distingue: un 2019 y un 2021 de la misma etiqueta son botellas
+ * distintas para quien colecciona, y mezclarlas perdería información. Un vino
+ * sin cosecha cargada matchea con otro sin cosecha, no con cualquiera.
+ */
+async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
+  const target = identityKey({ name, winery, line, varietal });
+  if (!target.core) return null;
+
+  const year = vintage ? parseInt(vintage) : null;
+  const candidatos = await Wine.find({ userId }).select("name winery line varietal vintage quantity");
+
+  return (
+    candidatos.find((w) => {
+      const k = identityKey(w);
+      if (k.core !== target.core) return false;
+      if (k.varietal !== target.varietal) return false;
+      if (k.wineryToken !== target.wineryToken) return false;
+      return (w.vintage || null) === year;
+    }) || null
+  );
+}
+
 async function createWine(userId, payload) {
   const {
     name,
@@ -107,6 +139,29 @@ async function createWine(userId, payload) {
     purchasedAt,
   } = payload;
 
+  // ¿Ya lo tenés? Entonces esto es una reposición, no un vino nuevo: se suman
+  // botellas y se conserva TODO el historial (rating, notas, momentos, la fecha
+  // de ingreso a la cava). Vale igual para un vino que se había terminado: la
+  // fila sigue ahí con quantity 0 y vuelve a stock sin perder lo vivido.
+  const yaLoTengo = await findSameWine(userId, { name, winery, line, varietal, vintage });
+  if (yaLoTengo) {
+    const suman = Math.max(1, parseQuantity(quantity, 1));
+    // Las botellas que entran hoy son un LOTE nuevo, con la fecha de hoy: es la
+    // diferencia entre "tengo 8 desde 2019" y "3 de 2019 y 5 de este mes", que
+    // es lo que uno realmente tiene. `createdAt` se respeta a propósito —la
+    // fecha en que el vino entró a tu cava no se mueve nunca— y el lote más
+    // viejo con stock es el que manda para el "en cava hace X".
+    //
+    // Todo en un solo update para que la suma la haga Mongo: cargar el mismo
+    // vino dos veces seguidas desde el teléfono no puede perder botellas.
+    const full = await Wine.findOneAndUpdate(
+      { _id: yaLoTengo._id, userId },
+      [...buildStockStages("restock", { $literal: suman }), { $set: { restockedAt: "$$NOW" } }],
+      { returnDocument: "after", updatePipeline: true }
+    );
+    return { wine: full, merged: true, added: suman };
+  }
+
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
   // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
@@ -134,6 +189,9 @@ async function createWine(userId, payload) {
     rating: rating ? parseInt(rating) : 0,
     tasted: tasted === true,
     favorite: favorite === true,
+    // El lote inicial (estas botellas, con la fecha de alta) lo arma el hook
+    // `pre("validate")` del modelo, que es el que sostiene la invariante
+    // quantity === suma de los `remaining` en todo camino de escritura.
     quantity: parseQuantity(quantity, 1),
     status: toWineStatus({ tasted: tasted === true, quantity: parseQuantity(quantity, 1), status }),
     lastConsumedAt: lastConsumedAt ? new Date(lastConsumedAt) : undefined,
@@ -197,7 +255,9 @@ async function createWine(userId, payload) {
 
   await logChange(user, "create", savedWine._id, null, { name: savedWine.name, winery: savedWine.winery });
 
-  return savedWine;
+  // Misma forma que el camino de reposición, para que el llamador no tenga que
+  // adivinar cuál de los dos ocurrió.
+  return { wine: savedWine, merged: false, added: savedWine.quantity };
 }
 
 async function updateWine(userId, id, payload) {
@@ -241,7 +301,19 @@ async function updateWine(userId, id, payload) {
   if (type !== undefined) wine.type = type;
   if (rating !== undefined) wine.rating = parseInt(rating);
   if (favorite !== undefined) wine.favorite = favorite === true;
-  if (quantity !== undefined) wine.quantity = parseQuantity(quantity, wine.quantity);
+  // Editar la cantidad a mano fija un total, y los lotes se acomodan hacia
+  // donde haga falta: si baja se descuenta FIFO (se vacía primero lo más viejo)
+  // y si sube, la diferencia entra como lote de hoy. Se resuelve acá y no en el
+  // hook del modelo porque acá todavía tenemos la cantidad ANTERIOR, que es la
+  // que le da su lote inicial a un vino cargado antes de que existieran.
+  if (quantity !== undefined) {
+    const nuevaCantidad = parseQuantity(quantity, wine.quantity);
+    wine.lots = reconcileLots(wine.lots, nuevaCantidad, {
+      createdAt: wine.createdAt,
+      currentQuantity: wine.quantity,
+    });
+    wine.quantity = availableFromLots(wine.lots);
+  }
   if (status !== undefined) wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status });
   if (lastConsumedAt !== undefined) wine.lastConsumedAt = lastConsumedAt ? new Date(lastConsumedAt) : null;
   if (consumptionCount !== undefined) wine.consumptionCount = parseQuantity(consumptionCount, wine.consumptionCount || 0);
@@ -255,7 +327,47 @@ async function updateWine(userId, id, payload) {
   if (purchasedAt !== undefined) wine.purchase = { ...wine.purchase, purchasedAt: purchasedAt ? new Date(purchasedAt) : null };
 
   const wasTasted = wine.tasted;
-  if (tasted !== undefined) wine.tasted = tasted === true;
+
+  // Marcar "probado" significa que abriste una botella, así que se descuenta una
+  // del stock. Sin esto, un vino del que tenías una sola botella seguía
+  // figurando "en stock" después de tomártelo. Es simétrico a propósito:
+  // destildar la devuelve, porque el botón es un toggle y un toque por error no
+  // puede costarte una unidad de tu cava.
+  //
+  // El cambio se hace ATÓMICO y CONDICIONADO al valor anterior: el filtro exige
+  // `tasted: !objetivo`, así que si dos peticiones llegan casi juntas —dos
+  // toques rápidos, un reintento de red— la segunda no matchea y no vuelve a
+  // descontar. Sin esto se perdían botellas sin que apareciera ningún error.
+  //
+  // Sólo se toca el stock si el usuario NO está editando la cantidad a mano en
+  // la misma llamada, para no pisar lo que acaba de escribir.
+  const quiereCambiarTasted = tasted !== undefined && (tasted === true) !== wasTasted;
+  if (quiereCambiarTasted && quantity === undefined) {
+    const objetivo = tasted === true;
+    // Abrir una botella descuenta del lote más viejo con stock (FIFO).
+    // Destildar la devuelve al lote del que salió —el último que se abrió— en
+    // vez de crear uno nuevo: es un deshacer, no una compra, y un lote de hoy
+    // haría figurar como recién llegado a un vino que tenés desde hace años.
+    const res = await Wine.updateOne(
+      { _id: wine._id, userId, tasted: !objetivo },
+      [
+        { $set: { tasted: objetivo } },
+        ...buildStockStages(objetivo ? "consume" : "return", { $literal: 1 }),
+      ],
+      { updatePipeline: true }
+    );
+    if (res.matchedCount > 0) {
+      // Refrescamos el documento en memoria para que el resto de la función
+      // trabaje sobre los valores que quedaron realmente en la base.
+      const fresco = await Wine.findById(wine._id).select("tasted quantity lots");
+      wine.tasted = fresco.tasted;
+      wine.quantity = fresco.quantity;
+      wine.lots = fresco.lots;
+    }
+  } else if (tasted !== undefined) {
+    wine.tasted = tasted === true;
+  }
+
   wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status: wine.status });
 
   wine.updatedAt = new Date();
@@ -276,17 +388,54 @@ async function updateWine(userId, id, payload) {
   return updatedWine;
 }
 
+/**
+ * Ajusta el stock de forma ATÓMICA.
+ *
+ * Antes era leer, sumar en Node y guardar. Dos toques rápidos en "+" salían
+ * casi juntos, los dos leían quantity=1 y los dos escribían 2: una de las dos
+ * botellas se perdía sin ningún error. Es el patrón clásico de lost update, y
+ * en un teléfono —donde tocar dos veces seguido es lo normal— pasa de verdad.
+ *
+ * Ahora la suma la hace Mongo dentro del propio documento con un pipeline de
+ * actualización, así que las dos operaciones se serializan y ninguna pisa a la
+ * otra. Los lotes se mueven en ESE MISMO pipeline —y `quantity` sale de su
+ * suma— para que nunca puedan quedar dos escrituras compitiendo por el stock,
+ * ni `status` desincronizarse de la cantidad ya resuelta.
+ *
+ * Qué significa cada movimiento:
+ *   delta > 0    → repusiste: lote nuevo, con fecha de hoy.
+ *   delta < 0    → abriste botellas: FIFO, del lote más viejo que tenga stock.
+ *   quantity = n → fijás el total: los lotes se acomodan hacia donde haga falta.
+ */
 async function adjustStock(userId, id, { delta, quantity }) {
-  const wine = await Wine.findOne({ _id: id, userId });
-  if (!wine) return null;
+  // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
+  // vino cargado antes de que existieran y recalcula status, que es justo lo
+  // que hacía la versión anterior ante una entrada inválida.
+  let stages = buildStockStages("consume", { $literal: 0 });
 
-  const nextQuantity = quantity !== undefined ? parseQuantity(quantity, wine.quantity) : Math.max(0, Number(wine.quantity || 0) + Number(delta || 0));
-  wine.quantity = nextQuantity;
-  wine.status = toWineStatus({ tasted: wine.tasted, quantity: nextQuantity, status: wine.status });
-  wine.updatedAt = new Date();
+  if (quantity !== undefined) {
+    // Fijar un valor exacto es idempotente: no hay problema de concurrencia.
+    // Si lo que llega no es un número válido NO se toca el stock: poner 0 ante
+    // un dato inválido sería vaciar la cava por un error de tipeo.
+    const parsed = parseInt(quantity, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      stages = buildStockStages("set", { $literal: parsed });
+    }
+  } else {
+    const movimiento = Number.parseInt(delta, 10);
+    if (Number.isFinite(movimiento) && movimiento !== 0) {
+      stages = buildStockStages(movimiento > 0 ? "restock" : "consume", {
+        $literal: Math.abs(movimiento),
+      });
+    }
+  }
 
-  const updatedWine = await wine.save();
-  return updatedWine;
+  const updated = await Wine.findOneAndUpdate({ _id: id, userId }, stages, {
+    returnDocument: "after",
+    updatePipeline: true,
+  });
+
+  return updated;
 }
 
 async function getMoments(userId, id) {
@@ -504,8 +653,28 @@ function scoreWine(wine, context) {
   return { score, reasons };
 }
 
+/**
+ * ¿Este vino puede ser una respuesta para esta comida?
+ *
+ * El puntaje solo no alcanzaba: un tinto de 5★ suma 30 puntos por rating y 10
+ * por favorito, así que le ganaba a cualquier regla de maridaje y aparecía
+ * recomendado para pescado. Un Malbec no es una respuesta a "¿qué tomo con
+ * pescado?" por mucho que te guste, y ofrecerlo hace quedar mal al Sommelier.
+ *
+ * Es un veto, no una penalización: si la comida define tipos, el vino tiene que
+ * ser de alguno de ellos. Los vinos sin tipo conocido pasan (no sabemos que
+ * estén mal), y "sin comida" no filtra nada.
+ */
+function fitsFood(wine, context) {
+  const pairing = context.food ? FOOD_PAIRINGS[context.food] : null;
+  if (!pairing || pairing.types.length === 0) return true;
+  if (!wine.type || wine.type === "unknown") return true;
+  return pairing.types.includes(wine.type);
+}
+
 async function suggestWines(userId, context = {}) {
-  const wines = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+  const all = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+  const wines = all.filter((w) => fitsFood(w, context));
 
   const scored = wines
     .map((wine) => {

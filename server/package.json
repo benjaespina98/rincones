@@ -9,6 +9,7 @@
     "test": "node --test",
     "seed:admin": "node scripts/seedAdmin.js",
     "role": "node scripts/setRole.js",
+    "migrate:lots": "node scripts/migrateLots.js",
     "mail:test": "node scripts/testEmail.js"
   },
   "keywords": [],

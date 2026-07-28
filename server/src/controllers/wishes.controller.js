@@ -1,11 +1,12 @@
 const wishesService = require("../services/wishes.service");
+const { fail } = require("../utils/apiError");
 
 const list = async (req, res) => {
   try {
     const wishes = await wishesService.listWishes(req.user.id);
     return res.json({ success: true, data: wishes, count: wishes.length });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -18,7 +19,7 @@ const create = async (req, res) => {
     const wish = await wishesService.createWish(req.user.id, req.body);
     return res.status(201).json({ success: true, data: wish });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -28,7 +29,7 @@ const update = async (req, res) => {
     if (!wish) return res.status(404).json({ success: false, error: "Vino no encontrado en la lista" });
     return res.json({ success: true, data: wish });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -38,7 +39,7 @@ const remove = async (req, res) => {
     if (!ok) return res.status(404).json({ success: false, error: "Vino no encontrado en la lista" });
     return res.json({ success: true, message: "Eliminado de la lista de deseos" });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 
@@ -48,7 +49,7 @@ const convert = async (req, res) => {
     if (!wine) return res.status(404).json({ success: false, error: "Vino no encontrado en la lista" });
     return res.status(201).json({ success: true, data: wine });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return fail(res, error, req);
   }
 };
 

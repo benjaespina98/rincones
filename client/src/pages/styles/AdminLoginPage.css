@@ -21,7 +21,7 @@
 
 .admin-kicker {
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -49,7 +49,7 @@
 
 .admin-login-form label {
   color: #e4dcff;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -85,7 +85,7 @@
 .admin-submit {
   margin-top: 0.5rem;
   min-height: 47px;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
 }
 
 .admin-shell {
@@ -183,7 +183,7 @@
 
 .admin-metric-card span {
   color: #b9aadf;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .admin-metric-card strong {
@@ -200,7 +200,7 @@
 .admin-wide-card h2,
 .admin-section-head h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--text-xl);
 }
 
 .admin-section-head {
@@ -222,7 +222,7 @@
 .admin-chip {
   border-radius: 999px;
   padding: 0.35rem 0.62rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   border: 1px solid rgba(177, 151, 255, 0.35);
   background: rgba(136, 101, 247, 0.2);
   color: #ece2ff;
@@ -238,7 +238,7 @@
 
 .admin-view-card h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-lg);
 }
 
 .admin-view-card p {
@@ -278,7 +278,7 @@
 .admin-log-item__meta {
   display: block;
   color: #8f80b5;
-  font-size: 0.84rem;
+  font-size: var(--text-base);
   margin-top: 0.22rem;
 }
 
@@ -292,7 +292,7 @@
   display: inline-flex;
   border-radius: 999px;
   padding: 0.24rem 0.62rem;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

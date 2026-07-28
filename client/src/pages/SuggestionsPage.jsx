@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecommendations } from "../hooks/useRecommendations";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { searchWines } from "../services/wineSearchApi";
+import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -41,10 +42,12 @@ export default function SuggestionsPage() {
   // Sin contexto no mostramos nada de la bodega: el Sommelier sugiere solo
   // cuando elegís con qué vas a comer. Si entre las sugerencias hay vinos que
   // ya tenés, aparecen ahí (eso está bien), pero no se listan por defecto.
-  const cellarWines = hasContext ? suggestions : [];
+  // Memoizado porque alimenta el efecto que trae "Para descubrir": sin esto,
+  // cada render creaba un array nuevo y la búsqueda se relanzaba en loop.
+  const cellarWines = useMemo(() => (hasContext ? suggestions : []), [hasContext, suggestions]);
 
   // Buscamos en el catálogo los varietales que pegan con el contexto elegido.
-  const loadDiscover = useCallback(async (ctx) => {
+  const loadDiscover = useCallback(async (ctx, yaLosTengo = new Set()) => {
     const varietals = [...(FOOD_PAIRINGS[ctx.food]?.varietals || [])];
     const queries = [...new Set(varietals)].slice(0, 3);
     if (queries.length === 0) {
@@ -64,6 +67,9 @@ export default function SuggestionsPage() {
         for (const batch of batches) {
           const wine = batch[i];
           if (!wine || seen.has(wine.id)) continue;
+          // "Para descubrir" es justamente lo que NO tenés: mostrar acá un vino
+          // que ya está arriba en "De tu bodega" es decir dos veces lo mismo.
+          if (yaLosTengo.has(wineKey(wine))) continue;
           seen.add(wine.id);
           merged.push(wine);
         }
@@ -79,8 +85,8 @@ export default function SuggestionsPage() {
       setDiscover([]);
       return;
     }
-    loadDiscover(context);
-  }, [context, hasContext, loadDiscover]);
+    loadDiscover(context, new Set(cellarWines.map(wineKey)));
+  }, [context, hasContext, loadDiscover, cellarWines]);
 
   const applyContext = (patch) => {
     const next = { ...context, ...patch };
