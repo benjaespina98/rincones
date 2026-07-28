@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 /**
  * Monograma de Rincones: la R es una copa.
  *
@@ -8,6 +10,15 @@
  * Único lugar donde se dibuja la marca: header, splash y favicon salen de acá.
  */
 export default function Logo({ size = 40, animated = false, className = "" }) {
+  // El gradiente necesita un id ÚNICO por instancia. Con uno fijo, dos logos en
+  // la misma pantalla (la barra inferior y el de la home, por ejemplo) declaran
+  // el mismo id y todos los `url(#…)` resuelven contra el primero del
+  // documento; si ese vive en un contenedor oculto —la barra lo está en
+  // mobile—, el vino de la copa no se pinta y la R queda vacía.
+  //
+  // Los ":" de useId no son válidos dentro de una referencia url(#…).
+  const gradId = `rincones-wine-${useId().replace(/:/g, "")}`;
+
   return (
     <svg
       className={`logo ${animated ? "logo--animated" : ""} ${className}`}
@@ -18,7 +29,7 @@ export default function Logo({ size = 40, animated = false, className = "" }) {
       aria-label="Rincones"
     >
       <defs>
-        <linearGradient id="rincones-wine" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#b4223d" />
           <stop offset="1" stopColor="#6d0f20" />
         </linearGradient>
@@ -28,7 +39,7 @@ export default function Logo({ size = 40, animated = false, className = "" }) {
       <path
         className="logo__wine"
         d="M32 22 h23 a17 17 0 0 1 0 34 h-23 Z"
-        fill="url(#rincones-wine)"
+        fill={`url(#${gradId})`}
       />
 
       <g
