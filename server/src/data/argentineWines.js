@@ -104,7 +104,11 @@ const RAW = [
   ["Familia Zuccardi", "Zuccardi Q", "Cabernet Sauvignon", "Valle de Uco, Mendoza", "red"],
   ["Familia Zuccardi", "Zuccardi Aluvional", "Malbec", "Gualtallary, Mendoza", "red"],
   ["Familia Zuccardi", "Zuccardi Concreto", "Malbec", "Valle de Uco, Mendoza", "red"],
-  ["Familia Zuccardi", "Zuccardi Poligonos", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Tito Zuccardi", "Blend", "Paraje Altamira, Mendoza", "red"],
+  ["Familia Zuccardi", "José Zuccardi", "Malbec", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Emma Zuccardi", "Bonarda", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Zuccardi Q", "Cabernet Franc", "Valle de Uco, Mendoza", "red"],
+  ["Familia Zuccardi", "Zuccardi Polígonos", "Malbec", "Valle de Uco, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia", "Malbec", "Maipú, Mendoza", "red"],
   ["Familia Zuccardi", "Santa Julia", "Torrontés", "Maipú, Mendoza", "white"],
 
