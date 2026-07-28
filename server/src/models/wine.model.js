@@ -58,6 +58,17 @@ const wineSchema = new mongoose.Schema(
     lastConsumedAt: {
       type: Date,
     },
+    // Última vez que sumaste botellas de este vino. `createdAt` sigue siendo la
+    // fecha de ingreso a la cava y no se mueve nunca; esto cuenta la reposición
+    // más reciente.
+    //
+    // Es el primer paso hacia un modelo de lotes sin comprometerse a él: el día
+    // que haga falta guardar cada compra por separado (precio, tienda y fecha
+    // de CADA lote), se agrega un array `lots` y estos campos pasan a ser el
+    // resumen derivado. Nada de lo que hay hoy tiene que rehacerse.
+    restockedAt: {
+      type: Date,
+    },
     consumptionCount: {
       type: Number,
       default: 0,

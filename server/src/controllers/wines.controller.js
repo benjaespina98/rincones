@@ -46,8 +46,10 @@ const create = async (req, res) => {
       return res.status(400).json({ success: false, error: "El nombre del vino es obligatorio" });
     }
 
-    const savedWine = await winesService.createWine(req.user.id, req.body);
-    return res.status(201).json({ success: true, data: savedWine });
+    const { wine, merged, added } = await winesService.createWine(req.user.id, req.body);
+    // 200 y no 201 cuando fue una reposición: no se creó un recurso nuevo. El
+    // cliente lo usa para decir "sumamos 1, ahora tenés 3" en vez de "agregado".
+    return res.status(merged ? 200 : 201).json({ success: true, data: wine, merged, added });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

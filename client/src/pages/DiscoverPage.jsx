@@ -270,7 +270,7 @@ export default function DiscoverPage() {
         <header className="explore__head">
           <h2 className="explore__title">Aprendé y explorá</h2>
           <p className="explore__lead">
-            Una selección chica y cuidada. Todo lleva a la fuente original.
+            Dónde seguir descubriendo: catas, cursos y gente que sabe.
           </p>
         </header>
 

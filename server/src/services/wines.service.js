@@ -9,6 +9,7 @@ const imageStorage = require("./imageStorage.service");
 const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
+const { identityKey } = require("../data/wineIdentity");
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -79,6 +80,36 @@ async function getWineById(userId, id) {
   return Wine.findOne({ _id: id, userId });
 }
 
+/**
+ * Busca en la bodega del usuario un vino que sea ESTE mismo vino.
+ *
+ * Una cava se administra durante años: volvés a comprar lo que te gustó, y a
+ * veces lo cargás escaneando otra vez la etiqueta. Sin esto, cada compra creaba
+ * una fila nueva y a los dos años la bodega tenía el mismo Malbec cinco veces,
+ * con el rating y las notas repartidas entre las copias.
+ *
+ * La cosecha SÍ distingue: un 2019 y un 2021 de la misma etiqueta son botellas
+ * distintas para quien colecciona, y mezclarlas perdería información. Un vino
+ * sin cosecha cargada matchea con otro sin cosecha, no con cualquiera.
+ */
+async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
+  const target = identityKey({ name, winery, line, varietal });
+  if (!target.core) return null;
+
+  const year = vintage ? parseInt(vintage) : null;
+  const candidatos = await Wine.find({ userId }).select("name winery line varietal vintage quantity");
+
+  return (
+    candidatos.find((w) => {
+      const k = identityKey(w);
+      if (k.core !== target.core) return false;
+      if (k.varietal !== target.varietal) return false;
+      if (k.wineryToken !== target.wineryToken) return false;
+      return (w.vintage || null) === year;
+    }) || null
+  );
+}
+
 async function createWine(userId, payload) {
   const {
     name,
@@ -106,6 +137,28 @@ async function createWine(userId, payload) {
     store,
     purchasedAt,
   } = payload;
+
+  // ¿Ya lo tenés? Entonces esto es una reposición, no un vino nuevo: se suman
+  // botellas y se conserva TODO el historial (rating, notas, momentos, la fecha
+  // de ingreso a la cava). Vale igual para un vino que se había terminado: la
+  // fila sigue ahí con quantity 0 y vuelve a stock sin perder lo vivido.
+  const yaLoTengo = await findSameWine(userId, { name, winery, line, varietal, vintage });
+  if (yaLoTengo) {
+    const suman = parseQuantity(quantity, 1);
+    yaLoTengo.quantity = (Number(yaLoTengo.quantity) || 0) + Math.max(1, suman);
+    yaLoTengo.status = toWineStatus({
+      tasted: yaLoTengo.tasted,
+      quantity: yaLoTengo.quantity,
+      status: yaLoTengo.status,
+    });
+    // Marca de la última reposición. `createdAt` se respeta a propósito: es la
+    // fecha en que el vino entró a tu cava y no debería moverse nunca.
+    yaLoTengo.restockedAt = new Date();
+    yaLoTengo.updatedAt = new Date();
+    await yaLoTengo.save();
+    const full = await Wine.findById(yaLoTengo._id);
+    return { wine: full, merged: true, added: Math.max(1, suman) };
+  }
 
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
@@ -197,7 +250,9 @@ async function createWine(userId, payload) {
 
   await logChange(user, "create", savedWine._id, null, { name: savedWine.name, winery: savedWine.winery });
 
-  return savedWine;
+  // Misma forma que el camino de reposición, para que el llamador no tenga que
+  // adivinar cuál de los dos ocurrió.
+  return { wine: savedWine, merged: false, added: savedWine.quantity };
 }
 
 async function updateWine(userId, id, payload) {
@@ -256,6 +311,20 @@ async function updateWine(userId, id, payload) {
 
   const wasTasted = wine.tasted;
   if (tasted !== undefined) wine.tasted = tasted === true;
+
+  // Marcar "probado" significa que abriste una botella, así que se descuenta
+  // una del stock. Sin esto, un vino del que tenías una sola botella seguía
+  // figurando "en stock" después de tomártelo.
+  //
+  // Es simétrico a propósito: destildar devuelve la botella. El botón es un
+  // toggle y un toque por error no puede costarte una unidad de tu bodega.
+  // Sólo se toca el stock cuando el usuario NO lo está editando a mano en la
+  // misma llamada, para no pisar lo que acaba de escribir.
+  if (wasTasted !== wine.tasted && quantity === undefined) {
+    const actual = Number(wine.quantity) || 0;
+    wine.quantity = wine.tasted ? Math.max(0, actual - 1) : actual + 1;
+  }
+
   wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status: wine.status });
 
   wine.updatedAt = new Date();
@@ -504,8 +573,28 @@ function scoreWine(wine, context) {
   return { score, reasons };
 }
 
+/**
+ * ¿Este vino puede ser una respuesta para esta comida?
+ *
+ * El puntaje solo no alcanzaba: un tinto de 5★ suma 30 puntos por rating y 10
+ * por favorito, así que le ganaba a cualquier regla de maridaje y aparecía
+ * recomendado para pescado. Un Malbec no es una respuesta a "¿qué tomo con
+ * pescado?" por mucho que te guste, y ofrecerlo hace quedar mal al Sommelier.
+ *
+ * Es un veto, no una penalización: si la comida define tipos, el vino tiene que
+ * ser de alguno de ellos. Los vinos sin tipo conocido pasan (no sabemos que
+ * estén mal), y "sin comida" no filtra nada.
+ */
+function fitsFood(wine, context) {
+  const pairing = context.food ? FOOD_PAIRINGS[context.food] : null;
+  if (!pairing || pairing.types.length === 0) return true;
+  if (!wine.type || wine.type === "unknown") return true;
+  return pairing.types.includes(wine.type);
+}
+
 async function suggestWines(userId, context = {}) {
-  const wines = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+  const all = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
+  const wines = all.filter((w) => fitsFood(w, context));
 
   const scored = wines
     .map((wine) => {
