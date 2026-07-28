@@ -19,6 +19,12 @@ const PUBLICAS = new Set([
   "post /register",
   "post /forgot-password",
   "post /reset-password",
+  // El refresh se llama JUSTO cuando el token de acceso ya venció: exigir uno
+  // válido lo volvería inútil. La credencial es la cookie httpOnly del refresh.
+  "post /refresh",
+  // Cerrar sesión tiene que funcionar aunque el token ya haya expirado; si no,
+  // el refresh quedaría vivo en la base sin forma de revocarlo.
+  "post /logout",
 ]);
 
 const routesDir = path.join(__dirname, "..", "src", "routes");

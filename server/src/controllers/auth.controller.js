@@ -4,6 +4,9 @@ const crypto = require("crypto");
 const User = require("../models/user.model");
 const mailService = require("../services/mail.service");
 const { validateBirthDate } = require("../utils/age");
+const sessions = require("../services/session.service");
+const { setAuthCookie, setRefreshCookie, clearAuthCookies, startSession } = sessions;
+const { validatePasswordStrength } = require("../utils/password");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -15,62 +18,6 @@ const getJwtSecret = () => {
   }
 
   return secret;
-};
-
-const getAuthCookieOptions = () => {
-  const isProduction = process.env.NODE_ENV === "production";
-  const configuredSameSite = String(process.env.COOKIE_SAMESITE || "").trim().toLowerCase();
-  const sameSite = ["strict", "lax", "none"].includes(configuredSameSite)
-    ? configuredSameSite
-    : isProduction
-      ? "none"
-      : "lax";
-
-  const cookieOptions = {
-    httpOnly: true,
-    secure: isProduction || sameSite === "none",
-    sameSite,
-    path: "/",
-  };
-
-  const cookieDomain = String(process.env.COOKIE_DOMAIN || "").trim();
-  if (cookieDomain) {
-    cookieOptions.domain = cookieDomain;
-  }
-
-  return cookieOptions;
-};
-
-// Validar fortaleza de contraseña
-const validatePasswordStrength = (password) => {
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /\d/.test(password);
-
-  if (password.length < minLength) {
-    return {
-      valid: false,
-      message: `La contraseña debe tener mínimo ${minLength} caracteres`,
-    };
-  }
-
-  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-    return {
-      valid: false,
-      message: "La contraseña debe contener mayúsculas, minúsculas y números",
-    };
-  }
-
-  return { valid: true };
-};
-
-// Guardar token en httpOnly cookie
-const setAuthCookie = (res, token) => {
-  res.cookie("authToken", token, {
-    ...getAuthCookieOptions(),
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-  });
 };
 
 const buildAuthResponse = (user, token) => ({
@@ -108,18 +55,7 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign(
-      {
-        sub: String(user._id),
-        role: user.role,
-        email: user.email,
-      },
-      getJwtSecret(),
-      { expiresIn: "7d" }
-    );
-
-    // Guardar token en httpOnly cookie
-    setAuthCookie(res, token);
+    const token = await startSession(res, user, req);
 
     return res.status(200).json(buildAuthResponse(user, token));
   } catch (error) {
@@ -209,18 +145,7 @@ const register = async (req, res, next) => {
     });
 
     // Generar token
-    const token = jwt.sign(
-      {
-        sub: String(user._id),
-        role: user.role,
-        email: user.email,
-      },
-      getJwtSecret(),
-      { expiresIn: "7d" }
-    );
-
-    // Guardar token en httpOnly cookie
-    setAuthCookie(res, token);
+    const token = await startSession(res, user, req);
 
     return res.status(201).json(buildAuthResponse(user, token));
   } catch (error) {
@@ -228,10 +153,50 @@ const register = async (req, res, next) => {
   }
 };
 
+/**
+ * Canjea el refresh por un token de acceso nuevo.
+ *
+ * Es público a propósito: se llama JUSTAMENTE cuando el token de acceso ya
+ * venció, así que exigir uno válido lo volvería inútil. La credencial es la
+ * cookie httpOnly, que el navegador manda sola y ningún script puede leer.
+ */
+const refresh = async (req, res, next) => {
+  try {
+    const actual = req.cookies?.refreshToken;
+    const rotado = await sessions.rotateRefreshToken(actual, req.get("user-agent"));
+
+    if (!rotado) {
+      // Sesión desconocida, vencida o ya usada (rotación). Limpiamos las cookies
+      // para que el cliente no siga reintentando con algo que no sirve.
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Sesión expirada" });
+    }
+
+    const user = await User.findById(rotado.userId);
+    if (!user) {
+      // La cuenta se borró con la sesión abierta.
+      await sessions.revokeAllForUser(rotado.userId);
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Sesión expirada" });
+    }
+
+    const token = sessions.signAccessToken(user);
+    setAuthCookie(res, token);
+    setRefreshCookie(res, rotado.token, rotado.expiresAt);
+
+    return res.status(200).json(buildAuthResponse(user, token));
+  } catch (error) {
+    return next(error);
+  }
+};
+
 const logout = async (req, res, next) => {
   try {
-    // Limpiar cookie
-    res.clearCookie("authToken", getAuthCookieOptions());
+    // Cerrar sesión ahora la termina DE VERDAD: borra el refresh de la base, no
+    // sólo la cookie de este navegador. Antes un token copiado seguía sirviendo
+    // hasta que expiraba, una semana después.
+    await sessions.revokeRefreshToken(req.cookies?.refreshToken);
+    clearAuthCookies(res);
 
     return res.status(200).json({
       message: "Sesión cerrada",
@@ -328,14 +293,12 @@ const resetPassword = async (req, res, next) => {
     user.passwordResetExpires = undefined;
     await user.save();
 
-    // Generar token JWT y logear al usuario
-    const jwtToken = jwt.sign(
-      { sub: String(user._id), role: user.role, email: user.email },
-      getJwtSecret(),
-      { expiresIn: "7d" }
-    );
+    // Restablecer la contraseña cierra TODAS las sesiones abiertas. Si alguien
+    // más tenía acceso, este es justo el momento de echarlo: si no, seguiría
+    // adentro con la contraseña vieja ya cambiada.
+    await sessions.revokeAllForUser(user._id);
 
-    setAuthCookie(res, jwtToken);
+    const jwtToken = await startSession(res, user, req);
 
     return res.status(200).json(buildAuthResponse(user, jwtToken));
   } catch (error) {
@@ -346,6 +309,7 @@ const resetPassword = async (req, res, next) => {
 module.exports = {
   login,
   register,
+  refresh,
   me,
   logout,
   forgotPassword,

@@ -5,6 +5,9 @@ const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const { calculateAge, validateBirthDate } = require("../utils/age");
 const { fail } = require("../utils/apiError");
+const { validatePasswordStrength } = require("../utils/password");
+const sessions = require("../services/session.service");
+
 
 // GET /api/users/profile - Obtener perfil del usuario actual
 router.get("/profile", authenticate, async (req, res) => {
@@ -130,27 +133,43 @@ router.put("/password", authenticate, async (req, res) => {
         .json({ success: false, error: "Contraseña actual y nueva requeridas" });
     }
 
-    const user = await User.findById(req.user.id);
+    // `.select("+passwordHash")` es imprescindible: el campo tiene select:false
+    // en el schema, así que sin esto llegaba `undefined` a bcrypt.compare y el
+    // endpoint tiraba 500 SIEMPRE. Cambiar la contraseña desde el perfil nunca
+    // había funcionado — el 500 genérico tapaba la causa.
+    const user = await User.findById(req.user.id).select("+passwordHash");
 
     if (!user) {
       return res.status(404).json({ success: false, error: "Usuario no encontrado" });
     }
 
-    // Verificar contraseña actual
     const isPasswordValid = await user.comparePassword(currentPassword);
 
     if (!isPasswordValid) {
       return res.status(401).json({ success: false, error: "Contraseña actual incorrecta" });
     }
 
-    // Actualizar contraseña
+    // Este endpoint NO validaba la fortaleza: se podía pasar de una contraseña
+    // fuerte a "a" desde el perfil, aunque el registro sí lo impedía.
+    const fuerza = validatePasswordStrength(newPassword);
+    if (!fuerza.valid) {
+      return res.status(400).json({ success: false, error: fuerza.message });
+    }
+
     user.passwordHash = await user.hashPassword(newPassword);
     user.updatedAt = new Date();
     await user.save();
 
+    // Cambiar la contraseña cierra las sesiones abiertas en OTROS dispositivos.
+    // Es la razón habitual por la que uno la cambia —sospecha de que alguien
+    // más entró—, y dejarlas vivas haría que el cambio no sirviera de nada.
+    // La sesión actual se renueva para no echar a quien acaba de cambiarla.
+    await sessions.revokeAllForUser(user._id);
+    await sessions.startSession(res, user, req);
+
     res.json({
       success: true,
-      message: "Contraseña actualizada",
+      message: "Contraseña actualizada. Se cerraron las sesiones en otros dispositivos.",
     });
   } catch (error) {
     fail(res, error, req);

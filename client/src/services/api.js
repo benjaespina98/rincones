@@ -58,13 +58,57 @@ api.interceptors.request.use((config) => {
 // de auth o consultando /auth/me, que se usa para hidratar la sesión al iniciar).
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/admin"];
 
+/**
+ * Renovación de sesión.
+ *
+ * El token de acceso dura 15 minutos, así que un 401 casi siempre significa
+ * "venció", no "no tenés permiso". En vez de mandar al login —que sería sacar a
+ * la gente de la app cada cuarto de hora— se canjea el refresh y se reintenta la
+ * llamada original. El usuario no se entera de nada.
+ *
+ * Una sola renovación a la vez: si vencen cinco llamadas juntas, las cinco
+ * esperan la MISMA promesa. Sin esto se dispararían cinco refresh en paralelo y,
+ * como el servidor rota el token en cada uso, cuatro llegarían con uno ya
+ * consumido y cerrarían la sesión.
+ */
+let renovacionEnCurso = null;
+
+const renovarSesion = async () => {
+  if (!renovacionEnCurso) {
+    renovacionEnCurso = api
+      .post("/auth/refresh")
+      .then((res) => {
+        const token = res?.data?.data?.token;
+        if (token) setAuthToken(token);
+        return token;
+      })
+      .finally(() => {
+        renovacionEnCurso = null;
+      });
+  }
+  return renovacionEnCurso;
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
-    const url = error?.config?.url || "";
+    const original = error?.config;
+    const url = original?.url || "";
     const isMeCheck = url.includes("/auth/me");
     const isAuthCall = url.includes("/auth/");
+
+    // `_reintentado` evita el bucle: si la llamada ya se rehizo con un token
+    // nuevo y vuelve a dar 401, el problema no es la expiración.
+    if (status === 401 && !isAuthCall && original && !original._reintentado) {
+      original._reintentado = true;
+      try {
+        const token = await renovarSesion();
+        if (token) return api(original);
+      } catch {
+        // El refresh también venció o fue revocado: abajo se cierra la sesión.
+      }
+    }
 
     if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
       setAuthToken(null);
