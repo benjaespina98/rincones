@@ -18,11 +18,10 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import "../styles/pages/DiscoverPage.css";
 
-// Atajos rápidos para arrancar la búsqueda sin escribir.
-const QUICK_VARIETALS = [
-  "Malbec", "Cabernet Sauvignon", "Cabernet Franc", "Pinot Noir",
-  "Bonarda", "Syrah", "Torrontés", "Chardonnay", "Sauvignon Blanc",
-];
+// Atajos rápidos para arrancar la búsqueda sin escribir. Son cuatro: nueve
+// ocupaban tres filas y empujaban el vino del día fuera de la pantalla, que es
+// lo que la home tiene para mostrar. Con estos entra sin scrollear.
+const QUICK_VARIETALS = ["Malbec", "Cabernet Franc", "Sauvignon Blanc", "Pinot Noir"];
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
