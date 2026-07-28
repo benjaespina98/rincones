@@ -394,158 +394,9 @@
 
 /* Empty profile state */
 /* Wine Insights (Spotify-style) */
-.wine-insights {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.insights-title {
-  margin: 0;
-  font-family: var(--font-family-serif);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #f6f3ff;
-}
-
-.insight-card {
-  background: var(--elevated);
-  border: 1px solid rgba(166, 138, 248, 0.2);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.insight-header {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--accent-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
 /* Type breakdown */
-.type-breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 10px;
-}
-
-.type-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: rgba(137, 102, 247, 0.1);
-  border-radius: 10px;
-  border: 1px solid rgba(178, 150, 255, 0.2);
-  align-items: center;
-}
-
-.type-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #d8cdff;
-  text-transform: capitalize;
-}
-
-.type-count {
-  font-family: var(--font-family-serif);
-  font-size: 22px;
-  font-weight: 700;
-  color: #a296f8;
-  line-height: 1;
-}
-
 /* Top list (varietals, regions) */
-.top-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.top-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: rgba(51, 41, 99, 0.5);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(178, 150, 255, 0.15);
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-}
-
-.top-item:hover {
-  border-color: var(--line-accent);
-  background: rgba(66, 52, 122, 0.55);
-}
-
-.top-rank {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
-}
-
-.top-name {
-  flex: 1;
-  font-size: 14px;
-  color: #f4efff;
-  font-weight: 500;
-}
-
-.top-value {
-  font-size: 12px;
-  font-weight: 700;
-  color: #b7abd8;
-  background: rgba(137, 102, 247, 0.15);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
 /* Rating display */
-.rating-display {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 0;
-}
-
-.rating-number {
-  font-family: var(--font-family-serif);
-  font-size: 38px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #a296f8;
-  line-height: 1;
-}
-
-.rating-stars {
-  display: flex;
-  gap: 4px;
-  font-size: 18px;
-}
-
-.rating-stars .star {
-  opacity: 0.3;
-  transition: opacity 200ms ease;
-}
-
-.rating-stars .star.filled {
-  opacity: 1;
-}
-
 /* Tablet */
 @media (min-width: 768px) {
   .profile-page {
@@ -619,6 +470,89 @@
 /* Los logros y los tipos de vino se veían clickeables (tienen `transition`)
    pero no reaccionaban a nada. Son informativos: alcanza con un realce suave. */
 .ach__item:hover,
-.type-item:hover {
-  border-color: var(--line-strong);
+
+/* ── Insights ────────────────────────────────────────────────────────────────
+   Un solo bloque por idea, en vez de una tarjeta por dato. Antes eran siete
+   tarjetas del mismo peso visual y una repetía el rating promedio que ya estaba
+   en la fila de estadísticas de arriba. */
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insight {
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.insight__title {
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Uvas y regiones lado a lado: son la misma pregunta ("qué elegís") y separadas
+   ocupaban una tarjeta entera cada una. */
+.insight__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 359px) {
+  .insight__cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spend__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spend__amount {
+  font-family: var(--font-family-serif);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.spend__sub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.spend__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.spend__row-label {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.spend__row-value {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }

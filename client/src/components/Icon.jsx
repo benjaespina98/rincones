@@ -106,6 +106,33 @@ const PATHS = {
       <circle cx="12" cy="13" r="3.2" />
     </>
   ),
+  tag: (
+    <>
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" />
+      <circle cx="7.5" cy="7.5" r="1.4" />
+    </>
+  ),
+  store: (
+    <>
+      <path d="M3.5 9h17l-1.2-4.2a1.5 1.5 0 0 0-1.4-1.1H6.1a1.5 1.5 0 0 0-1.4 1.1L3.5 9Z" />
+      <path d="M5 9v10.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+      <path d="M10 20.5V14h4v6.5" />
+    </>
+  ),
+  utensils: (
+    <>
+      <path d="M6 3v7a2 2 0 0 0 4 0V3" />
+      <path d="M8 10v11" />
+      <path d="M17.5 3c-1.7 1.2-2.5 3-2.5 5.2 0 1.6.7 2.7 2 3.3V21" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.3a3.2 3.2 0 0 1 0 5.4M17.5 20a5.5 5.5 0 0 0-2.2-4.4" />
+    </>
+  ),
   grid: (
     <>
       <rect x="3" y="3" width="7.5" height="7.5" rx="1.6" />
@@ -187,6 +214,29 @@ export default function Icon({ name, filled = false, size = 20, className = "", 
   }
 
   const content = name === "heart" ? <path d={HEART_OUTLINE} /> : PATHS[name];
+
+  // Algunos íconos (copa, botella, destello) existen SÓLO como forma sólida:
+  // no tienen versión de contorno porque no tendría sentido dibujarlos así.
+  // Sin este fallback, pedirlos sin `filled` devolvía null y NO SE DIBUJABA NADA
+  // —el estado vacío del Sommelier mostraba un círculo hueco, y la barra de
+  // navegación dependía de que cada llamada se acordara de pasar `filled`.
+  if (!content && FILLED[name]) {
+    return (
+      <svg
+        className={`icon ${className}`}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="none"
+        aria-hidden="true"
+        {...rest}
+      >
+        <path d={FILLED[name]} />
+      </svg>
+    );
+  }
+
   if (!content) return null;
 
   return (

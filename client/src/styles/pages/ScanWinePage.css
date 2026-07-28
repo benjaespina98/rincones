@@ -269,8 +269,12 @@
   flex: 1;
 }
 
+/* Alto reservado para dos líneas siempre. Con nombres de una sola línea la
+   tarjeta se acortaba y, en la grilla de dos columnas, el botón "Quiero probar"
+   quedaba a distinta altura que el de al lado. */
 .wine-result-card__name {
   margin: 0;
+  min-height: calc(2 * 1.25 * 0.92rem);
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
@@ -295,6 +299,16 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
+  min-width: 0;
+}
+
+/* "Luján de Cuyo, Mendoza" se salía de la pastilla y quedaba cortado contra el
+   borde de la tarjeta, como si faltara texto por un error. */
+.wine-result-card__meta > .chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wine-result-card__rating {
@@ -304,6 +318,7 @@
 /* Acción: "Quiero probar" (guarda en Guardados, no en la bodega). */
 .wine-result-card__actions {
   display: flex;
+  margin-top: auto;
   padding: 0 12px 12px;
 }
 
@@ -542,4 +557,17 @@
   font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-muted);
+}
+
+/* Nota del vino: dos líneas como máximo. Es un complemento, no puede empujar
+   al rating ni desalinear las tarjetas vecinas de la grilla. */
+.wine-result-card__note {
+  margin: 4px 0 0;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

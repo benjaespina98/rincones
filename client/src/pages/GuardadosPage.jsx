@@ -64,9 +64,16 @@ export default function GuardadosPage() {
 
   return (
     <div className="guardados-page">
+      {/* El topbar ya dice "Guardados": repetirlo acá gastaba la línea más
+          visible de la pantalla en información que el usuario ya tiene. Las
+          otras pestañas usan ese lugar para decir algo útil, ésta no. */}
       <header className="guardados-header">
-        <h1>Guardados</h1>
-        <p>Vinos que querés probar. Cuando consigas uno, escaneálo para sumarlo a tu bodega.</p>
+        <h1>
+          {wishes.length === 0
+            ? "Tu lista de pendientes"
+            : `${wishes.length} ${wishes.length === 1 ? "vino anotado" : "vinos anotados"}`}
+        </h1>
+        <p>Los que querés probar. Cuando consigas uno, escaneálo para sumarlo a tu bodega.</p>
       </header>
 
       <div className="guardados-filters">

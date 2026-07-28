@@ -202,7 +202,7 @@ export default function CatalogWinePage() {
                     <span className="wine-about__label">Marida con</span>
                     <div className="wine-about__chips">
                       {aiInfo.foodPairing.map((f) => (
-                        <span key={f} className="wine-about__chip wine-about__chip--food">🍽 {f}</span>
+                        <span key={f} className="wine-about__chip wine-about__chip--food"><Icon name="utensils" size={13} /> {f}</span>
                       ))}
                     </div>
                   </div>

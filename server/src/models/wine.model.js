@@ -230,14 +230,24 @@ wineSchema.statics.getUserStats = async function (userId) {
           { $sort: { count: -1 } },
           { $limit: 10 },
         ],
-        avgRating: [{ $group: { _id: null, avgRating: { $avg: "$rating" } } }],
+        // Sólo los puntuados. Promediando TODOS, cada vino sin puntuar entraba
+        // como un cero: con 62 vinos y 20 puntuados el promedio daba 1.0, un
+        // número que no describe a nadie.
+        avgRating: [
+          { $match: { rating: { $gt: 0 } } },
+          { $group: { _id: null, avgRating: { $avg: "$rating" } } },
+        ],
         totals: [
           {
             $group: {
               _id: null,
               total: { $sum: 1 },
               stock: { $sum: { $cond: [{ $eq: ["$status", "stock"] }, 1, 0] } },
-              consumed: { $sum: { $cond: [{ $eq: ["$status", "tasted"] }, 1, 0] } },
+              // Se cuenta por el campo `tasted`, no por `status`. Al terminar
+              // la última botella `toWineStatus` pasa el vino a "archived", así
+              // que contando por status un vino que te tomaste entero dejaba de
+              // figurar entre tus probados justamente cuando más lo probaste.
+              consumed: { $sum: { $cond: [{ $eq: ["$tasted", true] }, 1, 0] } },
             },
           },
         ],

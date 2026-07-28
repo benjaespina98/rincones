@@ -5,11 +5,11 @@ import { useWineStats } from "../hooks/useWineStats";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines } from "../services/wineSearchApi";
-import { visibleContent, itemSubtitle } from "../data/discoverContent";
+import { visibleContent, itemSubtitle, pickFeatured } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
-import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
+import { greeting, homeTitle, whyThisWine, recoHint } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -53,8 +53,10 @@ export default function DiscoverPage() {
   useEffect(() => loadFeatured(), [loadFeatured]);
 
   const name = displayName(user);
-  // Se calcula una vez por render: oculta los eventos ya pasados.
-  const content = visibleContent();
+  // El destacado sale del propio contenido (marcado o el de fecha más próxima)
+  // y se excluye del listado para no mostrarlo dos veces.
+  const exploreFeatured = pickFeatured();
+  const content = visibleContent(new Date(), exploreFeatured?.id);
 
   const submitSearch = (e) => {
     e.preventDefault();
@@ -187,7 +189,7 @@ export default function DiscoverPage() {
       <section className="discover-section">
         <div className="discover-section__head">
           <h2>Recomendados para vos</h2>
-          <span className="discover-section__hint">Vinos argentinos para sumar</span>
+          <span className="discover-section__hint">{recoHint({ stats })}</span>
         </div>
 
         {loading ? (
@@ -259,48 +261,76 @@ export default function DiscoverPage() {
         )}
       </section>
 
-      {/* Aprendé, explorá, comunidad */}
-      <section className="discover-section">
-        <div className="discover-section__head">
-          <h2>Aprendé y explorá</h2>
-          <span className="discover-section__hint">Todo con enlace a la fuente original</span>
-        </div>
+      {/* ── Aprendé y explorá ──────────────────────────────────────────────
+          Composición editorial, no una grilla: primero UN contenido
+          protagonista, después las secciones. Antes las nueve tarjetas tenían
+          exactamente el mismo peso visual, así que la pantalla se leía como una
+          lista de enlaces y no como algo curado. */}
+      <section className="explore">
+        <header className="explore__head">
+          <h2 className="explore__title">Aprendé y explorá</h2>
+          <p className="explore__lead">
+            Una selección chica y cuidada. Todo lleva a la fuente original.
+          </p>
+        </header>
 
-        <div className="discover-content">
-          {content.map((group) => (
-            <div key={group.id} className="content-group">
-              <span className="content-group__label" style={{ color: group.accent }}>
+        {exploreFeatured && (
+          <a
+            className="explore__hero"
+            href={exploreFeatured.source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => tapHaptic()}
+          >
+            <span className="explore__hero-kicker">
+              <Icon name="sparkle" size={12} /> Destacado
+            </span>
+            <h3 className="explore__hero-title">{exploreFeatured.title}</h3>
+            <p className="explore__hero-summary">{exploreFeatured.summary}</p>
+            <span className="explore__hero-foot">
+              <span className="explore__hero-meta">{itemSubtitle(exploreFeatured)}</span>
+              <Icon name="arrow-right" size={16} />
+            </span>
+          </a>
+        )}
+
+        {content.map((group) => (
+          <div key={group.id} className="explore__group">
+            <div className="explore__group-head">
+              <span className="explore__group-label" style={{ color: group.accent }}>
                 {group.label}
               </span>
-              <div className="content-group__items">
-                {group.items.map((item) => (
-                  <a
-                    key={item.id}
-                    className="content-card"
-                    href={item.source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => tapHaptic()}
-                    style={{ "--accent-content": group.accent }}
-                  >
-                    {/* El ícono puede venir del ítem; si no, del grupo. */}
-                    <span className="content-card__icon">
-                      <Icon name={item.icon || group.icon} size={18} />
-                    </span>
-                    <div className="content-card__text">
-                      <span className="content-card__title">{item.title}</span>
-                      <span className="content-card__summary">{item.summary}</span>
-                      <span className="content-card__subtitle">{itemSubtitle(item)}</span>
-                    </div>
-                    <Icon name="arrow-right" size={16} className="content-card__arrow" />
-                  </a>
-                ))}
-              </div>
+              {group.hint && <span className="explore__group-hint">{group.hint}</span>}
             </div>
-          ))}
-        </div>
 
-        <p className="discover-foot">Selección propia · sumamos más cada tanto.</p>
+            <div className="explore__items">
+              {group.items.map((item) => (
+                <a
+                  key={item.id}
+                  className="explore__item"
+                  href={item.source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => tapHaptic()}
+                  style={{ "--accent-content": group.accent }}
+                >
+                  {/* El ícono puede venir del ítem; si no, del grupo. */}
+                  <span className="explore__item-icon">
+                    <Icon name={item.icon || group.icon} size={17} />
+                  </span>
+                  <span className="explore__item-text">
+                    <span className="explore__item-title">{item.title}</span>
+                    <span className="explore__item-summary">{item.summary}</span>
+                    <span className="explore__item-meta">{itemSubtitle(item)}</span>
+                  </span>
+                  <Icon name="arrow-right" size={15} className="explore__item-arrow" />
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <p className="explore__foot">Curaduría propia. Si conocés algo que merezca estar acá, contanos.</p>
       </section>
     </div>
   );

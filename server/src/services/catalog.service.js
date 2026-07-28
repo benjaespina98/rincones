@@ -62,18 +62,82 @@ const scoreEntry = (entry, terms) => {
   return score;
 };
 
+/**
+ * Distancia de edición acotada: corta apenas supera `max`.
+ *
+ * No traemos una librería para esto. Son palabras de vino (10-15 caracteres) y
+ * el corte temprano hace que la mayoría de las comparaciones terminen en las
+ * primeras dos filas.
+ */
+const editDistance = (a, b, max) => {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    const row = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(row[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      if (row[j] < best) best = row[j];
+    }
+    if (best > max) return max + 1;
+    prev = row;
+  }
+  return prev[b.length];
+};
+
+// Cuánto error se tolera según el largo: en una palabra de 4 letras una sola
+// diferencia ya puede cambiar el vino, en una de 12 es claramente un dedazo.
+const tolerance = (term) => (term.length <= 4 ? 0 : term.length <= 7 ? 1 : 2);
+
+// ¿Algún token del haystack se parece lo suficiente al término?
+const fuzzyHit = (tokens, term) => {
+  const max = tolerance(term);
+  if (max === 0) return false;
+  return tokens.some((tok) => {
+    // Sólo vale la pena comparar tokens de largo parecido.
+    if (Math.abs(tok.length - term.length) > max) return false;
+    return editDistance(tok, term, max) <= max;
+  });
+};
+
 const searchCatalog = (query) => {
   const terms = fold(query).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return [];
 
-  return CATALOG
-    // Todos los términos tienen que aparecer en algún campo: "catena malbec"
-    // no debe traer los Cabernet de Catena.
+  const rank = (entry, penalty) => {
+    const { haystack, ...rest } = entry;
+    return { ...rest, score: scoreEntry(entry, terms) - penalty };
+  };
+
+  // Paso 1 — coincidencia exacta. Todos los términos tienen que aparecer en
+  // algún campo: "catena malbec" no debe traer los Cabernet de Catena.
+  const exact = CATALOG
     .filter((entry) => terms.every((term) => entry.haystack.includes(term)))
+    .map((entry) => rank(entry, 0))
+    .sort((a, b) => b.score - a.score);
+
+  if (exact.length > 0) return exact;
+
+  // Paso 2 — con un dedazo. Sólo si lo exacto no encontró nada: un error de
+  // tipeo no debería costar una llamada al modelo ni un "sin resultados".
+  // "catena zapta" y "malbek" caían acá y devolvían cero.
+  return CATALOG
     .map((entry) => {
-      const { haystack, ...rest } = entry;
-      return { ...rest, score: scoreEntry(entry, terms) };
+      const tokens = entry.haystack.split(/\s+/).filter(Boolean);
+      let approx = 0;
+      const ok = terms.every((term) => {
+        if (entry.haystack.includes(term)) return true;
+        if (fuzzyHit(tokens, term)) {
+          approx += 1;
+          return true;
+        }
+        return false;
+      });
+      // Lo aproximado siempre por debajo de lo exacto, y peor cuanto más lejos.
+      return ok ? rank(entry, approx * 2) : null;
     })
+    .filter(Boolean)
     .sort((a, b) => b.score - a.score);
 };
 
@@ -204,6 +268,10 @@ const mergeInto = (target, extra) => {
   if (!target.varietal && extra.varietal) target.varietal = extra.varietal;
   if (!target.region && extra.region) target.region = extra.region;
   if (!target.line && extra.line) target.line = extra.line;
+  // El catálogo curado no tiene nota; si el mismo vino vino también del modelo,
+  // se la queda. Es justo el caso donde la nota aporta: un vino verificado que
+  // además trae una línea sobre a qué sabe.
+  if (!target.note && extra.note) target.note = extra.note;
   target.score = Math.max(target.score || 0, extra.score || 0);
 };
 

@@ -276,6 +276,17 @@
   border: 1px solid transparent;
 }
 
+/* Antes eran tres emojis de círculo de colores. Se veían distintos en cada
+   sistema operativo y no seguían el color del badge; ahora es un punto real que
+   hereda el color del estado, así que no hay dos fuentes de verdad. */
+.cellar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
 .cellar-badge--peak {
   background: rgba(47, 182, 123, 0.16);
   border-color: rgba(47, 182, 123, 0.4);

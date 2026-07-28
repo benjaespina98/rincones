@@ -29,11 +29,52 @@
 // serían peor que no tener la sección. La arquitectura queda lista para que se
 // agreguen a mano o desde el panel admin más adelante.
 
+/**
+ * Las secciones, en orden de aparición.
+ *
+ * El título dice QUÉ es, sin vueltas: en una app que quiere verse profesional,
+ * tener que interpretar un nombre para saber qué vas a encontrar es fricción.
+ * El `hint` es el que aporta el contexto y el tono.
+ *
+ * Agregar una sección es agregar una línea acá: los grupos sin ítems no se
+ * renderizan, así que se puede dejar preparada antes de tener el contenido.
+ */
 export const DISCOVER_GROUPS = [
-  { id: "videos", label: "Para ver", icon: "play", accent: "#c6465f" },
-  { id: "cursos", label: "Para aprender", icon: "graduation", accent: "#7e59c9" },
-  { id: "eventos", label: "Para ir", icon: "calendar", accent: "#2fb67b" },
-  { id: "comunidad", label: "Para compartir", icon: "chat", accent: "#f2b737" },
+  {
+    id: "eventos",
+    label: "Eventos",
+    hint: "Ferias, catas y vendimias",
+    icon: "calendar",
+    accent: "#2fb67b",
+  },
+  {
+    id: "visitas",
+    label: "Visitas a bodegas",
+    hint: "Puertas abiertas y degustaciones",
+    icon: "map-pin",
+    accent: "#c6465f",
+  },
+  {
+    id: "videos",
+    label: "Videos",
+    hint: "Catas y guías para ver tranquilo",
+    icon: "play",
+    accent: "#e0637d",
+  },
+  {
+    id: "cursos",
+    label: "Cursos",
+    hint: "De la curiosidad al diploma",
+    icon: "graduation",
+    accent: "#7e59c9",
+  },
+  {
+    id: "comunidad",
+    label: "Comunidad",
+    hint: "Donde se sigue hablando de vino",
+    icon: "chat",
+    accent: "#f2b737",
+  },
 ];
 
 export const DISCOVER_ITEMS = [
@@ -154,13 +195,53 @@ export const itemSubtitle = (item) => {
  * solos: antes la Vendimia se mostraba igual en julio, que es justo cuando no
  * sirve de nada. Los grupos que quedan sin ítems no se renderizan.
  */
-export const visibleContent = (now = new Date()) => {
-  const today = now.getTime();
+const isLive = (item, today) => {
+  const end = item.when?.end || item.when?.start;
+  return !end || new Date(end).getTime() >= today;
+};
 
-  const live = DISCOVER_ITEMS.filter((item) => {
-    const end = item.when?.end || item.when?.start;
-    return !end || new Date(end).getTime() >= today;
-  });
+/**
+ * El contenido protagonista de la sección.
+ *
+ * Prioridad: lo marcado como `featured`, después lo que tenga fecha más próxima
+ * (un evento que se viene siempre es más interesante que un video que va a estar
+ * ahí siempre), y si no hay nada de eso, el primer ítem.
+ *
+ * Cuando mañana se carguen ferias y catas reales, el destacado se elige solo:
+ * no hay que tocar el render ni marcar nada a mano.
+ */
+export const pickFeatured = (now = new Date()) => {
+  const today = now.getTime();
+  const live = DISCOVER_ITEMS.filter((i) => isLive(i, today));
+  if (live.length === 0) return null;
+
+  const flagged = live.filter((i) => i.featured);
+  const pool = flagged.length > 0 ? flagged : live;
+
+  const when = (i) => {
+    if (i.when?.start) return new Date(i.when.start).getTime();
+    if (i.when?.recurrence) {
+      const m = Number(i.when.recurrence) - 1;
+      const year = m < now.getMonth() ? now.getFullYear() + 1 : now.getFullYear();
+      return new Date(year, m, 1).getTime();
+    }
+    return Infinity; // sin fecha: nunca urge
+  };
+
+  return [...pool].sort((a, b) => when(a) - when(b))[0];
+};
+
+/**
+ * Ítems visibles hoy, agrupados. Los eventos con fecha ya pasada se ocultan
+ * solos: antes la Vendimia se mostraba igual en julio, que es justo cuando no
+ * sirve de nada. Los grupos que quedan sin ítems no se renderizan.
+ *
+ * `excludeId` saca del listado al que ya se está mostrando como destacado, para
+ * que no aparezca dos veces en la misma pantalla.
+ */
+export const visibleContent = (now = new Date(), excludeId = null) => {
+  const today = now.getTime();
+  const live = DISCOVER_ITEMS.filter((i) => isLive(i, today) && i.id !== excludeId);
 
   return DISCOVER_GROUPS.map((group) => ({
     ...group,

@@ -355,10 +355,21 @@ export default function ScanWinePage() {
                         {r.vintage && <span className="chip">{r.vintage}</span>}
                         {r.region && (
                           <span className="chip">
-                            <Icon name="map-pin" size={13} /> {r.region}
+                            <Icon name="map-pin" size={13} />
+                            {/* El texto va en su propio span: en un contenedor
+                                flex el text-overflow no se aplica al nodo de
+                                texto suelto, y "Luján de Cuyo, Mendoza" quedaba
+                                cortado en seco contra el borde de la tarjeta. */}
+                            <span className="chip__text">{r.region}</span>
                           </span>
                         )}
                       </div>
+
+                      {/* Una línea sobre a qué sabe o con qué va, cuando el
+                          modelo tenía algo concreto para decir de ESE vino.
+                          Viaja en la búsqueda que ya se hacía y ya está
+                          cacheada, así que no cuesta una petición extra. */}
+                      {r.note && <p className="wine-result-card__note">{r.note}</p>}
 
                       {r.rating > 0 && (
                         <div className="wine-result-card__rating">
