@@ -1,8 +1,8 @@
 // Identidad de un vino: bodega + línea + varietal + nombre propio.
 //
 // POR QUÉ EXISTE ESTE ARCHIVO
-// El catálogo curado (argentineWines.js) siempre supo la verdad: sus filas son
-// [bodega, línea, varietal, región, tipo]. Pero los dos lugares donde Gemini
+// El catálogo (argentineWines.js) siempre tuvo los campos SEPARADOS: sus filas
+// son [bodega, línea, varietal, región, tipo]. Pero los dos lugares donde Gemini
 // devuelve vinos (visión de etiqueta y búsqueda por texto) tenían instrucciones
 // CONTRADICTORIAS para el campo `name`: uno pedía "sin la bodega" y el otro daba
 // como ejemplo "Catena Alta Malbec" (que incluye bodega y varietal). Resultado:

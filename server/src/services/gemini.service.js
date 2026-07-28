@@ -14,14 +14,29 @@
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
-// Ordenados por latencia medida: los lite responden ~1s, los flash grandes ~7s.
-// GEMINI_MODEL en .env, si está, se prueba primero.
+// Ordenados por latencia REAL, medida contra la API (3 corridas por modelo,
+// julio 2026). El orden anterior arrancaba por el más lento de los que andan y
+// una búsqueda que no estaba en el catálogo tardaba ~10 segundos: el primer
+// modelo se comía el timeout y recién ahí probaba el siguiente.
+//
+//   gemini-3.1-flash-lite       766 ms
+//   gemini-3.6-flash          2.691 ms
+//   gemini-3.5-flash-lite     3.515 ms
+//   gemini-flash-lite-latest  4.023 ms
+//   gemini-2.0-flash          429 — sin cuota
+//
+// gemini-2.0-flash queda ÚLTIMO y no como preferido: hoy devuelve 429 siempre,
+// así que ponerlo antes es regalar un segundo por búsqueda para nada. Sigue en
+// la lista porque la cuota se renueva cada día.
+//
+// Si en algún momento las búsquedas se sienten lentas, vale volver a medir: la
+// latencia de cada modelo la decide Google y cambia.
 const FALLBACK_MODELS = [
-  "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
   "gemini-flash-lite-latest",
   "gemini-2.0-flash",
-  "gemini-3.6-flash",
 ];
 
 const isGeminiConfigured = () => Boolean(String(process.env.GEMINI_API_KEY || "").trim());

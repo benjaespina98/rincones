@@ -1,11 +1,25 @@
-// Catálogo curado de vinos argentinos.
+// Catálogo de vinos argentinos, escrito a mano.
 //
-// Es la fuente PRIMARIA de la búsqueda: Open Food Facts tiene muy poca cobertura
-// de vino argentino y sus nombres vienen sucios, así que apoyarse sólo en él hacía
-// que búsquedas obvias ("Catena Malbec") no devolvieran nada.
+// ── DE DÓNDE SALEN ESTOS DATOS ──────────────────────────────────────────────
+// Los cargó Claude a partir de su conocimiento del mercado argentino, línea por
+// línea. NO vienen de una API, de scraping ni de una base oficial, y NO están
+// contrastados contra las webs de las bodegas.
 //
-// Cada entrada es una línea real de una bodega argentina. El nombre visible se
-// arma como "<línea> <varietal>" para que coincida con cómo la gente busca.
+// Puede haber errores: una línea discontinuada, una región mal atribuida, un
+// varietal que esa bodega no produce. Si encontrás uno, corregí la fila: es un
+// array y el cambio se aplica sin tocar nada más.
+//
+// Entonces, ¿por qué manda por sobre lo que devuelve el modelo? No porque esté
+// mejor verificado —el origen es parecido—, sino porque acá está CONGELADO y es
+// AUDITABLE: siempre devuelve lo mismo, se puede leer entero, corregir y
+// revisar en el historial de git. Lo que genera el modelo en vivo cambia entre
+// llamadas y nadie lo mira antes de mostrarlo.
+//
+// Es además la fuente PRIMARIA por una razón práctica: Open Food Facts tiene muy
+// poca cobertura de vino argentino y sus nombres vienen sucios, así que apoyarse
+// sólo en él hacía que búsquedas obvias ("Catena Malbec") no devolvieran nada.
+//
+// El nombre visible se arma como "<línea> <varietal>", que es como se busca.
 
 const RAW = [
   // --- Catena Zapata ---
