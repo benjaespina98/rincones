@@ -50,11 +50,15 @@
   color: #f4efff;
 }
 
+/* El indicador va ARRIBA del ícono, no abajo.
+   Estaba a 7px del fondo, que es justo donde vive la etiqueta: en las pestañas
+   de nombre largo ("Sommelier") la barra de 28px cruzaba el texto por el medio y
+   se leía como un tachado. */
 .tab-button.active::before {
   content: "";
   position: absolute;
-  bottom: 7px;
-  width: 28px;
+  top: 0;
+  width: 22px;
   height: 3px;
   background: linear-gradient(90deg, #8f63ff 0%, #c39aff 100%);
   border-radius: 999px;
@@ -243,7 +247,6 @@
 
   /* Active indicator: vertical bar on the left edge */
   .tab-button.active::before {
-    bottom: auto;
     left: 4px;
     top: 22%;
     height: 56%;

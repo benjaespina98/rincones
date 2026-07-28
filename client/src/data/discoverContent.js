@@ -32,9 +32,9 @@
 /**
  * Las secciones, en orden de aparición.
  *
- * Los nombres son del mundo del vino, no etiquetas de sistema: "Para ver" y
- * "Para compartir" describen el formato del archivo, no lo que vas a encontrar
- * adentro. El `hint` cuenta qué hay en cada una sin obligar a abrir nada.
+ * El título dice QUÉ es, sin vueltas: en una app que quiere verse profesional,
+ * tener que interpretar un nombre para saber qué vas a encontrar es fricción.
+ * El `hint` es el que aporta el contexto y el tono.
  *
  * Agregar una sección es agregar una línea acá: los grupos sin ítems no se
  * renderizan, así que se puede dejar preparada antes de tener el contenido.
@@ -42,35 +42,35 @@
 export const DISCOVER_GROUPS = [
   {
     id: "eventos",
-    label: "La agenda",
+    label: "Eventos",
     hint: "Ferias, catas y vendimias",
     icon: "calendar",
     accent: "#2fb67b",
   },
   {
     id: "visitas",
-    label: "Puertas adentro",
-    hint: "Bodegas que reciben visitas",
+    label: "Visitas a bodegas",
+    hint: "Puertas abiertas y degustaciones",
     icon: "map-pin",
     accent: "#c6465f",
   },
   {
     id: "videos",
-    label: "En pantalla",
-    hint: "Para ver con una copa al lado",
+    label: "Videos",
+    hint: "Catas y guías para ver tranquilo",
     icon: "play",
     accent: "#e0637d",
   },
   {
     id: "cursos",
-    label: "Aprender en serio",
+    label: "Cursos",
     hint: "De la curiosidad al diploma",
     icon: "graduation",
     accent: "#7e59c9",
   },
   {
     id: "comunidad",
-    label: "La sobremesa",
+    label: "Comunidad",
     hint: "Donde se sigue hablando de vino",
     icon: "chat",
     accent: "#f2b737",

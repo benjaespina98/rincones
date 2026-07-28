@@ -283,7 +283,7 @@ export default function DiscoverPage() {
             onClick={() => tapHaptic()}
           >
             <span className="explore__hero-kicker">
-              <Icon name="sparkle" size={12} /> Lo primero que miraríamos
+              <Icon name="sparkle" size={12} /> Destacado
             </span>
             <h3 className="explore__hero-title">{exploreFeatured.title}</h3>
             <p className="explore__hero-summary">{exploreFeatured.summary}</p>

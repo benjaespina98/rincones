@@ -214,6 +214,29 @@ export default function Icon({ name, filled = false, size = 20, className = "", 
   }
 
   const content = name === "heart" ? <path d={HEART_OUTLINE} /> : PATHS[name];
+
+  // Algunos íconos (copa, botella, destello) existen SÓLO como forma sólida:
+  // no tienen versión de contorno porque no tendría sentido dibujarlos así.
+  // Sin este fallback, pedirlos sin `filled` devolvía null y NO SE DIBUJABA NADA
+  // —el estado vacío del Sommelier mostraba un círculo hueco, y la barra de
+  // navegación dependía de que cada llamada se acordara de pasar `filled`.
+  if (!content && FILLED[name]) {
+    return (
+      <svg
+        className={`icon ${className}`}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="none"
+        aria-hidden="true"
+        {...rest}
+      >
+        <path d={FILLED[name]} />
+      </svg>
+    );
+  }
+
   if (!content) return null;
 
   return (

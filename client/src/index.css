@@ -422,6 +422,15 @@ img {
 }
 
 /* Fila de pastillas: mismo gap en todas las pantallas. */
+/* Texto de pastilla que puede no entrar (regiones largas). El truncado va acá
+   y no en .chip porque la pastilla es flex y ahí el ellipsis no se aplica. */
+.chip__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
