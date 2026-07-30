@@ -1,6 +1,6 @@
 import api from "./api";
 
-/** Los destacados vigentes que ve cualquiera. Nunca lanza: es contenido extra. */
+/** Los destacados al aire que ve cualquiera. Nunca lanza: es contenido extra. */
 export const getPromotions = async () => {
   try {
     const { data } = await api.get("/promotions");
@@ -12,40 +12,120 @@ export const getPromotions = async () => {
 };
 
 /**
- * Cuenta una impresión o un clic. Fire-and-forget.
+ * Impresiones y clics, en lote y fire-and-forget.
  *
- * El clic se manda con `sendBeacon` porque el navegador está yendo al sitio del
- * anunciante en ese mismo instante: una petición normal se cancela a mitad de
- * camino y se perdería justo el número que el anunciante va a pedir.
+ * ── POR QUÉ EN LOTE ─────────────────────────────────────────────────────────
+ * Antes cada tarjeta que aparecía mandaba su propia petición: un carrusel de seis
+ * eran seis peticiones por visita a la pantalla de entrada de la app, sólo para
+ * contar. Multiplicado por la cantidad de gente que abre Descubrí, medir costaba
+ * más tráfico que servir el contenido. Ahora se juntan y se van de una.
+ *
+ * ── POR QUÉ EL CLIC NO ESPERA ───────────────────────────────────────────────
+ * Cuando alguien toca la tarjeta, el navegador ya está yendo al sitio del
+ * anunciante. Una petición normal en ese momento se cancela a mitad de camino y se
+ * pierde justo el número que el anunciante va a pedir. Por eso el clic vacía la
+ * cola al instante y con `sendBeacon`, que el navegador entrega igual aunque la
+ * página ya no exista.
  */
-const contar = (id, tipo) => {
-  if (!id) return;
-  const ruta = `/promotions/${id}/${tipo}`;
 
-  if (tipo === "click" && typeof navigator !== "undefined" && navigator.sendBeacon) {
-    const base = String(api.defaults.baseURL || "").replace(/\/$/, "");
-    const url = /^https?:\/\//i.test(base)
-      ? `${base}${ruta}`
-      : `${window.location.origin}${base}${ruta}`;
+const ENDPOINT = "/promotions/events";
+const ESPERA_MS = 1500;
+
+let cola = [];
+let timer = null;
+
+/** La URL absoluta del endpoint, que es lo que `sendBeacon` necesita. */
+const urlAbsoluta = () => {
+  const base = String(api.defaults.baseURL || "").replace(/\/$/, "");
+  if (/^https?:\/\//i.test(base)) return `${base}${ENDPOINT}`;
+  return `${window.location.origin}${base}${ENDPOINT}`;
+};
+
+const enviar = (conBeacon = false) => {
+  if (cola.length === 0) return;
+  const lote = cola;
+  cola = [];
+
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+
+  const cuerpo = JSON.stringify({ events: lote });
+
+  if (conBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
     try {
-      navigator.sendBeacon(url, new Blob([], { type: "application/json" }));
+      navigator.sendBeacon(urlAbsoluta(), new Blob([cuerpo], { type: "application/json" }));
       return;
     } catch {
-      // Cae a la vía normal.
+      // Si el beacon no sale, se intenta por la vía normal más abajo.
     }
   }
 
-  api.post(ruta).catch(() => {});
+  api.post(ENDPOINT, { events: lote }).catch(() => {
+    // Silencio: un contador no puede molestar a nadie.
+  });
 };
 
-export const trackPromoImpression = (id) => contar(id, "impression");
-export const trackPromoClick = (id) => contar(id, "click");
+const encolar = (id, type) => {
+  if (!id) return;
+  cola.push({ id, type });
+  // El clic se va ya: el navegador está por dejar la página.
+  if (type === "click") {
+    enviar(true);
+    return;
+  }
+  if (!timer) timer = setTimeout(() => enviar(), ESPERA_MS);
+};
+
+export const trackPromoImpression = (id) => encolar(id, "impression");
+export const trackPromoClick = (id) => encolar(id, "click");
+
+/**
+ * Se engancha al arrancar la app y devuelve su limpieza, igual que el analytics:
+ * si la pestaña se cierra con impresiones en la cola, se van con `sendBeacon` en
+ * vez de perderse. Sin esto, la última tarjeta de cada visita no se contaría nunca
+ * —y en una visita corta puede ser la única—.
+ */
+export const initPromoTracking = () => {
+  if (typeof document === "undefined") return undefined;
+
+  const alOcultarse = () => {
+    if (document.visibilityState === "hidden") enviar(true);
+  };
+  const alSalir = () => enviar(true);
+
+  document.addEventListener("visibilitychange", alOcultarse);
+  window.addEventListener("pagehide", alSalir);
+
+  return () => {
+    document.removeEventListener("visibilitychange", alOcultarse);
+    window.removeEventListener("pagehide", alSalir);
+  };
+};
 
 // ── Panel admin ────────────────────────────────────────────────────────────
 
-export const getAllPromotions = async () => {
-  const { data } = await api.get("/promotions/all");
-  return Array.isArray(data?.data) ? data.data : [];
+/**
+ * El listado del panel. Devuelve las campañas con su estado YA RESUELTO por el
+ * server, no el dato crudo: el estado ("Activa", "Programada", …) lo calcula el
+ * mismo código que decide si la campaña se muestra, así que el panel no puede
+ * decir una cosa distinta de lo que hace la app.
+ */
+export const getAllPromotions = async ({ page = 1, state = "", q = "", limit = 25 } = {}) => {
+  const { data } = await api.get("/promotions/all", { params: { page, state, q, limit } });
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    page: data?.page || 1,
+    pages: data?.pages || 1,
+    total: data?.total || 0,
+    summary: data?.summary || { active: 0, scheduled: 0, paused: 0, ended: 0, total: 0 },
+  };
+};
+
+export const getPromotionStats = async (id, days = 30) => {
+  const { data } = await api.get(`/promotions/${id}/stats`, { params: { days } });
+  return data?.data || null;
 };
 
 export const createPromotion = async (payload) => {
@@ -56,6 +136,18 @@ export const createPromotion = async (payload) => {
 export const updatePromotion = async (id, payload) => {
   const { data } = await api.put(`/promotions/${id}`, payload);
   return data?.data;
+};
+
+/** Mostrar u oculta la campaña. Su propio endpoint: una operación, un significado. */
+export const setPromotionVisibility = async (id, visible) => {
+  const { data } = await api.patch(`/promotions/${id}/visibility`, { visible });
+  return data?.data;
+};
+
+/** Sube o baja la campaña un lugar en el carrusel. */
+export const movePromotion = async (id, direction) => {
+  const { data } = await api.patch(`/promotions/${id}/move`, { direction });
+  return data?.moved === true;
 };
 
 export const deletePromotion = async (id) => {

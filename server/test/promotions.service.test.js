@@ -1,36 +1,81 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const Promotion = require("../src/models/promotion.model");
+const PromotionStat = require("../src/models/promotionStat.model");
+const PromotionView = require("../src/models/promotionView.model");
+const ChangeLog = require("../src/models/changeLog.model");
 const promotions = require("../src/services/promotions.service");
+
+/**
+ * La auditoría escribe en Mongo y acá no hay Mongo: sin este reemplazo cada
+ * operación del panel espera los diez segundos del buffer de Mongoose antes de
+ * darse por vencida. El servicio se traga ese error a propósito (el log no puede
+ * hacer fallar un cambio de campaña), así que el test pasaría igual —sólo que la
+ * suite tardaría un minuto en vez de un segundo—.
+ */
+ChangeLog.create = async () => ({});
+
+/**
+ * Lo que no se puede romper en el gestor de campañas:
+ *
+ *  - una campaña que no está al aire NO se muestra, y eso lo decide la consulta
+ *    con la fecha del momento y no una revisión manual un domingo a la noche;
+ *  - el orden y el límite los resuelve MONGO, no JavaScript: es lo que hace que la
+ *    portada cueste lo mismo con veinte campañas que con veinte mil;
+ *  - una publicidad SIEMPRE queda marcada como publicidad;
+ *  - los contadores no se pueden inflar: ni desde el body, ni mandando el id de
+ *    una campaña que no se está mostrando, ni recargando la pantalla;
+ *  - impresiones y personas distintas son dos números diferentes.
+ */
 
 const restore = (object, key, value) => {
   object[key] = value;
 };
 
-/**
- * Lo que no se puede romper en los destacados:
- *  - una campaña vencida NO se muestra (lo decide la consulta, no una revisión
- *    manual un domingo a la noche);
- *  - el orden respeta lo pactado (prioridad) antes que cualquier otra cosa;
- *  - una publicidad SIEMPRE queda marcada como publicidad.
- */
+// `createdBy` es un ObjectId: un string cualquiera no castea y hace fallar la
+// validación por un motivo que no tiene nada que ver con lo que se está probando.
+const ADMIN = { id: "687f2a1b4c3d2e1f0a9b8c7d", email: "admin@rincones.local", role: "admin" };
+const ID_A = "687f2a1b4c3d2e1f0a9b8c01";
+const ID_B = "687f2a1b4c3d2e1f0a9b8c02";
 
-test("la consulta pública sólo pide lo activo y vigente", async () => {
-  const originalFind = Promotion.find;
-
-  let filtro = null;
-  Promotion.find = (f) => {
-    filtro = f;
-    return { select: () => ({ lean: async () => [] }) };
+/** Deja `Promotion.find(...)` devolviendo `filas`, y guarda el filtro y el orden. */
+const mockFind = (filas) => {
+  const capturado = {};
+  Promotion.find = (filtro) => {
+    capturado.filtro = filtro;
+    const cadena = {
+      select: () => cadena,
+      sort: (s) => {
+        capturado.sort = s;
+        return cadena;
+      },
+      skip: () => cadena,
+      limit: (n) => {
+        capturado.limit = n;
+        return cadena;
+      },
+      lean: async () => filas,
+    };
+    return cadena;
   };
+  return capturado;
+};
+
+/** La caché de la portada es de proceso: sin esto un test lee lo del anterior. */
+const limpio = () => promotions.invalidar();
+
+test("la consulta pública sólo pide lo que está al aire", async () => {
+  const originalFind = Promotion.find;
+  const capturado = mockFind([]);
+  limpio();
 
   try {
     const ahora = new Date("2026-07-29T12:00:00Z");
     await promotions.listPublic(ahora);
 
-    assert.equal(filtro.active, true, "lo pausado no se muestra");
+    assert.equal(capturado.filtro.active, true, "lo pausado no se muestra");
 
-    const json = JSON.stringify(filtro.$and);
+    const json = JSON.stringify(capturado.filtro.$and);
     // Empezada (o sin fecha de inicio) y todavía no terminada (o sin fin).
     assert.ok(json.includes("$lte"), "no se muestra lo que todavía no empezó");
     assert.ok(json.includes("$gte"), "no se muestra lo que ya terminó");
@@ -39,36 +84,66 @@ test("la consulta pública sólo pide lo activo y vigente", async () => {
     assert.ok(json.includes("null"), "las fechas vacías no excluyen la campaña");
   } finally {
     restore(Promotion, "find", originalFind);
+    limpio();
   }
 });
 
-test("ordena por prioridad primero y por evento más próximo después", async () => {
+test("el orden y el límite los hace la base, no la memoria del server", async () => {
   const originalFind = Promotion.find;
-
-  const filas = [
-    { _id: "c", title: "Sin fecha, prioridad 0", priority: 0, eventAt: null, createdAt: "2026-01-01" },
-    { _id: "a", title: "Feria de noviembre", priority: 0, eventAt: "2026-11-01", createdAt: "2026-01-01" },
-    { _id: "b", title: "Cata de agosto", priority: 0, eventAt: "2026-08-01", createdAt: "2026-01-01" },
-    { _id: "z", title: "Campaña paga", priority: 10, eventAt: null, createdAt: "2026-01-01" },
-  ];
-
-  Promotion.find = () => ({ select: () => ({ lean: async () => filas }) });
+  const capturado = mockFind([]);
+  limpio();
 
   try {
-    const orden = (await promotions.listPublic()).map((p) => p._id);
+    await promotions.listPublic();
 
-    // Lo pactado manda: prioridad 10 va primero aunque no tenga fecha.
-    assert.equal(orden[0], "z");
-    // Después, el evento más próximo antes que el más lejano.
-    assert.deepEqual(orden.slice(1), ["b", "a", "c"]);
+    // Prioridad primero (lo pactado manda), después el evento más próximo
+    // —`sortDate` deja al final las que no tienen fecha— y por último lo más nuevo.
+    assert.deepEqual(capturado.sort, { priority: -1, sortDate: 1, createdAt: -1 });
+    // El límite viaja a la consulta: antes se traía todo lo vigente y se cortaba
+    // acá, que con volumen significa traer miles de documentos para mostrar seis.
+    assert.equal(capturado.limit, promotions.MAX_PUBLICAS);
   } finally {
     restore(Promotion, "find", originalFind);
+    limpio();
   }
 });
 
-// `createdBy` es un ObjectId: un string cualquiera no castea y hace fallar la
-// validación por un motivo que no tiene nada que ver con lo que se está probando.
-const ADMIN_ID = "687f2a1b4c3d2e1f0a9b8c7d";
+test("la caché de la portada se cae en cuanto se toca una campaña", async () => {
+  const originalFind = Promotion.find;
+  const originalSave = Promotion.prototype.save;
+  let consultas = 0;
+
+  Promotion.find = () => {
+    consultas += 1;
+    const cadena = {
+      select: () => cadena,
+      sort: () => cadena,
+      limit: () => cadena,
+      lean: async () => [],
+    };
+    return cadena;
+  };
+  Promotion.prototype.save = async function save() {
+    return this;
+  };
+  limpio();
+
+  try {
+    await promotions.listPublic();
+    await promotions.listPublic();
+    assert.equal(consultas, 1, "la segunda visita se sirve de la caché");
+
+    // Crear, pausar o editar cualquier campaña tiene que reflejarse YA: si no, el
+    // administrador toca el interruptor y no ve nada durante segundos.
+    await promotions.create(ADMIN, { title: "Nueva" });
+    await promotions.listPublic();
+    assert.equal(consultas, 2, "después de un cambio se vuelve a consultar");
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion.prototype, "save", originalSave);
+    limpio();
+  }
+});
 
 test("una publicidad siempre queda marcada como publicidad", async () => {
   const originalSave = Promotion.prototype.save;
@@ -81,7 +156,7 @@ test("una publicidad siempre queda marcada como publicidad", async () => {
 
   try {
     // Aunque el payload diga explícitamente que NO es publicidad.
-    const promo = await promotions.create(ADMIN_ID, {
+    const promo = await promotions.create(ADMIN, {
       kind: "ad",
       title: "Vinos Ejemplo",
       sponsored: false,
@@ -95,11 +170,11 @@ test("una publicidad siempre queda marcada como publicidad", async () => {
     );
 
     // Un evento común no se marca solo.
-    const evento = await promotions.create(ADMIN_ID, { kind: "event", title: "Vendimia" });
+    const evento = await promotions.create(ADMIN, { kind: "event", title: "Vendimia" });
     assert.equal(evento.sponsored, false);
 
     // Pero un evento auspiciado sí se puede marcar a mano: sigue siendo pago.
-    const auspiciado = await promotions.create(ADMIN_ID, {
+    const auspiciado = await promotions.create(ADMIN, {
       kind: "event",
       title: "Cata con marca",
       sponsored: true,
@@ -107,36 +182,340 @@ test("una publicidad siempre queda marcada como publicidad", async () => {
     assert.equal(auspiciado.sponsored, true);
   } finally {
     restore(Promotion.prototype, "save", originalSave);
+    limpio();
   }
 });
 
-test("el saneado ignora lo que no es editable y normaliza fechas vacías", async () => {
+test("el saneado ignora lo que no es editable y normaliza fechas", async () => {
   const originalSave = Promotion.prototype.save;
-  Promotion.prototype.save = async function save() { return this; };
+  Promotion.prototype.save = async function save() {
+    return this;
+  };
 
   try {
-    const promo = await promotions.create(ADMIN_ID, {
+    const promo = await promotions.create(ADMIN, {
       title: "  Con espacios  ",
-      priority: "5",
       startsAt: "",
       endsAt: "2026-12-31",
-      // Nada de esto puede entrar desde el body: son contadores y auditoría.
+      // Nada de esto puede entrar desde el body: son contadores y auditoría. Un
+      // contador escribible desde una petición convierte a las estadísticas en algo
+      // que no se le puede mostrar a nadie.
       impressions: 9999,
       clicks: 9999,
+      reach: 9999,
       createdBy: "111111111111111111111111",
     });
 
     assert.equal(promo.title, "Con espacios", "los espacios se recortan");
-    assert.equal(promo.priority, 5, "la prioridad llega como número");
     assert.equal(promo.startsAt, null, "fecha vacía es null, no una fecha inválida");
-    assert.ok(promo.endsAt instanceof Date);
+    // El último milisegundo del 31 en hora argentina: el día que se pactó, entero.
+    assert.equal(promo.endsAt.toISOString(), "2027-01-01T02:59:59.999Z");
 
     assert.equal(promo.impressions, 0, "los contadores no se pueden inflar desde el body");
     assert.equal(promo.clicks, 0);
-    // El autor sale del usuario autenticado, NO del body: el `createdBy` que vino
-    // en el payload se ignora.
-    assert.equal(String(promo.createdBy), ADMIN_ID);
+    assert.equal(promo.reach, 0);
+    // El autor sale del usuario autenticado, NO del body.
+    assert.equal(String(promo.createdBy), ADMIN.id);
   } finally {
     restore(Promotion.prototype, "save", originalSave);
+    limpio();
+  }
+});
+
+test("un enlace que no es http(s) ni interno se rechaza al cargar", async () => {
+  const originalSave = Promotion.prototype.save;
+  Promotion.prototype.save = async function save() {
+    return this;
+  };
+
+  try {
+    await assert.rejects(
+      () => promotions.create(ADMIN, { title: "Trampa", url: "javascript:alert(1)" }),
+      /enlace/i,
+      "el destino termina en window.open: un esquema ejecutable ahí corre código"
+    );
+    await assert.rejects(
+      () => promotions.create(ADMIN, { title: "Trampa", image: "javascript:alert(1)" }),
+      /imagen/i
+    );
+    await assert.rejects(
+      () => promotions.create(ADMIN, { title: "Trampa", accent: "red; background: url(x)" }),
+      /color/i
+    );
+  } finally {
+    restore(Promotion.prototype, "save", originalSave);
+    limpio();
+  }
+});
+
+test("sólo se le cuentan eventos a las campañas que están al aire", async () => {
+  const originalFind = Promotion.find;
+  const originalBulk = Promotion.bulkWrite;
+  const originalStats = PromotionStat.bulkWrite;
+  const originalViews = PromotionView.bulkWrite;
+
+  mockFind([{ _id: ID_A, updatedAt: new Date() }]);
+  let escrituras = null;
+  Promotion.bulkWrite = async (ops) => {
+    escrituras = ops;
+    return {};
+  };
+  PromotionStat.bulkWrite = async () => ({});
+  PromotionView.bulkWrite = async () => ({ upsertedIds: {} });
+  limpio();
+
+  try {
+    const res = await promotions.recordEvents({
+      entries: [
+        { id: ID_A, type: "impression" },
+        // Una campaña que no se está mostrando (vencida, pausada o inexistente).
+        // El endpoint es público, así que sin este control cualquiera le sumaba
+        // impresiones a cualquier documento mandando su id.
+        { id: ID_B, type: "impression" },
+        // Basura: ni siquiera es un id.
+        { id: "no-es-un-id", type: "click" },
+      ],
+      visitorHash: "hash-de-una-persona",
+    });
+
+    assert.equal(res.accepted, 1, "sólo entra la que está al aire");
+    assert.equal(escrituras.length, 1);
+    assert.equal(String(escrituras[0].updateOne.filter._id), ID_A);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "bulkWrite", originalBulk);
+    restore(PromotionStat, "bulkWrite", originalStats);
+    restore(PromotionView, "bulkWrite", originalViews);
+    limpio();
+  }
+});
+
+test("impresiones y personas distintas son dos números diferentes", async () => {
+  const originalFind = Promotion.find;
+  const originalBulk = Promotion.bulkWrite;
+  const originalStats = PromotionStat.bulkWrite;
+  const originalViews = PromotionView.bulkWrite;
+
+  mockFind([{ _id: ID_A, updatedAt: new Date() }]);
+  const escrituras = [];
+  Promotion.bulkWrite = async (ops) => {
+    escrituras.push(ops);
+    return {};
+  };
+  PromotionStat.bulkWrite = async () => ({});
+
+  // Primera vez de esta persona hoy: la marca entra.
+  PromotionView.bulkWrite = async () => ({ upsertedIds: { 0: "x" } });
+  limpio();
+
+  try {
+    await promotions.recordEvents({
+      entries: [{ id: ID_A, type: "impression" }],
+      visitorHash: "misma-persona",
+    });
+    assert.deepEqual(escrituras[0][0].updateOne.update.$inc, { impressions: 1, reach: 1 });
+
+    // Segunda visita de la MISMA persona el mismo día: el índice único rechaza la
+    // marca, así que suma impresión pero no alcance. Sin esto se le informaría a
+    // un anunciante "dos personas vieron tu campaña" cuando fue una.
+    PromotionView.bulkWrite = async () => ({ upsertedIds: {} });
+    limpio();
+    await promotions.recordEvents({
+      entries: [{ id: ID_A, type: "impression" }],
+      visitorHash: "misma-persona",
+    });
+    assert.deepEqual(escrituras[1][0].updateOne.update.$inc, { impressions: 1 });
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "bulkWrite", originalBulk);
+    restore(PromotionStat, "bulkWrite", originalStats);
+    restore(PromotionView, "bulkWrite", originalViews);
+    limpio();
+  }
+});
+
+test("todo el lote se escribe en una operación por colección", async () => {
+  const originalFind = Promotion.find;
+  const originalBulk = Promotion.bulkWrite;
+  const originalStats = PromotionStat.bulkWrite;
+  const originalViews = PromotionView.bulkWrite;
+
+  mockFind([
+    { _id: ID_A, updatedAt: new Date() },
+    { _id: ID_B, updatedAt: new Date() },
+  ]);
+  let llamadasPromo = 0;
+  let llamadasStats = 0;
+  Promotion.bulkWrite = async () => {
+    llamadasPromo += 1;
+    return {};
+  };
+  PromotionStat.bulkWrite = async () => {
+    llamadasStats += 1;
+    return {};
+  };
+  PromotionView.bulkWrite = async () => ({ upsertedIds: {} });
+  limpio();
+
+  try {
+    await promotions.recordEvents({
+      entries: [
+        { id: ID_A, type: "impression" },
+        { id: ID_B, type: "impression" },
+        { id: ID_A, type: "click" },
+      ],
+      visitorHash: "una-persona",
+    });
+
+    // Un carrusel de seis tarjetas eran seis peticiones y doce escrituras por
+    // visita a la pantalla de entrada de la app. Ahora es una y tres.
+    assert.equal(llamadasPromo, 1);
+    assert.equal(llamadasStats, 1);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "bulkWrite", originalBulk);
+    restore(PromotionStat, "bulkWrite", originalStats);
+    restore(PromotionView, "bulkWrite", originalViews);
+    limpio();
+  }
+});
+
+test("contar nunca lanza, pase lo que pase", async () => {
+  const originalFind = Promotion.find;
+  Promotion.find = () => {
+    throw new Error("la base se cayó");
+  };
+  limpio();
+
+  try {
+    // Un contador roto no puede romperle la pantalla a nadie ni cortarle la
+    // navegación a quien está yendo al sitio del anunciante.
+    const res = await promotions.recordEvents({
+      entries: [{ id: ID_A, type: "impression" }],
+      visitorHash: "x",
+    });
+    assert.deepEqual(res, { accepted: 0 });
+  } finally {
+    restore(Promotion, "find", originalFind);
+    limpio();
+  }
+});
+
+test("reordenar deja el orden guardado igual al que se ve", async () => {
+  const originalFind = Promotion.find;
+  const originalBulk = Promotion.bulkWrite;
+
+  // Tres campañas empatadas en prioridad: el orden real lo desempata la base y el
+  // administrador no tiene forma de cambiarlo escribiendo números.
+  mockFind([
+    { _id: ID_A, priority: 5, title: "A" },
+    { _id: ID_B, priority: 5, title: "B" },
+    { _id: "687f2a1b4c3d2e1f0a9b8c03", priority: 5, title: "C" },
+  ]);
+  let ops = null;
+  Promotion.bulkWrite = async (o) => {
+    ops = o;
+    return {};
+  };
+  limpio();
+
+  try {
+    // Subir la segunda un lugar.
+    const res = await promotions.move(ID_B, "up", ADMIN);
+    assert.deepEqual(res, { moved: true });
+
+    // Después de mover no quedan empates: el orden que se ve es el que está
+    // guardado, y eso es lo que hace que las flechas sean predecibles.
+    const prioridades = ops.map((o) => o.updateOne.update.$set.priority);
+    assert.deepEqual([...prioridades].sort((a, b) => b - a), prioridades, "quedan descendentes");
+    assert.equal(new Set(prioridades).size, prioridades.length, "sin empates");
+
+    // La primera de la lista ahora es B.
+    assert.equal(String(ops[0].updateOne.filter._id), ID_B);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "bulkWrite", originalBulk);
+    limpio();
+  }
+});
+
+test("mover la primera hacia arriba no es un error, simplemente no hace nada", async () => {
+  const originalFind = Promotion.find;
+  const originalBulk = Promotion.bulkWrite;
+  mockFind([{ _id: ID_A, priority: 1, title: "A" }]);
+  let escribio = false;
+  Promotion.bulkWrite = async () => {
+    escribio = true;
+    return {};
+  };
+  limpio();
+
+  try {
+    assert.deepEqual(await promotions.move(ID_A, "up", ADMIN), { moved: false });
+    assert.equal(escribio, false);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "bulkWrite", originalBulk);
+    limpio();
+  }
+});
+
+test("el panel recibe el estado ya resuelto y las fechas en formato de formulario", async () => {
+  const originalFind = Promotion.find;
+  const originalCount = Promotion.countDocuments;
+
+  mockFind([
+    {
+      _id: ID_A,
+      title: "Campaña pausada",
+      active: false,
+      endsAt: new Date("2030-01-01T02:59:59.999Z"),
+      impressions: 100,
+      clicks: 5,
+    },
+  ]);
+  Promotion.countDocuments = async () => 1;
+  limpio();
+
+  try {
+    const { items } = await promotions.listAll({});
+    const fila = items[0];
+
+    // El estado lo calcula el server con el MISMO código que decide si la campaña
+    // se muestra. Que lo recalcule el navegador es la garantía de que algún día el
+    // panel va a decir "Activa" sobre algo que la app no muestra.
+    assert.equal(fila.state, "paused");
+    assert.equal(fila.stateLabel, "Pausada");
+    assert.ok(fila.stateHint, "cada estado explica su razón");
+
+    // La fecha vuelve como el día que se cargó, no corrida por la zona horaria.
+    assert.equal(fila.form.endsAt, "2029-12-31");
+
+    // 5 de 100 sí alcanza el mínimo para mostrar porcentaje.
+    assert.equal(fila.ctr, 5);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "countDocuments", originalCount);
+    limpio();
+  }
+});
+
+test("el porcentaje de clic no se muestra con pocos datos", async () => {
+  const originalFind = Promotion.find;
+  const originalCount = Promotion.countDocuments;
+
+  // 1 clic de 3 impresiones no es "33% de efectividad": es ruido. Un número así en
+  // un informe invita a una conclusión que el dato no aguanta.
+  mockFind([{ _id: ID_A, title: "Recién publicada", active: true, impressions: 3, clicks: 1 }]);
+  Promotion.countDocuments = async () => 1;
+  limpio();
+
+  try {
+    const { items } = await promotions.listAll({});
+    assert.equal(items[0].ctr, null);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "countDocuments", originalCount);
+    limpio();
   }
 });

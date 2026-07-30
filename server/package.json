@@ -11,6 +11,7 @@
     "role": "node scripts/setRole.js",
     "migrate:lots": "node scripts/migrateLots.js",
     "migrate:names": "node scripts/migrateWineNames.js",
+    "migrate:promos": "node scripts/migratePromotions.js",
     "mail:test": "node scripts/testEmail.js"
   },
   "keywords": [],

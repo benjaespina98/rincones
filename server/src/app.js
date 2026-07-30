@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 
+const { corsOptions } = require("./config/cors");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const labelsRoutes = require("./routes/labels.routes");
@@ -41,7 +42,11 @@ const limiter = rateLimit({
   // sesión larga mandaría decenas de eventos y podría dejar sin cuota a la
   // pantalla siguiente. Y al revés: alguien usando mucho la app se quedaría sin
   // poder reportar nada, sesgando justo los datos de los usuarios más activos.
-  skip: (req) => req.path === "/api/analytics/collect",
+  // Lo mismo vale para el conteo de impresiones de los destacados: tiene su propio
+  // límite (ver routes/promotions.routes.js) y no puede comerle cuota a lo que el
+  // usuario necesita.
+  skip: (req) =>
+    req.path === "/api/analytics/collect" || req.path === "/api/promotions/events",
 });
 
 // Aplicar rate limiting más estricto a login
@@ -63,59 +68,10 @@ const forgotLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const parseAllowedOrigins = () => {
-  const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  return new Set([
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    // Vite salta al siguiente puerto libre cuando 5173 está ocupado, y el primero
-    // al que salta es 5174 — que era justamente el que faltaba en esta lista. El
-    // síntoma es desconcertante: la app carga pero TODAS las llamadas fallan por
-    // CORS, y sólo porque quedó otro `npm run dev` abierto en otra terminal.
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "http://localhost:5176",
-    "http://localhost:5177",
-    "https://rincones.vercel.app",
-    "https://www.rincones.vercel.app",
-    "https://rincones-api.vercel.app",
-    ...configuredOrigins,
-  ]);
-};
-
-const allowedOrigins = parseAllowedOrigins();
-const allowVercelPreviews = String(process.env.CORS_ALLOW_VERCEL_PREVIEWS || "false").toLowerCase() === "true";
-const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
-
-const corsOptions = {
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) {
-      return callback(null, true);
-    }
-
-    if (allowVercelPreviews && vercelPreviewPattern.test(origin)) {
-      return callback(null, true);
-    }
-
-    const error = new Error("Origen no permitido por CORS");
-    error.statusCode = 403;
-    return callback(error);
-  },
-  // PATCH faltaba y rompía en silencio TRES funciones desde el navegador: ajustar
-  // stock (PATCH /wines/:id/stock), pasar un guardado a la bodega y marcar
-  // favorito en Guardados. El preflight las rechazaba antes de llegar al server,
-  // así que en el back no quedaba ni rastro del error.
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true, // Permitir cookies
-};
-
+// La política vive en config/cors.js, no acá. Estaba escrita también en el
+// entrypoint de Vercel y las dos copias se separaron: PATCH quedó permitido en
+// esta y no en la otra, y eso rompió en producción —sólo en producción— el "+"/"−"
+// del stock, pasar un guardado a la bodega y marcar favorito en Guardados.
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 

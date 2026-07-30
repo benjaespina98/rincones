@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "./Icon";
+import PromoCard from "./PromoCard";
 import { trackPromoClick, trackPromoImpression } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
@@ -11,11 +11,8 @@ import "./PromoCarousel.css";
  *
  * ── LAS DECISIONES QUE LO HACEN PROFESIONAL Y NO MOLESTO ────────────────────
  *
- * 1. LO PAGO SE DECLARA PAGO. Una tarjeta con `sponsored` lleva el cartel
- *    "Publicidad", siempre y sin excepción. No es un requisito legal a
- *    regañadientes: es lo que mantiene creíble a TODO lo demás de la pantalla.
- *    El día que el usuario no sepa si una recomendación es una recomendación,
- *    dejó de confiar en la app entera.
+ * 1. LO PAGO SE DECLARA PAGO. Lo resuelve PromoCard, que es la misma tarjeta que
+ *    se ve en la vista previa del panel.
  *
  * 2. LA ROTACIÓN NO PELEA CON EL USUARIO. Se pausa al pasar el dedo o el mouse,
  *    al enfocar con teclado y mientras la pestaña está en segundo plano. Un
@@ -26,13 +23,22 @@ import "./PromoCarousel.css";
  *    flechas y los puntos quedan, el automatismo no. Para quien tiene vértigo o
  *    trastornos vestibulares, una animación que no pidió no es un detalle.
  *
- * 4. SE PUEDE MANEJAR A MANO. Puntos para ir directo, flechas en escritorio,
- *    swipe nativo en celular y foco por teclado. El movimiento automático es una
- *    cortesía, nunca la única forma de ver algo.
+ * 4. SE PUEDE MANEJAR A MANO. Puntos para ir directo, swipe nativo en celular y
+ *    foco por teclado. El movimiento automático es una cortesía, nunca la única
+ *    forma de ver algo.
  *
- * 5. NO DEJA UN HUECO. Sin campañas cargadas no renderiza nada y Descubrí sigue
+ * 5. NO DEJA UN HUECO. Sin campañas al aire no renderiza nada y Descubrí sigue
  *    mostrando su contenido curado: la pantalla nunca queda con un espacio vacío
  *    esperando publicidad que no existe.
+ *
+ * ── QUÉ CUENTA COMO IMPRESIÓN ───────────────────────────────────────────────
+ * Una tarjeta que existe en el DOM no es una tarjeta que alguien vio. El carrusel
+ * está arriba de todo pero puede quedar bajo el borde de la pantalla, y contar una
+ * impresión por eso sería cobrarle a un anunciante por algo que no pasó. Se cuenta
+ * cuando la tarjeta estuvo AL MENOS A LA MITAD A LA VISTA DURANTE UN SEGUNDO
+ * seguido, que es el criterio que usa la industria, y una sola vez por tarjeta y
+ * por visita: si no, la rotación automática sumaría una impresión cada seis
+ * segundos y el número diría cuánto tiempo alguien dejó la pestaña abierta.
  *
  * ── SWIPE SIN LIBRERÍA ──────────────────────────────────────────────────────
  * El desplazamiento es `overflow-x` con `scroll-snap` del CSS. Trae gratis el
@@ -44,26 +50,12 @@ import "./PromoCarousel.css";
 /** Cada cuánto pasa a la siguiente. Suficiente para leer un título y bajada. */
 const INTERVALO_MS = 6500;
 
+/** Cuánto tiene que estar a la vista para que cuente como vista. */
+const MS_PARA_CONTAR = 1000;
+
 const prefiereQuieto = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-
-/** Fecha del evento en lenguaje corto: "12 de octubre". */
-const fechaCorta = (valor) => {
-  if (!valor) return "";
-  const d = new Date(valor);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-};
-
-/** Lugar · fecha, lo concreto primero. Vacío si la tarjeta no tiene ninguno. */
-const subtitulo = (promo) => {
-  const partes = [
-    promo.place?.venue || promo.place?.city,
-    fechaCorta(promo.eventAt),
-  ];
-  return partes.filter(Boolean).join(" · ");
-};
 
 export default function PromoCarousel({ promos = [] }) {
   const navigate = useNavigate();
@@ -72,55 +64,80 @@ export default function PromoCarousel({ promos = [] }) {
   const [pausado, setPausado] = useState(false);
   // Se lee una vez al montar y no en cada render: el valor no cambia solo.
   const [quieto] = useState(prefiereQuieto);
+  // Sin IntersectionObserver (navegador viejo) se asume visible desde el arranque:
+  // perder TODAS las impresiones es peor que contar alguna que quedó abajo del
+  // borde de la pantalla.
+  const [aLaVista, setALaVista] = useState(
+    () => typeof IntersectionObserver === "undefined"
+  );
   const vistas = useRef(new Set());
 
   const total = promos.length;
 
   /**
-   * Impresión: se cuenta una sola vez por tarjeta y por visita.
-   *
-   * Sin el `Set`, la rotación automática sumaría una impresión cada 6 segundos
-   * indefinidamente y el número no significaría nada —le estarías reportando a un
-   * anunciante cuánto tiempo dejó la pestaña abierta una persona—.
+   * Visibilidad real de la sección. Es la puerta de entrada del conteo: sin esto
+   * una tarjeta que nunca entró en pantalla contaría igual.
    */
-  const registrarImpresion = useCallback((promo) => {
-    if (!promo?._id || vistas.current.has(promo._id)) return;
-    vistas.current.add(promo._id);
-    trackPromoImpression(promo._id);
+  useEffect(() => {
+    const pista = pistaRef.current;
+    if (!pista || typeof IntersectionObserver === "undefined") return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entrada]) => setALaVista(entrada.isIntersecting),
+      { threshold: 0.5 }
+    );
+    observer.observe(pista);
+    return () => observer.disconnect();
   }, []);
 
+  /**
+   * Impresión: una sola vez por tarjeta y por visita, y sólo si la tarjeta se
+   * sostuvo a la vista. El temporizador se cancela al cambiar de tarjeta o al
+   * salir de pantalla, así que pasar de largo scrolleando no cuenta.
+   */
   useEffect(() => {
-    if (promos[activo]) registrarImpresion(promos[activo]);
-  }, [activo, promos, registrarImpresion]);
+    const promo = promos[activo];
+    if (!aLaVista || !promo?._id || vistas.current.has(promo._id)) return undefined;
 
-  const irA = useCallback((indice) => {
-    const pista = pistaRef.current;
-    if (!pista) return;
-    const destino = ((indice % total) + total) % total;
-    const tarjeta = pista.children[destino];
-    if (tarjeta) {
-      pista.scrollTo({
-        left: tarjeta.offsetLeft - pista.offsetLeft,
-        behavior: prefiereQuieto() ? "auto" : "smooth",
-      });
-    }
-    setActivo(destino);
-  }, [total]);
+    const timer = setTimeout(() => {
+      vistas.current.add(promo._id);
+      trackPromoImpression(promo._id);
+    }, MS_PARA_CONTAR);
+
+    return () => clearTimeout(timer);
+  }, [activo, promos, aLaVista]);
+
+  const irA = useCallback(
+    (indice) => {
+      const pista = pistaRef.current;
+      if (!pista) return;
+      const destino = ((indice % total) + total) % total;
+      const tarjeta = pista.children[destino];
+      if (tarjeta) {
+        pista.scrollTo({
+          left: tarjeta.offsetLeft - pista.offsetLeft,
+          behavior: prefiereQuieto() ? "auto" : "smooth",
+        });
+      }
+      setActivo(destino);
+    },
+    [total]
+  );
 
   // Rotación automática. Se apaga con una sola tarjeta (no hay a dónde ir),
-  // mientras el usuario está encima y si pidió menos movimiento.
+  // mientras el usuario está encima, si pidió menos movimiento y cuando el
+  // carrusel no está a la vista: rotar algo que nadie está mirando gasta batería
+  // y hace que al volver la persona encuentre una tarjeta que nunca eligió.
   useEffect(() => {
-    if (total <= 1 || pausado || quieto) return undefined;
+    if (total <= 1 || pausado || quieto || !aLaVista) return undefined;
 
     const id = setInterval(() => {
-      // En segundo plano no tiene sentido rotar: gasta batería y cuando el
-      // usuario vuelve encuentra una tarjeta que nunca eligió.
       if (document.visibilityState !== "visible") return;
       irA(activo + 1);
     }, INTERVALO_MS);
 
     return () => clearInterval(id);
-  }, [activo, total, pausado, quieto, irA]);
+  }, [activo, total, pausado, quieto, aLaVista, irA]);
 
   /**
    * El índice sale del scroll y no de un contador propio: si no, al deslizar con
@@ -153,7 +170,8 @@ export default function PromoCarousel({ promos = [] }) {
     if (!destino) return;
 
     // Un enlace interno navega dentro de la app; uno externo abre pestaña nueva
-    // y no se lleva puesta la sesión de nadie (`noopener`).
+    // y no se lleva puesta la sesión de nadie (`noopener`). El server ya rechazó
+    // cualquier esquema que no sea http(s) o una ruta interna.
     if (destino.startsWith("/")) navigate(destino);
     else window.open(destino, "_blank", "noopener,noreferrer");
   };
@@ -167,7 +185,7 @@ export default function PromoCarousel({ promos = [] }) {
     [activo, total, promos]
   );
 
-  // Sin nada vigente no hay hueco: la sección simplemente no existe.
+  // Sin nada al aire no hay hueco: la sección simplemente no existe.
   if (total === 0) return null;
 
   return (
@@ -183,59 +201,14 @@ export default function PromoCarousel({ promos = [] }) {
     >
       <div className="promos__track" ref={pistaRef} onScroll={onScroll}>
         {promos.map((promo, i) => (
-          <article
+          <PromoCard
             key={promo._id}
-            className={`promo ${promo.sponsored ? "is-sponsored" : ""}`}
-            style={promo.accent ? { "--promo-accent": promo.accent } : undefined}
+            promo={promo}
+            onOpen={abrir}
             // Las que no se ven quedan fuera del recorrido por teclado: tabular
             // por tarjetas invisibles es desorientador.
-            aria-hidden={i !== activo ? "true" : undefined}
-          >
-            {promo.image && (
-              <img
-                className="promo__bg"
-                src={promo.image}
-                alt=""
-                loading="lazy"
-                decoding="async"
-              />
-            )}
-
-            <div className="promo__body">
-              <span className="promo__kicker">
-                {promo.sponsored ? (
-                  // El cartel de publicidad va primero y sin eufemismos.
-                  <span className="promo__adtag">Publicidad</span>
-                ) : (
-                  <>
-                    <Icon name={promo.kind === "event" ? "calendar" : "sparkle"} size={12} />
-                    {promo.kind === "event" ? "Evento" : "Destacado"}
-                  </>
-                )}
-                {promo.sponsor?.name && (
-                  <span className="promo__sponsor">{promo.sponsor.name}</span>
-                )}
-              </span>
-
-              <h3 className="promo__title">{promo.title}</h3>
-              {promo.summary && <p className="promo__summary">{promo.summary}</p>}
-
-              <div className="promo__foot">
-                {subtitulo(promo) && <span className="promo__meta">{subtitulo(promo)}</span>}
-                {promo.url && (
-                  <button
-                    type="button"
-                    className="promo__cta"
-                    onClick={() => abrir(promo)}
-                    tabIndex={i === activo ? 0 : -1}
-                  >
-                    {promo.ctaLabel || "Ver más"}
-                    <Icon name="arrow-right" size={15} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </article>
+            interactive={i === activo}
+          />
         ))}
       </div>
 

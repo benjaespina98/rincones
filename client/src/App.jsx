@@ -5,6 +5,7 @@ import AppLayout from "./components/AppLayout";
 import PageviewTracker from "./components/PageviewTracker";
 import SplashScreen from "./components/SplashScreen";
 import { initAnalytics } from "./services/analyticsApi";
+import { initPromoTracking } from "./services/promotionsApi";
 import "./App.css";
 
 // Páginas cargadas de forma diferida para achicar el bundle inicial.
@@ -37,6 +38,11 @@ function App() {
   // Devuelve su limpieza para que el doble montaje de StrictMode en desarrollo no
   // deje listeners duplicados (ver services/analyticsApi.js).
   useEffect(() => initAnalytics(), []);
+  // Lo mismo para las impresiones de los destacados: si la pestaña se cierra con
+  // la cola llena, se va con `sendBeacon` en vez de perderse. Son los números que
+  // se le informan a un anunciante, así que no pueden depender de que la visita
+  // haya durado lo suficiente.
+  useEffect(() => initPromoTracking(), []);
 
   return (
     <Suspense fallback={<RouteFallback />}>

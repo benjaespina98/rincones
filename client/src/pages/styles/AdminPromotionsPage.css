@@ -1,6 +1,10 @@
-/* ══ Panel de destacados ══════════════════════════════════════════════════
-   Un formulario largo que se completa desde el celular: campos apilados, área
-   táctil generosa, y la ayuda de cada campo debajo y no en un tooltip.
+/* ══ Gestor de campañas ═══════════════════════════════════════════════════
+   Se maneja desde el celular: campos apilados, área táctil generosa, y la ayuda
+   de cada campo debajo y no en un tooltip que en un celular no existe.
+
+   La jerarquía de la pantalla responde al orden en que se hacen las preguntas:
+   primero QUÉ HAY (el resumen), después QUÉ SE ESTÁ MOSTRANDO (la línea de
+   estado), y sólo entonces la lista.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .pr {
@@ -8,11 +12,54 @@
   gap: 14px;
 }
 
+/* ── Resumen por estado, que además filtra ───────────────────────────────── */
+
+.pr__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.pr__pill {
+  display: grid;
+  gap: 1px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pr__pill strong {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.pr__pill span {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.pr__pill.is-active {
+  border-color: var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+}
+
+/* El estado "Activa" es el único que significa "esto se está viendo ahora", así
+   que es el único con color propio en el resumen: si todos gritan, ninguno se lee. */
+.pr__pill--active strong {
+  color: #7fe3b4;
+}
+
 .pr__bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -35,9 +82,49 @@
   background: rgba(126, 89, 201, 0.24);
 }
 
-.pr__count {
-  font-size: var(--text-xs);
+.pr__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   color: var(--text-secondary);
+}
+
+.pr__search input {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--text-base);
+}
+
+.pr__search input:focus {
+  outline: none;
+}
+
+/* La línea que contesta "¿qué está al aire?" antes de que haya que preguntarlo. */
+.pr__live-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.pr__live-note strong {
+  color: var(--text);
 }
 
 /* ── Formulario ──────────────────────────────────────────────────────────── */
@@ -73,6 +160,38 @@
   background: var(--surface-2);
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+/* ── Vista previa ────────────────────────────────────────────────────────── */
+
+.pr__preview {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-strong);
+  background: var(--surface);
+}
+
+/* La tarjeta se limita al ancho que tiene en un celular.
+   Una vista previa estirada a 1400px en un monitor no es una vista previa: el
+   texto entra en una línea, el botón queda lejísimo del título y nada de eso se
+   parece a lo que va a ver la persona que abre la app. Casi todo el tráfico es
+   móvil, así que la vista previa se muestra en móvil. */
+.pr__preview .promo {
+  max-width: 420px;
+  width: 100%;
+}
+
+.pr__preview-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 /* Evento o publicidad: la decisión que cambia lo que ve el usuario, así que se
@@ -197,21 +316,79 @@
   color: var(--text-secondary);
 }
 
-.pr__check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--text);
+/* ── Interruptor de visible ──────────────────────────────────────────────────
+   Es un interruptor y no una casilla porque no describe un atributo del objeto:
+   ejecuta algo que pasa afuera ("se ve / no se ve en la app"). Un checkbox se lee
+   como un dato del formulario, y esta es la decisión más consecuente de la
+   pantalla. */
+
+.pr__switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   cursor: pointer;
 }
 
-.pr__check input {
+.pr__switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pr__switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 28px;
+  margin-top: 1px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pr__switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
   width: 20px;
   height: 20px;
-  accent-color: var(--accent);
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.pr__switch input:checked + .pr__switch-track {
+  background: rgba(47, 182, 123, 0.28);
+  border-color: rgba(47, 182, 123, 0.6);
+}
+
+.pr__switch input:checked + .pr__switch-track::after {
+  transform: translateX(18px);
+  background: #7fe3b4;
+}
+
+.pr__switch input:focus-visible + .pr__switch-track {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.pr__switch-text {
+  display: grid;
+  gap: 2px;
+}
+
+.pr__switch-text strong {
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.pr__switch-text small {
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
 }
 
 .pr__actions {
@@ -233,12 +410,25 @@
 
 .pr__item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  flex-wrap: wrap;
   padding: 12px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--elevated);
+}
+
+/* Lo que está al aire se distingue del resto con un borde propio: la lista se
+   escanea buscando eso. Lo finalizado baja un poco de contraste —sigue siendo
+   consultable, pero ya no compite por atención—. */
+.pr__item--active {
+  border-color: rgba(47, 182, 123, 0.35);
+}
+
+.pr__item--ended .pr__item-title,
+.pr__item--ended .pr__item-meta {
+  opacity: 0.72;
 }
 
 .pr__item-main {
@@ -246,6 +436,13 @@
   gap: 3px;
   min-width: 0;
   flex: 1;
+}
+
+.pr__item-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .pr__item-title {
@@ -258,9 +455,14 @@
 }
 
 .pr__item-meta,
+.pr__item-hint,
 .pr__item-stats {
   font-size: var(--text-2xs);
   color: var(--text-secondary);
+}
+
+.pr__item-hint {
+  opacity: 0.8;
 }
 
 .pr__item-stats {
@@ -269,8 +471,8 @@
 
 /* El estado tiene color propio: "¿por qué no se ve mi campaña?" se responde de
    un vistazo y no probando cosas. */
-.pr__state {
-  justify-self: start;
+.pr__state,
+.pr__tag-ad {
   padding: 2px 8px;
   border-radius: var(--radius-full);
   font-size: var(--text-2xs);
@@ -279,7 +481,7 @@
   text-transform: uppercase;
 }
 
-.pr__state--live {
+.pr__state--active {
   background: rgba(47, 182, 123, 0.16);
   border: 1px solid rgba(47, 182, 123, 0.45);
   color: #7fe3b4;
@@ -291,17 +493,36 @@
   color: var(--accent-soft);
 }
 
-.pr__state--expired,
 .pr__state--paused {
+  background: rgba(214, 158, 46, 0.14);
+  border: 1px solid rgba(214, 158, 46, 0.42);
+  color: #e8c37a;
+}
+
+.pr__state--ended {
   background: var(--surface-2);
   border: 1px solid var(--line);
   color: var(--text-secondary);
 }
 
+/* Que algo sea espacio pago se ve también en el panel: es la información que
+   cambia cómo se lo trata. */
+.pr__tag-ad {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+}
+
 .pr__item-actions {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.pr__order {
+  display: grid;
+  gap: 2px;
 }
 
 .pr__icon {
@@ -317,12 +538,54 @@
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.pr__icon:hover {
+.pr__icon--small {
+  width: 34px;
+  height: 19px;
+}
+
+.pr__icon:hover:not(:disabled) {
   border-color: var(--line-accent);
   color: var(--accent-soft);
 }
 
-.pr__icon--danger:hover {
+.pr__icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* El ojo abierto es el estado "se está viendo": el control dice en qué estado
+   está, no sólo qué hace al tocarlo. */
+.pr__icon.is-on {
+  border-color: rgba(47, 182, 123, 0.45);
+  color: #7fe3b4;
+}
+
+.pr__icon--danger:hover:not(:disabled) {
   border-color: rgba(198, 70, 95, 0.5);
   color: #ff8fa3;
+}
+
+/* El informe se abre debajo de su fila y no en un modal: así se puede comparar
+   con las otras campañas sin cerrar nada. */
+.pr__item-report {
+  flex-basis: 100%;
+  margin-top: 4px;
+}
+
+.pr__pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr__icon,
+  .pr__switch-track,
+  .pr__switch-track::after {
+    transition: none;
+  }
 }

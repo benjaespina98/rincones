@@ -1,7 +1,14 @@
 const mongoose = require("mongoose");
+const {
+  parseFecha,
+  urlSegura,
+  imagenSegura,
+  colorSeguro,
+} = require("../utils/promotionState");
 
 /**
- * Un destacado de la pantalla Descubrí: una publicidad paga o un evento real.
+ * Una campaña del espacio destacado de Descubrí: una publicidad paga o un evento
+ * real.
  *
  * ── POR QUÉ NO ES OTRO ÍTEM DE discoverContent.js ───────────────────────────
  * El contenido de "Aprendé y explorá" es curaduría: está ahí porque vale la
@@ -11,14 +18,23 @@ const mongoose = require("mongoose");
  * y por eso `sponsored` obliga a mostrar el cartel de "Publicidad": no es un
  * detalle legal molesto, es lo que mantiene creíble a todo lo demás.
  *
- * ── LO QUE HACE QUE ESTO SIRVA EL DÍA QUE HAYA UN ANUNCIANTE ────────────────
- *  - Ventana de vigencia (`startsAt`/`endsAt`): una campaña se apaga sola el día
- *    que termina. Nadie tiene que acordarse de bajarla un domingo.
+ * ── LO QUE HACE QUE ESTO SIRVA FRENTE A ALGUIEN QUE PAGA ────────────────────
+ *  - Ventana de vigencia (`startsAt`/`endsAt`): la campaña se apaga sola el día
+ *    que termina. Nadie tiene que acordarse de bajarla un domingo. Y se lee en
+ *    día calendario argentino, así que "hasta el 31" incluye el 31 completo (ver
+ *    utils/promotionState.js: parseFecha).
  *  - `priority`: quién va primero cuando hay varias. Sin esto el orden lo decide
  *    el azar del índice, que es indefendible frente a quien pagó.
- *  - `impressions` / `clicks`: lo primero que pregunta un anunciante. Si no se
- *    cuentan desde el principio, el primer mes no tiene números.
- *  - `active`: bajar algo YA, sin borrarlo ni perder sus métricas.
+ *  - `active`: bajarla YA, sin borrarla ni perder sus métricas.
+ *  - Contadores acumulados acá + serie diaria en promotionStat.model.js. El
+ *    número de la vida de la campaña se lee sin agregación, y la evolución día
+ *    por día está cuando hay que justificar una factura.
+ *
+ * ── LO QUE SE VALIDA, Y POR QUÉ NO ALCANZA CON CONFIAR EN EL PANEL ──────────
+ * Las URLs, el color y la coherencia de la ventana se validan EN EL MODELO. El
+ * panel también lo hace, pero el panel es una conveniencia: el server es el único
+ * lugar por el que pasa todo, hoy con un administrador cargando a mano y mañana
+ * con una integración o un formulario de autogestión del anunciante.
  */
 const promotionSchema = new mongoose.Schema(
   {
@@ -35,14 +51,14 @@ const promotionSchema = new mongoose.Schema(
       type: String,
       required: [true, "El título es obligatorio"],
       trim: true,
-      maxlength: 90,
+      maxlength: [90, "El título no puede pasar de 90 caracteres"],
     },
     // Una línea. El límite es a propósito: en una tarjeta de celular, más texto
     // no se lee — se saltea.
     summary: {
       type: String,
       trim: true,
-      maxlength: 160,
+      maxlength: [160, "La bajada no puede pasar de 160 caracteres"],
       default: "",
     },
     // Imagen de fondo (URL). Opcional: sin ella la tarjeta usa un degradado con
@@ -51,24 +67,40 @@ const promotionSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+      validate: {
+        validator: (v) => imagenSegura(v) !== null,
+        message: "La imagen tiene que ser una URL http(s)",
+      },
     },
     // A dónde lleva. Externa (sitio del anunciante) o interna (/descubrir/...).
     url: {
       type: String,
       trim: true,
       default: "",
+      validate: {
+        validator: (v) => urlSegura(v) !== null,
+        message: 'El enlace tiene que empezar con "https://" o con "/"',
+      },
     },
     ctaLabel: {
       type: String,
       trim: true,
-      maxlength: 30,
+      maxlength: [30, "El texto del botón no puede pasar de 30 caracteres"],
       default: "",
     },
     // Quién lo publica. En una publicidad es obligatorio en la práctica: el
     // usuario tiene derecho a saber de quién es el mensaje.
     sponsor: {
       name: { type: String, trim: true, maxlength: 60, default: "" },
-      logo: { type: String, trim: true, default: "" },
+      logo: {
+        type: String,
+        trim: true,
+        default: "",
+        validate: {
+          validator: (v) => imagenSegura(v) !== null,
+          message: "El logo tiene que ser una URL http(s)",
+        },
+      },
     },
     /**
      * Si esto es espacio pago. Lo fuerza el hook de abajo cuando `kind` es "ad":
@@ -86,6 +118,10 @@ const promotionSchema = new mongoose.Schema(
       trim: true,
       maxlength: 30,
       default: "",
+      validate: {
+        validator: (v) => colorSeguro(v) !== null,
+        message: "El color de acento tiene que ser un color CSS (#c6465f, rgb(…) o un nombre)",
+      },
     },
     // Cuándo se muestra. `startsAt` vacío = desde ya; `endsAt` vacío = hasta que
     // lo bajes a mano.
@@ -94,21 +130,54 @@ const promotionSchema = new mongoose.Schema(
     // Cuándo ES el evento (distinto de cuándo se muestra la tarjeta: una feria de
     // octubre se promociona desde agosto).
     eventAt: { type: Date, default: null },
+    /**
+     * Clave de orden secundaria, derivada de `eventAt`.
+     *
+     * Existe para que el orden lo haga MONGO y no JavaScript. Antes se traían
+     * todas las campañas vigentes y se ordenaban en memoria: con veinte campañas
+     * da igual, con dos mil se traen dos mil documentos en cada visita a Descubrí
+     * para mostrar seis. Con este campo el índice cubre `sort` + `limit` y la
+     * consulta toca exactamente las seis filas que se van a mostrar.
+     *
+     * El truco que resuelve: `eventAt` nulo tiene que ordenar AL FINAL, y Mongo
+     * pone los nulos primero en orden ascendente. Acá un nulo se guarda como una
+     * fecha lejanísima, así que cae solo donde corresponde sin ningún caso
+     * especial en la consulta.
+     */
+    sortDate: { type: Date, default: null },
     place: {
       city: { type: String, trim: true, maxlength: 60, default: "" },
       venue: { type: String, trim: true, maxlength: 80, default: "" },
     },
+    /**
+     * Visible en la app. Es el interruptor de "mostrar/ocultar" y también el de
+     * "pausar sin eliminar": son la misma operación, y tener dos casillas que
+     * significan casi lo mismo es la forma más rápida de que una campaña quede
+     * apagada por la otra y nadie encuentre por qué.
+     */
     active: {
       type: Boolean,
       default: true,
     },
-    // Mayor va primero.
+    // Mayor va primero. Acotada a propósito: un valor absurdo (1e9, -Infinity)
+    // convierte la clave de orden en algo que nadie puede razonar después.
     priority: {
       type: Number,
       default: 0,
+      min: [0, "La prioridad va de 0 a 999"],
+      max: [999, "La prioridad va de 0 a 999"],
     },
+    /**
+     * Totales de toda la vida de la campaña.
+     *
+     * `impressions` cuenta veces mostrada y `reach` personas distintas que la
+     * vieron. Son dos números diferentes y confundirlos es la forma clásica de
+     * reportarle a un anunciante el triple de lo que pasó: la misma persona
+     * abriendo Descubrí tres veces es una impresión cada vez, pero UNA persona.
+     */
     impressions: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
+    reach: { type: Number, default: 0 },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -120,25 +189,59 @@ const promotionSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-// La consulta pública es siempre la misma: lo activo y vigente, por prioridad.
-promotionSchema.index({ active: 1, startsAt: 1, endsAt: 1, priority: -1 });
+/**
+ * El índice de la consulta pública, en el orden exacto en que se usa:
+ * igualdad (`active`) → rangos (las fechas) → orden (`priority`, `sortDate`).
+ * Así Mongo resuelve filtro, orden y `limit` con el índice solo, sin traer ni
+ * ordenar en memoria. Es lo que hace que la portada cueste lo mismo con veinte
+ * campañas que con veinte mil.
+ */
+promotionSchema.index({ active: 1, startsAt: 1, endsAt: 1, priority: -1, sortDate: 1 });
+// El panel lista por prioridad y por lo más nuevo.
+promotionSchema.index({ priority: -1, createdAt: -1 });
 
 promotionSchema.pre("save", function () {
   this.updatedAt = new Date();
 });
 
 /**
- * Una publicidad se declara publicidad. No es opcional y no depende de que
- * alguien tilde una casilla en el panel.
+ * Las invariantes de una campaña, todas juntas y antes de que se guarde.
  *
  * Va en `validate` y no en `save` por la misma razón que el hook de lotes de
  * wine.model.js: `validate` corre como parte de cualquier `save()`, así que cubre
- * los mismos caminos, y además deja la regla comprobable sin una base de datos
- * de por medio. Una invariante que sólo se puede testear con Mongo levantado es
- * una invariante que en la práctica nadie testea.
+ * los mismos caminos, y además deja las reglas comprobables sin una base de datos
+ * de por medio.
  */
+// Año 3000: cualquier `eventAt` real cae antes, así que las campañas sin fecha de
+// evento quedan siempre al final de su grupo de prioridad.
+const SIN_FECHA_DE_EVENTO = new Date("3000-01-01T00:00:00.000Z");
+
 promotionSchema.pre("validate", function () {
+  // Una publicidad se declara publicidad. No es opcional y no depende de que
+  // alguien tilde una casilla en el panel.
   if (this.kind === "ad") this.sponsored = true;
+
+  this.sortDate = this.eventAt || SIN_FECHA_DE_EVENTO;
+
+  /**
+   * Una ventana al revés no se guarda.
+   *
+   * Sin esto la campaña se acepta, no se muestra nunca y el panel la reporta como
+   * "Finalizada" el mismo día que se cargó. El administrador ve un estado raro sin
+   * ninguna explicación y el error se descubre cuando el anunciante pregunta por
+   * qué no salió. Es exactamente el tipo de error que hay que hacer ruidoso en el
+   * momento de cargarlo, que es cuando se puede arreglar en dos segundos.
+   */
+  if (this.startsAt && this.endsAt && this.endsAt.getTime() < this.startsAt.getTime()) {
+    this.invalidate(
+      "endsAt",
+      "La fecha de fin no puede ser anterior a la de inicio: la campaña no se mostraría nunca"
+    );
+  }
 });
+
+/** El instante desde el que una fecha del panel arranca / termina. */
+promotionSchema.statics.parseDesde = (valor) => parseFecha(valor, "inicio");
+promotionSchema.statics.parseHasta = (valor) => parseFecha(valor, "fin");
 
 module.exports = mongoose.model("Promotion", promotionSchema);

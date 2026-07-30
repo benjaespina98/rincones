@@ -7,73 +7,35 @@ dotenv.config({
 
 const app = require("../src/app");
 const connectToDatabase = require("../src/config/db");
+const { applyCorsHeaders } = require("../src/config/cors");
 
-const parseAllowedOrigins = () => {
-  const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  return new Set([
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    "http://localhost:5177",
-    "http://localhost:5176",
-    "http://localhost:5175",
-    "https://rincones.vercel.app",
-    "https://www.rincones.vercel.app",
-    "https://rincones-api.vercel.app",
-    ...configuredOrigins,
-  ]);
-};
-
-const allowedOrigins = parseAllowedOrigins();
-const allowVercelPreviews =
-  String(process.env.CORS_ALLOW_VERCEL_PREVIEWS || "false").toLowerCase() === "true";
-const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
-
-const getAllowedOrigin = (origin) => {
-  if (!origin) {
-    return null;
-  }
-
-  if (allowedOrigins.has(origin)) {
-    return origin;
-  }
-
-  if (allowVercelPreviews && vercelPreviewPattern.test(origin)) {
-    return origin;
-  }
-
-  return null;
-};
-
-const applyCorsHeaders = (req, res) => {
-  const origin = String(req.headers.origin || "");
-  const allowedOrigin = getAllowedOrigin(origin);
-
-  if (allowedOrigin) {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-    res.setHeader("Vary", "Origin");
-  }
-};
-
+/**
+ * El entrypoint de Vercel.
+ *
+ * ── LO ÚNICO QUE HACE, Y POR QUÉ NO HACE MÁS ────────────────────────────────
+ * Asegura la conexión a la base (en serverless el proceso arranca frío) y le pasa
+ * la petición a la app de Express. Nada más.
+ *
+ * Antes también reimplementaba CORS acá y contestaba el preflight por su cuenta,
+ * ANTES de que Express viera la petición. Eso hacía que la política de `app.js`
+ * —la que se lee, la que se testea, la que se toca cuando hay que cambiar algo—
+ * no fuera la que regía en producción. Cuando se agregó PATCH a una lista y no a
+ * la otra, el resultado fue que en producción el "+"/"−" del stock, pasar un
+ * guardado a la bodega y marcar favorito dejaron de funcionar sin dejar rastro en
+ * ningún log: el navegador rechazaba el preflight y la petición nunca salía.
+ *
+ * Ahora el preflight lo contesta Express con la misma configuración que el resto
+ * (`app.options` en app.js) y acá no queda ninguna copia que pueda quedar vieja.
+ */
 module.exports = async (req, res) => {
-  applyCorsHeaders(req, res);
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
   try {
     await connectToDatabase();
     return app(req, res);
   } catch (error) {
+    // Esta respuesta sale FUERA de Express, así que las cabeceras hay que ponerlas
+    // a mano: sin ellas, una caída de la base le llega al navegador disfrazada de
+    // error de CORS y el mensaje real queda oculto justo cuando más falta hace.
+    applyCorsHeaders(req, res);
     return res.status(500).json({
       message: "Error al conectar con la base de datos",
       details: error.message,

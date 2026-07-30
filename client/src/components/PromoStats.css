@@ -1,0 +1,166 @@
+/* ══ Informe de una campaña ═══════════════════════════════════════════════
+   Pensado para leerse en un celular y para poder mostrárselo a un anunciante:
+   números grandes, cada uno con su unidad dicha en palabras, y el gráfico como
+   apoyo y no como protagonista.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pstats {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-accent);
+  background: var(--elevated);
+}
+
+.pstats__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pstats__head h4 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 800;
+}
+
+.pstats__range {
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.pstats__close {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pstats__periods {
+  display: flex;
+  gap: 6px;
+}
+
+.pstats__period {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pstats__period.is-active {
+  border-color: var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+}
+
+.pstats__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.pstats__card {
+  display: grid;
+  gap: 2px;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.pstats__card > span {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.pstats__card > strong {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pstats__card > small {
+  font-size: var(--text-2xs);
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+/* ── Gráfico ─────────────────────────────────────────────────────────────── */
+
+.pstats__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 90px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.pstats__bar-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 3px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.pstats__bar {
+  width: 100%;
+  /* Un mínimo visible: un día con 1 impresión sobre un tope de 900 daría una barra
+     de cero píxeles y se leería como "ese día no pasó nada", que es distinto. */
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.pstats__clickdot {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #7fe3b4;
+}
+
+.pstats__msg,
+.pstats__total,
+.pstats__note {
+  margin: 0;
+  font-size: var(--text-2xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.pstats__total {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pstats__note {
+  opacity: 0.8;
+}

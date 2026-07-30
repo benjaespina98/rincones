@@ -264,47 +264,10 @@
   transform: scale(0.9);
 }
 
-/* Cellar readiness badge */
-.cellar-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  border: 1px solid transparent;
-}
-
-/* Antes eran tres emojis de círculo de colores. Se veían distintos en cada
-   sistema operativo y no seguían el color del badge; ahora es un punto real que
-   hereda el color del estado, así que no hay dos fuentes de verdad. */
-.cellar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.cellar-badge--peak {
-  background: rgba(47, 182, 123, 0.16);
-  border-color: rgba(47, 182, 123, 0.4);
-  color: #5fe0a8;
-}
-
-.cellar-badge--early {
-  background: rgba(242, 183, 55, 0.14);
-  border-color: rgba(242, 183, 55, 0.4);
-  color: var(--gold-soft);
-}
-
-.cellar-badge--late,
-.cellar-badge--past {
-  background: rgba(198, 70, 95, 0.16);
-  border-color: rgba(198, 70, 95, 0.4);
-  color: #f0899d;
-}
+/* La lectura de guarda ya no es una pastilla al lado de la uva: pasó a ser un
+   bloque propio con el año puesto y su explicación, en components/WineIdentity.css.
+   "Esperá 2 años" en una pastilla amarilla no decía de qué hablaba ni contra qué
+   se medía. */
 
 /* Info sections (Notas / Bodega / Compra) */
 .wine-detail-meta-section {
