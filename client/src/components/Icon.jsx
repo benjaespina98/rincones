@@ -29,6 +29,7 @@ const PATHS = {
   ),
   "arrow-right": <path d="M5 12h14M13 5l7 7-7 7" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
+  "chevron-up": <path d="m6 15 6-6 6 6" />,
   compass: (
     <>
       <circle cx="12" cy="12" r="9" />

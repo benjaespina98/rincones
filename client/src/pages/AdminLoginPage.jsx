@@ -231,8 +231,12 @@ const AdminLoginPage = () => {
           {activeTab === "destacados" && (
             <section>
               <div className="admin-section-head">
-                <h2>Destacados de Descubrí</h2>
-                <p>Eventos y publicidades. Cada uno con su ventana de vigencia: se apagan solos cuando terminan.</p>
+                <h2>Campañas de Descubrí</h2>
+                <p>
+                  Eventos y publicidades, con ventana de vigencia, orden, vista previa
+                  e informe por campaña. Si no hay ninguna al aire, la app no muestra
+                  nada de publicidad —ni un espacio vacío—.
+                </p>
               </div>
               <AdminPromotionsPage />
             </section>

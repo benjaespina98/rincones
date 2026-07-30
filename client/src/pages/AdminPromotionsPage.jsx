@@ -1,29 +1,44 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import ConfirmModal from "../components/ConfirmModal";
+import PromoCard from "../components/PromoCard";
+import PromoStats from "../components/PromoStats";
 import { useToast } from "../context/ToastContext";
 import {
   getAllPromotions,
   createPromotion,
   updatePromotion,
+  setPromotionVisibility,
+  movePromotion,
   deletePromotion,
 } from "../services/promotionsApi";
 import "./styles/AdminPromotionsPage.css";
 
 /**
- * Cargar y programar los destacados de Descubrí desde el celular.
+ * El gestor de campañas del espacio destacado.
  *
- * ── LO QUE ESTA PANTALLA RESUELVE ───────────────────────────────────────────
- * Que el día que aparezca un anunciante real no haya que editar código y
- * desplegar. Una campaña se carga, se le pone desde-hasta y se apaga sola.
+ * ── ESTO NO ES UN CRUD ──────────────────────────────────────────────────────
+ * Un CRUD te deja escribir campos. Un gestor de campañas te deja contestar las
+ * preguntas que aparecen cuando hay alguien pagando por ese espacio:
+ *
+ *   "¿Qué se está mostrando AHORA?"      → el resumen de arriba, con el filtro
+ *                                          Activas de un toque.
+ *   "¿Por qué no se ve mi campaña?"      → el estado de cada fila, y su razón.
+ *   "¿Cómo va a quedar?"                 → la vista previa, que es la tarjeta de
+ *                                          verdad y no una maqueta.
+ *   "Bajala YA."                         → el interruptor de visible, que se
+ *                                          refleja en la app al instante.
+ *   "¿Cuánto rindió?"                    → el informe por campaña.
+ *   "La mía tiene que ir primera."        → las flechas de orden.
  *
  * ── LAS DOS COSAS QUE NO SE PUEDEN AFLOJAR ──────────────────────────────────
  * 1. Elegir "Publicidad" marca la tarjeta como paga y el carrusel le pone el
  *    cartel, sin opción de sacarlo. El servidor lo fuerza igual (ver
  *    promotion.model.js): no puede depender de esta pantalla.
- * 2. Estado visible. Cada fila dice si está EN VIVO, PROGRAMADA, VENCIDA o
- *    PAUSADA. Sin eso, "¿por qué no se ve mi campaña?" es una pregunta sin
- *    respuesta y se termina tocando cosas al azar.
+ * 2. El estado LO CALCULA EL SERVER, con el mismo código que decide si la campaña
+ *    se muestra, y llega resuelto. Antes se recalculaba acá y eso es una promesa
+ *    de que algún día el panel iba a decir "Activa" sobre algo que la app no
+ *    mostraba. Frente a alguien que pagó, eso no se puede defender.
  */
 
 const VACIO = {
@@ -40,18 +55,47 @@ const VACIO = {
   eventAt: "",
   city: "",
   venue: "",
-  priority: 0,
   active: true,
   sponsored: false,
 };
 
-/** Date → "YYYY-MM-DD" para los inputs de fecha. */
-const aInput = (valor) => {
-  if (!valor) return "";
-  const d = new Date(valor);
-  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
-};
+/** Los estados, con su color y su orden en los filtros. */
+const FILTROS = [
+  { id: "", label: "Todas", clave: "total" },
+  { id: "active", label: "Activas", clave: "active" },
+  { id: "scheduled", label: "Programadas", clave: "scheduled" },
+  { id: "paused", label: "Pausadas", clave: "paused" },
+  { id: "ended", label: "Finalizadas", clave: "ended" },
+];
 
+/**
+ * Del formulario plano al shape que espera el server.
+ *
+ * El formulario es plano porque en un celular anidar campos es peor de completar,
+ * pero las fechas van tal cual como "YYYY-MM-DD": el server las interpreta como el
+ * día calendario argentino completo (un "hasta el 31" incluye el 31 entero). La
+ * conversión no se hace acá a propósito —hacerla en los dos lados es la forma
+ * garantizada de que en algún momento se corran un día—.
+ */
+const aPayload = (form) => ({
+  kind: form.kind,
+  title: form.title.trim(),
+  summary: form.summary.trim(),
+  image: form.image.trim(),
+  url: form.url.trim(),
+  ctaLabel: form.ctaLabel.trim(),
+  accent: form.accent.trim(),
+  active: form.active,
+  startsAt: form.startsAt || null,
+  endsAt: form.endsAt || null,
+  eventAt: form.eventAt || null,
+  sponsor: { name: form.sponsorName.trim(), logo: "" },
+  place: { city: form.city.trim(), venue: form.venue.trim() },
+  // Una publicidad siempre va marcada. El server lo fuerza igual.
+  sponsored: form.kind === "ad" ? true : form.sponsored,
+});
+
+/** Del server al formulario. Las fechas vienen ya formateadas en `form`. */
 const aFormulario = (p) => ({
   kind: p.kind || "event",
   title: p.title || "",
@@ -61,62 +105,122 @@ const aFormulario = (p) => ({
   ctaLabel: p.ctaLabel || "",
   accent: p.accent || "",
   sponsorName: p.sponsor?.name || "",
-  startsAt: aInput(p.startsAt),
-  endsAt: aInput(p.endsAt),
-  eventAt: aInput(p.eventAt),
+  startsAt: p.form?.startsAt || "",
+  endsAt: p.form?.endsAt || "",
+  eventAt: p.form?.eventAt || "",
   city: p.place?.city || "",
   venue: p.place?.venue || "",
-  priority: p.priority || 0,
   active: p.active !== false,
   sponsored: p.sponsored === true,
 });
 
 /**
- * En qué estado está una tarjeta, con las mismas reglas que usa el server para
- * decidir si la muestra. Si estas dos lecturas se separan, el panel miente.
+ * "YYYY-MM-DD" a "31 dic".
+ *
+ * `timeZone: "UTC"` no es un detalle: la fecha se arma con `Date.UTC` y sin eso
+ * `toLocaleDateString` la pasa a la zona del navegador, que en Argentina resta tres
+ * horas y devuelve el día ANTERIOR. Una campaña que termina el 31 se mostraba
+ * "hasta el 30 dic", que es exactamente el tipo de error de un día que hace que
+ * nadie confíe en las fechas de la pantalla.
  */
-const estadoDe = (p, ahora = new Date()) => {
-  if (!p.active) return { id: "paused", label: "Pausada" };
-  if (p.endsAt && new Date(p.endsAt) < ahora) return { id: "expired", label: "Vencida" };
-  if (p.startsAt && new Date(p.startsAt) > ahora) return { id: "scheduled", label: "Programada" };
-  return { id: "live", label: "En vivo" };
+const diaCorto = (valor) => {
+  const [a, m, d] = String(valor).split("-").map(Number);
+  if (!a) return valor;
+  return new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 };
+
+/** La ventana de vigencia en palabras, que es como se lee de un vistazo. */
+const ventanaEnPalabras = (p) => {
+  const { startsAt, endsAt } = p.form || {};
+  const corto = diaCorto;
+  if (startsAt && endsAt) return `${corto(startsAt)} → ${corto(endsAt)}`;
+  if (endsAt) return `hasta el ${corto(endsAt)}`;
+  if (startsAt) return `desde el ${corto(startsAt)}`;
+  return "sin fecha de fin";
+};
+
+/** El mensaje de error que mandó el server, si es que mandó uno útil. */
+const mensajeDeError = (error, porDefecto) =>
+  error?.response?.data?.error || error?.response?.data?.message || porDefecto;
+
+const NUM = new Intl.NumberFormat("es-AR");
+
+/**
+ * Un número con su unidad en el número correcto.
+ *
+ * "1 impresiones · 1 personas" se lee como un texto sin terminar, y en la pantalla
+ * donde se le informan resultados a un anunciante eso alcanza para que el resto
+ * parezca igual de descuidado.
+ */
+const cantidad = (n, singular, plural) =>
+  `${NUM.format(n || 0)} ${(n || 0) === 1 ? singular : plural}`;
 
 export default function AdminPromotionsPage() {
   const { showSuccess, showError } = useToast();
-  const [promos, setPromos] = useState([]);
+  const [datos, setDatos] = useState({
+    items: [],
+    page: 1,
+    pages: 1,
+    total: 0,
+    summary: { active: 0, scheduled: 0, paused: 0, ended: 0, total: 0 },
+  });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [filtro, setFiltro] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState(null); // null = formulario cerrado
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [borrar, setBorrar] = useState(null);
+  const [informe, setInforme] = useState(null);
+  // Cuáles están cambiando de estado: sin esto un toque repetido en el interruptor
+  // manda dos peticiones que pueden volver en orden invertido y dejar la fila
+  // mostrando lo contrario de lo que quedó guardado.
+  const [ocupadas, setOcupadas] = useState(() => new Set());
 
   const cargar = useCallback(async () => {
     try {
       setLoading(true);
       setFailed(false);
-      setPromos(await getAllPromotions());
+      setDatos(await getAllPromotions({ page, state: filtro, q: busqueda }));
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, filtro, busqueda]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
 
+  // El buscador espera a que dejes de escribir: una petición por tecla no aporta
+  // nada y en una lista larga se nota.
+  const [textoBusqueda, setTextoBusqueda] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setBusqueda(textoBusqueda.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [textoBusqueda]);
+
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const abrirNuevo = () => {
     setEditId(null);
+    setInforme(null);
     setForm({ ...VACIO });
   };
 
   const abrirEdicion = (p) => {
     setEditId(p._id);
+    setInforme(null);
     setForm(aFormulario(p));
   };
 
@@ -125,17 +229,11 @@ export default function AdminPromotionsPage() {
     setEditId(null);
   };
 
-  const guardar = async (e) => {
-    e.preventDefault();
-    if (saving) return;
-    if (!form.title.trim()) {
-      showError("Ponele un título");
-      return;
-    }
-
-    // Se rearma el shape que espera el server; el formulario es plano porque en
-    // un celular anidar campos es peor de completar.
-    const payload = {
+  /** Lo que va a ver el usuario, con los datos que hay cargados en el formulario. */
+  const previa = useMemo(() => {
+    if (!form) return null;
+    return {
+      _id: "preview",
       kind: form.kind,
       title: form.title,
       summary: form.summary,
@@ -143,38 +241,86 @@ export default function AdminPromotionsPage() {
       url: form.url,
       ctaLabel: form.ctaLabel,
       accent: form.accent,
-      active: form.active,
-      priority: form.priority,
-      startsAt: form.startsAt || null,
-      endsAt: form.endsAt || null,
-      eventAt: form.eventAt || null,
-      sponsor: { name: form.sponsorName, logo: "" },
-      place: { city: form.city, venue: form.venue },
-      // Una publicidad siempre va marcada. El server lo fuerza igual.
       sponsored: form.kind === "ad" ? true : form.sponsored,
+      sponsor: { name: form.sponsorName },
+      place: { city: form.city, venue: form.venue },
+      eventAt: form.eventAt || null,
     };
+  }, [form]);
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    if (saving) return;
+    if (!form.title.trim()) {
+      showError("Ponele un título");
+      return;
+    }
+    if (form.startsAt && form.endsAt && form.endsAt < form.startsAt) {
+      showError("La fecha de fin es anterior a la de inicio: la campaña no se mostraría nunca");
+      return;
+    }
 
     try {
       setSaving(true);
-      if (editId) await updatePromotion(editId, payload);
-      else await createPromotion(payload);
-      showSuccess(editId ? "Destacado actualizado" : "Destacado creado");
+      if (editId) await updatePromotion(editId, aPayload(form));
+      else await createPromotion(aPayload(form));
+      showSuccess(editId ? "Campaña actualizada" : "Campaña creada");
       cerrar();
       await cargar();
-    } catch {
-      showError("No se pudo guardar");
+    } catch (error) {
+      // El server dice QUÉ campo está mal (un enlace inválido, un color que no es
+      // color). Mostrar "No se pudo guardar" y tragarse el motivo obliga a adivinar.
+      showError(mensajeDeError(error, "No se pudo guardar"));
     } finally {
       setSaving(false);
     }
   };
 
-  /** Pausar o reactivar sin abrir el formulario: es lo que más se va a usar. */
-  const alternarActivo = async (p) => {
+  const marcarOcupada = (id, ocupada) =>
+    setOcupadas((prev) => {
+      const siguiente = new Set(prev);
+      if (ocupada) siguiente.add(id);
+      else siguiente.delete(id);
+      return siguiente;
+    });
+
+  /**
+   * Mostrar u ocultar. Es la operación que más se va a usar, así que es un toque y
+   * se ve al instante: la fila se actualiza sin recargar la lista entera.
+   */
+  const alternarVisible = async (p) => {
+    if (ocupadas.has(p._id)) return;
+    const visible = !p.active;
+    marcarOcupada(p._id, true);
     try {
-      await updatePromotion(p._id, { active: !p.active });
-      setPromos((prev) => prev.map((x) => (x._id === p._id ? { ...x, active: !p.active } : x)));
-    } catch {
-      showError("No se pudo cambiar el estado");
+      await setPromotionVisibility(p._id, visible);
+      setDatos((prev) => ({
+        ...prev,
+        items: prev.items.map((x) =>
+          x._id === p._id ? { ...x, active: visible, ...estadoTrasCambio(x, visible) } : x
+        ),
+      }));
+      // El resumen de arriba y los estados dependen de esto, así que se refresca
+      // en segundo plano: la fila ya respondió, el resto se pone al día solo.
+      cargar();
+      showSuccess(visible ? "Campaña visible en la app" : "Campaña pausada");
+    } catch (error) {
+      showError(mensajeDeError(error, "No se pudo cambiar el estado"));
+    } finally {
+      marcarOcupada(p._id, false);
+    }
+  };
+
+  const mover = async (p, direccion) => {
+    if (ocupadas.has(p._id)) return;
+    marcarOcupada(p._id, true);
+    try {
+      const movida = await movePromotion(p._id, direccion);
+      if (movida) await cargar();
+    } catch (error) {
+      showError(mensajeDeError(error, "No se pudo cambiar el orden"));
+    } finally {
+      marcarOcupada(p._id, false);
     }
   };
 
@@ -183,51 +329,102 @@ export default function AdminPromotionsPage() {
     setBorrar(null);
     try {
       await deletePromotion(id);
-      setPromos((prev) => prev.filter((p) => p._id !== id));
-      showSuccess("Destacado eliminado");
-    } catch {
-      showError("No se pudo eliminar");
+      if (informe === id) setInforme(null);
+      showSuccess("Campaña eliminada");
+      await cargar();
+    } catch (error) {
+      showError(mensajeDeError(error, "No se pudo eliminar"));
     }
   };
 
-  if (loading) return <p className="admin-empty-state">Cargando destacados…</p>;
-
-  if (failed) {
-    return (
-      <div className="admin-empty-state">
-        <p>No pudimos cargar los destacados.</p>
-        <button className="button" type="button" onClick={cargar}>Reintentar</button>
-      </div>
-    );
-  }
+  const { items, summary } = datos;
 
   return (
     <div className="pr">
-      {!form && (
-        <div className="pr__bar">
-          <button className="pr__new" type="button" onClick={abrirNuevo}>
-            <Icon name="plus" size={16} /> Nuevo destacado
+      {/* ── Resumen y filtros ────────────────────────────────────────────────
+          Los contadores son los filtros: el número contesta "qué hay" y el toque
+          contesta "mostrame eso". Dos cosas en un solo control, que es lo que hace
+          que se use desde un celular. */}
+      <div className="pr__summary">
+        {FILTROS.map((f) => (
+          <button
+            key={f.id || "all"}
+            type="button"
+            className={`pr__pill pr__pill--${f.id || "all"} ${filtro === f.id ? "is-active" : ""}`}
+            aria-pressed={filtro === f.id}
+            onClick={() => {
+              setFiltro(f.id);
+              setPage(1);
+            }}
+          >
+            <strong>{summary[f.clave] ?? 0}</strong>
+            <span>{f.label}</span>
           </button>
-          {promos.length > 0 && (
-            <span className="pr__count">
-              {promos.filter((p) => estadoDe(p).id === "live").length} en vivo de {promos.length}
-            </span>
-          )}
-        </div>
-      )}
+        ))}
+      </div>
+
+      <div className="pr__bar">
+        <button className="pr__new" type="button" onClick={abrirNuevo}>
+          <Icon name="plus" size={16} /> Nueva campaña
+        </button>
+        <label className="pr__search">
+          <Icon name="search" size={15} />
+          <input
+            type="search"
+            value={textoBusqueda}
+            onChange={(e) => setTextoBusqueda(e.target.value)}
+            placeholder="Buscar por título o anunciante"
+            aria-label="Buscar campaña"
+          />
+        </label>
+      </div>
+
+      {/* Lo que la app está mostrando ahora mismo, dicho en una línea. Es la
+          pregunta número uno de cualquiera que abre este panel. */}
+      {/* El texto va dentro de UN span y no como nodos sueltos: el contenedor es
+          flex con `gap`, así que cada nodo suelto sería un ítem y el gap metería un
+          espacio antes del punto final ("1 campaña ."). */}
+      <p className="pr__live-note">
+        <Icon name={summary.active === 0 ? "info" : "eye"} size={13} />
+        {summary.active === 0 ? (
+          <span>
+            No hay ninguna campaña al aire: Descubrí está mostrando sólo su contenido
+            curado, sin ningún espacio vacío.
+          </span>
+        ) : (
+          <span>
+            La app está mostrando{" "}
+            <strong>{cantidad(summary.active, "campaña", "campañas")}</strong>
+            {summary.active > 6
+              ? ", y el carrusel rota entre las 6 de mayor prioridad."
+              : "."}
+          </span>
+        )}
+      </p>
 
       {form && (
         <form className="pr__form" onSubmit={guardar}>
           <div className="pr__form-head">
-            <h3>{editId ? "Editar destacado" : "Nuevo destacado"}</h3>
+            <h3>{editId ? "Editar campaña" : "Nueva campaña"}</h3>
             <button type="button" className="pr__close" onClick={cerrar} aria-label="Cerrar">
               <Icon name="x" size={16} />
             </button>
           </div>
 
+          {/* ── Vista previa ───────────────────────────────────────────────
+              Arriba y no al final: se mira mientras se escribe, que es cuando
+              sirve. Es el MISMO componente que dibuja la tarjeta en la app, así
+              que no puede prometer algo distinto de lo que se va a ver. */}
+          <div className="pr__preview">
+            <span className="pr__preview-label">
+              <Icon name="eye" size={12} /> Así se va a ver en Descubrí
+            </span>
+            <PromoCard promo={previa} interactive={false} preview />
+          </div>
+
           {/* Qué es: cambia el cartel que ve el usuario, así que es la primera
               decisión y no un detalle escondido al final. */}
-          <div className="pr__kind" role="group" aria-label="Tipo de destacado">
+          <div className="pr__kind" role="group" aria-label="Tipo de campaña">
             {[
               { id: "event", label: "Evento", hint: "Una feria, una cata, una vendimia" },
               { id: "ad", label: "Publicidad", hint: "Espacio pago — se marca como tal" },
@@ -247,9 +444,12 @@ export default function AdminPromotionsPage() {
 
           {form.kind === "ad" && (
             <p className="pr__notice">
-              <Icon name="eye" size={13} /> Se va a mostrar con el cartel
-              <strong> Publicidad</strong>. No se puede sacar: es lo que mantiene
-              creíbles a las recomendaciones del resto de la pantalla.
+              <Icon name="info" size={13} />
+              <span>
+                Se va a mostrar con el cartel <strong>Publicidad</strong>. No se puede
+                sacar: es lo que mantiene creíbles a las recomendaciones del resto de
+                la pantalla.
+              </span>
             </p>
           )}
 
@@ -345,9 +545,23 @@ export default function AdminPromotionsPage() {
               <label className="pr__field">
                 <span>Hasta</span>
                 <input type="date" value={form.endsAt} onChange={(e) => set("endsAt", e.target.value)} />
-                <small>Vacío = hasta que la pauses</small>
+                <small>Incluye el día entero. Vacío = hasta que la pauses</small>
               </label>
             </div>
+            <label className="pr__switch">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => set("active", e.target.checked)}
+              />
+              <span className="pr__switch-track" aria-hidden="true" />
+              <span className="pr__switch-text">
+                <strong>Visible en la app</strong>
+                <small>
+                  Apagado queda pausada: no la ve nadie y sus números se conservan.
+                </small>
+              </span>
+            </label>
           </fieldset>
 
           <fieldset className="pr__fieldset">
@@ -369,104 +583,191 @@ export default function AdminPromotionsPage() {
             </div>
           </fieldset>
 
-          <div className="pr__row">
-            <label className="pr__field">
-              <span>Prioridad</span>
-              <input
-                type="number"
-                value={form.priority}
-                onChange={(e) => set("priority", e.target.value)}
-              />
-              <small>Mayor va primero en el carrusel.</small>
-            </label>
-            <label className="pr__check">
-              <input type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} />
-              <span>Activo</span>
-            </label>
-          </div>
+          <p className="pr__notice">
+            <Icon name="info" size={13} />
+            <span>
+              El orden entre campañas se cambia con las flechas de la lista, no con un
+              número acá: así lo que ves en la lista es exactamente el orden en que van
+              a salir.
+            </span>
+          </p>
 
           <div className="pr__actions">
             <button type="button" className="btn-cancel" onClick={cerrar} disabled={saving}>
               Cancelar
             </button>
             <button type="submit" className="btn-add" disabled={saving}>
-              {saving ? "Guardando…" : editId ? "Guardar cambios" : "Crear destacado"}
+              {saving ? "Guardando…" : editId ? "Guardar cambios" : "Crear campaña"}
             </button>
           </div>
         </form>
       )}
 
-      {promos.length === 0 ? (
+      {loading && <p className="admin-empty-state">Cargando campañas…</p>}
+
+      {failed && !loading && (
         <div className="admin-empty-state">
-          <p><strong>No hay destacados cargados.</strong></p>
-          <p>
-            Descubrí está mostrando sólo su contenido curado. Cuando cargues el
-            primero, el carrusel aparece solo arriba de las recomendaciones.
-          </p>
+          <p>No pudimos cargar las campañas.</p>
+          <button className="button" type="button" onClick={cargar}>Reintentar</button>
         </div>
-      ) : (
+      )}
+
+      {!loading && !failed && items.length === 0 && (
+        <div className="admin-empty-state">
+          {datos.total === 0 ? (
+            <>
+              <p><strong>No hay campañas cargadas.</strong></p>
+              <p>
+                Descubrí está mostrando sólo su contenido curado. Cuando cargues la
+                primera, el carrusel aparece solo arriba de las recomendaciones.
+              </p>
+            </>
+          ) : (
+            <p>Ninguna campaña coincide con este filtro.</p>
+          )}
+        </div>
+      )}
+
+      {!loading && !failed && items.length > 0 && (
         <ul className="pr__list">
-          {promos.map((p) => {
-            const estado = estadoDe(p);
-            return (
-              <li key={p._id} className="pr__item">
-                <div className="pr__item-main">
-                  <span className={`pr__state pr__state--${estado.id}`}>{estado.label}</span>
-                  <strong className="pr__item-title">{p.title}</strong>
-                  <span className="pr__item-meta">
-                    {p.kind === "ad" ? "Publicidad" : "Evento"}
-                    {p.sponsor?.name ? ` · ${p.sponsor.name}` : ""}
-                    {p.priority ? ` · prioridad ${p.priority}` : ""}
-                  </span>
-                  {/* Los números que va a pedir un anunciante, a la vista sin
-                      tener que abrir nada. */}
-                  <span className="pr__item-stats">
-                    {p.impressions || 0} vistas · {p.clicks || 0} clics
-                    {p.impressions > 0 && (
-                      <> · {Math.round(((p.clicks || 0) / p.impressions) * 100)}% de clic</>
-                    )}
-                  </span>
+          {items.map((p, i) => (
+            <li key={p._id} className={`pr__item pr__item--${p.state}`}>
+              <div className="pr__item-main">
+                <span className="pr__item-head">
+                  <span className={`pr__state pr__state--${p.state}`}>{p.stateLabel}</span>
+                  {p.sponsored && <span className="pr__tag-ad">Publicidad</span>}
+                </span>
+
+                <strong className="pr__item-title">{p.title}</strong>
+
+                <span className="pr__item-meta">
+                  {p.kind === "ad" ? "Publicidad" : "Evento"}
+                  {p.sponsor?.name ? ` · ${p.sponsor.name}` : ""}
+                  {` · ${ventanaEnPalabras(p)}`}
+                </span>
+
+                {/* La razón del estado, en la misma fila. Es la respuesta a "¿por
+                    qué no se ve mi campaña?" sin tener que abrir nada. */}
+                <span className="pr__item-hint">{p.stateHint}</span>
+
+                {/* Los números que va a pedir un anunciante, a la vista. Impresiones
+                    y personas son dos cosas distintas y se dicen por separado. */}
+                <span className="pr__item-stats">
+                  {cantidad(p.impressions, "impresión", "impresiones")} ·{" "}
+                  {cantidad(p.reach, "persona", "personas")} ·{" "}
+                  {cantidad(p.clicks, "clic", "clics")}
+                  {p.ctr !== null && p.ctr !== undefined && ` · ${p.ctr}%`}
+                </span>
+              </div>
+
+              <div className="pr__item-actions">
+                {/* Orden: sólo tiene sentido si hay con quién intercambiar. */}
+                <div className="pr__order">
+                  <button
+                    type="button"
+                    className="pr__icon pr__icon--small"
+                    onClick={() => mover(p, "up")}
+                    disabled={i === 0 && datos.page === 1}
+                    title="Subir un lugar"
+                    aria-label={`Subir ${p.title}`}
+                  >
+                    <Icon name="chevron-up" size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="pr__icon pr__icon--small"
+                    onClick={() => mover(p, "down")}
+                    disabled={i === items.length - 1 && datos.page === datos.pages}
+                    title="Bajar un lugar"
+                    aria-label={`Bajar ${p.title}`}
+                  >
+                    <Icon name="chevron-down" size={14} />
+                  </button>
                 </div>
 
-                <div className="pr__item-actions">
-                  <button
-                    type="button"
-                    className="pr__icon"
-                    onClick={() => alternarActivo(p)}
-                    title={p.active ? "Pausar (deja de mostrarse)" : "Reactivar"}
-                    aria-label={p.active ? "Pausar destacado" : "Reactivar destacado"}
-                  >
-                    <Icon name={p.active ? "check" : "circle"} size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="pr__icon"
-                    onClick={() => abrirEdicion(p)}
-                    title="Editar"
-                    aria-label="Editar destacado"
-                  >
-                    <Icon name="settings" size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="pr__icon pr__icon--danger"
-                    onClick={() => setBorrar(p._id)}
-                    title="Eliminar (se pierden sus métricas)"
-                    aria-label="Eliminar destacado"
-                  >
-                    <Icon name="trash" size={16} />
-                  </button>
+                <button
+                  type="button"
+                  className={`pr__icon ${p.active ? "is-on" : ""}`}
+                  onClick={() => alternarVisible(p)}
+                  disabled={ocupadas.has(p._id)}
+                  title={p.active ? "Ocultar (deja de mostrarse ya)" : "Mostrar en la app"}
+                  aria-label={p.active ? `Ocultar ${p.title}` : `Mostrar ${p.title}`}
+                  aria-pressed={p.active}
+                >
+                  <Icon name={p.active ? "eye" : "eye-off"} size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  className="pr__icon"
+                  onClick={() => setInforme(informe === p._id ? null : p._id)}
+                  title="Ver el informe de la campaña"
+                  aria-label={`Informe de ${p.title}`}
+                >
+                  <Icon name="list" size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  className="pr__icon"
+                  onClick={() => abrirEdicion(p)}
+                  title="Editar"
+                  aria-label={`Editar ${p.title}`}
+                >
+                  <Icon name="pencil" size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  className="pr__icon pr__icon--danger"
+                  onClick={() => setBorrar(p._id)}
+                  title="Eliminar (se pierden sus métricas)"
+                  aria-label={`Eliminar ${p.title}`}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+
+              {informe === p._id && (
+                <div className="pr__item-report">
+                  <PromoStats promoId={p._id} title={p.title} onClose={() => setInforme(null)} />
                 </div>
-              </li>
-            );
-          })}
+              )}
+            </li>
+          ))}
         </ul>
+      )}
+
+      {/* Paginado: la lista completa anda bien con quince campañas y deja de abrir
+          con mil quinientas, que es cuando el panel más importa. */}
+      {datos.pages > 1 && (
+        <div className="pr__pager">
+          <button
+            type="button"
+            className="button"
+            onClick={() => setPage((n) => Math.max(n - 1, 1))}
+            disabled={datos.page <= 1}
+          >
+            Anterior
+          </button>
+          <span>
+            Página {datos.page} de {datos.pages} · {datos.total} campañas
+          </span>
+          <button
+            type="button"
+            className="button"
+            onClick={() => setPage((n) => Math.min(n + 1, datos.pages))}
+            disabled={datos.page >= datos.pages}
+          >
+            Siguiente
+          </button>
+        </div>
       )}
 
       <ConfirmModal
         isOpen={borrar !== null}
-        title="¿Eliminar destacado?"
-        message="Se borra junto con sus vistas y clics. Si sólo querés que deje de mostrarse, pausalo: así conservás los números."
+        title="¿Eliminar la campaña?"
+        message="Se borra junto con todo su historial de impresiones y clics, y eso no se puede recuperar. Si sólo querés que deje de mostrarse, ocultala: conservás los números para poder informarlos."
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous
@@ -476,3 +777,36 @@ export default function AdminPromotionsPage() {
     </div>
   );
 }
+
+/**
+ * El estado de una fila que acaba de cambiar de visibilidad.
+ *
+ * Es la ÚNICA excepción a "el estado lo calcula el server", y existe para que el
+ * interruptor responda en el acto en vez de esperar el viaje de ida y vuelta de la
+ * lista. Se limita a los dos casos que el cambio puede producir y para el resto se
+ * queda con lo que dijo el server: no reimplementa la regla, y la recarga en
+ * segundo plano lo deja igual que el server un instante después.
+ */
+const estadoTrasCambio = (fila, visible) => {
+  // Una campaña vencida sigue vencida: prenderla no la revive, y decir otra cosa
+  // mandaría al administrador a tocar el interruptor sin entender por qué no pasa
+  // nada. Para volver a mostrarla hay que extenderle la fecha de fin.
+  if (fila.state === "ended") {
+    return { state: "ended", stateLabel: "Finalizada", stateHint: fila.stateHint };
+  }
+  if (!visible) {
+    return {
+      state: "paused",
+      stateLabel: "Pausada",
+      stateHint: "Oculta: nadie la ve, sus números se conservan",
+    };
+  }
+  const programada = fila.form?.startsAt && fila.form.startsAt > new Date().toISOString().slice(0, 10);
+  return programada
+    ? {
+        state: "scheduled",
+        stateLabel: "Programada",
+        stateHint: "Empieza en la fecha que le pusiste",
+      }
+    : { state: "active", stateLabel: "Activa", stateHint: "Se está mostrando en la app" };
+};

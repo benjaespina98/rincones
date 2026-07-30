@@ -47,14 +47,18 @@ const PUBLICAS = new Set([
   // se muestra a cualquiera que abra la app. Devuelve sólo lo activo y vigente y
   // excluye los contadores internos (ver promotions.service.js: listPublic).
   "promotions.routes.js: get /",
-  // Impresiones y clics: contadores de sólo escritura ($inc, sin leer nada).
-  // Son públicos porque los cuenta el visitante que ve la tarjeta, con o sin
-  // sesión. Riesgo aceptado y explícito: alguien podría inflarlos a mano. No
-  // exponen datos, no cuestan cuota de terceros y su único consumidor es el
-  // panel; el día que haya un anunciante que facture por impresión, esto necesita
-  // deduplicación por visitante (ver la deuda anotada en el PR).
-  "promotions.routes.js: post /:id/impression",
-  "promotions.routes.js: post /:id/click",
+  // Impresiones y clics: sólo escritura, responde 204 vacío. Es público porque lo
+  // cuenta el visitante que ve la tarjeta, con o sin sesión, y los visitantes sin
+  // sesión son la mayoría de la portada.
+  //
+  // Lo que antes era un riesgo aceptado —"alguien podría inflar los contadores"—
+  // ya no lo es, y era la deuda que quedó anotada cuando esto se publicó: el
+  // servicio sólo cuenta campañas que están efectivamente al aire (un id vencido o
+  // inventado se descarta), deduplica por visitante con un hash anónimo para
+  // separar impresiones de personas distintas, y la ruta tiene su propio rate
+  // limit. Sin eso, el número que se le informa a un anunciante no se puede
+  // defender.
+  "promotions.routes.js: post /events",
 ]);
 
 const routesDir = path.join(__dirname, "..", "src", "routes");
