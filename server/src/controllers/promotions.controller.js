@@ -60,6 +60,7 @@ const listAll = async (req, res, next) => {
       limit: req.query.limit,
       state: req.query.state,
       q: req.query.q,
+      kind: req.query.kind,
     });
     return res.status(200).json({ success: true, ...data });
   } catch (error) {

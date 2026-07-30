@@ -6,6 +6,7 @@ const {
   estadoDe,
   urlSegura,
   imagenSegura,
+  esImagenSubida,
   colorSeguro,
 } = require("../src/utils/promotionState");
 
@@ -82,9 +83,33 @@ test("sólo se aceptan enlaces http(s) o internos", () => {
   // dominio.
   assert.equal(urlSegura("//sitio-ajeno.com"), null);
 
-  // Una imagen sólo puede venir por http(s): no hay caso de uso interno.
+  // Una imagen no puede ser una ruta interna: no hay caso de uso.
   assert.equal(imagenSegura("/local.png"), null);
   assert.equal(imagenSegura("https://cdn.com/a.jpg"), "https://cdn.com/a.jpg");
+});
+
+test("una imagen puede venir como archivo subido, pero un documento HTML no", () => {
+  // El panel deja subir un archivo (la bodega manda el logo por WhatsApp, no una
+  // URL), y viaja como data URL hasta que el server lo sube a Cloudinary.
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+  assert.equal(imagenSegura(png), png);
+  assert.ok(esImagenSubida(png));
+  assert.ok(esImagenSubida("data:image/jpeg;base64,/9j/4AAQSkZJRg=="));
+  assert.ok(esImagenSubida("data:image/webp;base64,UklGRg=="));
+
+  // La distinción que importa: una imagen dentro de un `<img>` es inerte, un
+  // documento HTML servido desde el mismo origen que la app NO lo es. Así que no
+  // alcanza con mirar si empieza con "data:".
+  assert.equal(imagenSegura("data:text/html;base64,PHNjcmlwdD4="), null);
+  assert.equal(imagenSegura("data:text/html,<script>alert(1)</script>"), null);
+  assert.equal(esImagenSubida("data:text/html;base64,PHNjcmlwdD4="), false);
+  // Tampoco un SVG: es un documento, no un mapa de píxeles.
+  assert.equal(imagenSegura("data:image/svg+xml;base64,PHN2Zz4="), null);
+
+  // Y hay un techo de tamaño: sin Cloudinary el archivo queda DENTRO del documento
+  // de la campaña, y la portada lee esa colección.
+  const gigante = `data:image/png;base64,${"A".repeat(2_100_000)}`;
+  assert.equal(imagenSegura(gigante), null);
 });
 
 test("el color de acento tiene que ser un color", () => {

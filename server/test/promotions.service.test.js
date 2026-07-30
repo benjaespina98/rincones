@@ -4,6 +4,7 @@ const Promotion = require("../src/models/promotion.model");
 const PromotionStat = require("../src/models/promotionStat.model");
 const PromotionView = require("../src/models/promotionView.model");
 const ChangeLog = require("../src/models/changeLog.model");
+const imageStorage = require("../src/services/imageStorage.service");
 const promotions = require("../src/services/promotions.service");
 
 /**
@@ -456,6 +457,82 @@ test("mover la primera hacia arriba no es un error, simplemente no hace nada", a
   } finally {
     restore(Promotion, "find", originalFind);
     restore(Promotion, "bulkWrite", originalBulk);
+    limpio();
+  }
+});
+
+test("una imagen subida se guarda como URL, no dentro de la campaña", async () => {
+  const originalSave = Promotion.prototype.save;
+  const originalStore = imageStorage.store;
+
+  Promotion.prototype.save = async function save() {
+    return this;
+  };
+
+  const subidas = [];
+  imageStorage.store = async (valor, opciones) => {
+    subidas.push(opciones?.folder);
+    return "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,c_limit/logo.png";
+  };
+
+  try {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+    const promo = await promotions.create(ADMIN, {
+      title: "Con logo",
+      image: png,
+      sponsor: { name: "Bodega Ejemplo", logo: png },
+    });
+
+    // Lo que queda en la base es una URL liviana. Si el archivo se guardara adentro,
+    // la consulta de la portada arrastraría cientos de KB por campaña en cada visita.
+    assert.match(promo.image, /^https:\/\/res\.cloudinary\.com/);
+    assert.match(promo.sponsor.logo, /^https:\/\/res\.cloudinary\.com/);
+    assert.equal(subidas.length, 2, "se sube el fondo y el logo");
+    assert.deepEqual(subidas, ["rincones/promos", "rincones/promos/logos"]);
+
+    // Un enlace no se re-sube: no hay nada que subir.
+    subidas.length = 0;
+    const conEnlace = await promotions.create(ADMIN, {
+      title: "Con enlace",
+      image: "https://bodega.com/foto.jpg",
+    });
+    assert.equal(subidas.length, 0);
+    assert.equal(conEnlace.image, "https://bodega.com/foto.jpg");
+  } finally {
+    restore(Promotion.prototype, "save", originalSave);
+    restore(imageStorage, "store", originalStore);
+    limpio();
+  }
+});
+
+test("el panel puede pedir sólo las publicidades", async () => {
+  const originalFind = Promotion.find;
+  const originalCount = Promotion.countDocuments;
+
+  const capturado = mockFind([]);
+  const filtrosContados = [];
+  Promotion.countDocuments = async (f) => {
+    filtrosContados.push(f);
+    return 0;
+  };
+  limpio();
+
+  try {
+    await promotions.listAll({ kind: "ad" });
+    assert.equal(capturado.filtro.kind, "ad");
+    // Los contadores del resumen SON los botones de estado: si contaran sobre todo
+    // mientras la lista muestra sólo publicidades, el panel se contradice solo.
+    assert.ok(
+      filtrosContados.every((f) => f.kind === "ad"),
+      "el resumen respeta el filtro por tipo"
+    );
+
+    // Un valor que no es ninguno de los dos no filtra nada (no inventa un tipo).
+    await promotions.listAll({ kind: "cualquier-cosa" });
+    assert.equal(capturado.filtro.kind, undefined);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "countDocuments", originalCount);
     limpio();
   }
 });

@@ -146,10 +146,43 @@ const urlSegura = (valor, { maxLength = 500 } = {}) => {
   return null;
 };
 
-/** Una imagen sólo puede venir por http(s). Ver `urlSegura` para el por qué. */
+/**
+ * Formatos de imagen que se aceptan al subir un archivo.
+ *
+ * Rasterizados nada más, y a propósito: un SVG es un documento y no un mapa de
+ * píxeles, así que trae su propia lista de dolores de cabeza (puede referenciar
+ * recursos externos, y si algún día la imagen se sirviera embebida en la página en
+ * vez de dentro de un `<img>`, ejecutaría). Para un logo, PNG con transparencia
+ * hace exactamente el mismo trabajo.
+ */
+const TIPOS_DE_IMAGEN = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=\s]+$/i;
+
+/**
+ * Techo del archivo pegado como data URL.
+ *
+ * Este camino es el respaldo: con Cloudinary configurado, la imagen se sube y lo
+ * que se guarda es una URL de pocos caracteres. Sin Cloudinary la imagen queda
+ * dentro del documento, y ahí el límite protege de meter un documento de varios
+ * megas en una colección que se lee en la portada. El cliente además reduce la
+ * imagen antes de mandarla, así que llegar a este techo significa que algo salió
+ * mal, no que la foto era grande.
+ */
+const MAX_DATA_URL = 2_000_000;
+
+/** ¿Es un archivo pegado como data URL (y no un enlace)? */
+const esImagenSubida = (valor) => TIPOS_DE_IMAGEN.test(String(valor ?? "").trim());
+
+/**
+ * Una imagen: un enlace http(s) o un archivo subido.
+ *
+ * `data:image/...` se acepta y `data:text/html` no: la diferencia es la que
+ * importa. Una imagen en un `<img>` es inerte; un documento HTML servido desde el
+ * mismo origen que la app, no. Por eso no alcanza con mirar si empieza con "data:".
+ */
 const imagenSegura = (valor, { maxLength = 500 } = {}) => {
   const texto = String(valor ?? "").trim();
   if (!texto) return "";
+  if (esImagenSubida(texto)) return texto.length > MAX_DATA_URL ? null : texto;
   if (texto.length > maxLength) return null;
   return /^https?:\/\/[^\s/]+/i.test(texto) ? texto : null;
 };
@@ -185,5 +218,6 @@ module.exports = {
   estaAlAire,
   urlSegura,
   imagenSegura,
+  esImagenSubida,
   colorSeguro,
 };
