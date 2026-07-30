@@ -1,19 +1,12 @@
 // Catálogo comunitario de vinos: crece con lo que cargan los usuarios.
 
 const CommunityWine = require("../models/communityWine.model");
+const { fold } = require("../data/argentineWines");
+const { poolKey } = require("../data/wineIdentity");
 
-const fold = (text = "") =>
-  String(text)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-
-const wineKey = (name, winery) => {
-  const n = fold(name);
-  if (n.length < 3) return null;
-  return `${n}|${fold(winery)}`;
-};
+// Nombre + uva + bodega: el nombre visible ya no trae la uva, así que sin ella
+// "Saint Felicien Malbec" y "Saint Felicien Cabernet" colapsarían en una fila.
+const wineKey = (name, winery, varietal) => poolKey(name, winery, varietal);
 
 // Nombres genéricos que no aportan (evita ensuciar el catálogo comunitario).
 const isGeneric = (name) => {
@@ -30,7 +23,7 @@ const looksLikeImage = (v) =>
  */
 const contribute = async (wine = {}) => {
   try {
-    const key = wineKey(wine.name, wine.winery);
+    const key = wineKey(wine.name, wine.winery, wine.varietal);
     if (!key || isGeneric(wine.name)) return;
 
     const existing = await CommunityWine.findOne({ key });

@@ -41,7 +41,8 @@
 // poca cobertura de vino argentino y sus nombres vienen sucios, así que apoyarse
 // sólo en él hacía que búsquedas obvias ("Catena Malbec") no devolvieran nada.
 //
-// El nombre visible se arma como "<línea> <varietal>", que es como se busca.
+// El nombre visible es la línea; la uva va en su propio campo (y en el índice
+// de búsqueda), no pegada al nombre.
 
 const RAW = [
   // --- Catena Zapata --- (verificado contra catenazapata.com, jul 2026)
@@ -513,9 +514,11 @@ const TYPE_ES = {
 };
 
 const CATALOG = RAW.map(([winery, line, varietal, region, type]) => {
-  // La línea ya identifica al vino ("Catena Alta", "Alamos"), así que el nombre
-  // visible es "<línea> <varietal>" y la bodega se muestra aparte en la tarjeta.
-  const name = `${line} ${varietal}`.trim();
+  // La línea ya identifica al vino ("Catena Alta", "Alamos"), así que ése es el
+  // nombre visible: la bodega y la uva se muestran aparte en la tarjeta, y
+  // repetir la uva dentro del nombre la decía dos veces. El `haystack` de abajo
+  // sí la incluye, así que buscar "Catena Alta Malbec" sigue funcionando.
+  const name = (line || varietal).trim();
   return {
     id: `ar-${slug(`${winery}-${line}-${varietal}`)}`,
     name,

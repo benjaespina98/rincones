@@ -40,6 +40,36 @@ const authenticate = (req, res, next) => {
 };
 
 /**
+ * Igual que `authenticate`, pero sin exigir nada: si hay token válido deja
+ * `req.user` puesto y si no, sigue como visitante anónimo.
+ *
+ * Es para las rutas que atienden a las dos poblaciones. La ingesta de analytics
+ * es el caso claro: los visitantes SIN sesión son justamente los que hay que
+ * poder contar, así que exigir token mediría sólo a los que ya se registraron —el
+ * número menos interesante de los dos—. Y a la vez, cuando hay sesión, saber que
+ * la había vale.
+ *
+ * Nunca corta la cadena con un 401: un token vencido no puede impedirte usar la
+ * parte pública de la app.
+ */
+const optionalAuth = (req, _res, next) => {
+  const authHeader = String(req.headers.authorization || "");
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  const token = bearerToken || req.cookies?.authToken || null;
+
+  if (token) {
+    try {
+      const payload = jwt.verify(token, getJwtSecret());
+      req.user = { id: payload.sub, email: payload.email, role: payload.role };
+    } catch {
+      // Token inválido o vencido: se sigue como anónimo, que es lo correcto acá.
+    }
+  }
+
+  return next();
+};
+
+/**
  * Exige rol admin, verificándolo contra la BASE y no contra el token.
  *
  * El JWT lleva el rol que tenía el usuario cuando inició sesión, así que
@@ -80,5 +110,6 @@ const requireAdmin = async (req, res, next) => {
 
 module.exports = {
   authenticate,
+  optionalAuth,
   requireAdmin,
 };

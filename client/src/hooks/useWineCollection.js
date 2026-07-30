@@ -5,6 +5,8 @@ import {
   updateWine as updateWineApi,
   deleteWine as deleteWineApi,
   adjustWineStock,
+  openBottle as openBottleApi,
+  undoOpenBottle as undoOpenBottleApi,
   getWineStats,
 } from "../services/wineApi";
 
@@ -80,6 +82,24 @@ export const useWineCollection = () => {
     return updated;
   }, []);
 
+  /**
+   * Abrir una botella: descuenta una y deja el vino como probado, de una.
+   * "Probado" es un hecho de tu historial y no se toca solo; esto es lo que lo
+   * enciende, porque abrir una botella sí es tomártela.
+   */
+  const openBottle = useCallback(async (id) => {
+    const updated = await openBottleApi(id);
+    setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
+    return updated;
+  }, []);
+
+  /** Deshacer una botella abierta: vuelve a su lote y el historial queda como estaba. */
+  const undoOpenBottle = useCallback(async (id, wasTasted) => {
+    const updated = await undoOpenBottleApi(id, wasTasted);
+    setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
+    return updated;
+  }, []);
+
   return {
     wines,
     loading,
@@ -92,6 +112,8 @@ export const useWineCollection = () => {
     updateWineTasted,
     toggleFavorite,
     adjustStock,
+    openBottle,
+    undoOpenBottle,
     recargar: loadWines,
   };
 };

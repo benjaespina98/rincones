@@ -84,12 +84,15 @@ const featured = async (req, res, next) => {
   }
 };
 
-// GET /api/catalog/price?name=&winery= - precio comunitario (promedio).
+// GET /api/catalog/price?name=&winery=&varietal= - precio comunitario (promedio).
+// La uva va en la clave: el nombre visible ya no la incluye y sin ella dos uvas
+// de la misma línea compartirían precio.
 const price = async (req, res, next) => {
   try {
     const data = await winePrices.getPrice(
       String(req.query.name || ""),
-      String(req.query.winery || "")
+      String(req.query.winery || ""),
+      String(req.query.varietal || "")
     );
     return res.status(200).json({ data });
   } catch (error) {

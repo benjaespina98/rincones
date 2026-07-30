@@ -5,6 +5,8 @@ import Icon from "../components/Icon";
 import { getChangeLogs, getUsers } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminReviewsPage from "./AdminReviewsPage";
+import AdminAnalyticsPage from "./AdminAnalyticsPage";
+import AdminPromotionsPage from "./AdminPromotionsPage";
 import "./styles/AdminLoginPage.css";
 
 const ACTION_LABELS = {
@@ -153,6 +155,11 @@ const AdminLoginPage = () => {
         <nav className="admin-nav-tabs" aria-label="Secciones del panel">
           {[
             { id: "resumen", label: "Resumen", icon: "home" },
+            /* Métricas va segunda: es la pregunta que uno se hace al abrir el
+               panel ("¿cuánta gente está usando esto?"), antes de administrar
+               nada. */
+            { id: "metricas", label: "Métricas", icon: "star" },
+            { id: "destacados", label: "Destacados", icon: "sparkle" },
             { id: "roles", label: "Usuarios", icon: "user" },
             { id: "resenas", label: "Reseñas", icon: "chat" },
             { id: "actividad", label: "Actividad", icon: "calendar" },
@@ -209,6 +216,26 @@ const AdminLoginPage = () => {
                 </div>
               </article>
             </div>
+          )}
+
+          {activeTab === "metricas" && (
+            <section>
+              <div className="admin-section-head">
+                <h2>Métricas de uso</h2>
+                <p>Cuánta gente entra a Rincones y qué mira. Sin cookies ni datos personales.</p>
+              </div>
+              <AdminAnalyticsPage />
+            </section>
+          )}
+
+          {activeTab === "destacados" && (
+            <section>
+              <div className="admin-section-head">
+                <h2>Destacados de Descubrí</h2>
+                <p>Eventos y publicidades. Cada uno con su ventana de vigencia: se apagan solos cuando terminan.</p>
+              </div>
+              <AdminPromotionsPage />
+            </section>
           )}
 
           {activeTab === "roles" && (

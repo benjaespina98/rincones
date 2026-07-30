@@ -14,17 +14,47 @@ const path = require("node:path");
  * error silencioso y caro; este test lo vuelve ruidoso.
  */
 
+/**
+ * Las excepciones van con el ARCHIVO adelante, no sólo el verbo y la ruta.
+ *
+ * Antes eran globales, y eso las volvía peligrosamente amplias: declarar pública
+ * una `GET /` habilitaba silenciosamente la `GET /` de cualquier otro router,
+ * presente o futuro. La excepción tiene que valer para el endpoint que se
+ * revisó, no para todos los que se llamen igual.
+ */
 const PUBLICAS = new Set([
-  "post /login",
-  "post /register",
-  "post /forgot-password",
-  "post /reset-password",
+  "auth.routes.js: post /login",
+  "auth.routes.js: post /register",
+  "auth.routes.js: post /forgot-password",
+  "auth.routes.js: post /reset-password",
   // El refresh se llama JUSTO cuando el token de acceso ya venció: exigir uno
   // válido lo volvería inútil. La credencial es la cookie httpOnly del refresh.
-  "post /refresh",
+  "auth.routes.js: post /refresh",
   // Cerrar sesión tiene que funcionar aunque el token ya haya expirado; si no,
   // el refresh quedaría vivo en la base sin forma de revocarlo.
-  "post /logout",
+  "auth.routes.js: post /logout",
+
+  // ── Métricas de uso ─────────────────────────────────────────────────────
+  // La ingesta es pública porque los visitantes SIN sesión son justamente los
+  // que hay que poder contar: exigir token mediría sólo a los ya registrados,
+  // que es el número menos interesante de los dos. No lee ni devuelve nada
+  // (responde 204 vacío), tiene su propio rate limit y descarta en silencio al
+  // pasarse. Lo que sí es privado —el tablero— exige authenticate + requireAdmin.
+  "analytics.routes.js: post /collect",
+
+  // ── Destacados de Descubrí ──────────────────────────────────────────────
+  // El listado público es contenido de portada, del mismo tenor que el catálogo:
+  // se muestra a cualquiera que abra la app. Devuelve sólo lo activo y vigente y
+  // excluye los contadores internos (ver promotions.service.js: listPublic).
+  "promotions.routes.js: get /",
+  // Impresiones y clics: contadores de sólo escritura ($inc, sin leer nada).
+  // Son públicos porque los cuenta el visitante que ve la tarjeta, con o sin
+  // sesión. Riesgo aceptado y explícito: alguien podría inflarlos a mano. No
+  // exponen datos, no cuestan cuota de terceros y su único consumidor es el
+  // panel; el día que haya un anunciante que facture por impresión, esto necesita
+  // deduplicación por visitante (ver la deuda anotada en el PR).
+  "promotions.routes.js: post /:id/impression",
+  "promotions.routes.js: post /:id/click",
 ]);
 
 const routesDir = path.join(__dirname, "..", "src", "routes");
@@ -39,7 +69,7 @@ test("todas las rutas exigen autenticación salvo las públicas declaradas", () 
     let m;
     while ((m = re.exec(src)) !== null) {
       const [, verbo, ruta, resto] = m;
-      const clave = `${verbo} ${ruta}`;
+      const clave = `${file}: ${verbo} ${ruta}`;
       if (PUBLICAS.has(clave)) continue;
       if (!/\bauthenticate\b/.test(resto)) {
         sinProteger.push(`${file}: ${verbo.toUpperCase()} ${ruta}`);

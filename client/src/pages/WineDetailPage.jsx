@@ -15,10 +15,13 @@ import {
   updateWine,
   deleteWine,
   adjustWineStock,
+  openBottle,
+  undoOpenBottle,
   getWineMoments,
   addWineMoment,
 } from "../services/wineApi";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
+import { wineDisplayName } from "../utils/wineIdentity";
 import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
@@ -58,7 +61,7 @@ const EMPTY_MOMENT = {
 export default function WineDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { addToast, removeToast, showSuccess, showError } = useToast();
 
   const [wine, setWine] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +132,9 @@ export default function WineDetailPage() {
   // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.
   const wineName = wine?.name;
   const wineWinery = wine?.winery;
+  // La uva es parte de la identidad del vino para todo lo compartido (precio,
+  // fotos, búsqueda en tiendas): el nombre visible ya no la incluye.
+  const wineVarietal = wine?.varietal;
 
   // Extraído a callback para poder reintentar desde la UI sin recargar la página.
   const loadDescription = useCallback((force = false) => {
@@ -176,14 +182,14 @@ export default function WineDetailPage() {
     if (!wineName) return undefined;
     let active = true;
     setPriceLoading(true);
-    getWinePrice(wineName, wineWinery)
+    getWinePrice(wineName, wineWinery, wineVarietal)
       .then((p) => { if (active) setCommunityPrice(p); })
       .catch(() => { if (active) setCommunityPrice(null); })
       .finally(() => { if (active) setPriceLoading(false); });
     return () => {
       active = false;
     };
-  }, [wineName, wineWinery]);
+  }, [wineName, wineWinery, wineVarietal]);
 
   const applyUpdate = async (payload, successMessage) => {
     setPending(true);
@@ -204,6 +210,9 @@ export default function WineDetailPage() {
       wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos"
     );
 
+  // "Probado" dice si alguna vez lo tomaste. Es un dato de tu historial y no
+  // mueve el stock: podés haber probado un vino que no era tuyo, o querer
+  // corregir el dato sin que aparezca ni desaparezca una botella de tu cava.
   const handleToggleTasted = () =>
     applyUpdate(
       { tasted: !wine.tasted },
@@ -218,6 +227,44 @@ export default function WineDetailPage() {
       setWine(updated);
     } catch {
       showError("No se pudo ajustar el stock");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  /**
+   * Abrir una botella: la descuenta y deja el vino probado, en un solo paso.
+   * Con deshacer al lado, igual que en la lista: cuesta una botella y se
+   * dispara con un toque.
+   */
+  const handleOpenBottle = async () => {
+    if (Number(wine.quantity) <= 0) return;
+    const eraProbado = wine.tasted === true;
+    const quedan = Math.max(0, Number(wine.quantity) - 1);
+    setPending(true);
+    try {
+      const updated = await openBottle(id);
+      setWine(updated);
+
+      const mensaje =
+        quedan === 0
+          ? `Se terminó tu ${wineDisplayName(wine)}`
+          : `Botella abierta · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
+
+      const toastId = addToast(mensaje, "success", 8000, {
+        label: "Deshacer",
+        onClick: async () => {
+          removeToast(toastId);
+          try {
+            setWine(await undoOpenBottle(id, eraProbado));
+            showSuccess("Botella devuelta a tu bodega");
+          } catch {
+            showError("No se pudo deshacer");
+          }
+        },
+      });
+    } catch {
+      showError("No se pudo registrar la botella");
     } finally {
       setPending(false);
     }
@@ -283,7 +330,7 @@ export default function WineDetailPage() {
     setShowDeleteConfirm(false);
     try {
       await deleteWine(id);
-      showSuccess(`"${wine.name}" eliminado de tu bodega`);
+      showSuccess(`"${wineDisplayName(wine)}" eliminado de tu bodega`);
       navigate("/bodega");
     } catch {
       showError("No se pudo eliminar el vino");
@@ -354,7 +401,7 @@ export default function WineDetailPage() {
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
         <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} priority />
+          <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={150} priority />
         </div>
 
         <div className="wine-detail-hero__badges">
@@ -391,7 +438,7 @@ export default function WineDetailPage() {
         )}
 
         <div className="wine-detail-hero__overlay">
-          <h1 className="wine-detail-hero__name">{wine.name}</h1>
+          <h1 className="wine-detail-hero__name">{wineDisplayName(wine)}</h1>
           <p className="wine-detail-hero__origin">
             {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
           </p>
@@ -534,7 +581,7 @@ export default function WineDetailPage() {
               </div>
               <a
                 className="wine-price__meli"
-                href={mercadoLibreUrl(wine.name, wine.winery)}
+                href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -738,21 +785,41 @@ export default function WineDetailPage() {
 
         {!editing && (
           <div className="wine-detail-actions">
-            <div className="wine-qty-controls" aria-label="Stock">
-              <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Restar una unidad">
+            <div className="wine-qty-controls" role="group" aria-label="Botellas en tu bodega">
+              <span className="wine-qty-controls__label" aria-hidden="true">Botellas</span>
+              <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella" title="Quitar una botella (sin marcarla como tomada)">
                 <Icon name="minus" size={16} />
               </button>
-              <span className="wine-qty">x{wine.quantity}</span>
-              <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una unidad">
+              <span className="wine-qty" aria-live="polite">{wine.quantity}</span>
+              <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella" title="Sumá botellas si compraste más">
                 <Icon name="plus" size={16} />
               </button>
             </div>
 
+            {/* Abrir una botella es la acción; el "−" de al lado sigue siendo
+                para lo otro (la regalaste, corregís el número) y por eso no
+                toca tu historial de probados. */}
+            {Number(wine.quantity) > 0 && (
+              <button
+                type="button"
+                className="wine-detail-open"
+                disabled={pending}
+                onClick={handleOpenBottle}
+              >
+                <Icon name="bottle" size={17} />
+                Abrí una botella
+              </button>
+            )}
+
+            {/* Lo secundario se queda en íconos y en voz baja: una sola acción
+                principal por pantalla. El `title` explica cada uno sin gastar
+                ancho, que es lo que mantiene la barra prolija en un teléfono. */}
             <button
               type="button"
               className={`btn-icon ${wine.favorite ? "active" : ""}`}
               disabled={pending}
               onClick={handleToggleFavorite}
+              title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
               aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
             >
               <Icon name="heart" filled={wine.favorite} size={19} />
@@ -763,12 +830,17 @@ export default function WineDetailPage() {
               className={`btn-icon btn-icon--tasted ${wine.tasted ? "tasted-active" : ""}`}
               disabled={pending}
               onClick={handleToggleTasted}
+              title={
+                wine.tasted
+                  ? "Ya lo probaste — tocá para desmarcarlo (no toca tu stock)"
+                  : "Marcar que ya lo probaste (no toca tu stock)"
+              }
               aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
             >
               <Icon name={wine.tasted ? "check" : "circle"} size={19} />
             </button>
 
-            <button type="button" className="btn-delete" onClick={() => setShowDeleteConfirm(true)} aria-label="Eliminar vino">
+            <button type="button" className="btn-delete" onClick={() => setShowDeleteConfirm(true)} title="Eliminar este vino de tu bodega" aria-label="Eliminar vino">
               <Icon name="trash" size={18} />
             </button>
           </div>
@@ -957,7 +1029,7 @@ export default function WineDetailPage() {
       <ConfirmModal
         isOpen={showDeleteConfirm}
         title="¿Eliminar vino?"
-        message={`Se quitará "${wine.name}" de tu bodega.`}
+        message={`Se quitará "${wineDisplayName(wine)}" de tu bodega.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous

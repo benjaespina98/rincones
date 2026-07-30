@@ -1,8 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
 import AppLayout from "./components/AppLayout";
+import PageviewTracker from "./components/PageviewTracker";
 import SplashScreen from "./components/SplashScreen";
+import { initAnalytics } from "./services/analyticsApi";
 import "./App.css";
 
 // Páginas cargadas de forma diferida para achicar el bundle inicial.
@@ -31,8 +33,14 @@ const withLayout = (title, element) => (
 );
 
 function App() {
+  // Engancha el vaciado de la cola de métricas al ciclo de vida de la pestaña.
+  // Devuelve su limpieza para que el doble montaje de StrictMode en desarrollo no
+  // deje listeners duplicados (ver services/analyticsApi.js).
+  useEffect(() => initAnalytics(), []);
+
   return (
     <Suspense fallback={<RouteFallback />}>
+      <PageviewTracker />
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />

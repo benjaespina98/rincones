@@ -8,6 +8,7 @@ import { createWish } from "../services/wishApi";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
 import { matchCatalogWine } from "../services/wineSearchApi";
+import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/ScanWinePage.css";
 
 const toWinePayload = (draft) => ({
@@ -51,6 +52,10 @@ export default function ScanWinePage() {
     const created = await addWine(toWinePayload(draft));
     successHaptic();
     showSuccess(`"${created.name}" agregado a tu bodega`);
+    // El evento que más dice del producto: cargar un vino es la acción por la que
+    // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
+    // que permite saber si el lector de etiquetas vale lo que cuesta.
+    trackEvent("wine_added", { source: draft?.source || "escaneo" });
     navigate(`/vino/${created._id}`);
     return created;
   };

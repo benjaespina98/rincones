@@ -1,24 +1,15 @@
 // Precio comunitario de vinos: agrega lo que pagó la gente y devuelve promedio.
 
 const WinePrice = require("../models/winePrice.model");
+const { poolKey } = require("../data/wineIdentity");
 
-const fold = (text = "") =>
-  String(text)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-
-const wineKey = (name, winery) => {
-  const n = fold(name);
-  if (n.length < 3) return null;
-  return `${n}|${fold(winery)}`;
-};
+// Nombre + uva + bodega: dos uvas de la misma línea no comparten precio.
+const wineKey = (name, winery, varietal) => poolKey(name, winery, varietal);
 
 // Suma un precio pagado al pool. Best-effort, nunca lanza.
-const contribute = async ({ name, winery, price, currency = "ARS" }) => {
+const contribute = async ({ name, winery, varietal, price, currency = "ARS" }) => {
   try {
-    const key = wineKey(name, winery);
+    const key = wineKey(name, winery, varietal);
     const value = Number(price);
     if (!key || !Number.isFinite(value) || value <= 0) return;
 
@@ -47,9 +38,9 @@ const contribute = async ({ name, winery, price, currency = "ARS" }) => {
 };
 
 // Devuelve { avg, count, min, max, currency } o null si no hay datos.
-const getPrice = async (name, winery) => {
+const getPrice = async (name, winery, varietal) => {
   try {
-    const key = wineKey(name, winery);
+    const key = wineKey(name, winery, varietal);
     if (!key) return null;
     const doc = await WinePrice.findOne({ key }).lean();
     if (!doc || doc.count < 1) return null;

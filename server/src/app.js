@@ -11,6 +11,8 @@ const catalogRoutes = require("./routes/catalog.routes");
 const winesRoutes = require("./routes/wines.routes");
 const wishesRoutes = require("./routes/wishes.routes");
 const usersRoutes = require("./routes/users.routes");
+const analyticsRoutes = require("./routes/analytics.routes");
+const promotionsRoutes = require("./routes/promotions.routes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -33,6 +35,13 @@ const limiter = rateLimit({
   message: "Demasiadas solicitudes, intenta más tarde",
   standardHeaders: true,
   legacyHeaders: false,
+  // La ingesta de métricas queda afuera de la cuota general y tiene la suya
+  // propia (ver routes/analytics.routes.js). Si compartiera este presupuesto,
+  // medir le comería los pedidos a las cosas que el usuario sí necesita: una
+  // sesión larga mandaría decenas de eventos y podría dejar sin cuota a la
+  // pantalla siguiente. Y al revés: alguien usando mucho la app se quedaría sin
+  // poder reportar nada, sesgando justo los datos de los usuarios más activos.
+  skip: (req) => req.path === "/api/analytics/collect",
 });
 
 // Aplicar rate limiting más estricto a login
@@ -65,9 +74,14 @@ const parseAllowedOrigins = () => {
     "http://127.0.0.1:5173",
     "http://localhost:4173",
     "http://127.0.0.1:4173",
-    "http://localhost:5177",
-    "http://localhost:5176",
+    // Vite salta al siguiente puerto libre cuando 5173 está ocupado, y el primero
+    // al que salta es 5174 — que era justamente el que faltaba en esta lista. El
+    // síntoma es desconcertante: la app carga pero TODAS las llamadas fallan por
+    // CORS, y sólo porque quedó otro `npm run dev` abierto en otra terminal.
+    "http://localhost:5174",
     "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
     "https://rincones.vercel.app",
     "https://www.rincones.vercel.app",
     "https://rincones-api.vercel.app",
@@ -134,6 +148,8 @@ app.use("/api/catalog", catalogRoutes);
 app.use("/api/wines", winesRoutes);
 app.use("/api/wishes", wishesRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/promotions", promotionsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });

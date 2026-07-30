@@ -467,6 +467,85 @@
   cursor: default;
 }
 
+/* "Abrí una botella": es una acción y cuesta una botella, así que se ve como un
+   botón que hace algo, no como un estado encendido. */
+.wine-action-btn--open {
+  background: rgba(126, 89, 201, 0.14);
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+.wine-action-btn--open:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.22);
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+/* Probado y stock en una línea: son dos datos distintos y verlos juntos es lo
+   que saca la duda de "dice probado pero me quedan dos".
+   Va en voz baja a propósito: es un pie de fila que confirma, no una etiqueta
+   más que compita con el nombre del vino. */
+.wine-row__state-line {
+  margin: -4px 0 0;
+  font-size: var(--text-2xs);
+  line-height: 1.3;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+/* La aclaración de por qué una fila vacía sigue a la vista. Cursiva y no color:
+   es una nota al pie, no una alerta. */
+.wine-row__state-line em {
+  font-style: italic;
+}
+
+/* ── Pie de la lista: "Ver más" ───────────────────────────────────────────────
+   Reemplaza al scroll infinito. Dice cuántos faltan (con scroll infinito nunca
+   se sabe) y deja el pie de la lista alcanzable. */
+.wines-more {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.wines-more__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.wines-more__btn:hover {
+  border-color: var(--line-accent);
+}
+
+.wines-more__n {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--elevated);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.wines-more__hint {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
 .wine-row__detail {
   flex: 1;
   display: inline-flex;
@@ -765,6 +844,21 @@
   background: var(--accent-muted);
   border-color: var(--accent-light);
   color: var(--text);
+}
+
+/* "Historial" pesa menos que los demás: es tu colección pasada, no una respuesta
+   a "¿qué abro hoy?". Sin borde y más apagado, así la fila de filtros deja claro
+   de un vistazo cuáles hablan de lo que tenés en casa. Al activarlo recupera todo
+   el contraste: si es donde estás parado, tiene que verse. */
+.bodega-chip.is-muted:not(.is-active) {
+  border-color: transparent;
+  background: transparent;
+  opacity: 0.62;
+}
+
+.bodega-chip.is-muted:not(.is-active):hover {
+  opacity: 1;
+  border-color: var(--line);
 }
 
 .bodega-chip__n {

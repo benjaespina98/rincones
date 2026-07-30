@@ -36,6 +36,8 @@ export default function CatalogWinePage() {
 
   const wineName = wine?.name;
   const wineWinery = wine?.winery;
+  // El nombre visible ya no trae la uva, pero la identidad compartida sí.
+  const wineVarietal = wine?.varietal;
 
   // Callback (no inline) para poder reintentar desde la UI.
   const loadDescription = useCallback(() => {
@@ -64,12 +66,12 @@ export default function CatalogWinePage() {
     if (!wineName) return undefined;
     let active = true;
     setPriceLoading(true);
-    getWinePrice(wineName, wineWinery)
+    getWinePrice(wineName, wineWinery, wineVarietal)
       .then((p) => { if (active) setCommunityPrice(p); })
       .catch(() => { if (active) setCommunityPrice(null); })
       .finally(() => { if (active) setPriceLoading(false); });
     return () => { active = false; };
-  }, [wineName, wineWinery]);
+  }, [wineName, wineWinery, wineVarietal]);
 
   if (!wine) {
     return (
@@ -254,7 +256,7 @@ export default function CatalogWinePage() {
           </div>
           <a
             className="wine-price__meli"
-            href={mercadoLibreUrl(wine.name, wine.winery)}
+            href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
             target="_blank"
             rel="noopener noreferrer"
           >

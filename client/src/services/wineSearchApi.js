@@ -31,14 +31,16 @@ export const getFeaturedWines = async () => {
  * Precio comunitario de un vino (promedio de lo que pagó la gente).
  * Devuelve { avg, count, min, max, currency } o null.
  */
-export const getWinePrice = async (name, winery) => {
-  const { data } = await api.get("/catalog/price", { params: { name, winery } });
+export const getWinePrice = async (name, winery, varietal = "") => {
+  const { data } = await api.get("/catalog/price", { params: { name, winery, varietal } });
   return data?.data || null;
 };
 
 // URL de búsqueda del vino en MercadoLibre (siempre actual, sin API).
-export const mercadoLibreUrl = (name, winery) => {
-  const q = [name, winery].filter(Boolean).join(" ");
+// Lleva la uva: el nombre visible ya no la incluye y "Saint Felicien" a secas
+// devuelve las cuatro uvas de la línea mezcladas.
+export const mercadoLibreUrl = (name, winery, varietal = "") => {
+  const q = [name, varietal, winery].filter(Boolean).join(" ");
   return `https://listado.mercadolibre.com.ar/${encodeURIComponent(q)}`;
 };
 
