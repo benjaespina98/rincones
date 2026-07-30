@@ -12,23 +12,45 @@
 // LANZA si está mal formado (ej: sin el prefijo cloudinary://). Eso crashearía
 // todo el server. Por eso saneamos la variable ANTES de requerir el módulo y
 // envolvemos el require en try/catch: una credencial mala nunca debe tumbar la API.
-const rawUrl = String(process.env.CLOUDINARY_URL || "").trim();
-if (rawUrl && !rawUrl.startsWith("cloudinary://")) {
-  console.error(
-    "CLOUDINARY_URL mal formado (debe empezar con 'cloudinary://'). Se ignora; se usa fallback base64."
-  );
-  delete process.env.CLOUDINARY_URL;
-}
-
 let cloudinary = null;
-try {
-  cloudinary = require("cloudinary").v2;
-} catch (error) {
-  console.error("No se pudo inicializar Cloudinary, se usa fallback:", error.message);
-}
+let configured = null; // null = todavía no se resolvió
 
-let configured = false;
-if (cloudinary) {
+/**
+ * Resuelve la configuración la PRIMERA VEZ que se usa, no al importar el módulo.
+ *
+ * ── POR QUÉ PEREZOSA Y NO AL CARGAR ─────────────────────────────────────────
+ * Porque leer el entorno al importar convierte al orden de los `require` en algo
+ * que decide el comportamiento de la app, y eso ya falló: `server.js` requería la
+ * app ANTES de cargar el .env, así que este módulo se configuraba con el entorno
+ * vacío y quedaba apagado para siempre. Nada fallaba —el fallback devuelve la
+ * imagen tal cual— pero todas las imágenes se guardaban en base64 adentro de Mongo
+ * en vez de irse al CDN. Un bug sin síntomas, que se paga meses después.
+ *
+ * Se arregló ese orden, y además esto: cuando la configuración se resuelve al
+ * primer uso, ya no hay ningún orden de importación que pueda romperla. Un arreglo
+ * que depende de que nadie mueva un `require` no es un arreglo.
+ */
+const ensureConfigured = () => {
+  if (configured !== null) return configured;
+
+  const rawUrl = String(process.env.CLOUDINARY_URL || "").trim();
+  if (rawUrl && !rawUrl.startsWith("cloudinary://")) {
+    console.error(
+      "CLOUDINARY_URL mal formado (debe empezar con 'cloudinary://'). Se ignora; se usa fallback base64."
+    );
+    delete process.env.CLOUDINARY_URL;
+  }
+
+  if (!cloudinary) {
+    try {
+      cloudinary = require("cloudinary").v2;
+    } catch (error) {
+      console.error("No se pudo inicializar Cloudinary, se usa fallback:", error.message);
+      configured = false;
+      return configured;
+    }
+  }
+
   const url = String(process.env.CLOUDINARY_URL || "").trim();
   const cloud = String(process.env.CLOUDINARY_CLOUD_NAME || "").trim();
   const key = String(process.env.CLOUDINARY_API_KEY || "").trim();
@@ -42,14 +64,18 @@ if (cloudinary) {
     } else if (cloud && key && secret) {
       cloudinary.config({ cloud_name: cloud, api_key: key, api_secret: secret, secure: true });
       configured = true;
+    } else {
+      configured = false;
     }
   } catch (error) {
     console.error("Credenciales de Cloudinary inválidas, se usa fallback:", error.message);
     configured = false;
   }
-}
 
-const isConfigured = () => configured;
+  return configured;
+};
+
+const isConfigured = () => ensureConfigured();
 
 // Entrega optimizada: formato y calidad automáticos, ancho acotado a 800px.
 // Insertamos las transformaciones en la URL que ya devuelve Cloudinary.
@@ -68,7 +94,7 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
   if (!value) return "";
   // Si ya es una URL de Cloudinary, no la volvemos a subir.
   if (/res\.cloudinary\.com/.test(value)) return value;
-  if (!configured) return value;
+  if (!ensureConfigured()) return value;
 
   try {
     const res = await cloudinary.uploader.upload(value, {
@@ -87,4 +113,19 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
   }
 };
 
-module.exports = { store, isConfigured, optimized };
+module.exports = {
+  store,
+  isConfigured,
+  optimized,
+  /**
+   * Sólo para los tests: vuelve a "todavía no resuelto".
+   *
+   * En la app real la configuración se resuelve una vez y no hay motivo para
+   * rehacerla —las variables de entorno no cambian mientras el proceso vive—. El
+   * test necesita observar la resolución más de una vez para comprobar justamente
+   * que no depende de cuándo llegó el entorno.
+   */
+  __reiniciarConfiguracion: () => {
+    configured = null;
+  },
+};
