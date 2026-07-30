@@ -204,6 +204,88 @@ test("bajar el stock consume del lote más viejo, y subirlo abre uno nuevo", asy
   }
 });
 
+test("marcar 'probado' NO mueve el stock: es un dato del historial", async () => {
+  const originalFindOne = Wine.findOne;
+  const originalSave = Wine.prototype.save;
+  const originalFindById = User.findById;
+  const originalUpdateOne = Wine.updateOne;
+  const originalFindOneAndUpdate = Wine.findOneAndUpdate;
+
+  const user = { stats: { winesCount: 1, tastedWines: 0 }, save: async () => {} };
+  User.findById = async () => user;
+  Wine.prototype.save = async function save() { return this; };
+
+  // Si alguno de estos dos llegara a correr, es que marcar probado volvió a
+  // tocar el stock por atrás.
+  let tocoElStock = false;
+  Wine.updateOne = async () => { tocoElStock = true; return { matchedCount: 1 }; };
+  Wine.findOneAndUpdate = async () => { tocoElStock = true; return null; };
+
+  const vino = new Wine({ userId: "user-1", name: "Saint Felicien", quantity: 2, tasted: false });
+  vino.save = async function save() { return this; };
+  Wine.findOne = async () => vino;
+
+  try {
+    const marcado = await winesService.updateWine("user-1", "w1", { tasted: true });
+    assert.equal(marcado.tasted, true);
+    assert.equal(marcado.quantity, 2, "seguís teniendo las dos botellas");
+    assert.equal(marcado.status, "tasted");
+    assert.equal(tocoElStock, false, "marcar probado no puede descontar botellas");
+
+    // Y al revés: destildar tampoco devuelve nada.
+    const desmarcado = await winesService.updateWine("user-1", "w1", { tasted: false });
+    assert.equal(desmarcado.tasted, false);
+    assert.equal(desmarcado.quantity, 2);
+    assert.equal(tocoElStock, false);
+  } finally {
+    restore(Wine, "findOne", originalFindOne);
+    restore(Wine.prototype, "save", originalSave);
+    restore(User, "findById", originalFindById);
+    restore(Wine, "updateOne", originalUpdateOne);
+    restore(Wine, "findOneAndUpdate", originalFindOneAndUpdate);
+  }
+});
+
+test("abrir una botella descuenta Y deja el vino probado, en un solo update", async () => {
+  const originalFindOne = Wine.findOne;
+  const originalFindOneAndUpdate = Wine.findOneAndUpdate;
+  const originalFindById = User.findById;
+
+  const user = { stats: { tastedWines: 0 }, save: async () => {} };
+  User.findById = async () => user;
+  Wine.findOne = () => ({ select: async () => ({ tasted: false }) });
+
+  let pipeline = null;
+  let updates = 0;
+  Wine.findOneAndUpdate = async (_filtro, stages) => {
+    pipeline = stages;
+    updates += 1;
+    return { _id: "w1", tasted: true, quantity: 1 };
+  };
+
+  try {
+    await winesService.adjustStock("user-1", "w1", { delta: -1, markTasted: true });
+
+    const json = JSON.stringify(pipeline);
+    assert.equal(updates, 1, "descontar y marcar probado son un solo hecho, un solo update");
+    assert.ok(json.includes('"tasted":true'), "abrir una botella marca el vino como probado");
+    assert.ok(json.includes('"lastConsumedAt":"$$NOW"'), "y deja registrada la fecha");
+    assert.ok(json.includes('"$reduce"'), "el descuento sigue siendo FIFO");
+    assert.equal(user.stats.tastedWines, 1, "el contador del perfil acompaña");
+
+    // El "−" pelado no miente sobre tu historial: descontar no siempre es tomártelo.
+    await winesService.adjustStock("user-1", "w1", { delta: -1 });
+    assert.ok(
+      !JSON.stringify(pipeline).includes('"tasted":true'),
+      "restar stock a secas no marca nada como probado"
+    );
+  } finally {
+    restore(Wine, "findOne", originalFindOne);
+    restore(Wine, "findOneAndUpdate", originalFindOneAndUpdate);
+    restore(User, "findById", originalFindById);
+  }
+});
+
 test("la cosecha distingue: un 2021 no se mezcla con el 2019 que ya tenías", async () => {
   const originalFind = Wine.find;
   const originalSave = Wine.prototype.save;

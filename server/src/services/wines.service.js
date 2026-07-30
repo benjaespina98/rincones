@@ -44,13 +44,30 @@ async function listWines(userId) {
   return Wine.find({ userId }).sort({ createdAt: -1 }).select("-rawText");
 }
 
+/**
+ * Busca en la bodega del usuario.
+ *
+ * Cada PALABRA tiene que aparecer en algún campo, no la frase entera en uno
+ * solo. Con el nombre visible ya sin la uva ("Saint Felicien", varietal
+ * "Malbec"), buscar la frase completa contra un único campo no encontraba nada
+ * justo para la consulta más natural: "saint felicien malbec".
+ */
 async function searchWines(userId, query) {
-  const safeQuery = escapeRegex(String(query || ""));
-  const regex = new RegExp(safeQuery, "i");
+  const terms = String(query || "").trim().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [];
+
+  const campos = (regex) => [
+    { name: regex },
+    { line: regex },
+    { winery: regex },
+    { region: regex },
+    { varietal: regex },
+    { notes: regex },
+  ];
 
   return Wine.find({
     userId,
-    $or: [{ name: regex }, { winery: regex }, { region: regex }, { varietal: regex }, { notes: regex }],
+    $and: terms.map((t) => ({ $or: campos(new RegExp(escapeRegex(t), "i")) })),
   })
     .sort({ createdAt: -1 })
     .select("-rawText");
@@ -165,13 +182,13 @@ async function createWine(userId, payload) {
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
   // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
-  const rawProvided = wineImages.wineKey(name, winery) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
+  const rawProvided = wineImages.wineKey(name, winery, varietal) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
     ? String(image).trim()
     : "";
   // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
   // queda el base64 tal cual. Así el vino y el pool comparten la misma referencia.
   const providedImage = rawProvided ? await imageStorage.store(rawProvided) : "";
-  const resolvedImage = providedImage || (await wineImages.getImage(name, winery));
+  const resolvedImage = providedImage || (await wineImages.getImage(name, winery, varietal));
 
   const wine = new Wine({
     userId,
@@ -214,13 +231,13 @@ async function createWine(userId, payload) {
   // Si el usuario aportó una foto propia, la sumamos al pool compartido para
   // que aparezca cuando otro busque/cargue el mismo vino.
   if (providedImage) {
-    await wineImages.contribute({ name, winery, image: providedImage, userId });
+    await wineImages.contribute({ name, winery, varietal, image: providedImage, userId });
   }
 
   // Si registró lo que pagó, alimenta el precio comunitario (promedio).
   if (savedWine.purchase?.price > 0) {
     await winePrices.contribute({
-      name, winery,
+      name, winery, varietal,
       price: savedWine.purchase.price,
       currency: savedWine.purchase.currency,
     });
@@ -328,47 +345,30 @@ async function updateWine(userId, id, payload) {
 
   const wasTasted = wine.tasted;
 
-  // Marcar "probado" significa que abriste una botella, así que se descuenta una
-  // del stock. Sin esto, un vino del que tenías una sola botella seguía
-  // figurando "en stock" después de tomártelo. Es simétrico a propósito:
-  // destildar la devuelve, porque el botón es un toggle y un toque por error no
-  // puede costarte una unidad de tu cava.
+  // `tasted` es un HECHO de tu historial —"este vino ya lo tomé alguna vez"— y
+  // no toca el stock.
   //
-  // El cambio se hace ATÓMICO y CONDICIONADO al valor anterior: el filtro exige
-  // `tasted: !objetivo`, así que si dos peticiones llegan casi juntas —dos
-  // toques rápidos, un reintento de red— la segunda no matchea y no vuelve a
-  // descontar. Sin esto se perdían botellas sin que apareciera ningún error.
+  // Antes sí lo tocaba: marcar "probado" descontaba una botella y destildarlo la
+  // devolvía. Eso mezclaba dos cosas distintas en un mismo botón y dejaba
+  // lecturas raras en pantalla ("Probado ×2": ¿lo tomé o me quedan dos?), además
+  // de no cubrir los casos obvios en los que probaste un vino que no era tuyo o
+  // regalaste una botella sin abrirla.
   //
-  // Sólo se toca el stock si el usuario NO está editando la cantidad a mano en
-  // la misma llamada, para no pisar lo que acaba de escribir.
-  const quiereCambiarTasted = tasted !== undefined && (tasted === true) !== wasTasted;
-  if (quiereCambiarTasted && quantity === undefined) {
-    const objetivo = tasted === true;
-    // Abrir una botella descuenta del lote más viejo con stock (FIFO).
-    // Destildar la devuelve al lote del que salió —el último que se abrió— en
-    // vez de crear uno nuevo: es un deshacer, no una compra, y un lote de hoy
-    // haría figurar como recién llegado a un vino que tenés desde hace años.
-    const res = await Wine.updateOne(
-      { _id: wine._id, userId, tasted: !objetivo },
-      [
-        { $set: { tasted: objetivo } },
-        ...buildStockStages(objetivo ? "consume" : "return", { $literal: 1 }),
-      ],
-      { updatePipeline: true }
-    );
-    if (res.matchedCount > 0) {
-      // Refrescamos el documento en memoria para que el resto de la función
-      // trabaje sobre los valores que quedaron realmente en la base.
-      const fresco = await Wine.findById(wine._id).select("tasted quantity lots");
-      wine.tasted = fresco.tasted;
-      wine.quantity = fresco.quantity;
-      wine.lots = fresco.lots;
-    }
-  } else if (tasted !== undefined) {
-    wine.tasted = tasted === true;
-  }
+  // Abrir una botella es ahora su propia acción, con su propio botón, y viaja
+  // por `adjustStock` (`PATCH /wines/:id/stock` con `markTasted`), que descuenta
+  // y marca probado en un solo update atómico.
+  if (tasted !== undefined) wine.tasted = tasted === true;
 
-  wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status: wine.status });
+  // `status` se recalcula desde lo que quedó (probado + stock), salvo que el
+  // payload haya pedido uno explícito —ya aplicado más arriba—.
+  //
+  // Antes se le pasaba el status GUARDADO, y como `toWineStatus` respeta
+  // cualquier status que reciba, la línea no hacía nada: un vino marcado como
+  // probado se quedaba para siempre en "stock" y las estadísticas del perfil lo
+  // contaban del lado equivocado.
+  if (status === undefined) {
+    wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity });
+  }
 
   wine.updatedAt = new Date();
   const updatedWine = await wine.save();
@@ -406,8 +406,21 @@ async function updateWine(userId, id, payload) {
  *   delta > 0    → repusiste: lote nuevo, con fecha de hoy.
  *   delta < 0    → abriste botellas: FIFO, del lote más viejo que tenga stock.
  *   quantity = n → fijás el total: los lotes se acomodan hacia donde haga falta.
+ *
+ * `markTasted` es "abrí una botella" dicho entero: descuenta Y deja el vino
+ * marcado como probado, con su fecha de consumo, en el MISMO update. Es una
+ * sola operación porque es un solo hecho: si fueran dos llamadas, una podría
+ * quedar a mitad de camino y el vino terminaría descontado pero sin registrar.
+ * El "−" pelado no la usa: descontar no siempre es tomárselo (regalaste una
+ * botella, corregís un número), y eso no debería mentir sobre tu historial.
+ *
+ * `undoOpen` deshace exactamente eso, y es lo que hace el "Deshacer" del aviso:
+ * la botella vuelve al LOTE del que salió (no entra como compra de hoy, que
+ * haría figurar recién llegado a un vino que tenés desde hace años), el contador
+ * de consumos baja y `tasted` vuelve a como estaba —`wasTasted` dice a qué, para
+ * no borrar un "probado" que ya era cierto antes de abrir esta botella—.
  */
-async function adjustStock(userId, id, { delta, quantity }) {
+async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, wasTasted }) {
   // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
   // vino cargado antes de que existieran y recalcula status, que es justo lo
   // que hacía la versión anterior ante una entrada inválida.
@@ -424,16 +437,68 @@ async function adjustStock(userId, id, { delta, quantity }) {
   } else {
     const movimiento = Number.parseInt(delta, 10);
     if (Number.isFinite(movimiento) && movimiento !== 0) {
-      stages = buildStockStages(movimiento > 0 ? "restock" : "consume", {
-        $literal: Math.abs(movimiento),
-      });
+      // Deshacer devuelve la botella a su lote; reponer abre uno nuevo. Es la
+      // diferencia entre "me equivoqué" y "compré más", y se nota en la ficha.
+      const op = movimiento > 0 ? (undoOpen === true ? "return" : "restock") : "consume";
+      stages = buildStockStages(op, { $literal: Math.abs(movimiento) });
     }
   }
+
+  // "Abrí una botella": el consumo queda registrado en el mismo paso. Va ANTES
+  // de las etapas de stock a propósito, porque el `status` que calculan al final
+  // se decide mirando `tasted`.
+  const abriendo = markTasted === true;
+  const deshaciendo = undoOpen === true;
+
+  if (abriendo) {
+    stages = [
+      {
+        $set: {
+          tasted: true,
+          lastConsumedAt: "$$NOW",
+          consumptionCount: { $add: [{ $ifNull: ["$consumptionCount", 0] }, 1] },
+        },
+      },
+      ...stages,
+    ];
+  } else if (deshaciendo) {
+    // El consumo nunca ocurrió: se descuenta del contador y `tasted` vuelve a
+    // donde estaba. Si con esto el vino queda sin consumos, tampoco tiene una
+    // "última vez que lo tomaste" que contar.
+    const consumos = { $max: [0, { $subtract: [{ $ifNull: ["$consumptionCount", 0] }, 1] }] };
+    stages = [
+      { $set: { consumptionCount: consumos, tasted: wasTasted === true } },
+      {
+        $set: {
+          lastConsumedAt: {
+            $cond: [{ $eq: ["$consumptionCount", 0] }, null, "$lastConsumedAt"],
+          },
+        },
+      },
+      ...stages,
+    ];
+  }
+
+  // Para saber si hay que mover el contador de probados del perfil hace falta el
+  // valor ANTERIOR, y el pipeline sólo devuelve el posterior.
+  const antes =
+    abriendo || deshaciendo
+      ? await Wine.findOne({ _id: id, userId }).select("tasted")
+      : null;
 
   const updated = await Wine.findOneAndUpdate({ _id: id, userId }, stages, {
     returnDocument: "after",
     updatePipeline: true,
   });
+
+  if (updated && antes && antes.tasted !== updated.tasted) {
+    const user = await User.findById(userId);
+    if (user) {
+      const n = user.stats.tastedWines || 0;
+      user.stats.tastedWines = updated.tasted ? n + 1 : Math.max(0, n - 1);
+      await user.save();
+    }
+  }
 
   return updated;
 }

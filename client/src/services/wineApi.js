@@ -25,10 +25,24 @@ export const deleteWine = async (id) => {
   return data;
 };
 
-export const adjustWineStock = async (id, delta) => {
-  const { data } = await api.patch(`/wines/${id}/stock`, { delta });
+export const adjustWineStock = async (id, delta, extra = {}) => {
+  const { data } = await api.patch(`/wines/${id}/stock`, { delta, ...extra });
   return data.data;
 };
+
+/**
+ * Abrir una botella: la descuenta del stock y deja el vino marcado como
+ * probado, en una sola operación. Descontar con "−" a secas NO marca probado:
+ * también se saca una botella para regalarla o para corregir un número.
+ */
+export const openBottle = async (id) => adjustWineStock(id, -1, { markTasted: true });
+
+/**
+ * Deshacer lo anterior. `wasTasted` es cómo estaba el vino ANTES de abrir: si ya
+ * lo habías probado, deshacer no puede borrarte ese dato.
+ */
+export const undoOpenBottle = async (id, wasTasted) =>
+  adjustWineStock(id, 1, { undoOpen: true, wasTasted: wasTasted === true });
 
 export const getWineStats = async () => {
   const { data } = await api.get("/wines/stats/summary");

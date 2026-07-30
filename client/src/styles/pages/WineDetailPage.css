@@ -568,11 +568,42 @@
 .wine-detail-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 10px;
+}
+
+/* "Abrí una botella" encabeza la caja de acciones: es lo que uno viene a hacer
+   con un vino que tiene en casa. Ocupa su propia fila para no competir por
+   ancho con el stepper y los íconos. */
+.wine-detail-open {
+  order: -1;
+  flex: 1 0 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+  font-size: var(--text-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.wine-detail-open:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.24);
+}
+
+.wine-detail-open:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .wine-detail-actions .wine-qty-controls {
