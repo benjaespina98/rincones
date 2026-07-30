@@ -73,6 +73,25 @@ const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"
  */
 let renovacionEnCurso = null;
 
+/**
+ * ¿Este 401 merece que se intente renovar la sesión?
+ *
+ * Está afuera del interceptor para poder testearla: la regla es corta y su error
+ * más probable —dejar afuera una ruta que sí tenía que renovar— no se nota en el
+ * momento sino como "la app me saca la sesión", que es lo que efectivamente pasó
+ * con `/auth/me` y tardó en encontrarse.
+ *
+ * Renuevan TODAS las llamadas protegidas, incluido `/auth/me` (es la que hidrata la
+ * sesión al arrancar y usa el token de acceso como cualquier otra). No renuevan
+ * login, registro, logout, recuperación de contraseña ni el refresh mismo: ninguna
+ * necesita un token válido, así que un 401 ahí significa otra cosa.
+ */
+export const debeRenovarSesion = ({ status, url = "", yaReintentado = false }) => {
+  if (status !== 401 || yaReintentado) return false;
+  if (url.includes("/auth/me")) return true;
+  return !url.includes("/auth/");
+};
+
 const renovarSesion = async () => {
   if (!renovacionEnCurso) {
     renovacionEnCurso = api
@@ -100,7 +119,7 @@ api.interceptors.response.use(
 
     // `_reintentado` evita el bucle: si la llamada ya se rehizo con un token
     // nuevo y vuelve a dar 401, el problema no es la expiración.
-    if (status === 401 && !isAuthCall && original && !original._reintentado) {
+    if (original && debeRenovarSesion({ status, url, yaReintentado: original._reintentado })) {
       original._reintentado = true;
       try {
         const token = await renovarSesion();
@@ -110,6 +129,9 @@ api.interceptors.response.use(
       }
     }
 
+    // Al login sólo se manda cuando la renovación ya falló. `/auth/me` no redirige:
+    // es la consulta con la que la app averigua si hay sesión, y su respuesta
+    // negativa la maneja quien la llamó.
     if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
       setAuthToken(null);
       const onAuthScreen = AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
