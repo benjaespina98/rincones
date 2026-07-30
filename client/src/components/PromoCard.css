@@ -2,23 +2,75 @@
    El estilo vive con el componente, y el componente lo comparten el carrusel de
    Descubrí y la vista previa del panel. Es lo que garantiza que la vista previa
    sea la tarjeta de verdad y no una maqueta que se parece.
+
+   La jerarquía sigue a la tarjeta destacada de "Aprendé y explorá": título
+   grande, aire alrededor, filete de acento arriba y el pie con la flecha. Es el
+   recurso con el que una revista marca la nota principal, y era lo que hacía que
+   ESA tarjeta se viera mejor que ésta.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .promo {
   --promo-accent: var(--accent);
   position: relative;
-  min-height: 168px;
+  min-height: 180px;
   display: flex;
   align-items: flex-end;
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line-accent);
   /* Sin imagen la tarjeta no queda hueca: el degradado con el color de acento es
      un fondo deliberado, no un placeholder roto. */
   background:
-    radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--promo-accent) 32%, transparent) 0%, transparent 60%),
+    radial-gradient(130% 120% at 100% 0%, color-mix(in srgb, var(--promo-accent) 30%, transparent) 0%, transparent 62%),
     var(--elevated);
+  box-shadow: var(--shadow-md);
   isolation: isolate;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Filete de acento sobre el borde superior. Cuesta tres líneas de CSS y es lo que
+   separa una tarjeta destacada de un rectángulo con texto. */
+.promo::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 2;
+  background: linear-gradient(
+    90deg,
+    var(--promo-accent),
+    color-mix(in srgb, var(--promo-accent) 35%, transparent)
+  );
+}
+
+/* ── Toda la tarjeta es el enlace ─────────────────────────────────────────── */
+
+.promo__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* Sin texto adentro: su nombre accesible viene del aria-label. */
+  font-size: 0;
+}
+
+.promo__hit:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: -4px;
+  border-radius: var(--radius-xl);
+}
+
+@media (hover: hover) {
+  .promo.is-clickable:hover {
+    border-color: var(--promo-accent);
+  }
+}
+
+.promo.is-clickable:active {
+  transform: scale(0.995);
 }
 
 .promo__bg {
@@ -39,8 +91,8 @@
   z-index: -1;
   background: linear-gradient(
     180deg,
-    rgba(5, 7, 18, 0.25) 0%,
-    rgba(5, 7, 18, 0.78) 55%,
+    rgba(5, 7, 18, 0.2) 0%,
+    rgba(5, 7, 18, 0.76) 55%,
     rgba(5, 7, 18, 0.94) 100%
   );
 }
@@ -48,15 +100,19 @@
 .promo__body {
   position: relative;
   display: grid;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
-  padding: 14px;
+  padding: 18px;
+  /* Encima del área clickeable para que el texto siga siendo texto, pero sin
+     capturar el toque: los eventos de puntero pasan de largo hacia el botón. */
+  z-index: 1;
+  pointer-events: none;
 }
 
 .promo__kicker {
   display: inline-flex;
   align-items: center;
-  /* Con cartel + logo + nombre largo, el renglón puede no alcanzar en un celular
+  /* Con cartel + logo + nombre largo el renglón puede no alcanzar en un celular
      angosto: baja a dos líneas en vez de desbordar la tarjeta. */
   flex-wrap: wrap;
   gap: 6px;
@@ -94,12 +150,9 @@
    con fondo transparente —sobre nuestra tarjeta oscura serían invisibles—. Una
    pastilla clara garantiza que cualquier logo se lea, y de paso lo separa
    visualmente del contenido de la app, que es lo correcto: es la marca de un
-   tercero, no un elemento de Rincones.
-
-   `contain` para no deformarlo nunca: un logo estirado se ve peor que no tenerlo. */
+   tercero, no un elemento de Rincones. */
 .promo__sponsor-logo {
   height: 20px;
-  /* Techo de ancho para que un logo apaisado no empuje el resto del renglón. */
   max-width: 84px;
   object-fit: contain;
   padding: 2px 4px;
@@ -108,18 +161,20 @@
   flex-shrink: 0;
 }
 
+/* El título es lo que se lee de lejos: grande, apretado y en una sola voz. */
 .promo__title {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--text-2xl);
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
 .promo__summary {
   margin: 0;
-  font-size: var(--text-xs);
-  line-height: 1.4;
+  font-size: var(--text-sm);
+  line-height: 1.45;
   color: var(--text-secondary);
   /* Dos líneas como techo: el modelo ya limita el texto a 160 caracteres, esto
      protege la altura de la tarjeta cuando entran justo en el borde. */
@@ -134,7 +189,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .promo__meta {
@@ -142,50 +197,48 @@
   color: var(--text-secondary);
 }
 
+/* Ya no es un botón: es la señal de que la tarjeta lleva a algún lado. El clic lo
+   toma la tarjeta entera, así que esto no necesita área táctil propia. */
 .promo__cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  /* 40px de alto: por debajo de eso el dedo falla. */
-  min-height: 40px;
-  padding: 0 14px;
   margin-left: auto;
-  border-radius: var(--radius-md);
+  padding: 7px 13px;
+  border-radius: var(--radius-full);
   border: 1px solid color-mix(in srgb, var(--promo-accent) 55%, transparent);
-  background: color-mix(in srgb, var(--promo-accent) 20%, transparent);
+  background: color-mix(in srgb, var(--promo-accent) 18%, transparent);
   color: var(--text);
   font-size: var(--text-xs);
   font-weight: 800;
-  cursor: pointer;
   white-space: nowrap;
   transition: background var(--transition-fast);
 }
 
-.promo__cta:hover {
-  background: color-mix(in srgb, var(--promo-accent) 34%, transparent);
+.promo.is-clickable:hover .promo__cta {
+  background: color-mix(in srgb, var(--promo-accent) 32%, transparent);
 }
 
 /* ── Vista previa del panel ─────────────────────────────────────────────────
-   Misma tarjeta, sin interacción. El botón se ve (hay que poder juzgar cómo
-   queda con él) pero no responde: en la vista previa no hay a dónde ir. */
+   Misma tarjeta, sin interacción. */
 
 .promo.is-preview .promo__cta {
-  cursor: default;
   opacity: 0.9;
 }
 
-.promo.is-preview .promo__cta:hover {
-  background: color-mix(in srgb, var(--promo-accent) 20%, transparent);
-}
-
 @media (prefers-reduced-motion: reduce) {
+  .promo,
   .promo__cta {
     transition: none;
+  }
+
+  .promo.is-clickable:active {
+    transform: none;
   }
 }
 
 @media (min-width: 720px) {
   .promo {
-    min-height: 200px;
+    min-height: 210px;
   }
 }

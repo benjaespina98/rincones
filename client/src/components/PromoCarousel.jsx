@@ -162,12 +162,15 @@ export default function PromoCarousel({ promos = [] }) {
   };
 
   const abrir = (promo) => {
+    const destino = String(promo.url || "").trim();
+    // El clic se cuenta sólo si LLEVA a algún lado. Contar un toque sobre una
+    // tarjeta que no navega infla el número con algo que no le sirvió a nadie, y
+    // el clic es justo el dato que el anunciante mira.
+    if (!destino) return;
+
     tapHaptic();
     trackPromoClick(promo._id);
     trackEvent("promo_click", { id: promo._id, kind: promo.kind, title: promo.title });
-
-    const destino = String(promo.url || "").trim();
-    if (!destino) return;
 
     // Un enlace interno navega dentro de la app; uno externo abre pestaña nueva
     // y no se lleva puesta la sesión de nadie (`noopener`). El server ya rechazó
