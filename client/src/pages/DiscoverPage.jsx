@@ -16,12 +16,15 @@ import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
+import PromoCarousel from "../components/PromoCarousel";
+import { getPromotions } from "../services/promotionsApi";
+import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/DiscoverPage.css";
 
-// Atajos rápidos para arrancar la búsqueda sin escribir. Son cuatro: nueve
-// ocupaban tres filas y empujaban el vino del día fuera de la pantalla, que es
-// lo que la home tiene para mostrar. Con estos entra sin scrollear.
-const QUICK_VARIETALS = ["Malbec", "Cabernet Franc", "Sauvignon Blanc", "Pinot Noir"];
+// Atajos rápidos para arrancar la búsqueda sin escribir. Son pocos a propósito:
+// nueve ocupaban tres filas y empujaban el vino del día fuera de la pantalla,
+// que es lo que la home tiene para mostrar. Con estos entra sin scrollear.
+const QUICK_VARIETALS = ["Malbec", "Cabernet Franc", "Pinot Noir"];
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
@@ -34,6 +37,9 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [addingId, setAddingId] = useState(null);
+  // Eventos y publicidades vigentes. Arranca vacío y así se queda si no hay nada
+  // cargado: el carrusel no se renderiza y la pantalla no deja un hueco.
+  const [promos, setPromos] = useState([]);
 
   // Búsqueda en el catálogo. Antes esto delegaba: escribías acá y te mandaba a
   // /agregar a ver los resultados, en una pantalla titulada "Agregar vino"
@@ -70,6 +76,16 @@ export default function DiscoverPage() {
   }, []);
 
   useEffect(() => loadFeatured(), [loadFeatured]);
+
+  // Los destacados van por su cuenta, sin bloquear nada: si tardan o fallan, el
+  // resto de Descubrí ya se está viendo. `getPromotions` nunca lanza.
+  useEffect(() => {
+    let active = true;
+    getPromotions().then((p) => active && setPromos(p));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Se busca sola mientras escribís, con 400ms de respiro para no disparar una
   // petición por tecla.
@@ -144,6 +160,9 @@ export default function DiscoverPage() {
       setAddedIds((prev) => new Set(prev).add(wine.id));
       successHaptic();
       showSuccess(`"${wine.name}" guardado en tu lista`);
+      // Se mide el ÉXITO y no el clic: lo que interesa saber es si Descubrí
+      // termina en algo, no cuántas veces se apretó un botón que falló.
+      trackEvent("wish_added", { source });
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
@@ -371,6 +390,26 @@ export default function DiscoverPage() {
           pantallas distintas apiladas en el mismo scroll. */}
       {!buscando && (
         <>
+        {/* ── Destacados ────────────────────────────────────────────────────
+            Va DESPUÉS del vino del día y antes de las recomendaciones: lo
+            primero que ve alguien que abre la app tiene que ser el producto,
+            no un aviso. Acá arriba se ve, y no se come la portada.
+
+            Sin campañas vigentes el componente devuelve null y esta sección
+            desaparece entera —encabezado incluido—: un título "Destacados"
+            sobre un espacio vacío es peor que no tener la sección. */}
+        {promos.length > 0 && (
+          <section className="discover-section discover-section--promos">
+            <div className="discover-section__head">
+              <h2>Destacados</h2>
+              <span className="discover-section__hint">
+                {promos.length === 1 ? "Lo que está pasando" : "Eventos y novedades del vino"}
+              </span>
+            </div>
+            <PromoCarousel promos={promos} />
+          </section>
+        )}
+
         {/* Recomendados del catálogo argentino */}
         <section className="discover-section">
           <div className="discover-section__head">

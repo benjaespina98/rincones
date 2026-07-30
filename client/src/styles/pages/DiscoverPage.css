@@ -267,6 +267,12 @@
   color: var(--text-muted);
 }
 
+/* Los destacados traen su propia fila de puntos abajo, así que no necesitan el
+   respiro completo de una sección: con el gap normal el bloque queda flotando. */
+.discover-section--promos {
+  gap: 10px;
+}
+
 /* ── Rail horizontal de recomendados ── */
 .discover-rail {
   display: grid;

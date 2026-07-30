@@ -1,0 +1,328 @@
+/* ══ Panel de destacados ══════════════════════════════════════════════════
+   Un formulario largo que se completa desde el celular: campos apilados, área
+   táctil generosa, y la ayuda de cada campo debajo y no en un tooltip.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pr {
+  display: grid;
+  gap: 14px;
+}
+
+.pr__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pr__new {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+  font-size: var(--text-base);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pr__new:hover {
+  background: rgba(126, 89, 201, 0.24);
+}
+
+.pr__count {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── Formulario ──────────────────────────────────────────────────────────── */
+
+.pr__form {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-accent);
+  background: var(--elevated);
+}
+
+.pr__form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pr__form-head h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.pr__close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Evento o publicidad: la decisión que cambia lo que ve el usuario, así que se
+   muestra como dos tarjetas y no como un select escondido. */
+.pr__kind {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.pr__kind-btn {
+  display: grid;
+  gap: 2px;
+  padding: 11px 13px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.pr__kind-btn strong {
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.pr__kind-btn small {
+  font-size: var(--text-2xs);
+}
+
+.pr__kind-btn.is-active {
+  border-color: var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+}
+
+.pr__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.pr__notice strong {
+  color: var(--text);
+}
+
+.pr__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.pr__field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pr__field > span {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.pr__field > span em {
+  color: var(--accent-soft);
+  font-style: normal;
+}
+
+.pr__field input {
+  width: 100%;
+  /* 44px: el mínimo con el que un dedo acierta un campo. */
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-base);
+}
+
+.pr__field input:focus {
+  outline: none;
+  border-color: var(--line-accent);
+}
+
+/* La ayuda va debajo del campo, siempre visible: en un celular no hay hover que
+   revele un tooltip. */
+.pr__field small {
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.pr__fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.pr__fieldset legend {
+  padding: 0 6px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.pr__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pr__check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.pr__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Listado ─────────────────────────────────────────────────────────────── */
+
+.pr__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pr__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.pr__item-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pr__item-title {
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr__item-meta,
+.pr__item-stats {
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.pr__item-stats {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El estado tiene color propio: "¿por qué no se ve mi campaña?" se responde de
+   un vistazo y no probando cosas. */
+.pr__state {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pr__state--live {
+  background: rgba(47, 182, 123, 0.16);
+  border: 1px solid rgba(47, 182, 123, 0.45);
+  color: #7fe3b4;
+}
+
+.pr__state--scheduled {
+  background: rgba(126, 89, 201, 0.16);
+  border: 1px solid var(--line-accent);
+  color: var(--accent-soft);
+}
+
+.pr__state--expired,
+.pr__state--paused {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+}
+
+.pr__item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pr__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.pr__icon:hover {
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+.pr__icon--danger:hover {
+  border-color: rgba(198, 70, 95, 0.5);
+  color: #ff8fa3;
+}
