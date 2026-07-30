@@ -2,21 +2,12 @@
 // Ver models/wineImage.model.js para el concepto.
 
 const WineImage = require("../models/wineImage.model");
+const { poolKey } = require("../data/wineIdentity");
 
-const fold = (text = "") =>
-  String(text)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-
-// Clave del vino: nombre + bodega. Necesita ambos para no mezclar homónimos.
-const wineKey = (name, winery) => {
-  const n = fold(name);
-  const w = fold(winery);
-  if (n.length < 3) return null;
-  return `${n}|${w}`;
-};
+// Clave del vino: nombre + uva + bodega. Los tres, para no mezclar homónimos ni
+// dos uvas de la misma línea ("Saint Felicien Malbec" no es "Saint Felicien
+// Cabernet"). Definida una sola vez en data/wineIdentity.js.
+const wineKey = (name, winery, varietal) => poolKey(name, winery, varietal);
 
 // Sólo guardamos fotos "de verdad" (data URL o http), no cadenas vacías.
 const looksLikeImage = (value) =>
@@ -26,9 +17,9 @@ const looksLikeImage = (value) =>
  * Aporta una foto al pool para un vino. No pisa la existente (nos quedamos con
  * la primera). Best-effort: nunca lanza, para no romper el alta del vino.
  */
-const contribute = async ({ name, winery, image, userId }) => {
+const contribute = async ({ name, winery, varietal, image, userId }) => {
   try {
-    const key = wineKey(name, winery);
+    const key = wineKey(name, winery, varietal);
     if (!key || !looksLikeImage(image)) return;
 
     await WineImage.updateOne(
@@ -52,9 +43,9 @@ const contribute = async ({ name, winery, image, userId }) => {
 /**
  * Devuelve la foto del pool para un vino, o "" si no hay. Nunca lanza.
  */
-const getImage = async (name, winery) => {
+const getImage = async (name, winery, varietal) => {
   try {
-    const key = wineKey(name, winery);
+    const key = wineKey(name, winery, varietal);
     if (!key) return "";
     const doc = await WineImage.findOne({ key }).select("image").lean();
     return doc?.image || "";
@@ -68,10 +59,12 @@ const getImage = async (name, winery) => {
  * pega la del pool si existe. Una sola consulta para toda la lista.
  */
 const enrichWithImages = async (wines = []) => {
-  const need = wines.filter((w) => w && !looksLikeImage(w.image) && wineKey(w.name, w.winery));
+  const need = wines.filter(
+    (w) => w && !looksLikeImage(w.image) && wineKey(w.name, w.winery, w.varietal)
+  );
   if (need.length === 0) return wines;
 
-  const keys = [...new Set(need.map((w) => wineKey(w.name, w.winery)))];
+  const keys = [...new Set(need.map((w) => wineKey(w.name, w.winery, w.varietal)))];
   let byKey = new Map();
   try {
     const docs = await WineImage.find({ key: { $in: keys } }).select("key image").lean();
@@ -82,7 +75,7 @@ const enrichWithImages = async (wines = []) => {
 
   return wines.map((w) => {
     if (looksLikeImage(w.image)) return w;
-    const img = byKey.get(wineKey(w.name, w.winery));
+    const img = byKey.get(wineKey(w.name, w.winery, w.varietal));
     return img ? { ...w, image: img, imageSource: "community" } : w;
   });
 };

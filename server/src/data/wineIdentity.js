@@ -34,15 +34,54 @@ Ejemplos:
 - Etiqueta "Zuccardi Serie A Torrontés" → winery:"Zuccardi", line:"Serie A", varietal:"Torrontés", name:""`;
 
 /**
- * Nombre visible del vino. Debe producir EXACTAMENTE lo mismo que compone
- * argentineWines.js ("<línea> <varietal>"), porque ese string es la clave con la
- * que se guardan fotos, precios y descripciones compartidas entre usuarios.
+ * Nombre visible del vino: la línea o el nombre propio, SIN la uva.
+ *
+ * El vino se llama "Saint Felicien"; que sea Malbec es otra cosa —una que la
+ * ficha ya muestra en su propio chip, al lado del tipo y la cosecha—. Meterla
+ * en el nombre la decía dos veces y hacía que la etiqueta de la bodega leyera
+ * como un renglón de catálogo en vez de como el nombre de una botella.
+ *
+ * La uva NO se pierde en ningún lado que importe: sigue siendo campo propio,
+ * entra en el índice de búsqueda (buscar "Saint Felicien Malbec" encuentra el
+ * vino) y forma parte de la identidad para deduplicar y para las claves de los
+ * pools compartidos. Para eso están `composeSearchName` y `poolKey`.
+ *
+ * Debe producir EXACTAMENTE lo mismo que compone argentineWines.js.
  */
 const composeDisplayName = ({ name, line, varietal, winery } = {}) => {
   const head = String(name || "").trim() || String(line || "").trim();
+  return head || String(winery || "").trim();
+};
+
+/**
+ * El nombre como se BUSCA, que sí incluye la uva: nadie escribe "Saint
+ * Felicien" a secas cuando está buscando el Malbec. Es lo que se le manda a las
+ * fuentes externas y al catálogo, no lo que se muestra en pantalla.
+ */
+const composeSearchName = ({ name, line, varietal, winery } = {}) => {
+  const head = composeDisplayName({ name, line, winery });
   const grape = String(varietal || "").trim();
-  const composed = [head, grape].filter(Boolean).join(" ").trim();
-  return composed || String(winery || "").trim();
+  if (!grape) return head;
+  if (fold(head).includes(fold(grape))) return head;
+  return [head, grape].filter(Boolean).join(" ").trim();
+};
+
+/**
+ * Clave de los pools compartidos entre usuarios (fotos, precios, catálogo
+ * comunitario): nombre + uva + bodega.
+ *
+ * La uva es parte de la clave y no un adorno: "Saint Felicien Malbec" y "Saint
+ * Felicien Cabernet Sauvignon" son botellas distintas y no pueden compartir la
+ * foto ni el precio.
+ *
+ * Se agrega sólo si el nombre no la trae ya. Eso hace que la clave sea la MISMA
+ * que generaban los nombres viejos —que incluían la uva—, así que sacarla del
+ * nombre visible no parte los pools en dos ni deja huérfano lo ya aportado.
+ */
+const poolKey = (name, winery, varietal = "") => {
+  const core = fold(composeSearchName({ name, varietal }));
+  if (core.length < 3) return null;
+  return `${core}|${fold(winery)}`;
 };
 
 /**
@@ -71,4 +110,10 @@ const identityKey = (wine = {}) => {
   return { core, varietal, wineryToken };
 };
 
-module.exports = { FIELD_CONVENTION, composeDisplayName, identityKey };
+module.exports = {
+  FIELD_CONVENTION,
+  composeDisplayName,
+  composeSearchName,
+  identityKey,
+  poolKey,
+};

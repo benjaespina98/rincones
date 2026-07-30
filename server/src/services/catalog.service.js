@@ -9,7 +9,7 @@
 // extra (con imagen y código de barras) y se ordena por debajo.
 
 const { CATALOG, fold } = require("../data/argentineWines");
-const { identityKey, composeDisplayName } = require("../data/wineIdentity");
+const { identityKey, composeSearchName } = require("../data/wineIdentity");
 const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
 const communityWines = require("./communityWines.service");
 const CatalogSearch = require("../models/catalogSearch.model");
@@ -413,7 +413,9 @@ const MATCH_THRESHOLD = 0.72;
  * usuario no se enteraba. Acá preferimos no devolver nada antes que mentir.
  */
 const findMatch = async ({ winery, line, name, varietal, vintage } = {}) => {
-  const query = composeDisplayName({ name, line, varietal, winery }) || name || "";
+  // Para BUSCAR sí queremos la uva: "Saint Felicien" a secas trae las cuatro
+  // uvas de la línea y el match tendría que desempatar a ciegas.
+  const query = composeSearchName({ name, line, varietal, winery }) || name || "";
   if (String(query).trim().length < 2) return null;
 
   const { results } = await searchWines(query);

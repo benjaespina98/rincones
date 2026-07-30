@@ -29,7 +29,8 @@ test("tolera un dedazo", () => {
   ]) {
     const r = searchCatalog(malo);
     assert.ok(r.length > 0, `"${malo}" no devolvió nada`);
-    assert.match(`${r[0].name} ${r[0].winery}`, esperado);
+    // La uva se mira en su campo: el nombre visible ya no la incluye.
+    assert.match(`${r[0].name} ${r[0].winery} ${r[0].varietal}`, esperado);
   }
 });
 
