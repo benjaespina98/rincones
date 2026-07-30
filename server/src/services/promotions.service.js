@@ -3,6 +3,7 @@ const Promotion = require("../models/promotion.model");
 const PromotionStat = require("../models/promotionStat.model");
 const PromotionView = require("../models/promotionView.model");
 const ChangeLog = require("../models/changeLog.model");
+const imageStorage = require("./imageStorage.service");
 const {
   ESTADOS,
   parseFecha,
@@ -11,6 +12,7 @@ const {
   estadoDe,
   urlSegura,
   imagenSegura,
+  esImagenSubida,
   colorSeguro,
 } = require("../utils/promotionState");
 
@@ -303,12 +305,16 @@ const paraPanel = (promo, ahora) => {
  * escribirla como consulta de Mongo la duplicaría (ver la regla de oro 2). El
  * resumen sí se cuenta sobre todas, con una agregación que no trae documentos.
  */
-const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "" } = {}) => {
+const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "", kind = "" } = {}) => {
   const ahora = new Date();
   const porPagina = Math.min(Math.max(Number(limit) || POR_PAGINA, 1), 100);
   const pagina = Math.max(Number(page) || 1, 1);
 
   const filtro = {};
+  // Publicidades y eventos comparten el espacio en la app —con su cartel cada uno—
+  // pero en el panel se administran distinto: lo pago tiene alguien esperando un
+  // informe del otro lado. Por eso acá sí se pueden separar.
+  if (kind === "ad" || kind === "event") filtro.kind = kind;
   const busqueda = String(q || "").trim();
   if (busqueda) {
     // `escapeRegExp`: el texto lo escribe una persona en un buscador, y un "(" suelto
@@ -341,7 +347,10 @@ const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "" } = {}
     page: pagina,
     pages: Math.max(Math.ceil(total / porPagina), 1),
     total,
-    summary: await resumenPorEstado(ahora),
+    // El resumen respeta el filtro por tipo: los contadores SON los botones de
+    // estado, así que si dicen otro número que el de la lista que se está viendo,
+    // el panel se contradice solo.
+    summary: await resumenPorEstado(ahora, filtro.kind ? { kind: filtro.kind } : {}),
   };
 };
 
@@ -353,9 +362,9 @@ const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "" } = {}
  * cuando haya miles de campañas cargadas. Son cuatro conteos en paralelo y los
  * cuatro pegan en el índice.
  */
-const resumenPorEstado = async (ahora = new Date()) => {
-  const vencida = { endsAt: { $ne: null, $lt: ahora } };
-  const noVencida = { $or: [{ endsAt: null }, { endsAt: { $gte: ahora } }] };
+const resumenPorEstado = async (ahora = new Date(), base = {}) => {
+  const vencida = { ...base, endsAt: { $ne: null, $lt: ahora } };
+  const noVencida = { ...base, $or: [{ endsAt: null }, { endsAt: { $gte: ahora } }] };
 
   const [ended, paused, scheduled, active, total] = await Promise.all([
     Promotion.countDocuments(vencida),
@@ -366,7 +375,7 @@ const resumenPorEstado = async (ahora = new Date()) => {
       active: true,
       $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: ahora } }] }],
     }),
-    Promotion.countDocuments({}),
+    Promotion.countDocuments(base),
   ]);
 
   return { active, scheduled, paused, ended, total };
@@ -454,6 +463,36 @@ const saneado = (payload = {}) => {
   return { datos, errores };
 };
 
+/**
+ * Sube a Cloudinary las imágenes que llegaron como archivo y deja la URL.
+ *
+ * ── POR QUÉ SE PUEDE SUBIR UN ARCHIVO Y NO SÓLO PEGAR UNA URL ───────────────
+ * Porque así es como llega una imagen en la vida real: la bodega te manda el logo
+ * por WhatsApp. Pedir una URL obliga a subir el archivo a otro lado primero —y a
+ * que ese otro lado siga existiendo el año que viene, o la tarjeta se rompe sola—.
+ * El enlace sigue estando para cuando el anunciante sí te pasa uno.
+ *
+ * Lo que se guarda en la base es SIEMPRE una URL, no el archivo: Cloudinary lo
+ * reduce al recibirlo y lo sirve optimizado. Si Cloudinary no estuviera
+ * configurado, `store` devuelve la imagen tal cual y queda dentro del documento
+ * —más pesado, pero la campaña se carga igual—: el mismo criterio que usan las
+ * fotos de los vinos.
+ *
+ * Va DESPUÉS de la validación: no tiene sentido subir un archivo de una campaña
+ * que va a ser rechazada por otro campo.
+ */
+const guardarImagenes = async (datos) => {
+  if (esImagenSubida(datos.image)) {
+    datos.image = await imageStorage.store(datos.image, { folder: "rincones/promos" });
+  }
+  if (datos.sponsor && esImagenSubida(datos.sponsor.logo)) {
+    datos.sponsor.logo = await imageStorage.store(datos.sponsor.logo, {
+      folder: "rincones/promos/logos",
+    });
+  }
+  return datos;
+};
+
 /** Un error de validación con el mensaje que hay que mostrarle a quien carga. */
 const errorDeCarga = (mensaje) => {
   const error = new Error(mensaje);
@@ -499,6 +538,7 @@ const resumenAuditable = (p) => ({
 const create = async (actor, payload) => {
   const { datos, errores } = saneado(payload);
   if (errores.length > 0) throw errorDeCarga(errores[0]);
+  await guardarImagenes(datos);
 
   const promo = new Promotion({ ...datos, createdBy: actor?.id || null });
   await promo.save();
@@ -514,6 +554,7 @@ const update = async (id, actor, payload) => {
 
   const promo = await Promotion.findById(id);
   if (!promo) return null;
+  await guardarImagenes(datos);
 
   const antes = resumenAuditable(promo);
   Object.assign(promo, datos);

@@ -1,0 +1,157 @@
+/* ══ Selector de imagen ═══════════════════════════════════════════════════
+   Subir un archivo o pegar un enlace, con la miniatura al lado. La miniatura no
+   es decoración: es la única forma de saber, antes de publicar, que la imagen
+   que se eligió realmente se muestra.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.imgpick {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.imgpick__label {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.imgpick__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.imgpick__thumb {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  /* Un tablero claro detrás: sobre él se ve si el logo tiene fondo transparente o
+     un rectángulo blanco pegado, que es la diferencia entre que quede bien o mal
+     en la tarjeta. */
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
+    var(--surface-2);
+  background-position: 0 0, 6px 6px;
+  background-size: 12px 12px;
+  color: var(--text-secondary);
+}
+
+.imgpick--wide .imgpick__thumb {
+  width: 84px;
+  height: 56px;
+}
+
+.imgpick--logo .imgpick__thumb {
+  width: 56px;
+  height: 56px;
+}
+
+.imgpick__thumb img {
+  width: 100%;
+  height: 100%;
+  /* `contain` y no `cover`: un logo recortado deja de ser el logo. En la imagen de
+     fondo el recorte real lo hace la tarjeta, y acá interesa ver la imagen entera
+     para juzgarla. */
+  object-fit: contain;
+}
+
+.imgpick__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.imgpick__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.imgpick__btn:hover:not(:disabled) {
+  background: rgba(126, 89, 201, 0.24);
+}
+
+.imgpick__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.imgpick__btn--ghost {
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+/* El input de archivo nativo no se muestra: su apariencia no se puede estilar y
+   cambia en cada navegador. El botón de arriba lo dispara. */
+.imgpick__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.imgpick__url {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.imgpick__url > span {
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.imgpick__url input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-sm, var(--text-base));
+}
+
+.imgpick__url input:focus {
+  outline: none;
+  border-color: var(--line-accent);
+}
+
+.imgpick__hint,
+.imgpick__uploaded,
+.imgpick__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.imgpick__uploaded {
+  color: #7fe3b4;
+}
+
+.imgpick__error {
+  color: #ff8fa3;
+}

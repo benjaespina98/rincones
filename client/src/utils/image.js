@@ -12,8 +12,14 @@ export const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
-/** Reduce la imagen antes de subirla: baja la latencia y el peso de red. */
-export const resizeImage = (file, maxDim = 1280, quality = 0.85) =>
+/**
+ * Reduce la imagen antes de subirla: baja la latencia y el peso de red.
+ *
+ * `mime` es JPEG por defecto porque para una foto pesa la mitad. Para un LOGO hay
+ * que pasarle "image/png": el JPEG no tiene transparencia, así que el fondo
+ * transparente se rellena de negro y el logo aparece dentro de un cuadrado sólido.
+ */
+export const resizeImage = (file, maxDim = 1280, quality = 0.85, mime = "image/jpeg") =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -33,10 +39,10 @@ export const resizeImage = (file, maxDim = 1280, quality = 0.85) =>
       canvas.width = width;
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      const dataUrl = canvas.toDataURL(mime, quality);
       canvas.toBlob(
         (blob) => (blob ? resolve({ blob, dataUrl }) : reject(new Error("resize-failed"))),
-        "image/jpeg",
+        mime,
         quality
       );
     };
@@ -54,6 +60,23 @@ export const resizeImage = (file, maxDim = 1280, quality = 0.85) =>
 export const toUploadableDataUrl = async (file, maxDim = 1280) => {
   try {
     const { dataUrl } = await resizeImage(file, maxDim);
+    return dataUrl;
+  } catch {
+    return fileToDataUrl(file);
+  }
+};
+
+/**
+ * Un logo listo para subir: PNG y chico.
+ *
+ * PNG porque un logo casi siempre tiene fondo transparente, y pasarlo a JPEG lo
+ * mete en un cuadrado negro —se ve roto y nadie entiende por qué—. Y 320px porque
+ * en la tarjeta se muestra a 20px de alto: subir 2000px sería mandar cien veces
+ * más datos de los que se van a ver.
+ */
+export const toUploadableLogo = async (file, maxDim = 320) => {
+  try {
+    const { dataUrl } = await resizeImage(file, maxDim, 1, "image/png");
     return dataUrl;
   } catch {
     return fileToDataUrl(file);

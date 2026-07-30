@@ -56,7 +56,11 @@
 .promo__kicker {
   display: inline-flex;
   align-items: center;
+  /* Con cartel + logo + nombre largo, el renglón puede no alcanzar en un celular
+     angosto: baja a dos líneas en vez de desbordar la tarjeta. */
+  flex-wrap: wrap;
   gap: 6px;
+  row-gap: 4px;
   font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -80,6 +84,28 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: none;
+}
+
+/* ── Logo del anunciante ────────────────────────────────────────────────────
+   Chico y sobre una pastilla clara.
+
+   Lo del fondo claro no es estético, es lo único que funciona: no se puede
+   controlar qué logo va a mandar un anunciante, y la mayoría son de tinta oscura
+   con fondo transparente —sobre nuestra tarjeta oscura serían invisibles—. Una
+   pastilla clara garantiza que cualquier logo se lea, y de paso lo separa
+   visualmente del contenido de la app, que es lo correcto: es la marca de un
+   tercero, no un elemento de Rincones.
+
+   `contain` para no deformarlo nunca: un logo estirado se ve peor que no tenerlo. */
+.promo__sponsor-logo {
+  height: 20px;
+  /* Techo de ancho para que un logo apaisado no empuje el resto del renglón. */
+  max-width: 84px;
+  object-fit: contain;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  flex-shrink: 0;
 }
 
 .promo__title {

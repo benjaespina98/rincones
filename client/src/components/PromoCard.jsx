@@ -71,6 +71,20 @@ export default function PromoCard({
               {promo.kind === "event" ? "Evento" : "Destacado"}
             </>
           )}
+
+          {/* La marca de quien publica: logo y nombre juntos, después del cartel.
+              Es el orden que usa cualquier app con espacio pago, y el que
+              corresponde: primero QUÉ es esto, después DE QUIÉN es. Al revés, un
+              logo grande arriba se lee como contenido de la app. */}
+          {promo.sponsor?.logo && (
+            <img
+              className="promo__sponsor-logo"
+              src={promo.sponsor.logo}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          )}
           {promo.sponsor?.name && <span className="promo__sponsor">{promo.sponsor.name}</span>}
         </span>
 

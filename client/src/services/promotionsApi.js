@@ -112,8 +112,8 @@ export const initPromoTracking = () => {
  * mismo código que decide si la campaña se muestra, así que el panel no puede
  * decir una cosa distinta de lo que hace la app.
  */
-export const getAllPromotions = async ({ page = 1, state = "", q = "", limit = 25 } = {}) => {
-  const { data } = await api.get("/promotions/all", { params: { page, state, q, limit } });
+export const getAllPromotions = async ({ page = 1, state = "", q = "", kind = "", limit = 25 } = {}) => {
+  const { data } = await api.get("/promotions/all", { params: { page, state, q, kind, limit } });
   return {
     items: Array.isArray(data?.items) ? data.items : [],
     page: data?.page || 1,

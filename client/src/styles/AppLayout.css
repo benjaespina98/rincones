@@ -26,9 +26,15 @@
   gap: 0.35rem;
 }
 
+/* "Volver" es el control más usado de cualquier pantalla interna y medía 31px.
+   40px es el mínimo con el que un pulgar acierta, y en la esquina superior
+   izquierda —el lugar más incómodo de alcanzar— importa más que en cualquier otro. */
 .app-topbar__nav-btn {
-  width: 1.95rem;
-  height: 1.95rem;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 12px;
   border: 1px solid var(--line-strong);
   background: rgba(126, 89, 201, 0.2);

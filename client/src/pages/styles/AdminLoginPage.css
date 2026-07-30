@@ -98,15 +98,25 @@
   color: #ece8ff;
 }
 
+/* `wrap` y el `min-width: 0` del bloque de texto son lo que evita que en un celular
+   los dos botones de la derecha le roben el ancho al título: se iba a dos líneas
+   ("Panel de / Rincones") y el email quedaba partido. Con wrap, los botones bajan
+   completos y el texto usa todo el ancho. */
 .admin-hero {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 1rem;
   padding: 1rem;
   border-radius: 18px;
   border: 1px solid rgba(176, 147, 255, 0.25);
   background: linear-gradient(145deg, rgba(25, 21, 52, 0.95), rgba(13, 14, 31, 0.9));
+}
+
+.admin-hero__left {
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .admin-hero__left h1 {
@@ -130,6 +140,20 @@
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  /* Los dos botones se reparten el ancho en vez de apilarse pegados a la derecha:
+     en un celular, dos botones de distinto largo alineados a la derecha se ven
+     como un descuido. */
+  .admin-hero__actions {
+    width: 100%;
+  }
+
+  .admin-hero__actions > * {
+    flex: 1 1 0;
+    justify-content: center;
+  }
 }
 
 .admin-nav-tabs {
@@ -413,10 +437,16 @@
   min-width: 0;
 }
 
+/* El email se recorta con puntos suspensivos en vez de partirse por la mitad.
+   `overflow-wrap: anywhere` cortaba "logo@e2e.local" como "logo@e2e.loca / l", que
+   se lee como un error de la app. Un email cortado con "…" se entiende; uno partido
+   al medio, no. */
 .admin-hero__who strong {
   font-size: var(--text-base);
   color: var(--text);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-hero__who em {

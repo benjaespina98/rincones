@@ -3,6 +3,7 @@ import Icon from "../components/Icon";
 import ConfirmModal from "../components/ConfirmModal";
 import PromoCard from "../components/PromoCard";
 import PromoStats from "../components/PromoStats";
+import ImagePicker from "../components/ImagePicker";
 import { useToast } from "../context/ToastContext";
 import {
   getAllPromotions,
@@ -50,6 +51,7 @@ const VACIO = {
   ctaLabel: "",
   accent: "",
   sponsorName: "",
+  sponsorLogo: "",
   startsAt: "",
   endsAt: "",
   eventAt: "",
@@ -58,6 +60,17 @@ const VACIO = {
   active: true,
   sponsored: false,
 };
+
+/**
+ * Publicidades y eventos comparten el espacio en la app —cada uno con su cartel—
+ * pero acá se separan, porque se administran distinto: detrás de una publicidad hay
+ * alguien esperando un informe, y detrás de un evento no.
+ */
+const TIPOS = [
+  { id: "", label: "Todo" },
+  { id: "ad", label: "Publicidades" },
+  { id: "event", label: "Eventos y catas" },
+];
 
 /** Los estados, con su color y su orden en los filtros. */
 const FILTROS = [
@@ -89,7 +102,7 @@ const aPayload = (form) => ({
   startsAt: form.startsAt || null,
   endsAt: form.endsAt || null,
   eventAt: form.eventAt || null,
-  sponsor: { name: form.sponsorName.trim(), logo: "" },
+  sponsor: { name: form.sponsorName.trim(), logo: form.sponsorLogo.trim() },
   place: { city: form.city.trim(), venue: form.venue.trim() },
   // Una publicidad siempre va marcada. El server lo fuerza igual.
   sponsored: form.kind === "ad" ? true : form.sponsored,
@@ -105,6 +118,7 @@ const aFormulario = (p) => ({
   ctaLabel: p.ctaLabel || "",
   accent: p.accent || "",
   sponsorName: p.sponsor?.name || "",
+  sponsorLogo: p.sponsor?.logo || "",
   startsAt: p.form?.startsAt || "",
   endsAt: p.form?.endsAt || "",
   eventAt: p.form?.eventAt || "",
@@ -171,6 +185,7 @@ export default function AdminPromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [filtro, setFiltro] = useState("");
+  const [tipo, setTipo] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(null); // null = formulario cerrado
@@ -187,13 +202,13 @@ export default function AdminPromotionsPage() {
     try {
       setLoading(true);
       setFailed(false);
-      setDatos(await getAllPromotions({ page, state: filtro, q: busqueda }));
+      setDatos(await getAllPromotions({ page, state: filtro, q: busqueda, kind: tipo }));
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [page, filtro, busqueda]);
+  }, [page, filtro, busqueda, tipo]);
 
   useEffect(() => {
     cargar();
@@ -242,7 +257,7 @@ export default function AdminPromotionsPage() {
       ctaLabel: form.ctaLabel,
       accent: form.accent,
       sponsored: form.kind === "ad" ? true : form.sponsored,
-      sponsor: { name: form.sponsorName },
+      sponsor: { name: form.sponsorName, logo: form.sponsorLogo },
       place: { city: form.city, venue: form.venue },
       eventAt: form.eventAt || null,
     };
@@ -345,6 +360,26 @@ export default function AdminPromotionsPage() {
           Los contadores son los filtros: el número contesta "qué hay" y el toque
           contesta "mostrame eso". Dos cosas en un solo control, que es lo que hace
           que se use desde un celular. */}
+      {/* Tipo primero, estado después: "mostrame las publicidades" es una decisión
+          más gruesa que "mostrame las activas", y los contadores de abajo se
+          recalculan para el tipo elegido —si no, el panel se contradice solo—. */}
+      <div className="pr__types" role="group" aria-label="Tipo de campaña">
+        {TIPOS.map((t) => (
+          <button
+            key={t.id || "all"}
+            type="button"
+            className={`pr__type ${tipo === t.id ? "is-active" : ""}`}
+            aria-pressed={tipo === t.id}
+            onClick={() => {
+              setTipo(t.id);
+              setPage(1);
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="pr__summary">
         {FILTROS.map((f) => (
           <button
@@ -500,38 +535,56 @@ export default function AdminPromotionsPage() {
             </label>
           </div>
 
+          <ImagePicker
+            label="Imagen de fondo"
+            value={form.image}
+            onChange={(v) => set("image", v)}
+            disabled={saving}
+            hint="Opcional. Sin imagen, la tarjeta usa un degradado con el color de acento — que es preferible a una foto que no se ve bien detrás del texto."
+          />
+
+          {/* Quién publica: la marca del anunciante. Va en su propio bloque porque
+              son dos datos que se completan juntos y se ven juntos en la tarjeta. */}
+          <fieldset className="pr__fieldset">
+            <legend>Quién lo publica</legend>
+            <div className="pr__row">
+              <label className="pr__field">
+                <span>Nombre</span>
+                <input
+                  type="text"
+                  maxLength={60}
+                  value={form.sponsorName}
+                  onChange={(e) => set("sponsorName", e.target.value)}
+                  placeholder="Bodega Norton"
+                />
+                <small>
+                  El usuario tiene derecho a saber de quién es el mensaje. En una
+                  publicidad, completalo siempre.
+                </small>
+              </label>
+              <ImagePicker
+                label="Logo"
+                variant="logo"
+                value={form.sponsorLogo}
+                onChange={(v) => set("sponsorLogo", v)}
+                disabled={saving}
+                hint="PNG con fondo transparente es lo ideal. Se muestra chico, sobre una pastilla clara para que se lea sobre la tarjeta oscura."
+              />
+            </div>
+          </fieldset>
+
           <label className="pr__field">
-            <span>Imagen de fondo (URL)</span>
+            <span>Color de acento</span>
             <input
               type="text"
-              value={form.image}
-              onChange={(e) => set("image", e.target.value)}
-              placeholder="https://…"
+              value={form.accent}
+              onChange={(e) => set("accent", e.target.value)}
+              placeholder="#c6465f"
             />
-            <small>Opcional. Sin imagen la tarjeta usa un degradado con el color de acento.</small>
+            <small>
+              Un color de la identidad del anunciante. Tiñe el degradado y el botón.
+            </small>
           </label>
-
-          <div className="pr__row">
-            <label className="pr__field">
-              <span>Quién lo publica</span>
-              <input
-                type="text"
-                maxLength={60}
-                value={form.sponsorName}
-                onChange={(e) => set("sponsorName", e.target.value)}
-                placeholder="Bodega Norton"
-              />
-            </label>
-            <label className="pr__field">
-              <span>Color de acento</span>
-              <input
-                type="text"
-                value={form.accent}
-                onChange={(e) => set("accent", e.target.value)}
-                placeholder="#c6465f"
-              />
-            </label>
-          </div>
 
           {/* Vigencia: es lo que hace que una campaña se apague sola. */}
           <fieldset className="pr__fieldset">
@@ -564,7 +617,10 @@ export default function AdminPromotionsPage() {
             </label>
           </fieldset>
 
-          <fieldset className="pr__fieldset">
+          {/* Sólo para eventos. Una publicidad no tiene fecha, ciudad ni salón, así
+              que estos tres campos eran tres cosas para saltear en la pantalla más
+              larga del panel —y la duda de si había que completarlos—. */}
+          <fieldset className="pr__fieldset" hidden={form.kind === "ad"}>
             <legend>Datos del evento</legend>
             <div className="pr__row">
               <label className="pr__field">
@@ -650,14 +706,24 @@ export default function AdminPromotionsPage() {
                     qué no se ve mi campaña?" sin tener que abrir nada. */}
                 <span className="pr__item-hint">{p.stateHint}</span>
 
-                {/* Los números que va a pedir un anunciante, a la vista. Impresiones
-                    y personas son dos cosas distintas y se dicen por separado. */}
-                <span className="pr__item-stats">
+                {/* Los números que va a pedir un anunciante, a la vista — y son el
+                    botón que abre el informe.
+                    Antes había un ícono aparte para eso: un control más en una fila
+                    que ya tenía cinco, para hacer exactamente lo que uno espera al
+                    tocar el número que está mirando. Mismo clic, un botón menos. */}
+                <button
+                  type="button"
+                  className={`pr__item-stats ${informe === p._id ? "is-open" : ""}`}
+                  onClick={() => setInforme(informe === p._id ? null : p._id)}
+                  aria-expanded={informe === p._id}
+                  title="Ver el informe de la campaña"
+                >
                   {cantidad(p.impressions, "impresión", "impresiones")} ·{" "}
                   {cantidad(p.reach, "persona", "personas")} ·{" "}
                   {cantidad(p.clicks, "clic", "clics")}
                   {p.ctr !== null && p.ctr !== undefined && ` · ${p.ctr}%`}
-                </span>
+                  <Icon name={informe === p._id ? "chevron-up" : "chevron-down"} size={13} />
+                </button>
               </div>
 
               <div className="pr__item-actions">
@@ -695,16 +761,6 @@ export default function AdminPromotionsPage() {
                   aria-pressed={p.active}
                 >
                   <Icon name={p.active ? "eye" : "eye-off"} size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  className="pr__icon"
-                  onClick={() => setInforme(informe === p._id ? null : p._id)}
-                  title="Ver el informe de la campaña"
-                  aria-label={`Informe de ${p.title}`}
-                >
-                  <Icon name="list" size={16} />
                 </button>
 
                 <button

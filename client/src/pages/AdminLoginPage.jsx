@@ -231,12 +231,11 @@ const AdminLoginPage = () => {
           {activeTab === "destacados" && (
             <section>
               <div className="admin-section-head">
+                {/* Una línea. El encabezado no es el lugar para enumerar lo que hace
+                    la pantalla: eso se ve en la pantalla, y en un celular esas tres
+                    oraciones eran cinco renglones que había que saltear cada vez. */}
                 <h2>Campañas de Descubrí</h2>
-                <p>
-                  Eventos y publicidades, con ventana de vigencia, orden, vista previa
-                  e informe por campaña. Si no hay ninguna al aire, la app no muestra
-                  nada de publicidad —ni un espacio vacío—.
-                </p>
+                <p>Publicidades y eventos del espacio destacado.</p>
               </div>
               <AdminPromotionsPage />
             </section>

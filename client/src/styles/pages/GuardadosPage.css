@@ -31,7 +31,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  /* Mismo criterio que el resto de los filtros de la app: 40px de área táctil. */
+  min-height: 40px;
+  padding: 0 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--elevated);

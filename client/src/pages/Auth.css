@@ -153,8 +153,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  /* 40px: es un botón real y hay que poder tocarlo con el pulgar mientras se
+     escribe la contraseña. Entra dentro del alto del campo (48px). */
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 50%;
   background: none;
