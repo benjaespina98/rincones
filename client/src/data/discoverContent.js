@@ -25,9 +25,24 @@
 //     tags?, featured?
 //   }
 //
-// NO invento eventos: cargar ferias y catas reales es curaduría, y datos falsos
-// serían peor que no tener la sección. La arquitectura queda lista para que se
-// agreguen a mano o desde el panel admin más adelante.
+// ── ACÁ NO VAN EVENTOS ──────────────────────────────────────────────────────
+// La regla es una sola: si tiene FECHA, va por el panel; si es atemporal, va acá.
+//
+// Esta lista tenía un grupo "Eventos" con la Fiesta de la Vendimia adentro. Se
+// escribió cuando no existía el panel de campañas, y su propio comentario decía
+// que la arquitectura quedaba lista "para que se agreguen desde el panel admin más
+// adelante". Ese más adelante ya llegó.
+//
+// Tener eventos en los dos lados no rompía nada, pero permitía que el MISMO evento
+// apareciera dos veces en la misma pantalla —una desde el panel, otra desde acá— y
+// ninguna de las dos fuentes sabe de la existencia de la otra. Con el evento en un
+// solo lugar, eso no puede pasar.
+//
+// Además, un evento que vive en el código sólo se puede apagar desplegando: si se
+// suspende una feria, la app la sigue anunciando hasta el próximo deploy. Una
+// campaña se apaga con un toque y tiene su ventana de vigencia.
+//
+// Lo que queda acá es lo que NO caduca: videos, cursos y comunidad.
 
 /**
  * Las secciones, en orden de aparición.
@@ -40,20 +55,6 @@
  * renderizan, así que se puede dejar preparada antes de tener el contenido.
  */
 export const DISCOVER_GROUPS = [
-  {
-    id: "eventos",
-    label: "Eventos",
-    hint: "Ferias, catas y vendimias",
-    icon: "calendar",
-    accent: "#2fb67b",
-  },
-  {
-    id: "visitas",
-    label: "Visitas a bodegas",
-    hint: "Puertas abiertas y degustaciones",
-    icon: "map-pin",
-    accent: "#c6465f",
-  },
   {
     id: "videos",
     label: "Videos",
@@ -114,20 +115,6 @@ export const DISCOVER_ITEMS = [
     summary: "La certificación de vino más reconocida del mundo",
     source: { name: "Web oficial", url: "https://www.wsetglobal.com/" },
     tags: ["certificación"],
-  },
-  {
-    id: "vendimia",
-    group: "eventos",
-    kind: "evento",
-    title: "Fiesta Nacional de la Vendimia",
-    summary: "La celebración de la cosecha más grande del país",
-    source: {
-      name: "Wikipedia",
-      url: "https://es.wikipedia.org/wiki/Fiesta_Nacional_de_la_Vendimia",
-    },
-    when: { recurrence: "03" }, // cada marzo
-    place: { city: "Mendoza", province: "Mendoza" },
-    featured: true,
   },
   {
     id: "catatu",

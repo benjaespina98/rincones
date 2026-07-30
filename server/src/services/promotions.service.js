@@ -119,21 +119,6 @@ const listPublic = async (now = new Date()) => {
   return datos;
 };
 
-/**
- * Una firma de lo que se está sirviendo, para el `ETag` de la respuesta.
- *
- * Sirve para que el navegador que vuelve a Descubrí reciba un 304 vacío en vez de
- * la lista entera. Incluye la versión de la caché para que cualquier cambio del
- * panel produzca una firma nueva: si no, el visitante seguiría viendo la campaña
- * vieja desde su propio caché, que es el mismo problema de "no se refleja
- * inmediatamente" corrido un nivel más arriba.
- */
-const firmaPublica = (datos) =>
-  `W/"p${cache.version}-${datos.length}-${datos.reduce(
-    (n, p) => n + new Date(p.updatedAt || p.createdAt || 0).getTime(),
-    0
-  )}"`;
-
 // ── Métricas ───────────────────────────────────────────────────────────────
 
 const esId = (valor) => mongoose.Types.ObjectId.isValid(String(valor || ""));
@@ -719,7 +704,6 @@ const stats = async (id, { days = 30 } = {}) => {
 
 module.exports = {
   listPublic,
-  firmaPublica,
   recordEvents,
   listAll,
   create,

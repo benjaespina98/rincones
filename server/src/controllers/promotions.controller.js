@@ -4,22 +4,24 @@ const { identificar } = require("../services/analytics.service");
 /**
  * GET /api/promotions — lo que ve el visitante. Público.
  *
- * Manda `ETag` y `Cache-Control: no-cache`. La combinación suena contradictoria y
- * es exactamente lo que se busca: el navegador SIEMPRE pregunta (así prender o
- * apagar una campaña se ve al instante) pero si nada cambió la respuesta es un 304
- * vacío en vez de la lista entera. En la pantalla de entrada de la app, con
- * visitantes que vuelven varias veces por día, es la diferencia entre servir datos
- * y servir nada.
+ * ── POR QUÉ NO LLEVA ETag ───────────────────────────────────────────────────
+ * Lo tenía, para que el visitante que vuelve recibiera un 304 vacío en vez de la
+ * lista entera. Se sacó porque el ahorro es despreciable —la respuesta son un par
+ * de KB, seis tarjetas como mucho— y el riesgo no: si el navegador o un proxy
+ * intermedio contestan el 304 sin tener el cuerpo guardado, el cliente se queda con
+ * una lista vacía. Y una lista vacía acá no se ve como un error: se ve EXACTAMENTE
+ * igual que "no hay campañas cargadas", porque la sección desaparece entera por
+ * diseño. O sea, la falla más difícil de detectar posible, en la pantalla de
+ * entrada de la app y sobre el contenido por el que alguien paga.
+ *
+ * `no-store` y no `no-cache`: que nadie guarde nada es lo que hace que prender o
+ * apagar una campaña se refleje al instante. Lo que protege la base es la caché de
+ * proceso del servicio, que es donde corresponde.
  */
 const listPublic = async (req, res, next) => {
   try {
     const data = await promotionsService.listPublic();
-    const etag = promotionsService.firmaPublica(data);
-
-    res.set("Cache-Control", "no-cache");
-    res.set("ETag", etag);
-    if (req.headers["if-none-match"] === etag) return res.status(304).end();
-
+    res.set("Cache-Control", "no-store");
     return res.status(200).json({ success: true, data });
   } catch (error) {
     return next(error);
