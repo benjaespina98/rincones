@@ -12,37 +12,93 @@
   gap: 14px;
 }
 
+/* ── Tipo: publicidades o eventos ─────────────────────────────────────────────
+   Va arriba del resumen y con otra forma (pestañas, no tarjetas) porque es una
+   decisión de otro orden: elegís QUÉ estás administrando, y recién después en qué
+   estado. Si fueran cinco chips iguales al lado de los otros cinco, se leerían
+   todos como lo mismo. */
+
+.pr__types {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pr__type {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pr__type.is-active {
+  border-color: var(--line-accent);
+  background: rgba(126, 89, 201, 0.16);
+  color: var(--accent-soft);
+}
+
 /* ── Resumen por estado, que además filtra ───────────────────────────────── */
 
+/* Cinco contadores no se reparten bien en una grilla angosta: quedaban 3 arriba y
+   2 abajo con un hueco al lado, que se lee como algo roto. Como chips de ancho
+   propio se acomodan solos en cualquier pantalla y ocupan la mitad de alto. */
 .pr__summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .pr__pill {
-  display: grid;
-  gap: 1px;
-  padding: 10px 8px;
-  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--surface-2);
   cursor: pointer;
-  text-align: left;
 }
 
 .pr__pill strong {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  line-height: 1.1;
 }
 
 .pr__pill span {
   font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+@media (min-width: 620px) {
+  /* En pantallas anchas hay lugar para que el número respire y se lea como un
+     tablero, que es lo que uno quiere ver de un vistazo al abrir el panel. */
+  .pr__summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .pr__pill {
+    display: grid;
+    gap: 1px;
+    align-content: center;
+    min-height: 58px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .pr__pill strong {
+    font-size: var(--text-lg);
+    line-height: 1.1;
+  }
 }
 
 .pr__pill.is-active {
@@ -297,6 +353,13 @@
   color: var(--text-secondary);
 }
 
+/* `hidden` en un elemento con `display: grid` no oculta nada: la regla de display
+   gana sobre el atributo. Sin esto, esconder el bloque de datos del evento no
+   tendría ningún efecto. */
+.pr__fieldset[hidden] {
+  display: none;
+}
+
 .pr__fieldset {
   display: grid;
   gap: 10px;
@@ -408,15 +471,34 @@
   list-style: none;
 }
 
+/* ── La fila de una campaña ──────────────────────────────────────────────────
+   En un celular, contenido y acciones van en DOS renglones.
+
+   Estaban en uno: los cinco controles se quedaban con la mitad del ancho y al
+   texto le sobraban 110px, así que el título se cortaba a "Prueba subi…", el
+   detalle se partía en tres líneas y las flechas de orden quedaban de 19px de
+   alto. La información importante perdía contra los botones.
+
+   Con dos renglones el título se lee entero, los botones mantienen sus 40px de
+   área táctil y la fila queda MÁS BAJA que antes, porque el texto ya no se parte. */
 .pr__item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   padding: 12px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--elevated);
+}
+
+@media (min-width: 620px) {
+  .pr__item {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }
 
 /* Lo que está al aire se distingue del resto con un borde propio: la lista se
@@ -455,8 +537,7 @@
 }
 
 .pr__item-meta,
-.pr__item-hint,
-.pr__item-stats {
+.pr__item-hint {
   font-size: var(--text-2xs);
   color: var(--text-secondary);
 }
@@ -465,8 +546,28 @@
   opacity: 0.8;
 }
 
+/* Los números son el botón que abre el informe: se ven como texto (son un dato,
+   no una acción) y se comportan como control. La flecha es lo que avisa que se
+   puede abrir; sin ella sería un botón escondido. */
 .pr__item-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: var(--text-2xs);
   font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pr__item-stats:hover,
+.pr__item-stats.is-open {
+  color: var(--accent-soft);
 }
 
 /* El estado tiene color propio: "¿por qué no se ve mi campaña?" se responde de
@@ -513,13 +614,27 @@
   color: var(--text-secondary);
 }
 
+/* En mobile las acciones son su propio renglón, separadas por una línea: se lee
+   como "esto es la fila" y "esto es lo que puedo hacerle". */
 .pr__item-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   flex-shrink: 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
 }
 
+@media (min-width: 620px) {
+  .pr__item-actions {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+/* El par de flechas viaja PEGADO al resto de los controles, no suelto en el otro
+   extremo: separado se lee como un control huérfano que no se sabe a qué pertenece. */
 .pr__order {
   display: grid;
   gap: 2px;
@@ -538,9 +653,11 @@
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
+/* Las flechas de orden comparten la altura de un botón normal entre las dos, así
+   que el par ocupa lo mismo que un ícono y cada una sigue siendo tocable. */
 .pr__icon--small {
-  width: 34px;
-  height: 19px;
+  width: 40px;
+  height: 21px;
 }
 
 .pr__icon:hover:not(:disabled) {

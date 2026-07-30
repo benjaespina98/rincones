@@ -53,8 +53,15 @@
   gap: 6px;
 }
 
+/* 40px de alto: elegir la comida es LA acción de esta pantalla y los chips medían
+   32, por debajo del mínimo con el que un dedo acierta. En una tira de diez chips
+   pegados, esos 8px son la diferencia entre tocar "Pasta" y tocar "Pizza". El
+   tamaño del texto no cambia: crece el área, no el diseño. */
 .context-chip {
-  padding: 6px 11px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 13px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--glass);

@@ -42,10 +42,18 @@
   gap: 2px;
 }
 
+/* La estrella se ve igual; lo que crece es dónde responde. Puntuar es la acción
+   principal de la ficha y cinco blancos de 34px pegados uno al lado del otro hacen
+   que la gente ponga 4 cuando quiso poner 5. */
 .wine-opinion__star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
   border: 0;
   background: none;
-  padding: 2px 3px;
+  padding: 0 2px;
   font-size: 1.9rem;
   line-height: 1;
   color: rgba(255, 255, 255, 0.16);

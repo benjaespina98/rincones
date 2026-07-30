@@ -663,12 +663,17 @@
 }
 
 .wine-moments__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  /* 40px como el resto de los botones de la app. */
+  min-height: 40px;
   border: none;
   background: var(--accent-muted);
   color: var(--accent-light);
   font-weight: 700;
   font-size: var(--text-sm);
-  padding: 6px 12px;
+  padding: 0 14px;
   border-radius: var(--radius-full);
 }
 

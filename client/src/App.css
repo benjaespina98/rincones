@@ -449,9 +449,14 @@ select:disabled {
   gap: 6px;
 }
 
+/* El "+"/"−" del stock: 40px, no 32.
+   Es el control que más se toca de la bodega y el que estaba más chico. 32px con
+   los dos botones a 10px de distancia es una invitación a errarle, y cuando le
+   errás no pasa nada visible —así que se siente como "no me deja sumar botellas"
+   y no como "toqué al lado"—. */
 .qty-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

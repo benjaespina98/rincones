@@ -817,6 +817,19 @@
 
 .bodega-tools__chips::-webkit-scrollbar { display: none; }
 
+/* De tablet para arriba los chips bajan de renglón en vez de scrollear.
+   La tira horizontal es el patrón correcto en un celular —se desliza con el dedo y
+   todo el mundo lo entiende— pero en una pantalla ancha el último chip quedaba
+   cortado por 12px, sin barra ni sombra que avisara que había más: se ve como un
+   error de dibujo, no como algo que se puede correr. Con el ancho de una tablet
+   entran en dos renglones y no hay nada que cortar. */
+@media (min-width: 700px) {
+  .bodega-tools__chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
 .bodega-chip {
   display: inline-flex;
   align-items: center;
