@@ -1,0 +1,159 @@
+/* ══ Identidad del vino ═══════════════════════════════════════════════════
+   Reemplaza una tira de pastillas de colores por una ficha con rótulos.
+
+   La decisión de fondo: el color se reserva para lo que necesita atención (la
+   guarda), y los hechos de la etiqueta se leen por su rótulo. Cuatro pastillas
+   del mismo peso con borde propio hacen que el ojo no tenga por dónde empezar;
+   una grilla rótulo → valor se escanea de un vistazo y se lee sin esfuerzo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wine-id {
+  display: grid;
+  gap: 10px;
+}
+
+.wine-id__grid {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 4px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.wine-id__row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  /* Una línea entre filas, no un borde por fila: separa sin encerrar. */
+  border-bottom: 1px solid var(--line);
+}
+
+.wine-id__row:last-child {
+  border-bottom: 0;
+}
+
+.wine-id__row dt {
+  flex: 0 0 84px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.wine-id__row dd {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  /* Los números de cosecha alineados: en una lista de fichas se comparan solos. */
+  font-variant-numeric: tabular-nums;
+}
+
+.wine-id__row dd.is-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.wine-id__add {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Guarda ─────────────────────────────────────────────────────────────────
+   El único bloque con color de la sección, porque es el único que dice algo que
+   cambia una decisión: tomarlo hoy o esperarlo. */
+
+.wine-id__cellar {
+  display: grid;
+  gap: 3px;
+  padding: 11px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.wine-id__cellar-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-base);
+}
+
+.wine-id__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.wine-id__cellar-detail {
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* De dónde sale el número, en el tamaño que le corresponde: importa que esté,
+   no que compita. Una estimación presentada con el mismo peso que un hecho de la
+   etiqueta es una estimación que se va a leer como un hecho. */
+.wine-id__cellar-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+.wine-id__cellar--peak {
+  border-color: rgba(47, 182, 123, 0.35);
+  background: rgba(47, 182, 123, 0.08);
+  color: #5fe0a8;
+}
+
+.wine-id__cellar--early {
+  border-color: rgba(242, 183, 55, 0.32);
+  background: rgba(242, 183, 55, 0.07);
+  color: var(--gold-soft);
+}
+
+.wine-id__cellar--past {
+  border-color: rgba(198, 70, 95, 0.32);
+  background: rgba(198, 70, 95, 0.07);
+  color: #f0899d;
+}
+
+/* El titular lleva el color del estado; el resto del texto se queda en los
+   colores de siempre para que siga siendo legible. */
+.wine-id__cellar-head strong {
+  color: inherit;
+  font-weight: 800;
+}
+
+@media (min-width: 520px) {
+  .wine-id__grid {
+    /* En pantallas más anchas, dos columnas: la ficha entra sin scrollear y las
+       filas quedan cortas, que es cuando una grilla rótulo → valor se lee mejor. */
+    grid-template-columns: 1fr 1fr;
+    column-gap: 24px;
+  }
+
+  /* Con dos columnas, la última línea de cada columna no lleva separador. */
+  .wine-id__row:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}

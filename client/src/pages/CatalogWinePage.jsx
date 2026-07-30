@@ -7,11 +7,11 @@ import ErrorState from "../components/ErrorState";
 import WineReviews from "../components/WineReviews";
 import WineStructure from "../components/WineStructure";
 import WinePhoto from "../components/WinePhoto";
+import WineIdentity from "../components/WineIdentity";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { shareWine } from "../utils/share";
-import { WINE_TYPE_LABELS } from "../data/wineReference";
 import "../styles/pages/WineDetailPage.css";
 
 // Detalle de un vino del CATÁLOGO (recomendados / descubrir) que todavía no está
@@ -137,18 +137,15 @@ export default function CatalogWinePage() {
 
         <div className="wine-detail-hero__overlay">
           <h1 className="wine-detail-hero__name">{wine.name}</h1>
-          <p className="wine-detail-hero__origin">
-            {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
-          </p>
+          <p className="wine-detail-hero__origin">{wine.region || "Sin región cargada"}</p>
         </div>
       </div>
 
       <div className="wine-detail-body">
-        <div className="wine-detail-meta chip-row">
-          <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-          {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
-          {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
-        </div>
+        {/* La misma ficha de datos que la del vino propio: la bodega con su rótulo
+            en vez de una tira de pastillas de colores. Acá no hay "Completar":
+            un vino del catálogo no se edita, se agrega a la bodega. */}
+        <WineIdentity wine={wine} />
 
         {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
         {(aiLoading || aiInfo || aiFailed) && (

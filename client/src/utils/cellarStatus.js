@@ -1,3 +1,25 @@
+/**
+ * Cuándo tomarse un vino: la ventana de guarda.
+ *
+ * ── POR QUÉ CAMBIÓ CÓMO SE DICE ─────────────────────────────────────────────
+ * Antes decía "Esperá 2 años", y nadie entiende eso. Le faltan las dos cosas que
+ * lo vuelven información: DE QUÉ está hablando (¿esperar para qué?) y CONTRA QUÉ
+ * se mide (¿2 años desde cuándo?). Un cartel amarillo que dice "Esperá 2 años" al
+ * lado de la uva y la cosecha se lee como una advertencia sin objeto.
+ *
+ * Ahora se dice con el año puesto —"Mejor a partir de 2028"— y con una línea que
+ * explica de dónde sale. Un año es verificable contra el calendario; "2 años" hay
+ * que calcularlo mentalmente y encima envejece mal: el mismo texto guardado en una
+ * captura de pantalla ya es falso al año siguiente.
+ *
+ * ── DE DÓNDE SALEN LOS AÑOS ─────────────────────────────────────────────────
+ * De la cosecha más una ventana típica por tipo y varietal. Es una guía general del
+ * ESTILO, no una medición de la botella, y la ficha lo dice con esas palabras: un
+ * Malbec de guarda y un Malbec joven de la misma cosecha no tienen la misma
+ * ventana, y esto no puede distinguirlos. Si el usuario carga sus propias fechas en
+ * la ficha, esas mandan siempre.
+ */
+
 const OPTIMAL_RANGES = {
   red: {
     default:              [3, 8],
@@ -31,10 +53,11 @@ export function getCellarStatus(wine) {
   const manualFrom  = wine.cellar?.drinkFrom;
   const manualUntil = wine.cellar?.drinkUntil;
 
+  // Lo que cargó el usuario manda sobre cualquier estimación.
   if (manualFrom || manualUntil) {
     const from  = manualFrom  || currentYear;
     const until = manualUntil || currentYear + 50;
-    return buildResult(currentYear, from, until);
+    return buildResult(currentYear, from, until, "manual");
   }
 
   if (!wine.vintage) return { status: "unknown", label: "" };
@@ -48,22 +71,68 @@ export function getCellarStatus(wine) {
   );
   const [minYears, maxYears] = typeRanges[rangeKey] || typeRanges.default;
 
-  return buildResult(currentYear, wine.vintage + minYears, wine.vintage + maxYears);
+  return buildResult(
+    currentYear,
+    wine.vintage + minYears,
+    wine.vintage + maxYears,
+    // Si acertamos el varietal la guía es más específica que el promedio del tipo.
+    rangeKey ? "varietal" : "type"
+  );
 }
 
-function buildResult(currentYear, from, until) {
+/**
+ * `label` es el titular (corto, con el año adentro) y `detail` la línea que lo
+ * explica. Son dos campos y no uno porque la pantalla los usa distinto: el titular
+ * entra en un espacio chico y el detalle debajo, y meter todo en un solo string
+ * obligaba a elegir entre ser corto o ser entendible.
+ */
+function buildResult(currentYear, from, until, source) {
+  const base = { from, until, source };
+
   if (currentYear < from) {
-    const yearsLeft = from - currentYear;
-    return { status: "early", label: `Esperá ${yearsLeft} ${yearsLeft === 1 ? "año" : "años"}`, yearsLeft };
+    const faltan = from - currentYear;
+    return {
+      ...base,
+      status: "early",
+      label: `Mejor a partir de ${from}`,
+      detail:
+        faltan === 1
+          ? "Es joven todavía: en un año se le pone la mejor cara."
+          : `Es joven todavía: le faltan ${faltan} años para su mejor momento.`,
+      yearsLeft: faltan,
+    };
   }
+
   if (currentYear > until) {
-    const yearsOver = currentYear - until;
-    return { status: "past", label: `Pasó su mejor momento`, yearsOver };
+    const pasaron = currentYear - until;
+    return {
+      ...base,
+      status: "past",
+      label: "Pasó su mejor momento",
+      detail:
+        pasaron === 1
+          ? "Su ventana ideal cerró el año pasado. Se puede tomar igual; no esperes más."
+          : `Su ventana ideal cerró en ${until}. Se puede tomar igual; no esperes más.`,
+      yearsOver: pasaron,
+    };
   }
-  const yearsLeft = until - currentYear;
+
+  const quedan = until - currentYear;
   return {
+    ...base,
     status: "peak",
-    label: yearsLeft === 0 ? "Último año óptimo" : `Óptimo — ${yearsLeft} ${yearsLeft === 1 ? "año más" : "años más"}`,
-    yearsLeft,
+    label: quedan === 0 ? `Tomalo este año` : `Listo para tomar`,
+    detail:
+      quedan === 0
+        ? `Es su último año dentro de la ventana ideal.`
+        : `Está en su mejor momento y lo sigue estando hasta ${until}.`,
+    yearsLeft: quedan,
   };
 }
+
+/** De dónde salió la ventana, dicho sin vueltas. */
+export const cellarSourceNote = (status) => {
+  if (status?.source === "manual") return "Según las fechas que cargaste vos.";
+  if (status?.source === "varietal") return "Estimado para el varietal, no medido en la botella.";
+  return "Estimado para el tipo de vino, no medido en la botella.";
+};

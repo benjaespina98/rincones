@@ -9,6 +9,7 @@ import StarRating from "../components/StarRating";
 import WineReviews from "../components/WineReviews";
 import WineStructure from "../components/WineStructure";
 import WineOpinion from "../components/WineOpinion";
+import WineIdentity from "../components/WineIdentity";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -23,8 +24,7 @@ import {
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { shareWine } from "../utils/share";
-import { WINE_TYPES, WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
-import { getCellarStatus } from "../utils/cellarStatus";
+import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { toUploadableDataUrl } from "../utils/image";
 import WinePhoto from "../components/WinePhoto";
 import Dropdown from "../components/Dropdown";
@@ -439,8 +439,11 @@ export default function WineDetailPage() {
 
         <div className="wine-detail-hero__overlay">
           <h1 className="wine-detail-hero__name">{wineDisplayName(wine)}</h1>
+          {/* Sólo la región acá. La bodega bajó a la ficha de datos, donde tiene su
+              rótulo y se lee sin competir con la foto: decirla en los dos lugares
+              era repetir el mismo dato con dos pesos distintos. */}
           <p className="wine-detail-hero__origin">
-            {[wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen"}
+            {wine.region || "Sin región cargada"}
           </p>
         </div>
       </div>
@@ -448,20 +451,10 @@ export default function WineDetailPage() {
       <div className="wine-detail-body">
         {!editing ? (
           <>
-            <div className="wine-detail-meta chip-row">
-              <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-              {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
-              {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
-              {(() => {
-                const cs = getCellarStatus(wine);
-                if (!cs.label) return null;
-                return (
-                  <span className={`cellar-badge cellar-badge--${cs.status}`}>
-                    <span className="cellar-dot" aria-hidden="true" /> {cs.label}
-                  </span>
-                );
-              })()}
-            </div>
+            {/* Quién lo hace, de dónde es, de qué uva y de qué año — con rótulos y
+                no como cuatro pastillas de colores del mismo peso. La bodega es el
+                dato que más ubica un vino y era el único que faltaba. */}
+            <WineIdentity wine={wine} onEdit={startEditing} />
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
