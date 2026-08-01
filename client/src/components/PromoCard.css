@@ -45,7 +45,10 @@
 
 /* ── Toda la tarjeta es el enlace ─────────────────────────────────────────── */
 
+/* Es un <a href>, no un botón con `window.open` adentro: así el enlace anda
+   aunque el conteo del clic falle, y se puede abrir en pestaña nueva a mano. */
 .promo__hit {
+  display: block;
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -53,6 +56,7 @@
   border: 0;
   background: none;
   cursor: pointer;
+  text-decoration: none;
   /* Sin texto adentro: su nombre accesible viene del aria-label. */
   font-size: 0;
 }
