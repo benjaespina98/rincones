@@ -141,9 +141,12 @@ const DESCRIBE_SCHEMA = {
   properties: {
     // Reseña corta en prosa, 2-3 oraciones.
     summary: { type: "string" },
-    // Perfil de boca (cuerpo, taninos, acidez) en una frase.
+    // Cómo tomarlo (decantar, temperatura, momento). Antes era "cuerpo, taninos y
+    // acidez en una frase", que es exactamente lo que muestran las barras: la ficha
+    // decía dos veces lo mismo, una en prosa y otra en números.
     body: { type: "string" },
-    // Etiquetas cortas de perfil, estilo Vivino (ej: "Cuerpo medio", "Seco").
+    // Etiquetas cortas de perfil (ej: "Cuerpo medio", "Seco"). Sólo se muestran
+    // cuando no vino `structure`, porque si no repiten los mismos cuatro ejes.
     profile: { type: "array", items: { type: "string" } },
     // Estructura en números 1-5. Convertir conocimiento de vino en valores
     // comparables es justo lo que un modelo puede hacer y la app no: permite
@@ -189,8 +192,10 @@ ${parts}
 
 Devolvé:
 - summary: 2-3 oraciones, tono cercano y claro (no marketinero), sobre el estilo y a qué apunta.
-- body: una frase sobre cuerpo, taninos y acidez.
-- profile: 3 a 5 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Seco", "Acidez media", "Frutado"). Solo el atributo, sin explicación.
+- body: una frase sobre CÓMO tomarlo: si conviene decantarlo, si gana con el aire,
+  para qué momento va. NO repitas cuerpo, taninos ni acidez: eso ya va en structure
+  y la app lo muestra en barras justo al lado.
+- profile: 3 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Frutado"). Solo el atributo, sin explicación.
 - structure: la estructura en números del 1 al 5, para poder compararla con otros vinos:
   body 1=muy liviano 5=muy corpulento · acidity 1=baja 5=muy fresca ·
   tannin 1=casi sin taninos 5=muy tánico (en blancos y espumantes va 1) ·
@@ -198,8 +203,8 @@ Devolvé:
 - similarTo: 1 a 3 vinos REALES parecidos en estilo, por los que alguien a quien le
   guste este podría empezar. Formato "Bodega Línea" (ej: "Catena Alta Malbec").
   Si no se te ocurre ninguno del que estés seguro, devolvé lista vacía.
-- aromas: 3 a 6 aromas/sabores típicos (ej: "cereza", "vainilla", "pimienta").
-- foodPairing: 3 a 5 comidas que maridan bien.
+- aromas: 3 o 4 aromas/sabores, los que MÁS lo caracterizan (ej: "cereza", "vainilla", "pimienta").
+- foodPairing: 3 o 4 comidas que maridan bien, concretas y argentinas.
 - alcohol: graduación típica del estilo (número, ej 14). 0 si no sabés.
 - serve: temperatura de servicio sugerida (ej "16-18 °C").
 - known: true sólo si conocés este vino o su estilo con razonable certeza; false si estarías adivinando.
@@ -251,11 +256,13 @@ const describeWine = async (wine) => {
   return {
     summary: clean(parsed?.summary),
     body: clean(parsed?.body),
-    profile: list(parsed?.profile, 5),
+    profile: list(parsed?.profile, 3),
     structure: clampStructure(parsed?.structure),
     similarTo: list(parsed?.similarTo, 3),
-    aromas: list(parsed?.aromas, 6),
-    foodPairing: list(parsed?.foodPairing, 5),
+    // Topes bajos a propósito: el modelo, si lo dejás, devuelve ocho aromas y la
+    // ficha se vuelve una pared de pastillas donde ninguna dice nada.
+    aromas: list(parsed?.aromas, 4),
+    foodPairing: list(parsed?.foodPairing, 4),
     alcohol: Number.isFinite(alcohol) && alcohol > 0 && alcohol < 25 ? alcohol : null,
     serve: clean(parsed?.serve),
     known: parsed?.known !== false,

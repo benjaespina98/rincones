@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
-import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
-import ErrorState from "../components/ErrorState";
 import WineReviews from "../components/WineReviews";
-import WineStructure from "../components/WineStructure";
 import WinePhoto from "../components/WinePhoto";
+import WineAbout from "../components/WineAbout";
 import WineIdentity from "../components/WineIdentity";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
@@ -137,7 +135,7 @@ export default function CatalogWinePage() {
 
         <div className="wine-detail-hero__overlay">
           <h1 className="wine-detail-hero__name">{wine.name}</h1>
-          <p className="wine-detail-hero__origin">{wine.region || "Sin región cargada"}</p>
+          {wine.region && <p className="wine-detail-hero__origin">{wine.region}</p>}
         </div>
       </div>
 
@@ -148,85 +146,12 @@ export default function CatalogWinePage() {
         <WineIdentity wine={wine} />
 
         {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
-        {(aiLoading || aiInfo || aiFailed) && (
-          <div className="wine-about">
-            <div className="wine-about__head">
-              <h3><Icon name="sparkles" size={16} /> Sobre este vino</h3>
-              {aiInfo && !aiInfo.known && (
-                <span className="wine-about__tag" title="Descripción general del estilo, no del vino puntual">
-                  aproximado
-                </span>
-              )}
-            </div>
-
-            {aiLoading && <LoadingSkeleton type="inline" count={3} />}
-
-            {aiFailed && !aiLoading && (
-              <ErrorState
-                title="No pudimos generar la descripción"
-                hint="La ficha del vino se arma con IA y a veces tarda."
-                onRetry={loadDescription}
-                compact
-              />
-            )}
-
-            {aiInfo && !aiLoading && (
-              <>
-                {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
-                {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
-
-                <WineStructure structure={aiInfo.structure} />
-
-                {aiInfo.profile?.length > 0 && (
-                  <div className="wine-about__profile">
-                    {aiInfo.profile.map((p) => (
-                      <span key={p} className="wine-about__pill">{p}</span>
-                    ))}
-                  </div>
-                )}
-
-                {aiInfo.aromas?.length > 0 && (
-                  <div className="wine-about__block">
-                    <span className="wine-about__label">Aromas y sabores</span>
-                    <div className="wine-about__chips">
-                      {aiInfo.aromas.map((a) => (
-                        <span key={a} className="wine-about__chip">{a}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {aiInfo.foodPairing?.length > 0 && (
-                  <div className="wine-about__block">
-                    <span className="wine-about__label">Marida con</span>
-                    <div className="wine-about__chips">
-                      {aiInfo.foodPairing.map((f) => (
-                        <span key={f} className="wine-about__chip wine-about__chip--food"><Icon name="utensils" size={13} /> {f}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(aiInfo.alcohol || aiInfo.serve) && (
-                  <div className="wine-about__facts">
-                    {aiInfo.alcohol && (
-                      <span className="wine-about__fact">
-                        <strong>{aiInfo.alcohol}%</strong> alcohol
-                      </span>
-                    )}
-                    {aiInfo.serve && (
-                      <span className="wine-about__fact">
-                        <strong>{aiInfo.serve}</strong> servir
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <p className="wine-about__disclaimer">Descripción orientativa generada con IA.</p>
-              </>
-            )}
-          </div>
-        )}
+        <WineAbout
+          loading={aiLoading}
+          failed={aiFailed}
+          info={aiInfo}
+          onRetry={loadDescription}
+        />
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
             la ficha de un vino que todavía no tiene. */}
@@ -245,9 +170,7 @@ export default function CatalogWinePage() {
                   <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
                 </span>
               ) : (
-                <span className="wine-price__empty">
-                  Sin datos aún. Sumalo a tu bodega y cargá lo que pagaste para ayudar a la comunidad.
-                </span>
+                <span className="wine-price__empty">Sin datos todavía</span>
               )}
             </div>
           </div>

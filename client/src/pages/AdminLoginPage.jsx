@@ -117,41 +117,38 @@ const AdminLoginPage = () => {
   if (isAdmin) {
     return (
       <div className="admin-shell">
-        <section className="admin-hero">
-          <div className="admin-hero__left">
-            <span className="admin-kicker">
-              <span className="admin-kicker__shield"><Icon name="lock" size={13} /></span>
-              Modo administrador
-            </span>
-            <h1>Panel de Rincones</h1>
-            <p>
-              Estás viendo y editando datos de <strong>todos los usuarios</strong>, no sólo los tuyos.
-            </p>
-            <div className="admin-hero__session">
-              <span className="admin-hero__avatar">{(user?.email || "?")[0].toUpperCase()}</span>
-              <span className="admin-hero__who">
-                <strong>{user?.email}</strong>
-                <em>Permisos totales</em>
-              </span>
-            </div>
-          </div>
+        {/* ── El encabezado, en una barra ──────────────────────────────────────
+            Ocupaba 630px de una pantalla de 740: el título, un párrafo, tres
+            chips explicando qué puede hacer un admin y siete pestañas en cuatro
+            filas. El 85% de la pantalla era encabezado.
 
-          <div className="admin-hero__actions">
-            <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
-              Salir a la app
+            Lo que se fue es texto que se lee UNA vez: el párrafo de "estás
+            editando datos de todos los usuarios" y los tres chips de permisos.
+            Quien entra acá es el dueño de la app y ya sabe dónde está; el aviso
+            de que esto es modo administrador queda en la chapa dorada, que es lo
+            que cumple esa función sin ocupar cuatro renglones. */}
+        <header className="admin-bar">
+          <span className="admin-bar__badge" title="Estás operando sobre los datos de todos los usuarios">
+            <Icon name="lock" size={12} /> Admin
+          </span>
+
+          <span className="admin-bar__who" title={user?.email}>{user?.email}</span>
+
+          <div className="admin-bar__actions">
+            <button className="admin-bar__btn" type="button" onClick={() => navigate("/")}>
+              <Icon name="arrow-left" size={15} />
+              <span>Ir a la app</span>
             </button>
-            <button className="button button--danger" type="button" onClick={logout}>Cerrar sesión</button>
+            <button className="admin-bar__btn admin-bar__btn--out" type="button" onClick={logout}>
+              <Icon name="log-out" size={15} />
+              <span>Salir</span>
+            </button>
           </div>
-        </section>
+        </header>
 
-        {/* Qué puede hacer un admin, en una línea. Antes había que deducirlo
-            abriendo cada pestaña. */}
-        <ul className="admin-powers">
-          <li><Icon name="user" size={14} /> Cambiar roles y eliminar cuentas</li>
-          <li><Icon name="chat" size={14} /> Borrar cualquier reseña pública</li>
-          <li><Icon name="eye" size={14} /> Ver la actividad de todas las bodegas</li>
-        </ul>
-
+        {/* Una sola fila que se desliza, en vez de cuatro apiladas. Es el patrón
+            de pestañas de cualquier app con más de cuatro secciones: se ve dónde
+            estás y que hay más al costado, sin gastar media pantalla. */}
         <nav className="admin-nav-tabs" aria-label="Secciones del panel">
           {[
             { id: "resumen", label: "Resumen", icon: "home" },
@@ -159,15 +156,36 @@ const AdminLoginPage = () => {
                panel ("¿cuánta gente está usando esto?"), antes de administrar
                nada. */
             { id: "metricas", label: "Métricas", icon: "star" },
-            { id: "destacados", label: "Destacados", icon: "sparkle" },
+            { id: "destacados", label: "Campañas", icon: "sparkle" },
             { id: "roles", label: "Usuarios", icon: "user" },
             { id: "resenas", label: "Reseñas", icon: "chat" },
             { id: "actividad", label: "Actividad", icon: "calendar" },
-            { id: "app", label: "Vista app", icon: "eye" },
+            /* "Vista app" se fue: hacía lo mismo que "Ir a la app" de la barra.
+               Dos controles con el mismo efecto obligan a preguntarse en qué se
+               diferencian, y la respuesta era "en nada". */
           ].map((t) => (
             <button
               key={t.id}
               className={`admin-nav-tab ${activeTab === t.id ? "active" : ""}`}
+              /* La tira se desliza, así que la pestaña elegida puede quedar
+                 cortada contra el borde. Se centra sola.
+
+                 Se mueve `scrollLeft` de la tira y no `scrollIntoView`: éste
+                 arrastra también el scroll de la página, así que al elegir una
+                 pestaña la vista saltaba de lugar sin que nadie se lo pidiera. */
+              ref={(el) => {
+                if (!el || activeTab !== t.id) return;
+                const tira = el.parentElement;
+                if (!tira || tira.scrollWidth <= tira.clientWidth) return;
+                // Se mide con posiciones reales y no con `offsetLeft`: éste se
+                // cuenta desde el ancestro POSICIONADO más cercano, que acá no es
+                // la tira, así que el número salía corrido y no centraba nada.
+                const desfase =
+                  el.getBoundingClientRect().left - tira.getBoundingClientRect().left;
+                const centrado =
+                  tira.scrollLeft + desfase - (tira.clientWidth - el.clientWidth) / 2;
+                tira.scrollTo({ left: Math.max(centrado, 0), behavior: "smooth" });
+              }}
               onClick={() => setActiveTab(t.id)}
               aria-current={activeTab === t.id ? "page" : undefined}
               type="button"
@@ -207,14 +225,11 @@ const AdminLoginPage = () => {
                 </div>
               </article>
 
-              <article className="admin-wide-card">
-                <h2>Acciones rápidas</h2>
-                <div className="admin-action-grid">
-                  <button className="button" type="button" onClick={() => setActiveTab("roles")}>Gestionar usuarios</button>
-                  <button className="button" type="button" onClick={() => setActiveTab("resenas")}>Moderar reseñas</button>
-                  <button className="button" type="button" onClick={() => setActiveTab("app")}>Abrir vista app</button>
-                </div>
-              </article>
+              {/* Acá había una tarjeta de "Acciones rápidas" con tres botones
+                  que llevaban a Usuarios, Reseñas y Vista app: las MISMAS
+                  pestañas que están arriba, a dos centímetros. Un atajo hacia
+                  algo que ya está a un toque no es un atajo, es una copia del
+                  menú que hay que mantener sincronizada con él. */}
             </div>
           )}
 
@@ -294,42 +309,6 @@ const AdminLoginPage = () => {
             </section>
           )}
 
-          {activeTab === "app" && (
-            <section>
-              <div className="admin-section-head">
-                <h2>Vista de usuario común</h2>
-                <p>
-                  Como admin también podés recorrer las mismas secciones que un usuario para revisar UX y contenido.
-                </p>
-              </div>
-
-              <div className="admin-view-grid">
-                <article className="admin-view-card">
-                  <h3>Mi Bodega</h3>
-                  <p>Gestioná la colección y los guardados como usuario final.</p>
-                  <button className="button" type="button" onClick={() => navigate("/bodega")}>Abrir bodega</button>
-                </article>
-
-                <article className="admin-view-card">
-                  <h3>Sommelier</h3>
-                  <p>Revisá las recomendaciones y las sugerencias.</p>
-                  <button className="button" type="button" onClick={() => navigate("/sommelier")}>Abrir Sommelier</button>
-                </article>
-
-                <article className="admin-view-card">
-                  <h3>Agregar</h3>
-                  <p>Validá el flujo de escaneo y el alta de vinos.</p>
-                  <button className="button" type="button" onClick={() => navigate("/agregar")}>Abrir Agregar</button>
-                </article>
-
-                <article className="admin-view-card">
-                  <h3>Perfil</h3>
-                  <p>Controlá la edición de perfil y el cierre de sesión.</p>
-                  <button className="button" type="button" onClick={() => navigate("/perfil")}>Abrir perfil</button>
-                </article>
-              </div>
-            </section>
-          )}
         </section>
       </div>
     );

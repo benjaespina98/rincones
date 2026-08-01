@@ -645,8 +645,21 @@ export default function AdminPromotionsPage() {
                           {p.sponsored && <span className="pr__tag-ad">Publicidad</span>}
                         </span>
 
+                        {/* Una publicidad sin anunciante sale en la app como una
+                            tarjeta que dice "PUBLICIDAD" y nada más: no se sabe de
+                            quién es. Es la única falta que se avisa en la lista,
+                            porque no rompe nada y por eso pasa desapercibida. */}
                         <span className="pr__item-meta">
-                          {p.sponsor?.name || (p.kind === "ad" ? "Sin anunciante" : "Evento")}
+                          {p.kind === "ad" && !p.sponsor?.name ? (
+                            <span
+                              className="pr__warn"
+                              title="En la app sale sin nombre: sólo el cartel de publicidad"
+                            >
+                              <Icon name="info" size={12} /> Falta el anunciante
+                            </span>
+                          ) : (
+                            p.sponsor?.name || "Evento"
+                          )}
                           {` · ${ventanaEnPalabras(p)}`}
                         </span>
 

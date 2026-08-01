@@ -7,7 +7,7 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import WineReviews from "../components/WineReviews";
-import WineStructure from "../components/WineStructure";
+import WineAbout from "../components/WineAbout";
 import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
 import { useToast } from "../context/ToastContext";
@@ -404,18 +404,10 @@ export default function WineDetailPage() {
           <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={150} priority />
         </div>
 
-        <div className="wine-detail-hero__badges">
-          {wine.favorite && (
-            <span className="hero-badge hero-badge--fav" title="Favorito">
-              <Icon name="heart" filled size={15} />
-            </span>
-          )}
-          {wine.tasted && (
-            <span className="hero-badge hero-badge--tasted" title="Probado">
-              <Icon name="check" size={16} />
-            </span>
-          )}
-        </div>
+        {/* Sin medallas sobre la foto: "favorito" y "probado" ya están, con su
+            palabra y a un toque de distancia, en la misma pantalla y sin scrollear.
+            Eran los mismos dos estados dichos dos veces, y arriba en una versión
+            que no se podía tocar. */}
 
         {!editing && (
           <div className="wine-detail-hero__actions">
@@ -440,11 +432,9 @@ export default function WineDetailPage() {
         <div className="wine-detail-hero__overlay">
           <h1 className="wine-detail-hero__name">{wineDisplayName(wine)}</h1>
           {/* Sólo la región acá. La bodega bajó a la ficha de datos, donde tiene su
-              rótulo y se lee sin competir con la foto: decirla en los dos lugares
-              era repetir el mismo dato con dos pesos distintos. */}
-          <p className="wine-detail-hero__origin">
-            {wine.region || "Sin región cargada"}
-          </p>
+              rótulo y se lee sin competir con la foto. Si no hay región no se
+              anuncia el hueco: la ficha de abajo ya ofrece completar los datos. */}
+          {wine.region && <p className="wine-detail-hero__origin">{wine.region}</p>}
         </div>
       </div>
 
@@ -455,6 +445,64 @@ export default function WineDetailPage() {
                 no como cuatro pastillas de colores del mismo peso. La bodega es el
                 dato que más ubica un vino y era el único que faltaba. */}
             <WineIdentity wine={wine} onEdit={startEditing} />
+
+            {/* Las acciones, arriba de todo. Estaban novenas de once: para abrir
+                una botella había que bajar 2364px, casi tres pantallas, pasando
+                por la descripción de IA, el precio y tres bloques de datos. */}
+            <div className="wine-detail-actions">
+              <div className="wine-qty-controls" role="group" aria-label="Botellas en tu bodega">
+                <span className="wine-qty-controls__label" aria-hidden="true">Botellas</span>
+                <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella">
+                  <Icon name="minus" size={16} />
+                </button>
+                <span className="wine-qty" aria-live="polite">{wine.quantity}</span>
+                <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella">
+                  <Icon name="plus" size={16} />
+                </button>
+              </div>
+
+              {/* Abrir es la acción; el "−" de al lado es para corregir el número
+                  (la regalaste, la contaste mal) y por eso no toca tu historial. */}
+              {Number(wine.quantity) > 0 && (
+                <button
+                  type="button"
+                  className="wine-detail-open"
+                  disabled={pending}
+                  onClick={handleOpenBottle}
+                >
+                  <Icon name="bottle" size={17} />
+                  Abrí una botella
+                </button>
+              )}
+
+              {/* Los mismos chips que en la bodega: mismo texto, mismo color,
+                  mismo comportamiento. La misma acción con dos caras obliga a
+                  aprender la app dos veces. */}
+              <div className="wine-detail-toggles">
+                <button
+                  type="button"
+                  className={`toggle-chip ${wine.tasted ? "is-on" : ""}`}
+                  disabled={pending}
+                  onClick={handleToggleTasted}
+                  aria-pressed={wine.tasted}
+                >
+                  <Icon name={wine.tasted ? "check" : "circle"} size={14} />
+                  {wine.tasted ? "Probado" : "Sin probar"}
+                </button>
+
+                <button
+                  type="button"
+                  className={`toggle-chip ${wine.favorite ? "is-on is-on--fav" : ""}`}
+                  disabled={pending}
+                  onClick={handleToggleFavorite}
+                  aria-pressed={wine.favorite}
+                  aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                >
+                  <Icon name="heart" filled={wine.favorite} size={14} />
+                  Favorito
+                </button>
+              </div>
+            </div>
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
@@ -469,89 +517,51 @@ export default function WineDetailPage() {
               }}
             />
 
-            {/* Opiniones de otros (el promedio y las reseñas ajenas). */}
-            <WineReviews name={wine.name} winery={wine.winery} />
+            {wine.notes && (
+              <div className="wine-detail-notes">
+                <h3>Notas</h3>
+                <p>{wine.notes}</p>
+              </div>
+            )}
 
-            {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
-            {(aiLoading || aiInfo || aiFailed) && (
-              <div className="wine-about">
-                <div className="wine-about__head">
-                  <h3><Icon name="sparkles" size={16} /> Sobre este vino</h3>
-                  {aiInfo && !aiInfo.known && (
-                    <span className="wine-about__tag" title="Descripción general del estilo, no del vino puntual">
-                      aproximado
-                    </span>
-                  )}
-                </div>
-
-                {aiLoading && <LoadingSkeleton type="inline" count={3} />}
-
-                {aiFailed && !aiLoading && (
-                  <ErrorState
-                    title="No pudimos generar la descripción"
-                    hint="La ficha del vino se arma con IA y a veces tarda."
-                    onRetry={() => loadDescription(true)}
-                    compact
-                  />
+            {/* Dónde lo guardás y cómo lo conseguiste eran dos bloques con título,
+                de 132px cada uno, para mostrar entre uno y cuatro chips. Es un solo
+                renglón de datos: cada ícono ya dice qué es y ninguno necesita que
+                se lo presente con un encabezado. La ventana de guarda no está acá
+                porque ya la dice el bloque de arriba. */}
+            {(wine.cellar?.location || wine.purchase?.price > 0) && (
+              <div className="wine-meta-row">
+                {wine.cellar?.location && (
+                  <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
                 )}
-
-                {aiInfo && !aiLoading && (
-                  <>
-                    {aiInfo.summary && <p className="wine-about__summary">{aiInfo.summary}</p>}
-                    {aiInfo.body && <p className="wine-about__body">{aiInfo.body}</p>}
-
-                    <WineStructure structure={aiInfo.structure} />
-
-                {aiInfo.profile?.length > 0 && (
-                      <div className="wine-about__profile">
-                        {aiInfo.profile.map((p) => (
-                          <span key={p} className="wine-about__pill">{p}</span>
-                        ))}
-                      </div>
-                    )}
-
-                    {aiInfo.aromas?.length > 0 && (
-                      <div className="wine-about__block">
-                        <span className="wine-about__label">Aromas y sabores</span>
-                        <div className="wine-about__chips">
-                          {aiInfo.aromas.map((a) => (
-                            <span key={a} className="wine-about__chip">{a}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {aiInfo.foodPairing?.length > 0 && (
-                      <div className="wine-about__block">
-                        <span className="wine-about__label">Marida con</span>
-                        <div className="wine-about__chips">
-                          {aiInfo.foodPairing.map((f) => (
-                            <span key={f} className="wine-about__chip wine-about__chip--food"><Icon name="utensils" size={13} /> {f}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(aiInfo.alcohol || aiInfo.serve) && (
-                      <div className="wine-about__facts">
-                        {aiInfo.alcohol && (
-                          <span className="wine-about__fact">
-                            <strong>{aiInfo.alcohol}%</strong> alcohol
-                          </span>
-                        )}
-                        {aiInfo.serve && (
-                          <span className="wine-about__fact">
-                            <strong>{aiInfo.serve}</strong> servir
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <p className="wine-about__disclaimer">Descripción orientativa generada con IA.</p>
-                  </>
+                {wine.purchase?.price > 0 && (
+                  <span className="wine-meta-chip">
+                    <Icon name="tag" size={13} /> ${wine.purchase.price.toLocaleString("es-AR")}
+                  </span>
+                )}
+                {wine.purchase?.store && (
+                  <span className="wine-meta-chip"><Icon name="store" size={13} /> {wine.purchase.store}</span>
+                )}
+                {wine.purchase?.purchasedAt && (
+                  <span className="wine-meta-chip">
+                    <Icon name="calendar" size={13} /> {new Date(wine.purchase.purchasedAt).toLocaleDateString("es-AR")}
+                  </span>
                 )}
               </div>
             )}
+
+            {/* De acá para abajo, lo que no es tuyo: lo que la app sabe del vino
+                y lo que opinan otros. Material de consulta, después de todo lo
+                que se hace y se escribe. */}
+            <WineAbout
+              loading={aiLoading}
+              failed={aiFailed}
+              info={aiInfo}
+              onRetry={() => loadDescription(true)}
+            />
+
+            {/* Opiniones de otros (el promedio y las reseñas ajenas). */}
+            <WineReviews name={wine.name} winery={wine.winery} />
 
             {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
             <div className="wine-price">
@@ -566,9 +576,7 @@ export default function WineDetailPage() {
                       <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
                     </span>
                   ) : (
-                    <span className="wine-price__empty">
-                      Sin datos aún. Cargá lo que pagaste (al editar el vino) y ayudás a la comunidad.
-                    </span>
+                    <span className="wine-price__empty">Sin datos todavía</span>
                   )}
                 </div>
               </div>
@@ -581,48 +589,6 @@ export default function WineDetailPage() {
                 Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
               </a>
             </div>
-
-            {wine.notes && (
-              <div className="wine-detail-notes">
-                <h3>Tus notas <em>· privadas</em></h3>
-                <p>{wine.notes}</p>
-              </div>
-            )}
-
-            {(wine.cellar?.location || wine.cellar?.drinkFrom || wine.cellar?.drinkUntil) && (
-              <div className="wine-detail-meta-section">
-                <h3>Dónde lo guardás</h3>
-                <div className="wine-meta-row">
-                  {wine.cellar.location && (
-                    <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
-                  )}
-                  {(wine.cellar.drinkFrom || wine.cellar.drinkUntil) && (
-                    <span className="wine-meta-chip">
-                      <Icon name="calendar" size={13} /> {wine.cellar.drinkFrom || "—"} – {wine.cellar.drinkUntil || "—"}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {wine.purchase?.price > 0 && (
-              <div className="wine-detail-meta-section">
-                <h3>Cómo lo conseguiste</h3>
-                <div className="wine-meta-row">
-                  <span className="wine-meta-chip">
-                    <Icon name="tag" size={13} /> ${wine.purchase.price.toLocaleString("es-AR")} {wine.purchase.currency || "ARS"}
-                  </span>
-                  {wine.purchase.store && (
-                    <span className="wine-meta-chip"><Icon name="store" size={13} /> {wine.purchase.store}</span>
-                  )}
-                  {wine.purchase.purchasedAt && (
-                    <span className="wine-meta-chip">
-                      {new Date(wine.purchase.purchasedAt).toLocaleDateString("es-AR")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div className="scan-edit-grid">
@@ -776,75 +742,10 @@ export default function WineDetailPage() {
           </div>
         )}
 
-        {!editing && (
-          <div className="wine-detail-actions">
-            <div className="wine-qty-controls" role="group" aria-label="Botellas en tu bodega">
-              <span className="wine-qty-controls__label" aria-hidden="true">Botellas</span>
-              <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella" title="Quitar una botella (sin marcarla como tomada)">
-                <Icon name="minus" size={16} />
-              </button>
-              <span className="wine-qty" aria-live="polite">{wine.quantity}</span>
-              <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella" title="Sumá botellas si compraste más">
-                <Icon name="plus" size={16} />
-              </button>
-            </div>
-
-            {/* Abrir una botella es la acción; el "−" de al lado sigue siendo
-                para lo otro (la regalaste, corregís el número) y por eso no
-                toca tu historial de probados. */}
-            {Number(wine.quantity) > 0 && (
-              <button
-                type="button"
-                className="wine-detail-open"
-                disabled={pending}
-                onClick={handleOpenBottle}
-              >
-                <Icon name="bottle" size={17} />
-                Abrí una botella
-              </button>
-            )}
-
-            {/* Los MISMOS chips que en la bodega: mismo texto, mismo color, mismo
-                comportamiento. Antes acá eran dos íconos sin palabra y allá dos
-                chips con su etiqueta —la misma acción con dos caras, que obliga a
-                aprender la app dos veces—. */}
-            <div className="wine-detail-toggles">
-              <button
-                type="button"
-                className={`toggle-chip ${wine.tasted ? "is-on" : ""}`}
-                disabled={pending}
-                onClick={handleToggleTasted}
-                aria-pressed={wine.tasted}
-                title={
-                  wine.tasted
-                    ? "Ya lo probaste — tocá para desmarcarlo (no toca tu stock)"
-                    : "Marcar que ya lo probaste (no toca tu stock)"
-                }
-                aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-              >
-                <Icon name={wine.tasted ? "check" : "circle"} size={14} />
-                {wine.tasted ? "Probado" : "Sin probar"}
-              </button>
-
-              <button
-                type="button"
-                className={`toggle-chip ${wine.favorite ? "is-on is-on--fav" : ""}`}
-                disabled={pending}
-                onClick={handleToggleFavorite}
-                aria-pressed={wine.favorite}
-                title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              >
-                <Icon name="heart" filled={wine.favorite} size={14} />
-                Favorito
-              </button>
-            </div>
-          </div>
-        )}
 
         <section className="wine-moments">
           <div className="wine-moments__header">
-            <h3>Tus momentos con este vino</h3>
+            <h3>Momentos</h3>
             {!showMomentForm && (
               <button type="button" className="wine-moments__add-btn" onClick={() => setShowMomentForm(true)}>
                 + Agregar
@@ -899,9 +800,10 @@ export default function WineDetailPage() {
                 onChange={(e) => setMomentDraft((p) => ({ ...p, notes: e.target.value }))}
               />
 
-              {/* Fotos del momento (máx 2, privadas). */}
+              {/* El tope de 2 lo impone la grilla: cuando llegás, el botón de
+                  agregar desaparece. No hace falta anunciarlo por escrito. */}
               <div className="moment-photos">
-                <span className="moment-photos__label">Fotos <small>(máx 2 · privadas)</small></span>
+                <span className="moment-photos__label">Fotos</span>
                 <div className="moment-photos__grid">
                   {momentDraft.photos.map((src, i) => (
                     <div key={i} className="moment-photos__item">
@@ -974,18 +876,13 @@ export default function WineDetailPage() {
           {momentsLoading ? (
             <LoadingSkeleton type="inline" count={2} />
           ) : momentsFailed ? (
-            <ErrorState
-              title="No pudimos cargar tus momentos"
-              hint="Están guardados. Probá de nuevo en un momento."
-              onRetry={loadMoments}
-              compact
-            />
+            <ErrorState title="No pudimos cargar tus momentos" onRetry={loadMoments} compact />
           ) : moments.length === 0 ? (
             !showMomentForm && (
               <EmptyState
                 icon="calendar"
-                title="Todavía no registraste ningún momento"
-                hint="Anotá con quién y dónde lo tomaste: es lo que después te hace acordar del vino."
+                title="Sin momentos todavía"
+                hint="Con quién y dónde lo tomaste."
                 actionLabel="Registrar el primero"
                 onAction={() => setShowMomentForm(true)}
                 compact
@@ -1021,12 +918,8 @@ export default function WineDetailPage() {
           )}
         </section>
 
-        {/* Eliminar, al final y en voz baja.
-            Estaba en la barra de acciones, del mismo tamaño y a un centímetro de
-            "favorito" y "probado" —dos cosas que se tocan todos los días—. Borrar
-            un vino se hace una vez cada mucho y no tiene vuelta atrás salvo por el
-            deshacer: no puede estar al alcance del mismo dedo que marca un
-            favorito. Al pie, que es donde uno busca lo definitivo. */}
+        {/* Eliminar, al final y en voz baja: estaba a un centímetro de "favorito"
+            y "probado", que se tocan todos los días. */}
         {!editing && (
           <div className="wine-detail-danger">
             <button

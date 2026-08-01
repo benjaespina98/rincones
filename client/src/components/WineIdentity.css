@@ -77,20 +77,19 @@
    El único bloque con color de la sección, porque es el único que dice algo que
    cambia una decisión: tomarlo hoy o esperarlo. */
 
+/* Un solo renglón: punto, veredicto y ventana. Antes eran tres —titular, una
+   frase explicándolo y otra aclarando que era estimado—: para un dato que son dos
+   años, tres líneas es más texto que información. */
 .wine-id__cellar {
-  display: grid;
-  gap: 3px;
-  padding: 11px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 9px;
+  padding: 10px 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--surface);
-}
-
-.wine-id__cellar-head {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .wine-id__dot {
@@ -101,22 +100,11 @@
   background: currentColor;
 }
 
+/* La ventana, en gris y al lado: es el respaldo del veredicto, no el titular. */
 .wine-id__cellar-detail {
   font-size: var(--text-xs);
-  line-height: 1.45;
   color: var(--text-secondary);
-}
-
-/* De dónde sale el número, en el tamaño que le corresponde: importa que esté,
-   no que compita. Una estimación presentada con el mismo peso que un hecho de la
-   etiqueta es una estimación que se va a leer como un hecho. */
-.wine-id__cellar-source {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-2xs);
-  color: var(--text-secondary);
-  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
 }
 
 .wine-id__cellar--peak {
@@ -137,9 +125,9 @@
   color: #f0899d;
 }
 
-/* El titular lleva el color del estado; el resto del texto se queda en los
+/* El veredicto lleva el color del estado; el resto del texto se queda en los
    colores de siempre para que siga siendo legible. */
-.wine-id__cellar-head strong {
+.wine-id__cellar strong {
   color: inherit;
   font-weight: 800;
 }

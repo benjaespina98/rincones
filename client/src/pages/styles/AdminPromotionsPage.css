@@ -537,6 +537,16 @@
   color: var(--text-secondary);
 }
 
+/* El único aviso de la lista. En ámbar y en la misma línea donde iría el nombre
+   del anunciante: el hueco y la advertencia son la misma cosa. */
+.pr__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gold-soft);
+  font-weight: 700;
+}
+
 /* Los números son el botón que abre el informe: se ven como texto (son un dato,
    no una acción) y se comportan como control. La flecha avisa que se abre. */
 .pr__item-stats {

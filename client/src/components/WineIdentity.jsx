@@ -1,4 +1,3 @@
-import Icon from "./Icon";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus, cellarSourceNote } from "../utils/cellarStatus";
 import "./WineIdentity.css";
@@ -6,28 +5,13 @@ import "./WineIdentity.css";
 /**
  * La identidad del vino: quién lo hace, de dónde es, de qué uva y de qué año.
  *
- * ── QUÉ PROBLEMA RESUELVE ───────────────────────────────────────────────────
- * Esto era una tira de cuatro pastillas de colores: "Tinto · 2025 · Malbec ·
- * Esperá 2 años". Cuatro problemas en una línea:
+ * Era una tira de cuatro pastillas de colores —"Tinto · 2025 · Malbec · Esperá 2
+ * años"— donde todo gritaba igual, faltaba la bodega (el dato que más ubica un
+ * vino) y la guarda estimada parecía tan cierta como la uva de la etiqueta.
  *
- * 1. LA BODEGA NO ESTABA. Es el dato más importante de una etiqueta después del
- *    nombre —"Portillo" no dice nada, "Portillo, de Bodegas Salentein" ubica el
- *    vino entero— y estaba sólo como texto chico encima de la foto, compitiendo
- *    con la imagen. Ahora tiene su rótulo y su lugar.
- *
- * 2. TODO GRITABA IGUAL. Cuatro pastillas con borde y color propio, del mismo
- *    tamaño, sin jerarquía: el ojo no sabe por dónde empezar y el conjunto se lee
- *    como ruido. Un dato con rótulo se lee más rápido que un dato con color.
- *
- * 3. "ESPERÁ 2 AÑOS" no se entiende. Ver utils/cellarStatus.js: ahora dice el año.
- *
- * 4. LA GUARDA NO ES DEL MISMO ORDEN QUE LA UVA. La uva es un hecho de la
- *    etiqueta; la guarda es una recomendación estimada que puede estar equivocada.
- *    Mezclarlas en la misma tira las hacía parecer igual de ciertas. Van separadas
- *    y la estimación dice que es una estimación.
- *
- * Los datos que no están no ocupan lugar, salvo la bodega: ahí el hueco es
- * información —te falta cargarla— y se ofrece el atajo para hacerlo.
+ * Ahora: rótulo → valor, la bodega primero, y la guarda aparte porque es una
+ * recomendación y no un hecho. Los datos que no están no ocupan lugar, salvo la
+ * bodega: ahí el hueco es información y se ofrece el atajo para completarla.
  */
 
 const SIN_DATO = "—";
@@ -80,17 +64,17 @@ export default function WineIdentity({ wine, onEdit }) {
         ))}
       </dl>
 
-      {/* La guarda va aparte: es una recomendación, no un dato de la etiqueta. */}
+      {/* La guarda va aparte: es una recomendación, no un dato de la etiqueta.
+          Una línea: veredicto y ventana. De dónde sale la ventana está en el
+          title —importa una sola vez, no cada vez que se abre la ficha—. */}
       {guarda.label && (
-        <div className={`wine-id__cellar wine-id__cellar--${guarda.status}`}>
-          <span className="wine-id__cellar-head">
-            <span className="wine-id__dot" aria-hidden="true" />
-            <strong>{guarda.label}</strong>
-          </span>
+        <div
+          className={`wine-id__cellar wine-id__cellar--${guarda.status}`}
+          title={cellarSourceNote(guarda)}
+        >
+          <span className="wine-id__dot" aria-hidden="true" />
+          <strong>{guarda.label}</strong>
           <span className="wine-id__cellar-detail">{guarda.detail}</span>
-          <span className="wine-id__cellar-source">
-            <Icon name="info" size={11} /> {cellarSourceNote(guarda)}
-          </span>
         </div>
       )}
     </section>

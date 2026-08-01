@@ -12,11 +12,17 @@ import "./WineStructure.css";
  * descripción (y que ya está cacheado), así que no cuesta ni una petición extra.
  */
 
+/**
+ * Cada eje dice su palabra según dónde cae, incluido el medio. Antes el corte era
+ * `valor >= 3 ? alto : bajo`: un cuerpo de 3 sobre 5 se anunciaba "Corpulento" y
+ * la lista de abajo, en la misma pantalla, decía "Cuerpo medio". Dos etiquetas
+ * distintas para el mismo número.
+ */
 const SCALES = [
-  { key: "body", label: "Cuerpo", low: "Liviano", high: "Corpulento" },
-  { key: "acidity", label: "Acidez", low: "Suave", high: "Fresca" },
-  { key: "tannin", label: "Taninos", low: "Sedosos", high: "Firmes" },
-  { key: "sweetness", label: "Dulzor", low: "Seco", high: "Dulce" },
+  { key: "body", label: "Cuerpo", words: ["Liviano", "Liviano", "Medio", "Corpulento", "Corpulento"] },
+  { key: "acidity", label: "Acidez", words: ["Suave", "Suave", "Media", "Fresca", "Fresca"] },
+  { key: "tannin", label: "Taninos", words: ["Sedosos", "Sedosos", "Medios", "Firmes", "Firmes"] },
+  { key: "sweetness", label: "Dulzor", words: ["Seco", "Seco", "Semiseco", "Dulce", "Dulce"] },
 ];
 
 export default function WineStructure({ structure }) {
@@ -34,8 +40,9 @@ export default function WineStructure({ structure }) {
     <div className="wine-structure">
       <span className="wine-structure__title">Perfil de sabor</span>
       <div className="wine-structure__rows">
-        {rows.map(({ key, label, low, high }) => {
+        {rows.map(({ key, label, words }) => {
           const value = structure[key];
+          const palabra = words[Math.min(Math.max(value, 1), 5) - 1];
           return (
             <div className="wine-structure__row" key={key}>
               <span className="wine-structure__label">{label}</span>
@@ -45,7 +52,7 @@ export default function WineStructure({ structure }) {
                 aria-valuenow={value}
                 aria-valuemin={1}
                 aria-valuemax={5}
-                aria-label={`${label}: ${value} de 5 (${low} a ${high})`}
+                aria-label={`${label}: ${palabra}, ${value} de 5`}
               >
                 {[1, 2, 3, 4, 5].map((step) => (
                   <span
@@ -54,7 +61,7 @@ export default function WineStructure({ structure }) {
                   />
                 ))}
               </div>
-              <span className="wine-structure__end">{value >= 3 ? high : low}</span>
+              <span className="wine-structure__end">{palabra}</span>
             </div>
           );
         })}

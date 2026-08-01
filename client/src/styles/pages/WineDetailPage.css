@@ -70,33 +70,6 @@
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Top badges + edit */
-.wine-detail-hero__badges {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 2;
-  display: flex;
-  gap: 8px;
-}
-
-.hero-badge {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(12, 15, 25, 0.68);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: var(--shadow-sm);
-}
-
-.hero-badge--fav { color: #ff6ea0; }
-.hero-badge--tasted { color: var(--success); }
-
 .wine-detail-hero__actions {
   position: absolute;
   top: 14px;
@@ -128,30 +101,6 @@
 
 .wine-detail-hero__icon-btn:active {
   transform: scale(0.92);
-}
-
-.wine-detail-hero .badge-favorite,
-.wine-detail-hero .badge-tasted {
-  position: absolute;
-  top: 12px;
-  font-size: 18px;
-  background: rgba(12, 15, 25, 0.85);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm);
-}
-
-.wine-detail-hero .badge-favorite {
-  right: 12px;
-}
-
-.wine-detail-hero .badge-tasted {
-  left: 12px;
-  color: var(--success);
 }
 
 .wine-detail-body {
@@ -268,24 +217,6 @@
    bloque propio con el año puesto y su explicación, en components/WineIdentity.css.
    "Esperá 2 años" en una pastilla amarilla no decía de qué hablaba ni contra qué
    se medía. */
-
-/* Info sections (Notas / Bodega / Compra) */
-.wine-detail-meta-section {
-  background: var(--elevated);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-}
-
-.wine-detail-meta-section h3 {
-  margin: 0 0 10px;
-  font-family: var(--font-family-sans);
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-}
 
 .wine-meta-row {
   display: flex;
@@ -465,12 +396,15 @@
   gap: 7px;
 }
 
+/* Los rótulos de las sublistas van en gris. Eran tres renglones en versalita
+   dorada apilados dentro del mismo bloque —perfil, aromas, maridaje— y competían
+   con el título de la sección, que es el único que tiene que resaltar. */
 .wine-about__label {
   font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--accent-soft);
+  color: var(--text-muted);
 }
 
 .wine-about__chips {
@@ -479,20 +413,18 @@
   gap: 7px;
 }
 
+/* Un solo tipo de chip. Los aromas eran violetas y los maridajes rojos con un
+   cubierto adentro: dos paletas más para una lista de palabras que no compiten
+   entre sí. Lo que distingue una lista de la otra es el rótulo que tienen arriba,
+   no el color. En voz baja, además: son datos de apoyo, no titulares. */
 .wine-about__chip {
   padding: 5px 11px;
   border-radius: var(--radius-full);
-  background: rgba(126, 89, 201, 0.14);
-  border: 1px solid var(--line-accent);
-  color: var(--accent-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
   font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.wine-about__chip--food {
-  background: rgba(198, 70, 95, 0.12);
-  border-color: rgba(198, 70, 95, 0.28);
-  color: #f0a9b6;
+  font-weight: 500;
 }
 
 .wine-about__facts {
@@ -514,12 +446,6 @@
 .wine-about__fact strong {
   color: var(--text);
   font-size: var(--text-lg);
-}
-
-.wine-about__disclaimer {
-  margin: 0;
-  font-size: var(--text-2xs);
-  color: var(--text-subtle);
 }
 
 .wine-about__failed {

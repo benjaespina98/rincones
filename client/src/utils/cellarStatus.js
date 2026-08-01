@@ -81,58 +81,39 @@ export function getCellarStatus(wine) {
 }
 
 /**
- * `label` es el titular (corto, con el año adentro) y `detail` la línea que lo
- * explica. Son dos campos y no uno porque la pantalla los usa distinto: el titular
- * entra en un espacio chico y el detalle debajo, y meter todo en un solo string
- * obligaba a elegir entre ser corto o ser entendible.
+ * `label` es el veredicto y `detail` la ventana en años. Eran dos frases de prosa
+ * ("Es joven todavía: le faltan 3 años para su mejor momento") más un tercer
+ * renglón aclarando que era una estimación: tres líneas de texto para un dato que
+ * son dos años. El rango dice lo mismo y se lee de un vistazo.
  */
 function buildResult(currentYear, from, until, source) {
-  const base = { from, until, source };
+  const ventana = `${from} – ${until}`;
+  const base = { from, until, source, detail: ventana };
 
   if (currentYear < from) {
-    const faltan = from - currentYear;
-    return {
-      ...base,
-      status: "early",
-      label: `Mejor a partir de ${from}`,
-      detail:
-        faltan === 1
-          ? "Es joven todavía: en un año se le pone la mejor cara."
-          : `Es joven todavía: le faltan ${faltan} años para su mejor momento.`,
-      yearsLeft: faltan,
-    };
+    return { ...base, status: "early", label: `Mejor a partir de ${from}`, yearsLeft: from - currentYear };
   }
 
   if (currentYear > until) {
-    const pasaron = currentYear - until;
-    return {
-      ...base,
-      status: "past",
-      label: "Pasó su mejor momento",
-      detail:
-        pasaron === 1
-          ? "Su ventana ideal cerró el año pasado. Se puede tomar igual; no esperes más."
-          : `Su ventana ideal cerró en ${until}. Se puede tomar igual; no esperes más.`,
-      yearsOver: pasaron,
-    };
+    return { ...base, status: "past", label: "Pasó su mejor momento", yearsOver: currentYear - until };
   }
 
   const quedan = until - currentYear;
   return {
     ...base,
     status: "peak",
-    label: quedan === 0 ? `Tomalo este año` : `Listo para tomar`,
-    detail:
-      quedan === 0
-        ? `Es su último año dentro de la ventana ideal.`
-        : `Está en su mejor momento y lo sigue estando hasta ${until}.`,
+    label: quedan === 0 ? "Tomalo este año" : "Listo para tomar",
     yearsLeft: quedan,
   };
 }
 
-/** De dónde salió la ventana, dicho sin vueltas. */
+/**
+ * De dónde salió la ventana. Ya no se imprime como renglón: va en el `title`, para
+ * quien se lo pregunte. Salvo que la haya cargado el usuario, es una estimación por
+ * estilo y conviene que eso esté escrito en algún lado.
+ */
 export const cellarSourceNote = (status) => {
-  if (status?.source === "manual") return "Según las fechas que cargaste vos.";
-  if (status?.source === "varietal") return "Estimado para el varietal, no medido en la botella.";
-  return "Estimado para el tipo de vino, no medido en la botella.";
+  if (status?.source === "manual") return "Fechas que cargaste vos";
+  if (status?.source === "varietal") return "Estimado para el varietal, no medido en la botella";
+  return "Estimado para el tipo de vino, no medido en la botella";
 };

@@ -92,8 +92,8 @@ export default function WineOpinion({ name, winery = "", onRated }) {
       <div className="wine-opinion__head">
         <span className="wine-opinion__title">Tu opinión</span>
         {rating > 0 && (
-          <span className="wine-opinion__public">
-            <Icon name="eye" size={12} /> Visible para quien busque este vino
+          <span className="wine-opinion__public" title="Otros la ven al buscar este vino">
+            <Icon name="eye" size={12} /> Pública
           </span>
         )}
       </div>
@@ -118,7 +118,6 @@ export default function WineOpinion({ name, winery = "", onRated }) {
             ★
           </button>
         ))}
-        {rating === 0 && <span className="wine-opinion__hint">Tocá para puntuar</span>}
       </div>
 
       {/* La reseña escrita sólo se ofrece una vez que puntuó: pedirla antes es
@@ -134,7 +133,7 @@ export default function WineOpinion({ name, winery = "", onRated }) {
             </p>
           ) : (
             <button type="button" className="wine-opinion__add" onClick={() => setWriting(true)}>
-              <Icon name="pencil" size={14} /> Contá tu experiencia <em>(opcional)</em>
+              <Icon name="pencil" size={14} /> Escribir una reseña
             </button>
           )}
         </>
@@ -144,7 +143,7 @@ export default function WineOpinion({ name, winery = "", onRated }) {
         <div className="wine-opinion__form">
           <textarea
             className="wine-opinion__input"
-            placeholder="¿A qué te supo? ¿Con qué lo tomaste? Contá lo que a vos te hubiera servido leer."
+            placeholder="¿A qué te supo?"
             aria-label="Tu reseña"
             value={text}
             onChange={(e) => setText(e.target.value)}
