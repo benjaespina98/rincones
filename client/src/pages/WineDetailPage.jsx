@@ -804,38 +804,41 @@ export default function WineDetailPage() {
               </button>
             )}
 
-            {/* Lo secundario se queda en íconos y en voz baja: una sola acción
-                principal por pantalla. El `title` explica cada uno sin gastar
-                ancho, que es lo que mantiene la barra prolija en un teléfono. */}
-            <button
-              type="button"
-              className={`btn-icon ${wine.favorite ? "active" : ""}`}
-              disabled={pending}
-              onClick={handleToggleFavorite}
-              title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-            >
-              <Icon name="heart" filled={wine.favorite} size={19} />
-            </button>
+            {/* Los MISMOS chips que en la bodega: mismo texto, mismo color, mismo
+                comportamiento. Antes acá eran dos íconos sin palabra y allá dos
+                chips con su etiqueta —la misma acción con dos caras, que obliga a
+                aprender la app dos veces—. */}
+            <div className="wine-detail-toggles">
+              <button
+                type="button"
+                className={`toggle-chip ${wine.tasted ? "is-on" : ""}`}
+                disabled={pending}
+                onClick={handleToggleTasted}
+                aria-pressed={wine.tasted}
+                title={
+                  wine.tasted
+                    ? "Ya lo probaste — tocá para desmarcarlo (no toca tu stock)"
+                    : "Marcar que ya lo probaste (no toca tu stock)"
+                }
+                aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
+              >
+                <Icon name={wine.tasted ? "check" : "circle"} size={14} />
+                {wine.tasted ? "Probado" : "Sin probar"}
+              </button>
 
-            <button
-              type="button"
-              className={`btn-icon btn-icon--tasted ${wine.tasted ? "tasted-active" : ""}`}
-              disabled={pending}
-              onClick={handleToggleTasted}
-              title={
-                wine.tasted
-                  ? "Ya lo probaste — tocá para desmarcarlo (no toca tu stock)"
-                  : "Marcar que ya lo probaste (no toca tu stock)"
-              }
-              aria-label={wine.tasted ? "Marcar como no probado" : "Marcar como probado"}
-            >
-              <Icon name={wine.tasted ? "check" : "circle"} size={19} />
-            </button>
-
-            <button type="button" className="btn-delete" onClick={() => setShowDeleteConfirm(true)} title="Eliminar este vino de tu bodega" aria-label="Eliminar vino">
-              <Icon name="trash" size={18} />
-            </button>
+              <button
+                type="button"
+                className={`toggle-chip ${wine.favorite ? "is-on is-on--fav" : ""}`}
+                disabled={pending}
+                onClick={handleToggleFavorite}
+                aria-pressed={wine.favorite}
+                title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+              >
+                <Icon name="heart" filled={wine.favorite} size={14} />
+                Favorito
+              </button>
+            </div>
           </div>
         )}
 
@@ -1017,6 +1020,25 @@ export default function WineDetailPage() {
             </ul>
           )}
         </section>
+
+        {/* Eliminar, al final y en voz baja.
+            Estaba en la barra de acciones, del mismo tamaño y a un centímetro de
+            "favorito" y "probado" —dos cosas que se tocan todos los días—. Borrar
+            un vino se hace una vez cada mucho y no tiene vuelta atrás salvo por el
+            deshacer: no puede estar al alcance del mismo dedo que marca un
+            favorito. Al pie, que es donde uno busca lo definitivo. */}
+        {!editing && (
+          <div className="wine-detail-danger">
+            <button
+              type="button"
+              className="wine-detail-danger__btn"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Icon name="trash" size={15} />
+              Eliminar de mi bodega
+            </button>
+          </div>
+        )}
       </div>
 
       <ConfirmModal

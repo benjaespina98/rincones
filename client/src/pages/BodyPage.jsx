@@ -82,8 +82,30 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  // Con pocos vinos la lista se lee bien; a partir de ~8 la grilla gana.
-  const [viewMode, setViewMode] = useState("list");
+  /**
+   * Lista o grilla. Se recuerda entre visitas.
+   *
+   * Es una preferencia y no una acción: quien elige grilla la elige una vez y
+   * espera encontrarla así la próxima. Volver a lista en cada recarga obliga a
+   * repetir la misma decisión para siempre, y hace parecer que el control no
+   * funcionó.
+   */
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem("rincones_bodega_vista") === "grid" ? "grid" : "list";
+    } catch {
+      // Modo privado o almacenamiento bloqueado: se sigue con el valor por defecto.
+      return "list";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("rincones_bodega_vista", viewMode);
+    } catch {
+      // Si no se puede guardar, la app funciona igual: sólo no se recuerda.
+    }
+  }, [viewMode]);
   /**
    * La agrupación ya no es un control: agrupa sola por tipo cuando la lista deja
    * de recorrerse de un vistazo.
@@ -598,7 +620,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           tres bloques distintos (la tira de la colección, la línea de conteo y
           estos botones) son uno solo, y acá dice de antemano qué vas a encontrar
           del otro lado sin tener que tocar para averiguarlo. */}
-      <div className="bodega-vista" role="group" aria-label="Qué parte de tu bodega ver">
+      <div className="segmented bodega-vista" role="group" aria-label="Qué parte de tu bodega ver">
         {[
           { id: "instock", label: "En stock", detalle: "Los vinos que tenés en casa" },
           { id: "all", label: "Todos", detalle: "Toda tu colección" },
@@ -607,13 +629,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
           <button
             key={v.id}
             type="button"
-            className={`bodega-vista__btn ${vista === v.id ? "is-active" : ""}`}
+            className={`segmented__btn ${vista === v.id ? "is-active" : ""}`}
             aria-pressed={vista === v.id}
             title={v.detalle}
             onClick={() => setVista(v.id)}
           >
             {v.label}
-            <span className="bodega-vista__n">{conteoPorVista[v.id]}</span>
+            <span className="segmented__n">{conteoPorVista[v.id]}</span>
           </button>
         ))}
       </div>
@@ -655,6 +677,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         <div className={`wines-list wines-list--${viewMode}`}>
           {visibleWines.map((wine, i) => {
             const isPending = pendingActionId === wine._id;
+            const esGrilla = viewMode === "grid";
             const expanded = expandedId === wine._id;
             // Uva y año en una línea, bodega en otra.
             //
@@ -701,11 +724,19 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     que es de una palabra. Un botón adentro de otro botón no es
                     HTML válido, y por eso son hermanos y no anidados. */}
                 <div className="wine-row__head">
+                  {/* En LISTA tocar expande —ahí conviven la fila y sus acciones
+                      rápidas—; en GRILLA tocar abre la ficha.
+                      Es la misma decisión que toma Vivino y responde a para qué
+                      sirve cada modo: la grilla es para reconocer una etiqueta de
+                      un vistazo, y expandir una tarjeta adentro de una cuadrícula
+                      estira una celda y descoloca a todas sus vecinas. */}
                   <button
                     type="button"
                     className="wine-row__main"
-                    onClick={() => setExpandedId(expanded ? null : wine._id)}
-                    aria-expanded={expanded}
+                    onClick={() =>
+                      esGrilla ? navigate(`/vino/${wine._id}`) : setExpandedId(expanded ? null : wine._id)
+                    }
+                    aria-expanded={esGrilla ? undefined : expanded}
                   >
                     <span className="wine-row__thumb">
                       <WinePhoto src={wine.image} type={wine.type} alt="" artSize={46} />
@@ -749,7 +780,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
                         </span>
                       )}
-                      <Icon name="chevron-down" size={18} className="wine-row__caret" />
+                      {/* En grilla no hay nada que desplegar: la flecha diría una
+                          mentira sobre lo que va a pasar al tocar. */}
+                      <Icon
+                        name={esGrilla ? "arrow-right" : "chevron-down"}
+                        size={esGrilla ? 15 : 18}
+                        className="wine-row__caret"
+                      />
                     </span>
                   </button>
 
@@ -758,7 +795,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       nada. */}
                   <button
                     type="button"
-                    className={`wine-row__tasted ${wine.tasted ? "is-tasted" : ""}`}
+                    className={`toggle-chip wine-row__tasted ${wine.tasted ? "is-on" : ""}`}
                     onClick={() => handleToggleTasted(wine)}
                     disabled={isPending}
                     aria-pressed={wine.tasted}
@@ -780,7 +817,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                   </button>
                 </div>
 
-                {expanded && (
+                {expanded && !esGrilla && (
                   <div className="wine-row__expand">
                     <div className="wine-row__controls">
                       {/* El stepper dice qué cuenta ("Botellas"): "− ×2 +" a
