@@ -36,8 +36,10 @@ describe("la lectura de guarda", () => {
     expect(guarda.label).toBe("Mejor a partir de 2028");
     // Lo que reemplazó: un número sin referencia.
     expect(guarda.label).not.toMatch(/Esperá/);
-    // Y explica de dónde sale, en su propia línea.
-    expect(guarda.detail).toMatch(/le faltan 2 años/);
+    // Y al lado, la ventana entera: dos años se leen de un vistazo, la frase que
+    // había antes ("le faltan 2 años para su mejor momento") era un renglón para
+    // decir lo mismo.
+    expect(guarda.detail).toBe("2028 – 2035");
   });
 
   it("cuando está listo lo dice sin pedir cuentas mentales", () => {
@@ -45,7 +47,7 @@ describe("la lectura de guarda", () => {
     const guarda = getCellarStatus({ vintage: 2025, type: "red", varietal: "Malbec" });
     expect(guarda.status).toBe("peak");
     expect(guarda.label).toBe("Listo para tomar");
-    expect(guarda.detail).toMatch(/hasta 2035/);
+    expect(guarda.detail).toBe("2028 – 2035");
   });
 
   it("las fechas que cargó el usuario pisan la estimación", () => {
