@@ -21,64 +21,6 @@
   color: var(--text);
 }
 
-/* Stats Strip */
-.stats-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 16px 8px;
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(167, 130, 239, 0.22), transparent 60%),
-    var(--elevated);
-  border: 1px solid var(--line-accent);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  position: relative;
-}
-
-.stat + .stat::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 60%;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, var(--line), transparent);
-}
-
-.stat-number {
-  font-family: var(--font-family-serif);
-  font-size: var(--text-3xl);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.stat-number--warn {
-  color: var(--gold);
-}
-
-.stat-label {
-  /* Si algún día una etiqueta no entra, que se achique antes de partirse:
-     un rótulo en dos líneas empuja el número y descuadra toda la fila. */
-  white-space: nowrap;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-}
-
 /* Search */
 .search-container {
   position: relative;
@@ -277,28 +219,62 @@
   object-fit: cover;
 }
 
-/* Dos estados posibles, ninguno implícito: probado (verde, afirmativo) o por
-   probar (contorno tenue, no es un error ni una alerta). */
-.wine-row__state {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1.5px solid var(--bg);
+/* ── Probado: se ve Y se cambia desde la fila ────────────────────────────────
+   Era una marca chiquita pegada a la foto, de sólo lectura: para cambiarla había
+   que expandir la fila o entrar a la ficha. Tres toques para un dato de una
+   palabra, y encima el más frecuente de la pantalla.
+
+   Ahora es un chip con su texto. Dos estados, ninguno implícito: probado (verde,
+   afirmativo) o sin probar (contorno tenue — no es un error ni una alerta, es
+   sencillamente algo que todavía no pasó). */
+
+.wine-row__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
 }
 
-.wine-row__state.is-tasted {
-  background: var(--success);
-  color: #04120b;
-}
-
-.wine-row__state.is-pending {
+.wine-row__tasted {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  /* 40px de área táctil: está al lado del cuerpo de la fila, que abre otra cosa,
+     así que errarle no es inocuo. */
+  min-height: 40px;
+  padding: 0 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.wine-row__tasted:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.wine-row__tasted.is-tasted {
+  border-color: rgba(47, 182, 123, 0.45);
+  background: rgba(47, 182, 123, 0.14);
+  color: #7fe3b4;
+}
+
+/* En pantallas angostas queda sólo el ícono: el chip completo le comía el ancho
+   al nombre del vino, que es lo que hay que poder leer. */
+@media (max-width: 430px) {
+  .wine-row__tasted-text {
+    display: none;
+  }
+
+  .wine-row__tasted {
+    padding: 0 10px;
+  }
 }
 
 .wine-row__info {
@@ -320,22 +296,48 @@
   color: var(--favorite);
 }
 
+/* ── Nada se corta ───────────────────────────────────────────────────────────
+   El nombre y la ficha se recortaban con puntos suspensivos, y en un celular eso
+   dejaba media lista mostrando "Rutini Single Vin…" y "Torrontés · 2016 · Bo…".
+   Un nombre cortado obliga a abrir la fila para saber qué vino es: la lista deja
+   de servir para lo único que tiene que servir, que es reconocer de un vistazo.
+
+   Ahora bajan de renglón. Con techo de dos líneas para que una nota larga no
+   estire una fila el triple que sus vecinas, pero al ancho de un teléfono el
+   techo casi nunca se alcanza: son dos o tres palabras. */
 .wine-row__name {
   font-family: var(--font-family-serif);
   font-size: var(--text-lg);
   font-weight: 700;
+  line-height: 1.2;
   color: var(--text);
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* Un nombre sin espacios más largo que la fila (una URL pegada, por ejemplo)
+     rompería el ancho de la tarjeta: que corte donde haga falta. */
+  overflow-wrap: anywhere;
 }
 
+/* Un escalón más chica que antes: el nombre es lo que se busca con la vista y
+   tiene que ganar por diferencia. De paso, "Sauvignon Blanc · 2022" entra en un
+   solo renglón en un teléfono, así que las filas quedan todas de la misma altura
+   en vez de saltar según el largo de la uva. */
 .wine-row__sub {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
+  line-height: 1.35;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+/* La bodega, en su propio renglón y un punto más apagada: es contexto, no
+   identidad. El nombre del vino es lo que se busca con la vista. */
+.wine-row__winery {
+  font-size: var(--text-2xs);
+  line-height: 1.3;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .wine-row__chips {
@@ -630,6 +632,16 @@
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
+
+  /* El encabezado del grupo ocupa las dos columnas.
+     Sin esto entraba en la grilla como una celda más: el título "BLANCO" quedaba
+     a la izquierda y el primer vino del grupo a su derecha, en la misma línea, y
+     el orden de lectura se rompía —parecía que ese vino no pertenecía al grupo—.
+     Ocupando el ancho completo, el corte se lee como lo que es: una división
+     entre secciones. */
+  .wines-group {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -800,173 +812,148 @@
 /* Los filtros rápidos ocupan la fila entera. Compartiéndola con el selector de
    vista y el botón de filtros sólo se veían uno y medio: nadie iba a descubrir
    que existían "Probados" o "Favoritos" sin arrastrar a ciegas. */
-.bodega-tools {
+/* ── La barra: la vista y el botón de filtros ────────────────────────────────
+   Antes había cinco filas de controles antes del primer vino: chips, resumen +
+   vista + engranaje, dos combos y un panel. Ahora una fila, y lo que se aplica
+   se ve como ficha abajo. */
+
+/* Buscador y filtros, una sola fila. */
+.bodega-bar {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.bodega-tools__chips {
-  display: flex;
-  gap: 7px;
-  overflow-x: auto;
+.bodega-bar .search-container {
   flex: 1;
   min-width: 0;
-  padding-bottom: 2px;
-  scrollbar-width: none;
 }
 
-.bodega-tools__chips::-webkit-scrollbar { display: none; }
-
-/* De tablet para arriba los chips bajan de renglón en vez de scrollear.
-   La tira horizontal es el patrón correcto en un celular —se desliza con el dedo y
-   todo el mundo lo entiende— pero en una pantalla ancha el último chip quedaba
-   cortado por 12px, sin barra ni sombra que avisara que había más: se ve como un
-   error de dibujo, no como algo que se puede correr. Con el ancho de una tablet
-   entran en dos renglones y no hay nada que cortar. */
-@media (min-width: 700px) {
-  .bodega-tools__chips {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-}
-
-.bodega-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  min-height: var(--control-sm);
-  padding: 0 13px;
+/* El eje principal: qué parte de la colección. Segmentado y no chips sueltos
+   porque las tres opciones son EXCLUYENTES, y un segmentado lo dice con la
+   forma: siempre hay una elegida y sólo una. */
+.bodega-vista {
+  display: flex;
+  padding: 3px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--glass);
+}
+
+.bodega-vista__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.bodega-chip:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
-}
-
-.bodega-chip.is-active {
-  background: var(--accent-muted);
-  border-color: var(--accent-light);
-  color: var(--text);
-}
-
-/* "Historial" pesa menos que los demás: es tu colección pasada, no una respuesta
-   a "¿qué abro hoy?". Sin borde y más apagado, así la fila de filtros deja claro
-   de un vistazo cuáles hablan de lo que tenés en casa. Al activarlo recupera todo
-   el contraste: si es donde estás parado, tiene que verse. */
-.bodega-chip.is-muted:not(.is-active) {
-  border-color: transparent;
-  background: transparent;
-  opacity: 0.62;
-}
-
-.bodega-chip.is-muted:not(.is-active):hover {
-  opacity: 1;
-  border-color: var(--line);
-}
-
-.bodega-chip__n {
-  display: inline-grid;
-  place-items: center;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.09);
-  font-size: var(--text-2xs);
-  font-variant-numeric: tabular-nums;
-}
-
-.bodega-tools__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.bodega-view {
-  display: flex;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  overflow: hidden;
-}
-
-.bodega-view__btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: var(--control-sm);
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.bodega-view__btn:hover { color: var(--text); }
-
-.bodega-view__btn.is-active {
+.bodega-vista__btn.is-active {
   background: var(--accent-muted);
   color: var(--accent-soft);
 }
 
-.bodega-more {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  /* Ahora es sólo el engranaje: en la fila de resumen no entraba con texto. */
-  min-height: var(--control-sm);
-  width: 44px;
-  justify-content: center;
-  padding: 0;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+/* El número de cada vista. Reemplaza a la tira de estadísticas y a la línea de
+   conteo: los tres decían números de lo mismo, en tres bloques distintos. */
+.bodega-vista__n {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: var(--text-muted);
 }
 
-.bodega-more:hover,
-.bodega-more.is-open {
+.bodega-vista__btn.is-active .bodega-vista__n {
+  color: var(--accent-soft);
+}
+
+.bodega-filtros {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+/* La burbuja del número, sobre el engranaje: dice que hay filtros puestos sin
+   ocupar una fila entera para decirlo. */
+.bodega-filtros__n {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.bodega-filtros:hover,
+.bodega-filtros.is-open,
+.bodega-filtros.has-active {
   border-color: var(--line-accent);
   color: var(--text);
 }
 
-/* Punto: hay un filtro activo con el panel cerrado. */
-.bodega-more__dot {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-light);
+/* ── Fichas de los filtros aplicados ─────────────────────────────────────────
+   Cada ficha es el botón para sacarla. Un filtro activo que no se ve es la
+   forma más común de que alguien crea que la app perdió sus vinos. */
+
+.bodega-fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.bodega-advanced {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  animation: rincon-enter-down 200ms var(--ease-out);
+.bodega-ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  cursor: pointer;
 }
+
+.bodega-ficha:hover {
+  border-color: var(--accent-light);
+  color: var(--text);
+}
+
+.bodega-ficha--clear {
+  border-style: dashed;
+  background: none;
+  color: var(--text-secondary);
+}
+
 
 /* ── Vista en grilla: con muchos vinos se reconoce por la etiqueta, no leyendo
       fila por fila. ── */
@@ -994,18 +981,22 @@
   align-items: center;
 }
 
-.wines-list--grid .wine-row__sub {
-  -webkit-line-clamp: 1;
+/* En la grilla la tarjeta es angosta, así que la ficha necesita las dos líneas
+   igual que en la lista: recortarla a una dejaba "Torrontés · 2016 · Bo…" en cada
+   tarjeta, que es justo el dato que la grilla tiene para ofrecer. */
+/* En la grilla la tarjeta es angosta: la bodega puede necesitar dos renglones y
+   los usa, en vez de cortarse. */
+.wines-list--grid .wine-row__winery {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 @media (min-width: 700px) {
   .wines-list--grid {
     grid-template-columns: repeat(3, 1fr);
   }
-}
-
-@media (max-width: 400px) {
-  .bodega-more span { display: none; }
 }
 
 /* Rating compacto: el número dice lo mismo que cinco estrellas en un cuarto
@@ -1018,51 +1009,6 @@
   font-weight: 700;
   color: var(--gold-soft);
   white-space: nowrap;
-}
-
-/* Fila de resumen: cuántos ves y en qué orden. */
-.bodega-summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* La cuenta y el orden se leen como una frase ("62 vinos, agregados hace
-   poco"); las herramientas se apoyan a la derecha. */
-.bodega-summary__tools {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.bodega-summary__count {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-/* El Dropdown se estira por defecto (flex: 1) porque en el panel de filtros
-   comparte fila con otros iguales. Acá es un control secundario al lado de una
-   cuenta: se achica a su contenido y se apoya a la derecha. */
-.bodega-summary .dropdown {
-  flex: 0 0 auto;
-}
-
-.bodega-summary .dropdown__trigger {
-  min-height: 36px;
-  padding: 0 10px;
-  background: transparent;
-  border-color: transparent;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .bodega-summary .dropdown__trigger:hover {
-    border-color: var(--line);
-  }
 }
 
 /* Corte de grupo, plegable: con 300 vinos, poder cerrar "Tinto" y quedarte con
@@ -1153,18 +1099,6 @@
 .wines-list--grid .wines-list__group {
   grid-column: 1 / -1;
   justify-self: start;
-}
-
-/* Agrupar y ordenar comparten fila: dos desplegables apilados empujaban la
-   lista media pantalla hacia abajo. */
-.bodega-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.bodega-controls .dropdown {
-  flex: 1;
-  min-width: 0;
 }
 
 .bodega-controls .dropdown__trigger {

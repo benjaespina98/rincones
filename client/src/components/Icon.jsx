@@ -30,6 +30,9 @@ const PATHS = {
   "arrow-right": <path d="M5 12h14M13 5l7 7-7 7" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "chevron-up": <path d="m6 15 6-6 6 6" />,
+  // El embudo: el ícono de filtrar que entiende todo el mundo. Antes se usaba el
+  // engranaje, que significa "configuración" —otra cosa— y por eso no se leía.
+  filter: <path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z" />,
   compass: (
     <>
       <circle cx="12" cy="12" r="9" />
