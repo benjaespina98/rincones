@@ -75,3 +75,31 @@ describe("la tarjeta de una publicidad", () => {
     expect(container.querySelector(".promo__hit")).toBeNull();
   });
 });
+
+describe("el enlace de la tarjeta", () => {
+  /**
+   * Era un <button> que llamaba a `window.open` en su handler, después de contar
+   * el clic. Tocabas y no pasaba nada: cualquier error al contar se llevaba puesta
+   * la navegación, y `window.open` es justo lo que bloquean navegadores y
+   * extensiones en una tarjeta que dice "Publicidad".
+   */
+  it("es un <a href> de verdad, con la url que se cargó en el panel", () => {
+    const { container } = render(<PromoCard promo={publicidad} onOpen={() => {}} />);
+    const enlace = container.querySelector(".promo__hit");
+
+    expect(enlace.tagName).toBe("A");
+    expect(enlace.getAttribute("href")).toBe("https://ejemplo.com/");
+    expect(enlace.getAttribute("target")).toBe("_blank");
+    // El sitio del anunciante no puede tocar la pestaña de la app.
+    expect(enlace.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("cuenta el clic, pero como algo aparte de navegar", () => {
+    const clics = [];
+    const { container } = render(
+      <PromoCard promo={publicidad} onOpen={(p) => clics.push(p._id)} />
+    );
+    container.querySelector(".promo__hit").click();
+    expect(clics).toEqual(["1"]);
+  });
+});

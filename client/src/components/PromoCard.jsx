@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Icon from "./Icon";
 import "./PromoCard.css";
 
@@ -151,22 +152,59 @@ export default function PromoCard({
     );
   }
 
+  /**
+   * ── EL ENLACE ES UN ENLACE ──────────────────────────────────────────────────
+   * Era un <button> que en su handler llamaba a `window.open`. Funciona hasta que
+   * algo se interpone, y en esa tarjeta se interponen dos cosas: el conteo del
+   * clic corre ANTES de navegar, así que cualquier error suyo se lleva puesta la
+   * navegación; y `window.open` es exactamente el patrón que bloquean los
+   * navegadores y las extensiones cuando la campaña, además, dice "Publicidad".
+   * El resultado es el peor posible: tocás y no pasa nada, sin ningún aviso.
+   *
+   * Un <a href> no depende de que corra JavaScript. Encima trae gratis lo que
+   * había que programar: se ve a dónde va al pasar el mouse, se puede abrir en
+   * pestaña nueva con el botón del medio o con el menú contextual, y un lector de
+   * pantalla lo anuncia como enlace y no como botón.
+   *
+   * El conteo del clic pasa a ser un efecto secundario del enlace: si falla, la
+   * persona igual llega a donde iba. Al revés no.
+   */
+  const destino = String(promo.url).trim();
+  const interno = destino.startsWith("/");
+  const registrar = () => onOpen?.(promo);
+
   return (
     <article
       className={clases}
       style={promo.accent ? { "--promo-accent": promo.accent } : undefined}
       aria-hidden={interactive ? undefined : "true"}
     >
-      {/* El botón cubre la tarjeta entera. Va DEBAJO del contenido en el orden de
-          apilado, así el texto se puede seleccionar y las imágenes se ven, pero
-          cualquier toque cae acá. */}
-      <button
-        type="button"
-        className="promo__hit"
-        onClick={() => onOpen?.(promo)}
-        tabIndex={interactive ? 0 : -1}
-        aria-label={`${promo.title}${promo.summary ? `. ${promo.summary}` : ""}`}
-      />
+      {/* Cubre la tarjeta entera. Va DEBAJO del contenido en el orden de apilado,
+          así el texto se puede seleccionar y las imágenes se ven, pero cualquier
+          toque cae acá. */}
+      {interno ? (
+        <Link
+          className="promo__hit"
+          to={destino}
+          onClick={registrar}
+          tabIndex={interactive ? 0 : -1}
+          aria-label={`${promo.title}${promo.summary ? `. ${promo.summary}` : ""}`}
+        />
+      ) : (
+        <a
+          className="promo__hit"
+          href={destino}
+          target="_blank"
+          // `noopener` para que el sitio del anunciante no pueda tocar la pestaña
+          // de la app. Sin `rel="sponsored"`: hay listas de bloqueo que apuntan a
+          // ese valor, la app está detrás de un login —ningún buscador la ve— y
+          // acabamos de aprender lo que cuesta nombrar algo como el ad-tech.
+          rel="noopener noreferrer"
+          onClick={registrar}
+          tabIndex={interactive ? 0 : -1}
+          aria-label={`${promo.title}${promo.summary ? `. ${promo.summary}` : ""}`}
+        />
+      )}
       {contenido}
     </article>
   );

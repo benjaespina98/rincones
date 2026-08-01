@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import PromoCard from "./PromoCard";
 import { trackPromoClick, trackPromoImpression } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
@@ -58,7 +57,6 @@ const prefiereQuieto = () =>
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 export default function PromoCarousel({ promos = [] }) {
-  const navigate = useNavigate();
   const pistaRef = useRef(null);
   const [activo, setActivo] = useState(0);
   const [pausado, setPausado] = useState(false);
@@ -161,22 +159,26 @@ export default function PromoCarousel({ promos = [] }) {
     if (cerca !== activo) setActivo(cerca);
   };
 
-  const abrir = (promo) => {
-    const destino = String(promo.url || "").trim();
-    // El clic se cuenta sólo si LLEVA a algún lado. Contar un toque sobre una
-    // tarjeta que no navega infla el número con algo que no le sirvió a nadie, y
-    // el clic es justo el dato que el anunciante mira.
-    if (!destino) return;
+  /**
+   * Registra el clic. NO navega: de eso se encarga el <a href> de la tarjeta.
+   *
+   * Antes esta función hacía las dos cosas, y en ese orden: primero contaba, y
+   * después llamaba a `window.open`. Cualquier cosa que fallara al contar —una
+   * extensión que corta el pedido, un error de red— se llevaba puesta la
+   * navegación, y el anunciante terminaba pagando por una tarjeta que al tocarla
+   * no hacía nada. Ahora el conteo es lo accesorio y llegar es lo que no se
+   * negocia.
+   *
+   * El clic se cuenta sólo si LLEVA a algún lado: un toque sobre una tarjeta que
+   * no navega infla el número con algo que no le sirvió a nadie, y el clic es
+   * justo el dato que el anunciante mira.
+   */
+  const registrarClic = (promo) => {
+    if (!String(promo.url || "").trim()) return;
 
     tapHaptic();
     trackPromoClick(promo._id);
     trackEvent("promo_click", { id: promo._id, kind: promo.kind, title: promo.title });
-
-    // Un enlace interno navega dentro de la app; uno externo abre pestaña nueva
-    // y no se lleva puesta la sesión de nadie (`noopener`). El server ya rechazó
-    // cualquier esquema que no sea http(s) o una ruta interna.
-    if (destino.startsWith("/")) navigate(destino);
-    else window.open(destino, "_blank", "noopener,noreferrer");
   };
 
   // Va ANTES del corte de abajo: los hooks no pueden quedar detrás de un return
@@ -207,7 +209,7 @@ export default function PromoCarousel({ promos = [] }) {
           <PromoCard
             key={promo._id}
             promo={promo}
-            onOpen={abrir}
+            onOpen={registrarClic}
             // Las que no se ven quedan fuera del recorrido por teclado: tabular
             // por tarjetas invisibles es desorientador.
             interactive={i === activo}
