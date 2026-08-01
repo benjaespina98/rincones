@@ -713,3 +713,111 @@ select:disabled {
   border-color: #8a3f3f;
   color: #f3a5a5;
 }
+
+/* ══ Chip de dos estados ═══════════════════════════════════════════════════
+   Un dato que además se cambia tocándolo: "Probado / Sin probar", "Favorito".
+
+   Vive acá y no en la hoja de una pantalla porque la MISMA acción aparecía con
+   dos formas distintas: en la bodega era un chip con su palabra y en la ficha
+   del vino un ícono suelto sin texto. Dos maneras de decir lo mismo obligan a
+   aprender la app dos veces, y hacen que se sienta escrita por dos personas.
+
+   Encendido es afirmativo (verde) y apagado es neutro (contorno tenue): que algo
+   no haya pasado todavía no es un error ni una alerta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* 40px: el mínimo con el que un dedo acierta. */
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.toggle-chip:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.toggle-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.toggle-chip.is-on {
+  border-color: rgba(47, 182, 123, 0.45);
+  background: rgba(47, 182, 123, 0.14);
+  color: #7fe3b4;
+}
+
+/* Favorito enciende en el color de favoritos y no en verde: son dos cosas
+   distintas y compartir color las haría parecer la misma. */
+.toggle-chip.is-on--fav {
+  border-color: rgba(230, 90, 130, 0.45);
+  background: rgba(230, 90, 130, 0.14);
+  color: var(--favorite);
+}
+
+/* ══ Segmentado ═══════════════════════════════════════════════════════════
+   Elegir UNA vista entre pocas, con su número al lado: "En stock 49 · Todos 64",
+   "Todos 12 · Favoritos 3".
+
+   Es global porque el mismo control aparecía en dos pantallas con dos aspectos
+   distintos —chips sueltos en Guardados, segmentado en la bodega— para hacer
+   exactamente lo mismo. La forma comunica la regla: al estar unidos en una
+   cápsula se lee que son excluyentes y que siempre hay uno activo, cosa que unos
+   chips sueltos no dicen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.segmented {
+  display: flex;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--glass);
+}
+
+.segmented__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* 40px como todo control tocable de la app. */
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.segmented__btn.is-active {
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+}
+
+/* El número de cada opción: dice qué vas a encontrar del otro lado antes de
+   tocar, así no hay que ir a mirar para volver. */
+.segmented__n {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.segmented__btn.is-active .segmented__n {
+  color: var(--accent-soft);
+}
