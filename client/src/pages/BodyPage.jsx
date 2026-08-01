@@ -17,20 +17,25 @@ import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/BodyPage.css";
 
-const FILTER_VALUES = new Set([
-  "all",
-  "instock",
-  "historial",
-  "favorites",
-  "tasted",
-  "nottasted",
-  "cellarready",
-  "red",
-  "white",
-  "rosé",
-  "sparkling",
-  "fortified",
-]);
+/**
+ * ── POR QUÉ LOS FILTROS SE SEPARARON EN EJES ────────────────────────────────
+ * Había UN solo estado (`filterType`) que mezclaba cinco preguntas distintas:
+ * si tenés el vino (en stock / historial), si lo probaste, si es favorito, de
+ * qué tipo es y si está listo para abrir. Al ser uno solo, elegir "Tinto"
+ * apagaba "En stock", así que "los tintos que tengo en casa" —la consulta más
+ * obvia de una bodega— era imposible. No es un detalle: es la razón por la que
+ * la pantalla se vuelve tediosa cuando hay muchos vinos, porque cada filtro
+ * cancela al anterior en vez de acumularse.
+ *
+ * Ahora hay un eje PRINCIPAL (qué parte de la colección estás mirando) y
+ * filtros que se combinan libremente encima.
+ */
+
+/** El eje principal: qué parte de la colección. Excluyentes entre sí. */
+const VISTAS = ["instock", "all", "historial"];
+
+/** Los tipos de vino, para validar lo que llega por la URL. */
+const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
 
 export default function BodyPage({ initialFilter = "instock" }) {
   const navigate = useNavigate();
@@ -49,20 +54,28 @@ export default function BodyPage({ initialFilter = "instock" }) {
     recargar,
   } = useWineCollection();
 
-  // El filtro inicial puede venir por prop o por query (?filter=favorites),
-  // que es a donde redirige la ruta vieja /favoritos.
+  // El filtro inicial puede venir por prop o por query (?filter=favorites), que
+  // es a donde redirige la ruta vieja /favoritos.
   const initialFromQuery =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("filter")
       : null;
-  const startFilter = FILTER_VALUES.has(initialFromQuery)
-    ? initialFromQuery
-    : FILTER_VALUES.has(initialFilter)
-      ? initialFilter
-      : "instock";
-  const [filterType, setFilterType] = useState(startFilter);
+  const inicial = initialFromQuery || initialFilter;
+
+  /**
+   * Qué parte de la colección estás mirando. Arranca en "en stock" porque la
+   * pregunta con la que uno abre la bodega es "¿qué tengo para tomar?", no
+   * "¿qué tuve alguna vez?".
+   */
+  const [vista, setVista] = useState(() => (VISTAS.includes(inicial) ? inicial : "instock"));
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  // Filtros que se COMBINAN entre sí y con la vista.
+  const [soloFavoritos, setSoloFavoritos] = useState(inicial === "favorites");
+  const [soloListos, setSoloListos] = useState(false);
+  // null = no filtra por probado; true = sólo probados; false = sólo pendientes.
+  const [probado, setProbado] = useState(null);
+  const [tipoFilter, setTipoFilter] = useState(TIPOS.includes(inicial) ? inicial : "all");
   const [varietalFilter, setVarietalFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
@@ -74,24 +87,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
   // "auto" agrupa sola cuando la lista se vuelve larga; el resto son ejes fijos.
   const [groupBy, setGroupBy] = useState("auto");
   const [collapsed, setCollapsed] = useState(() => new Set());
-  /**
-   * Vinos que acabás de tocar y se quedan a la vista aunque el filtro ya no los
-   * incluya.
-   *
-   * Con "En stock" puesto, bajar a cero la última botella hacía desaparecer la
-   * fila justo mientras la estabas usando: el "+" se iba de la pantalla en el
-   * mismo gesto, y la lectura era "a veces me deja mover el stock y a veces no".
-   * Lo que corresponde ahí no es esconder el vino, es mostrarlo terminado —con
-   * su "+" a mano por si te equivocaste— hasta que cambies de filtro.
-   */
-  const [recienTocados, setRecienTocados] = useState(() => new Set());
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
   useEffect(() => {
-    if (FILTER_VALUES.has(initialFilter)) {
-      setFilterType(initialFilter);
-    }
+    if (VISTAS.includes(initialFilter)) setVista(initialFilter);
   }, [initialFilter]);
 
   useEffect(() => {
@@ -122,11 +122,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     [searchTerm]
   );
 
-  /**
-   * Búsqueda y facetas (varietal, región). Es la parte del filtrado que un vino
-   * retenido SÍ tiene que seguir cumpliendo: si buscaste "malbec", nada que no
-   * sea Malbec puede quedarse en pantalla por haberlo tocado.
-   */
+  /** Búsqueda y facetas (tipo, varietal, región). */
   const pasaBusqueda = useCallback(
     (wine) => {
       // Cada palabra tiene que aparecer en ALGÚN campo, no la frase entera en
@@ -148,52 +144,50 @@ export default function BodyPage({ initialFilter = "instock" }) {
         .join(" ");
 
       if (!terms.every((term) => haystack.includes(term))) return false;
+      if (tipoFilter !== "all" && wine.type !== tipoFilter) return false;
       if (varietalFilter !== "all" && wine.varietal !== varietalFilter) return false;
       if (regionFilter !== "all" && wine.region !== regionFilter) return false;
       return true;
     },
-    [terms, varietalFilter, regionFilter]
-  );
-
-  /** El chip elegido. Es el único que un vino recién tocado puede saltearse. */
-  const pasaChip = useCallback(
-    (wine) => {
-      if (filterType === "all") return true;
-      if (filterType === "tasted") return wine.tasted;
-      if (filterType === "nottasted") return !wine.tasted;
-      if (filterType === "favorites") return wine.favorite;
-      if (filterType === "instock") return Number(wine.quantity) > 0;
-      // Historial: lo que ya no tenés en casa. Sigue siendo parte de tu
-      // colección —dice por dónde pasaste— pero no responde "¿qué abro hoy?".
-      if (filterType === "historial") return Number(wine.quantity) <= 0;
-      if (filterType === "cellarready")
-        return Number(wine.quantity) > 0 && getCellarStatus(wine).status === "peak";
-      return wine.type === filterType;
-    },
-    [filterType]
-  );
-
-  const filteredWines = useMemo(
-    () => wines.filter((wine) => pasaBusqueda(wine) && (pasaChip(wine) || recienTocados.has(wine._id))),
-    [wines, pasaBusqueda, pasaChip, recienTocados]
+    [terms, tipoFilter, varietalFilter, regionFilter]
   );
 
   /**
-   * Los que están en pantalla SÓLO porque los acabás de tocar.
+   * La vista y los filtros que se le acumulan encima.
    *
-   * Se separan porque no son parte de lo que pediste ver, y confundirlos con el
-   * resultado hacía que el resumen mintiera: con "En stock" puesto y un vino
-   * recién vaciado, decía "2 etiquetas en stock" cuando una ya no tenía nada.
+   * Un vino SIN STOCK no aparece en la vista principal, y punto. Antes se quedaba
+   * en pantalla un rato después de vaciarlo —para que el "+" no se fuera en el
+   * mismo gesto— y el efecto era el contrario del buscado: la lista de "lo que
+   * tengo" mostraba cosas que ya no tengo, que es exactamente lo que uno no
+   * quiere ver ahí. La red de seguridad para el toque equivocado es el "Deshacer"
+   * del aviso, que dura ocho segundos y devuelve la botella a su lote.
    */
-  const retenidos = useMemo(
-    () => new Set(filteredWines.filter((w) => !pasaChip(w)).map((w) => w._id)),
-    [filteredWines, pasaChip]
+  const pasaVista = useCallback(
+    (wine) => {
+      const conStock = Number(wine.quantity) > 0;
+      if (vista === "instock") return conStock;
+      // Historial: lo que ya no tenés en casa. Sigue siendo parte de tu colección
+      // —dice por dónde pasaste— pero no responde "¿qué abro hoy?".
+      if (vista === "historial") return !conStock;
+      return true;
+    },
+    [vista]
   );
 
-  // Cambiar de filtro es empezar de nuevo: ahí sí los vinos retenidos se van.
-  useEffect(() => {
-    setRecienTocados(new Set());
-  }, [filterType, searchTerm, varietalFilter, regionFilter]);
+  const pasaFiltros = useCallback(
+    (wine) => {
+      if (soloFavoritos && !wine.favorite) return false;
+      if (probado !== null && Boolean(wine.tasted) !== probado) return false;
+      if (soloListos && getCellarStatus(wine).status !== "peak") return false;
+      return true;
+    },
+    [soloFavoritos, probado, soloListos]
+  );
+
+  const filteredWines = useMemo(
+    () => wines.filter((w) => pasaVista(w) && pasaFiltros(w) && pasaBusqueda(w)),
+    [wines, pasaVista, pasaFiltros, pasaBusqueda]
+  );
 
   /**
    * Agrupación: el eje con el que se corta la lista.
@@ -274,23 +268,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     });
   }, [filteredWines, sortBy, effectiveGroupBy, groupOf]);
 
-  // Rincones es una colección personal, no un inventario comercial: las
-  // estadísticas describen lo que tenés, no disparan alertas de reposición.
-  const stats = {
-    total: wines.length,
-    bottles: wines.reduce((n, w) => n + (Number(w.quantity) || 0), 0),
-    // "En stock" cuenta BOTELLAS, no etiquetas. Contando etiquetas, dos botellas
-    // del mismo vino daban "1 en stock" y no hay forma de leer ese 1 como algo
-    // más que "me queda una". El resto de los chips sí cuentan etiquetas, porque
-    // "probado" o "favorito" son cosas del vino, no de cada botella.
-    inStockLabels: wines.filter((w) => Number(w.quantity) > 0).length,
-    favorites: wines.filter((wine) => wine.favorite).length,
-    tasted: wines.filter((wine) => wine.tasted).length,
-  };
-  stats.inStock = stats.bottles;
-  stats.pending = stats.total - stats.tasted;
-  stats.historial = stats.total - stats.inStockLabels;
-
   // Cuántos vinos tiene cada grupo, para poder mostrarlo en el encabezado
   // incluso cuando la sección está plegada. Se cuenta sobre el total del filtro,
   // no sobre lo que está dibujado: el encabezado tiene que decir cuántos hay en
@@ -323,7 +300,18 @@ export default function BodyPage({ initialFilter = "instock" }) {
   // sobre una lista ya expandida se arrastraría un "ver más" que no corresponde.
   useEffect(() => {
     setVisibles(TANDA);
-  }, [filterType, searchTerm, varietalFilter, regionFilter, sortBy, effectiveGroupBy]);
+  }, [
+    vista,
+    searchTerm,
+    soloFavoritos,
+    soloListos,
+    probado,
+    tipoFilter,
+    varietalFilter,
+    regionFilter,
+    sortBy,
+    effectiveGroupBy,
+  ]);
 
   const visibleWines = useMemo(() => sortedWines.slice(0, visibles), [sortedWines, visibles]);
   const restantes = sortedWines.length - visibleWines.length;
@@ -344,55 +332,57 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * Qué colección estás mirando ahora mismo: "18 en stock", "8 Malbec en
    * stock", "6 de Catena Zapata". Se arma con los filtros realmente aplicados.
    */
-  const contextLabel = useMemo(() => {
-    // Los vinos retenidos NO cuentan: están en pantalla porque los acabás de
-    // tocar, no porque coincidan con lo que pediste. Contarlos hacía que el
-    // resumen dijera "2 etiquetas en stock" con una de las dos ya vacía.
-    const coinciden = sortedWines.filter((w) => !retenidos.has(w._id));
-    const n = coinciden.length;
-    const unidad = n === 1 ? "vino" : "vinos";
-    if (searchTerm.trim()) {
-      return `${n} ${n === 1 ? "resultado" : "resultados"}`;
+  /**
+   * Cuántos vinos hay en cada vista, respetando TODO lo demás que esté aplicado.
+   *
+   * Va adentro de los botones de la vista, y con eso se van dos bloques enteros de
+   * la pantalla: la tira de "Tu colección" y la línea de "51 vinos en stock". Los
+   * tres decían números de lo mismo en tres lugares distintos.
+   *
+   * Que el número respete los otros filtros es lo que lo vuelve útil de verdad:
+   * con "Favoritos" puesto, ver "En stock 5 · Historial 2" te dice de antemano qué
+   * vas a encontrar del otro lado, en vez de obligarte a tocar para descubrirlo.
+   */
+  const conteoPorVista = useMemo(() => {
+    const base = wines.filter((w) => pasaFiltros(w) && pasaBusqueda(w));
+    return {
+      instock: base.filter((w) => Number(w.quantity) > 0).length,
+      all: base.length,
+      historial: base.filter((w) => Number(w.quantity) <= 0).length,
+    };
+  }, [wines, pasaFiltros, pasaBusqueda]);
+
+  /**
+   * Los filtros puestos, como fichas que se pueden sacar de a una.
+   *
+   * Un filtro activo que no se ve es la forma más común de que alguien crea que
+   * "faltan vinos": el panel está cerrado, la lista está recortada y no hay nada
+   * en pantalla que lo explique. Acá cada filtro aplicado tiene su ficha, y la
+   * ficha es el botón para quitarlo.
+   */
+  const filtrosActivos = useMemo(() => {
+    const fichas = [];
+    if (soloFavoritos) fichas.push({ id: "fav", label: "Favoritos", quitar: () => setSoloFavoritos(false) });
+    if (probado === false) fichas.push({ id: "prob", label: "Sin probar", quitar: () => setProbado(null) });
+    if (probado === true) fichas.push({ id: "prob", label: "Probados", quitar: () => setProbado(null) });
+    if (soloListos) fichas.push({ id: "listos", label: "Listos para abrir", quitar: () => setSoloListos(false) });
+    if (tipoFilter !== "all") {
+      fichas.push({
+        id: "tipo",
+        label: WINE_TYPE_LABELS[tipoFilter] || tipoFilter,
+        quitar: () => setTipoFilter("all"),
+      });
     }
-
-    // Botellas y etiquetas se dicen las dos cuando no coinciden. "1 en stock"
-    // con dos botellas del mismo vino en pantalla es directamente falso para
-    // quien lo lee, y quedarse con uno solo de los dos números siempre engaña a
-    // alguien: dos botellas de un mismo vino son "1 etiqueta en stock · 2
-    // botellas". Cuando coinciden no hace falta aclarar nada.
-    const botellas = coinciden.reduce((acc, w) => acc + (Number(w.quantity) || 0), 0);
-    const desdobla = botellas > 0 && botellas !== n;
-    const sufijo = desdobla ? ` · ${botellas} ${botellas === 1 ? "botella" : "botellas"}` : "";
-
-    const partes = [];
-    if (varietalFilter !== "all") partes.push(varietalFilter);
-    if (regionFilter !== "all") partes.push(`de ${regionFilter}`);
-    const nombreFiltro = {
-      instock: "en stock",
-      historial: "en tu historial",
-      favorites: "favoritos",
-      nottasted: "por probar",
-      tasted: "probados",
-      cellarready: "listos para abrir",
-    }[filterType];
-    if (nombreFiltro) partes.push(nombreFiltro);
-    else if (filterType !== "all") partes.push(WINE_TYPE_LABELS[filterType]?.toLowerCase());
-
-    const cola = partes.filter(Boolean).join(" ");
-    // Con el desdoble, el número de adelante lleva su unidad para no quedar
-    // suelto al lado del de botellas: "1 etiqueta en stock · 2 botellas".
-    const cabeza = desdobla ? `${n} ${n === 1 ? "etiqueta" : "etiquetas"}` : `${n}`;
-    return cola ? `${cabeza} ${cola}${sufijo}` : `${desdobla ? cabeza : `${n} ${unidad}`}${sufijo}`;
-  }, [sortedWines, retenidos, searchTerm, filterType, varietalFilter, regionFilter]);
-
-  // Marca el botón "Filtros" cuando hay algo aplicado ahí adentro, para que no
-  // quede un filtro activo invisible con el panel cerrado.
-  // El orden ya no cuenta acá: pasó a estar siempre visible en la fila de
-  // resumen, así que no puede quedar "escondido" dentro del panel.
-  const hasAdvanced = varietalFilter !== "all" || regionFilter !== "all";
+    if (varietalFilter !== "all") fichas.push({ id: "uva", label: varietalFilter, quitar: () => setVarietalFilter("all") });
+    if (regionFilter !== "all") fichas.push({ id: "region", label: regionFilter, quitar: () => setRegionFilter("all") });
+    return fichas;
+  }, [soloFavoritos, probado, soloListos, tipoFilter, varietalFilter, regionFilter]);
 
   const clearAllFilters = () => {
-    setFilterType("all");
+    setSoloFavoritos(false);
+    setSoloListos(false);
+    setProbado(null);
+    setTipoFilter("all");
     setVarietalFilter("all");
     setRegionFilter("all");
   };
@@ -406,12 +396,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     } finally {
       setPendingActionId(null);
     }
-  };
-
-  /** Igual, pero además retiene el vino en pantalla aunque el filtro lo saque. */
-  const withStockAction = (id, action) => {
-    setRecienTocados((prev) => new Set(prev).add(id));
-    return withPendingAction(id, action);
   };
 
   const handleToggleFavorite = (wine) =>
@@ -445,7 +429,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const eraProbado = wine.tasted === true;
     const quedan = Math.max(0, Number(wine.quantity) - 1);
 
-    withStockAction(wine._id, async () => {
+    withPendingAction(wine._id, async () => {
       await openBottle(wine._id);
       // Abrir una botella es el uso real de la bodega: es lo que distingue una
       // colección que se vive de una lista que se cargó una vez y quedó ahí.
@@ -472,7 +456,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   const handleAdjustQuantity = (wine, delta) => {
     if (delta < 0 && Number(wine.quantity) <= 0) return;
-    withStockAction(wine._id, async () => {
+    withPendingAction(wine._id, async () => {
       await adjustStock(wine._id, delta);
       if (delta > 0) showSuccess(`Stock actualizado: ${wineDisplayName(wine)}`);
     });
@@ -545,270 +529,251 @@ export default function BodyPage({ initialFilter = "instock" }) {
     <div className="body-page">
       {(loading || wines.length > 0) && (
         <>
-      {/* Botellas y vinos distintos son cosas distintas: 12 botellas pueden ser
-          3 etiquetas. Es el dato que un coleccionista mira primero. */}
-      {/* Cada número dice qué cuenta al pasarle el dedo o el lector de pantalla:
-          "Botellas" y "Etiquetas" son la distinción que sostiene toda la
-          pantalla y no puede quedar librada a que el usuario la deduzca. */}
-      <div className="stats-strip" role="group" aria-label="Resumen de tu colección">
+      {/* ── Buscador y filtros, en UNA fila ──────────────────────────────────
+          Antes de llegar al primer vino había cuatrocientos cincuenta píxeles de
+          controles en una pantalla de ochocientos: la tira de la colección, el
+          buscador, la vista, la fila de filtros y la línea de conteo. Más de media
+          pantalla de herramientas para mirar una lista de vinos.
+
+          La protagonista es la colección. Todo lo que no es un vino se apretó en
+          dos filas: ésta y la de la vista, que además lleva los números adentro. */}
+      <div className="bodega-bar">
+        <div className="search-container">
+          <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
+          <input
+            type="text"
+            placeholder="Buscá un vino…"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="search-input"
+            aria-label="Buscar por nombre, bodega, varietal o notas"
+          />
+
+          {searchTerm && (
+            <button
+              className="search-clear"
+              onClick={() => setSearchTerm("")}
+              type="button"
+              aria-label="Limpiar búsqueda"
+            >
+              <Icon name="x" size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* El engranaje, sin la palabra: al lado de un buscador de ancho completo
+            no entra, y con la burbuja del número se entiende igual. */}
+        <button
+          type="button"
+          className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
+            filtrosActivos.length > 0 ? "has-active" : ""
+          }`}
+          onClick={() => setAdvancedOpen((o) => !o)}
+          aria-expanded={advancedOpen}
+          aria-label={
+            filtrosActivos.length > 0
+              ? `Filtros (${filtrosActivos.length} aplicados)`
+              : "Filtros y orden"
+          }
+          title="Filtros y orden"
+        >
+          <Icon name="settings" size={17} />
+          {filtrosActivos.length > 0 && (
+            <span className="bodega-filtros__n">{filtrosActivos.length}</span>
+          )}
+        </button>
+      </div>
+
+      {/* La vista, con su número adentro. Los tres números que antes vivían en
+          tres bloques distintos (la tira de la colección, la línea de conteo y
+          estos botones) son uno solo, y acá dice de antemano qué vas a encontrar
+          del otro lado sin tener que tocar para averiguarlo. */}
+      <div className="bodega-vista" role="group" aria-label="Qué parte de tu bodega ver">
         {[
-          {
-            n: stats.bottles,
-            label: "Botellas",
-            detalle: `${stats.bottles} ${stats.bottles === 1 ? "botella" : "botellas"} en total, contando las repetidas`,
-          },
-          {
-            n: stats.total,
-            label: "Etiquetas",
-            detalle: `${stats.total} ${stats.total === 1 ? "vino distinto" : "vinos distintos"}`,
-          },
-          {
-            n: stats.pending,
-            label: "Pendientes",
-            detalle: `${stats.pending} ${stats.pending === 1 ? "vino que todavía no probaste" : "vinos que todavía no probaste"}`,
-          },
-          {
-            n: stats.tasted,
-            label: "Probados",
-            detalle: `${stats.tasted} ${stats.tasted === 1 ? "vino que ya probaste" : "vinos que ya probaste"}`,
-          },
-        ].map((s) => (
-          <div className="stat" key={s.label} title={s.detalle}>
-            <span className="stat-number" aria-hidden="true">{s.n}</span>
-            <span className="stat-label" aria-hidden="true">{s.label}</span>
-            <span className="sr-only">{s.detalle}</span>
-          </div>
+          { id: "instock", label: "En stock", detalle: "Los vinos que tenés en casa" },
+          { id: "all", label: "Todos", detalle: "Toda tu colección" },
+          { id: "historial", label: "Historial", detalle: "Los que se te terminaron" },
+        ].map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            className={`bodega-vista__btn ${vista === v.id ? "is-active" : ""}`}
+            aria-pressed={vista === v.id}
+            title={v.detalle}
+            onClick={() => setVista(v.id)}
+          >
+            {v.label}
+            <span className="bodega-vista__n">{conteoPorVista[v.id]}</span>
+          </button>
         ))}
       </div>
 
-      <div className="search-container">
-        <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
-        <input
-          type="text"
-          placeholder="Buscá por nombre, bodega, varietal o notas…"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          className="search-input"
-          aria-label="Buscar vino"
-        />
-
-        {searchTerm && (
-          <button
-            className="search-clear"
-            onClick={() => setSearchTerm("")}
-            type="button"
-            aria-label="Limpiar búsqueda"
-          >
-            <Icon name="x" size={16} />
-          </button>
-        )}
-      </div>
-
-      {/* Una sola barra de filtros. Antes convivían CUATRO combos y CUATRO chips
-          que hacían lo mismo (el combo "Todos" y el chip "Favoritos" son el
-          mismo filtro), apilados en tres filas antes de ver un solo vino. */}
-      <div className="bodega-tools">
-        <div className="bodega-tools__chips" role="group" aria-label="Filtros rápidos">
-          {[
-            /* El stock va primero porque es la pregunta con la que uno abre la
-               app: "¿qué tengo para tomar hoy?". El historial va último y
-               separado: cuenta por dónde pasaste, no qué podés abrir.
-
-               Cada chip lleva su número dicho con todas las letras en `title` y
-               en el rótulo accesible: "En stock" cuenta BOTELLAS y el resto
-               cuenta VINOS, y un número pelado al lado de una palabra no deja
-               saber cuál de los dos es. El desdoble completo (etiquetas y
-               botellas) está siempre a la vista en la línea de resumen. */
-            {
-              id: "instock",
-              label: "En stock",
-              count: stats.inStock,
-              detalle: `${stats.inStock} ${stats.inStock === 1 ? "botella" : "botellas"} en stock`,
-            },
-            {
-              id: "favorites",
-              label: "Favoritos",
-              count: stats.favorites,
-              detalle: `${stats.favorites} ${stats.favorites === 1 ? "vino favorito" : "vinos favoritos"}`,
-            },
-            {
-              id: "nottasted",
-              label: "Pendientes",
-              count: stats.pending,
-              detalle: `${stats.pending} ${stats.pending === 1 ? "vino que todavía no probaste" : "vinos que todavía no probaste"}`,
-            },
-            {
-              id: "tasted",
-              label: "Probados",
-              count: stats.tasted,
-              detalle: `${stats.tasted} ${stats.tasted === 1 ? "vino que ya probaste" : "vinos que ya probaste"}`,
-            },
-            {
-              id: "cellarready",
-              label: "Listos para abrir",
-              count: null,
-              detalle: "Vinos que están en su mejor momento para tomar",
-            },
-            {
-              id: "historial",
-              label: "Historial",
-              count: stats.historial,
-              detalle: `${stats.historial} ${stats.historial === 1 ? "vino que se te terminó" : "vinos que se te terminaron"}`,
-              // Más apagado que el resto: es tu colección pasada, no una respuesta
-              // a "¿qué abro hoy?". Sigue a un toque de distancia —separarlo en
-              // otra pantalla obligaría a aprender un lugar nuevo por algo que se
-              // consulta de vez en cuando— pero deja de pesar lo mismo que los
-              // filtros de lo que sí tenés en casa.
-              apagado: true,
-            },
-            {
-              id: "all",
-              label: "Todos",
-              count: stats.total,
-              detalle: `${stats.total} ${stats.total === 1 ? "vino en tu bodega" : "vinos en tu bodega"}`,
-            },
-          ].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className={`bodega-chip ${filterType === f.id ? "is-active" : ""} ${f.apagado ? "is-muted" : ""}`}
-              aria-pressed={filterType === f.id}
-              title={f.detalle}
-              aria-label={f.detalle}
-              onClick={() => setFilterType(filterType === f.id ? "instock" : f.id)}
-            >
+      {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
+      {filtrosActivos.length > 0 && (
+        <div className="bodega-fichas" role="group" aria-label="Filtros aplicados">
+          {filtrosActivos.map((f) => (
+            <button key={f.id} type="button" className="bodega-ficha" onClick={f.quitar}>
               {f.label}
-              {f.count != null && <span className="bodega-chip__n">{f.count}</span>}
+              <Icon name="x" size={12} />
             </button>
           ))}
-        </div>
-
-      </div>
-
-      {/* Cuántos estás viendo y en qué orden. El orden vivía adentro del panel
-          plegado, así que no se sabía por qué la lista estaba como estaba; en
-          CellarTracker y Vivino filtro y orden son controles hermanos, arriba
-          de la lista y siempre a la vista. */}
-      <div className="bodega-summary">
-        {/* Siempre decir qué estás mirando. "62 vinos" no distingue entre la
-            colección entera y un recorte; con filtros puestos, saber que son
-            "8 Malbec en stock" es la mitad de la orientación. */}
-        <span className="bodega-summary__count">{contextLabel}</span>
-        <div className="bodega-summary__tools">
-          {/* Grilla o lista: con muchos vinos, la lista obliga a leer fila por
-              fila; la grilla deja reconocer por la etiqueta de un vistazo. */}
-          <div className="bodega-view" role="group" aria-label="Forma de ver la lista">
-            <button
-              type="button"
-              className={`bodega-view__btn ${viewMode === "grid" ? "is-active" : ""}`}
-              onClick={() => setViewMode("grid")}
-              aria-pressed={viewMode === "grid"}
-              aria-label="Ver en grilla"
-              title="Grilla"
-            >
-              <Icon name="grid" size={16} />
+          {filtrosActivos.length > 1 && (
+            <button type="button" className="bodega-ficha bodega-ficha--clear" onClick={clearAllFilters}>
+              Limpiar todo
             </button>
-            <button
-              type="button"
-              className={`bodega-view__btn ${viewMode === "list" ? "is-active" : ""}`}
-              onClick={() => setViewMode("list")}
-              aria-pressed={viewMode === "list"}
-              aria-label="Ver en lista"
-              title="Lista"
-            >
-              <Icon name="list" size={16} />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className={`bodega-more ${advancedOpen ? "is-open" : ""} ${hasAdvanced ? "has-active" : ""}`}
-            onClick={() => setAdvancedOpen((o) => !o)}
-            aria-expanded={advancedOpen}
-            aria-label="Más filtros"
-            title="Más filtros"
-          >
-            <Icon name="settings" size={16} />
-            <span className="sr-only">Filtros</span>
-            {hasAdvanced && <span className="bodega-more__dot" aria-hidden="true" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="bodega-controls">
-        {/* Agrupar y ordenar son decisiones distintas: antes el corte de la
-            lista salía del orden, así que no se podía ver "por bodega,
-            ordenado por puntaje". */}
-        <Dropdown
-          ariaLabel="Agrupar vinos"
-          value={groupBy}
-          onChange={setGroupBy}
-          options={[
-            { value: "auto", label: "Agrupar: automático" },
-            { value: "none", label: "Sin agrupar" },
-            { value: "type", label: "Por tipo" },
-            { value: "winery", label: "Por bodega" },
-            { value: "region", label: "Por región" },
-            { value: "varietal", label: "Por varietal" },
-            { value: "letter", label: "Por letra" },
-          ]}
-        />
-
-        <Dropdown
-          ariaLabel="Ordenar vinos"
-          value={sortBy}
-          onChange={setSortBy}
-          options={[
-            { value: "recent", label: "Agregados hace poco" },
-            { value: "name", label: "A → Z" },
-            { value: "rating", label: "Mejor puntuados" },
-            { value: "year", label: "Cosecha más nueva" },
-          ]}
-        />
-
-      </div>
-
-      {/* Lo específico (tipo, varietal, región) se despliega sólo si lo pedís:
-          la mayoría de las veces alcanza con los chips de arriba. */}
-      {advancedOpen && (
-        <div className="bodega-advanced">
-          <Dropdown
-            ariaLabel="Filtrar por tipo"
-            value={filterType}
-            onChange={setFilterType}
-            options={[
-              { value: "all", label: "Todos los tipos" },
-              { value: "red", label: "Tintos" },
-              { value: "white", label: "Blancos" },
-              { value: "rosé", label: "Rosados" },
-              { value: "sparkling", label: "Espumantes" },
-              { value: "fortified", label: "Fortificados" },
-            ]}
-          />
-          {varietalOptions.length > 1 && (
-            <Dropdown
-              ariaLabel="Filtrar por varietal"
-              value={varietalFilter}
-              onChange={setVarietalFilter}
-              options={[
-                { value: "all", label: "Todas las uvas" },
-                ...varietalOptions.map((v) => ({ value: v, label: v })),
-              ]}
-            />
-          )}
-          {regionOptions.length > 1 && (
-            <Dropdown
-              ariaLabel="Filtrar por región"
-              value={regionFilter}
-              onChange={setRegionFilter}
-              options={[
-                { value: "all", label: "Todas las regiones" },
-                ...regionOptions.map((r) => ({ value: r, label: r })),
-              ]}
-            />
           )}
         </div>
       )}
+
+      {/* El panel: lo que se combina con la vista, más orden y agrupación. Todo
+          junto y en un solo lugar, en vez de repartido entre chips, dos combos
+          sueltos y un desplegable. */}
+      {advancedOpen && (
+        <div className="bodega-panel">
+          <div className="bodega-panel__group">
+            <span className="bodega-panel__label">Mostrar sólo</span>
+            <div className="bodega-panel__chips">
+              <button
+                type="button"
+                className={`bodega-chip ${soloFavoritos ? "is-active" : ""}`}
+                aria-pressed={soloFavoritos}
+                onClick={() => setSoloFavoritos((v) => !v)}
+              >
+                <Icon name="heart" filled={soloFavoritos} size={13} /> Favoritos
+              </button>
+              <button
+                type="button"
+                className={`bodega-chip ${probado === false ? "is-active" : ""}`}
+                aria-pressed={probado === false}
+                onClick={() => setProbado(probado === false ? null : false)}
+              >
+                Sin probar
+              </button>
+              <button
+                type="button"
+                className={`bodega-chip ${probado === true ? "is-active" : ""}`}
+                aria-pressed={probado === true}
+                onClick={() => setProbado(probado === true ? null : true)}
+              >
+                Probados
+              </button>
+              <button
+                type="button"
+                className={`bodega-chip ${soloListos ? "is-active" : ""}`}
+                aria-pressed={soloListos}
+                title="Vinos que están en su mejor momento para tomar"
+                onClick={() => setSoloListos((v) => !v)}
+              >
+                Listos para abrir
+              </button>
+            </div>
+          </div>
+
+          <div className="bodega-panel__group">
+            <span className="bodega-panel__label">Acotar por</span>
+            <div className="bodega-panel__combos">
+              <Dropdown
+                ariaLabel="Filtrar por tipo"
+                value={tipoFilter}
+                onChange={setTipoFilter}
+                options={[
+                  { value: "all", label: "Todos los tipos" },
+                  { value: "red", label: "Tintos" },
+                  { value: "white", label: "Blancos" },
+                  { value: "rosé", label: "Rosados" },
+                  { value: "sparkling", label: "Espumantes" },
+                  { value: "fortified", label: "Fortificados" },
+                ]}
+              />
+              {varietalOptions.length > 1 && (
+                <Dropdown
+                  ariaLabel="Filtrar por varietal"
+                  value={varietalFilter}
+                  onChange={setVarietalFilter}
+                  options={[
+                    { value: "all", label: "Todas las uvas" },
+                    ...varietalOptions.map((v) => ({ value: v, label: v })),
+                  ]}
+                />
+              )}
+              {regionOptions.length > 1 && (
+                <Dropdown
+                  ariaLabel="Filtrar por región"
+                  value={regionFilter}
+                  onChange={setRegionFilter}
+                  options={[
+                    { value: "all", label: "Todas las regiones" },
+                    ...regionOptions.map((r) => ({ value: r, label: r })),
+                  ]}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="bodega-panel__group">
+            <span className="bodega-panel__label">Cómo verlos</span>
+            <div className="bodega-panel__combos">
+              {/* Grilla o lista bajó de la barra al panel: es una preferencia que
+                  se elige una vez y no un control que se toque seguido, y arriba
+                  le estaba ocupando lugar a los vinos. */}
+              <div className="bodega-view" role="group" aria-label="Forma de ver la lista">
+                <button
+                  type="button"
+                  className={`bodega-view__btn ${viewMode === "list" ? "is-active" : ""}`}
+                  onClick={() => setViewMode("list")}
+                  aria-pressed={viewMode === "list"}
+                >
+                  <Icon name="list" size={15} /> Lista
+                </button>
+                <button
+                  type="button"
+                  className={`bodega-view__btn ${viewMode === "grid" ? "is-active" : ""}`}
+                  onClick={() => setViewMode("grid")}
+                  aria-pressed={viewMode === "grid"}
+                >
+                  <Icon name="grid" size={15} /> Grilla
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bodega-panel__group">
+            <span className="bodega-panel__label">Ordenar y agrupar</span>
+            <div className="bodega-panel__combos">
+              <Dropdown
+                ariaLabel="Ordenar vinos"
+                value={sortBy}
+                onChange={setSortBy}
+                options={[
+                  { value: "recent", label: "Agregados hace poco" },
+                  { value: "name", label: "A → Z" },
+                  { value: "rating", label: "Mejor puntuados" },
+                  { value: "year", label: "Cosecha más nueva" },
+                ]}
+              />
+              {/* Agrupar y ordenar son decisiones distintas: antes el corte de la
+                  lista salía del orden, así que no se podía ver "por bodega,
+                  ordenado por puntaje". */}
+              <Dropdown
+                ariaLabel="Agrupar vinos"
+                value={groupBy}
+                onChange={setGroupBy}
+                options={[
+                  { value: "auto", label: "Agrupar: automático" },
+                  { value: "none", label: "Sin agrupar" },
+                  { value: "type", label: "Por tipo" },
+                  { value: "winery", label: "Por bodega" },
+                  { value: "region", label: "Por región" },
+                  { value: "varietal", label: "Por varietal" },
+                  { value: "letter", label: "Por letra" },
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
         </>
       )}
@@ -828,7 +793,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
           {visibleWines.map((wine, i) => {
             const isPending = pendingActionId === wine._id;
             const expanded = expandedId === wine._id;
-            const origin = [wine.winery, wine.region].filter(Boolean).join(" · ") || "Sin datos de origen";
+            // Uva y año en una línea, bodega en otra.
+            //
+            // Las tres cosas en un solo renglón daban textos de 45 caracteres que
+            // no entran en el ancho de un teléfono ni en dos líneas —"Cabernet
+            // Sauvignon · 2017 · Bodegas Sale…"— y volvía el corte que había que
+            // sacar. Partido así, cada línea entra sola y no depende del largo de
+            // la otra: son dos datos distintos y se leen mejor separados.
+            const uvaYAño = [wine.varietal, wine.vintage].filter(Boolean).join(" · ");
             const enCava = tiempoEnCava(enCavaDesde(wine), { corto: true });
             // Corte de grupo: sólo cuando cambia respecto del vino anterior.
             const group = groupOf(wine);
@@ -858,66 +830,92 @@ export default function BodyPage({ initialFilter = "instock" }) {
                   Number(wine.quantity) <= 0 ? "is-history" : ""
                 }`}
               >
-                {/* Fila compacta: tocar expande la info y las acciones. */}
-                <button
-                  type="button"
-                  className="wine-row__main"
-                  onClick={() => setExpandedId(expanded ? null : wine._id)}
-                  aria-expanded={expanded}
-                >
-                  <span className="wine-row__thumb">
-                    <WinePhoto src={wine.image} type={wine.type} alt="" artSize={46} />
-                    {/* Probado o por probar, siempre explícito: la ausencia de
-                        marca no se lee como "pendiente", se lee como nada. */}
-                    <span
-                      className={`wine-row__state ${wine.tasted ? "is-tasted" : "is-pending"}`}
-                      title={wine.tasted ? "Probado" : "Todavía no lo probaste"}
-                    >
-                      <Icon name={wine.tasted ? "check" : "circle"} size={11} />
+                {/* La cabecera tiene DOS controles hermanos: el cuerpo, que
+                    expande, y el chip de probado, que cambia el dato ahí mismo.
+                    Antes era un solo botón que envolvía todo, así que la marca de
+                    "probado" sólo se podía MIRAR: para cambiarla había que
+                    expandir la fila o entrar a la ficha, tres toques para un dato
+                    que es de una palabra. Un botón adentro de otro botón no es
+                    HTML válido, y por eso son hermanos y no anidados. */}
+                <div className="wine-row__head">
+                  <button
+                    type="button"
+                    className="wine-row__main"
+                    onClick={() => setExpandedId(expanded ? null : wine._id)}
+                    aria-expanded={expanded}
+                  >
+                    <span className="wine-row__thumb">
+                      <WinePhoto src={wine.image} type={wine.type} alt="" artSize={46} />
                     </span>
-                  </span>
 
-                  <span className="wine-row__info">
-                    <span className="wine-row__title">
-                      {/* Sin la uva: ya la dice el chip de abajo. Se limpia al
-                          dibujar para que los vinos cargados antes del cambio se
-                          vean bien sin esperar la migración. */}
-                      <span className="wine-row__name">{wineDisplayName(wine)}</span>
-                      {wine.favorite && (
-                        <Icon name="heart" filled size={13} className="wine-row__fav" aria-label="Favorito" />
-                      )}
-                    </span>
-                    <span className="wine-row__sub">{origin}</span>
-                    <span className="wine-row__chips chip-row">
-                      <span className="chip chip--type">{WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}</span>
-                      {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
-                      {wine.vintage && <span className="chip chip--year">{wine.vintage}</span>}
-                    </span>
-                  </span>
-
-                  <span className="wine-row__right">
-                    {/* Numérico en vez de cinco estrellas: dice lo mismo en un
-                        cuarto del ancho, que es lo que hace falta para que la
-                        fila entre completa en un teléfono. */}
-                    {wine.rating > 0 && (
-                      <span className="wine-row__rating" aria-label={`${wine.rating} de 5`}>
-                        <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
+                    <span className="wine-row__info">
+                      <span className="wine-row__title">
+                        {/* Sin la uva: ya la dice el chip de abajo. Se limpia al
+                            dibujar para que los vinos cargados antes del cambio se
+                            vean bien sin esperar la migración. */}
+                        <span className="wine-row__name">{wineDisplayName(wine)}</span>
+                        {wine.favorite && (
+                          <Icon name="heart" filled size={13} className="wine-row__fav" aria-label="Favorito" />
+                        )}
                       </span>
-                    )}
-                    <span
-                      className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""} ${
-                        Number(wine.quantity) === 1 ? "is-last" : ""
-                      }`}
-                      title={stockLabel(wine.quantity)}
-                    >
-                      {Number(wine.quantity) <= 0 ? "—" : `×${wine.quantity}`}
+                      {/* Uva, cosecha y bodega como TEXTO y no como pastillas.
+                          Eran tres chips con borde y padding cada uno, y en un
+                          teléfono se comían el ancho que necesita el nombre: con
+                          64 vinos, media lista mostraba títulos cortados como
+                          "Rutini Single Vin…". Dicen lo mismo y ocupan un tercio.
+                          El tipo de vino lo dice el dibujo de la botella —y el
+                          encabezado del grupo cuando se agrupa por tipo—, así que
+                          no se repite acá. */}
+                      {uvaYAño && <span className="wine-row__sub">{uvaYAño}</span>}
+                      {wine.winery && <span className="wine-row__winery">{wine.winery}</span>}
                     </span>
-                    {/* Una cava se mide en años: cuánto hace que lo tenés dice
-                        algo que la cosecha no dice. */}
-                    {enCava && <span className="wine-row__aged">{enCava}</span>}
-                    <Icon name="chevron-down" size={18} className="wine-row__caret" />
-                  </span>
-                </button>
+
+                    <span className="wine-row__right">
+                      <span
+                        className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""} ${
+                          Number(wine.quantity) === 1 ? "is-last" : ""
+                        }`}
+                        title={stockLabel(wine.quantity)}
+                      >
+                        {Number(wine.quantity) <= 0 ? "—" : `×${wine.quantity}`}
+                      </span>
+                      {/* Numérico en vez de cinco estrellas: dice lo mismo en un
+                          cuarto del ancho. */}
+                      {wine.rating > 0 && (
+                        <span className="wine-row__rating" aria-label={`${wine.rating} de 5`}>
+                          <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
+                        </span>
+                      )}
+                      <Icon name="chevron-down" size={18} className="wine-row__caret" />
+                    </span>
+                  </button>
+
+                  {/* Probado o por probar, siempre explícito y siempre editable:
+                      la ausencia de marca no se lee como "pendiente", se lee como
+                      nada. */}
+                  <button
+                    type="button"
+                    className={`wine-row__tasted ${wine.tasted ? "is-tasted" : ""}`}
+                    onClick={() => handleToggleTasted(wine)}
+                    disabled={isPending}
+                    aria-pressed={wine.tasted}
+                    title={
+                      wine.tasted
+                        ? "Ya lo probaste — tocá para desmarcarlo"
+                        : "Todavía no lo probaste — tocá para marcarlo"
+                    }
+                    aria-label={
+                      wine.tasted
+                        ? `Marcar ${wineDisplayName(wine)} como no probado`
+                        : `Marcar ${wineDisplayName(wine)} como probado`
+                    }
+                  >
+                    <Icon name={wine.tasted ? "check" : "circle"} size={13} />
+                    <span className="wine-row__tasted-text">
+                      {wine.tasted ? "Probado" : "Sin probar"}
+                    </span>
+                  </button>
+                </div>
 
                 {expanded && (
                   <div className="wine-row__expand">
@@ -969,16 +967,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
                     {/* Las dos cosas juntas, que es de donde salía la confusión:
                         haberlo tomado y que te queden botellas no se contradicen. */}
+                    {/* Stock y antigüedad. Si lo probaste ya lo dice el chip de la
+                        cabecera, que además se puede tocar: decirlo en los dos
+                        lados era repetir el mismo dato a dos centímetros.
+                        El "en cava hace…" bajó acá desde la fila compacta —una
+                        cava se mide en años y eso vale, pero no cuando competía
+                        por ancho con el nombre del vino—. */}
                     <p className="wine-row__state-line">
-                      {wine.tasted ? "Ya lo probaste" : "Todavía no lo probaste"}
-                      {" · "}
-                      {stockLabel(wine.quantity).toLowerCase()}
-                      {/* Un vino que ya no cumple el filtro y sigue en pantalla
-                          necesita decir por qué: si no, se lee como que el filtro
-                          está roto. */}
-                      {retenidos.has(wine._id) && (
-                        <> · <em>se queda visible hasta que cambies de filtro</em></>
-                      )}
+                      {stockLabel(wine.quantity)}
+                      {enCava && ` · en tu cava hace ${enCava}`}
                     </p>
 
                     <div className="wine-row__links">
