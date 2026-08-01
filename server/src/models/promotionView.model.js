@@ -43,6 +43,16 @@ const promotionViewSchema = new mongoose.Schema(
     },
     day: { type: String, required: true },
     visitorHash: { type: String, required: true },
+    /**
+     * Si esta persona además la tocó ese día.
+     *
+     * Es lo que permite contar CLICS DE GENTE DISTINTA y no sólo clics. Sin esto,
+     * el panel dividía clics sin deduplicar sobre impresiones deduplicadas por
+     * visita, y el resultado era una "efectividad" del 130%: un número que no
+     * puede existir y que delata que arriba y abajo de la fracción se estaban
+     * contando cosas distintas.
+     */
+    clicked: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false }

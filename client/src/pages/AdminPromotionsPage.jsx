@@ -674,7 +674,11 @@ export default function AdminPromotionsPage() {
                           {cantidad(p.impressions, "impresión", "impresiones")} ·{" "}
                           {cantidad(p.reach, "persona", "personas")} ·{" "}
                           {cantidad(p.clicks, "clic", "clics")}
-                          {p.ctr !== null && p.ctr !== undefined && ` · ${p.ctr}%`}
+                          {/* El porcentaje suelto al final de la línea no se
+                              entendía: era el único número sin nombre y encima
+                              podía dar 130%. Va con su palabra, y la cuenta
+                              completa está en el informe de abajo. */}
+                          {p.ctr !== null && p.ctr !== undefined && ` · ${p.ctr}% tocó`}
                           <Icon name={informe === p._id ? "chevron-up" : "chevron-down"} size={13} />
                         </button>
                       </div>

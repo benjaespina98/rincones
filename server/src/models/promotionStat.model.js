@@ -44,6 +44,9 @@ const promotionStatSchema = new mongoose.Schema(
     // no es una fracción de `impressions`, es su propio conteo.
     reach: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
+    // Personas distintas que la tocaron ese día. Es el numerador honesto de la
+    // efectividad: `reach` es el denominador y los dos cuentan gente.
+    clickReach: { type: Number, default: 0 },
     updatedAt: { type: Date, default: Date.now },
   },
   { versionKey: false }
