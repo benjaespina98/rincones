@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
-import Dropdown from "../components/Dropdown";
+import BodegaFilters from "../components/BodegaFilters";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -84,8 +84,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   // Con pocos vinos la lista se lee bien; a partir de ~8 la grilla gana.
   const [viewMode, setViewMode] = useState("list");
-  // "auto" agrupa sola cuando la lista se vuelve larga; el resto son ejes fijos.
-  const [groupBy, setGroupBy] = useState("auto");
+  /**
+   * La agrupación ya no es un control: agrupa sola por tipo cuando la lista deja
+   * de recorrerse de un vistazo.
+   *
+   * Era un desplegable con seis opciones (tipo, bodega, región, varietal, letra,
+   * ninguna) en una pantalla que ya tenía demasiadas. Agrupar es una decisión que
+   * casi nadie toma a mano: se abre la bodega para buscar un vino, no para
+   * reorganizarla. Y para lo primero están la búsqueda y los filtros, que son más
+   * rápidos. El automático hace lo correcto sin preguntar nada.
+   */
+  const groupBy = "auto";
   const [collapsed, setCollapsed] = useState(() => new Set());
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
@@ -561,23 +570,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
           )}
         </div>
 
-        {/* El engranaje, sin la palabra: al lado de un buscador de ancho completo
-            no entra, y con la burbuja del número se entiende igual. */}
+        {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
+            todas las apps del mundo, así que como botón de filtros no se lee —hay
+            que probarlo para saber qué hace—. */}
         <button
           type="button"
           className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
             filtrosActivos.length > 0 ? "has-active" : ""
           }`}
-          onClick={() => setAdvancedOpen((o) => !o)}
-          aria-expanded={advancedOpen}
+          onClick={() => setAdvancedOpen(true)}
+          aria-haspopup="dialog"
           aria-label={
             filtrosActivos.length > 0
-              ? `Filtros (${filtrosActivos.length} aplicados)`
+              ? `Filtros y orden (${filtrosActivos.length} aplicados)`
               : "Filtros y orden"
           }
           title="Filtros y orden"
         >
-          <Icon name="settings" size={17} />
+          <Icon name="filter" size={17} />
           {filtrosActivos.length > 0 && (
             <span className="bodega-filtros__n">{filtrosActivos.length}</span>
           )}
@@ -625,153 +635,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </div>
       )}
 
-      {/* El panel: lo que se combina con la vista, más orden y agrupación. Todo
-          junto y en un solo lugar, en vez de repartido entre chips, dos combos
-          sueltos y un desplegable. */}
-      {advancedOpen && (
-        <div className="bodega-panel">
-          <div className="bodega-panel__group">
-            <span className="bodega-panel__label">Mostrar sólo</span>
-            <div className="bodega-panel__chips">
-              <button
-                type="button"
-                className={`bodega-chip ${soloFavoritos ? "is-active" : ""}`}
-                aria-pressed={soloFavoritos}
-                onClick={() => setSoloFavoritos((v) => !v)}
-              >
-                <Icon name="heart" filled={soloFavoritos} size={13} /> Favoritos
-              </button>
-              <button
-                type="button"
-                className={`bodega-chip ${probado === false ? "is-active" : ""}`}
-                aria-pressed={probado === false}
-                onClick={() => setProbado(probado === false ? null : false)}
-              >
-                Sin probar
-              </button>
-              <button
-                type="button"
-                className={`bodega-chip ${probado === true ? "is-active" : ""}`}
-                aria-pressed={probado === true}
-                onClick={() => setProbado(probado === true ? null : true)}
-              >
-                Probados
-              </button>
-              <button
-                type="button"
-                className={`bodega-chip ${soloListos ? "is-active" : ""}`}
-                aria-pressed={soloListos}
-                title="Vinos que están en su mejor momento para tomar"
-                onClick={() => setSoloListos((v) => !v)}
-              >
-                Listos para abrir
-              </button>
-            </div>
-          </div>
-
-          <div className="bodega-panel__group">
-            <span className="bodega-panel__label">Acotar por</span>
-            <div className="bodega-panel__combos">
-              <Dropdown
-                ariaLabel="Filtrar por tipo"
-                value={tipoFilter}
-                onChange={setTipoFilter}
-                options={[
-                  { value: "all", label: "Todos los tipos" },
-                  { value: "red", label: "Tintos" },
-                  { value: "white", label: "Blancos" },
-                  { value: "rosé", label: "Rosados" },
-                  { value: "sparkling", label: "Espumantes" },
-                  { value: "fortified", label: "Fortificados" },
-                ]}
-              />
-              {varietalOptions.length > 1 && (
-                <Dropdown
-                  ariaLabel="Filtrar por varietal"
-                  value={varietalFilter}
-                  onChange={setVarietalFilter}
-                  options={[
-                    { value: "all", label: "Todas las uvas" },
-                    ...varietalOptions.map((v) => ({ value: v, label: v })),
-                  ]}
-                />
-              )}
-              {regionOptions.length > 1 && (
-                <Dropdown
-                  ariaLabel="Filtrar por región"
-                  value={regionFilter}
-                  onChange={setRegionFilter}
-                  options={[
-                    { value: "all", label: "Todas las regiones" },
-                    ...regionOptions.map((r) => ({ value: r, label: r })),
-                  ]}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="bodega-panel__group">
-            <span className="bodega-panel__label">Cómo verlos</span>
-            <div className="bodega-panel__combos">
-              {/* Grilla o lista bajó de la barra al panel: es una preferencia que
-                  se elige una vez y no un control que se toque seguido, y arriba
-                  le estaba ocupando lugar a los vinos. */}
-              <div className="bodega-view" role="group" aria-label="Forma de ver la lista">
-                <button
-                  type="button"
-                  className={`bodega-view__btn ${viewMode === "list" ? "is-active" : ""}`}
-                  onClick={() => setViewMode("list")}
-                  aria-pressed={viewMode === "list"}
-                >
-                  <Icon name="list" size={15} /> Lista
-                </button>
-                <button
-                  type="button"
-                  className={`bodega-view__btn ${viewMode === "grid" ? "is-active" : ""}`}
-                  onClick={() => setViewMode("grid")}
-                  aria-pressed={viewMode === "grid"}
-                >
-                  <Icon name="grid" size={15} /> Grilla
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bodega-panel__group">
-            <span className="bodega-panel__label">Ordenar y agrupar</span>
-            <div className="bodega-panel__combos">
-              <Dropdown
-                ariaLabel="Ordenar vinos"
-                value={sortBy}
-                onChange={setSortBy}
-                options={[
-                  { value: "recent", label: "Agregados hace poco" },
-                  { value: "name", label: "A → Z" },
-                  { value: "rating", label: "Mejor puntuados" },
-                  { value: "year", label: "Cosecha más nueva" },
-                ]}
-              />
-              {/* Agrupar y ordenar son decisiones distintas: antes el corte de la
-                  lista salía del orden, así que no se podía ver "por bodega,
-                  ordenado por puntaje". */}
-              <Dropdown
-                ariaLabel="Agrupar vinos"
-                value={groupBy}
-                onChange={setGroupBy}
-                options={[
-                  { value: "auto", label: "Agrupar: automático" },
-                  { value: "none", label: "Sin agrupar" },
-                  { value: "type", label: "Por tipo" },
-                  { value: "winery", label: "Por bodega" },
-                  { value: "region", label: "Por región" },
-                  { value: "varietal", label: "Por varietal" },
-                  { value: "letter", label: "Por letra" },
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
 
 
@@ -1048,6 +911,32 @@ export default function BodyPage({ initialFilter = "instock" }) {
           }}
         />
       )}
+
+      <BodegaFilters
+        abierto={advancedOpen}
+        onClose={() => setAdvancedOpen(false)}
+        resultados={sortedWines.length}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        soloFavoritos={soloFavoritos}
+        setSoloFavoritos={setSoloFavoritos}
+        probado={probado}
+        setProbado={setProbado}
+        soloListos={soloListos}
+        setSoloListos={setSoloListos}
+        tipoFilter={tipoFilter}
+        setTipoFilter={setTipoFilter}
+        varietalFilter={varietalFilter}
+        setVarietalFilter={setVarietalFilter}
+        varietalOptions={varietalOptions}
+        regionFilter={regionFilter}
+        setRegionFilter={setRegionFilter}
+        regionOptions={regionOptions}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        hayFiltros={filtrosActivos.length > 0}
+        onLimpiar={clearAllFilters}
+      />
 
       <ConfirmModal
         isOpen={showDeleteConfirm !== null}

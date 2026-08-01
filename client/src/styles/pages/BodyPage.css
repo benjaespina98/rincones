@@ -918,40 +918,6 @@
   color: var(--text);
 }
 
-.bodega-view {
-  display: flex;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  overflow: hidden;
-}
-
-/* Adentro del panel el botón lleva su palabra: ahí hay lugar, y un ícono suelto
-   de grilla no dice qué hace hasta que se lo prueba. */
-.bodega-view__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 1;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.bodega-view__btn:hover { color: var(--text); }
-
-.bodega-view__btn.is-active {
-  background: var(--accent-muted);
-  color: var(--accent-soft);
-}
-
 /* ── Fichas de los filtros aplicados ─────────────────────────────────────────
    Cada ficha es el botón para sacarla. Un filtro activo que no se ve es la
    forma más común de que alguien crea que la app perdió sus vinos. */
@@ -986,71 +952,6 @@
   border-style: dashed;
   background: none;
   color: var(--text-secondary);
-}
-
-/* ── El panel de filtros ─────────────────────────────────────────────────── */
-
-.bodega-panel {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  animation: rincon-enter-down 200ms var(--ease-out);
-}
-
-.bodega-panel__group {
-  display: grid;
-  gap: 8px;
-}
-
-.bodega-panel__label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.bodega-panel__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.bodega-panel__combos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px;
-}
-
-.bodega-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  /* 40px de área táctil, como el resto de los filtros de la app. */
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.bodega-chip:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
-}
-
-.bodega-chip.is-active {
-  border-color: var(--line-accent);
-  background: var(--accent-muted);
-  color: var(--accent-soft);
 }
 
 
