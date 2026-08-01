@@ -116,12 +116,28 @@ export default function PromoCard({
     </>
   );
 
-  const clases = [
-    "promo",
-    promo.sponsored ? "is-sponsored" : "",
-    preview ? "is-preview" : "",
-    llevaAAlgunLado ? "is-clickable" : "",
-  ]
+  /**
+   * ── POR QUÉ ESTA TARJETA NO SE LLAMA "is-sponsored" ─────────────────────────
+   * Porque los bloqueadores de publicidad la escondían. EasyList —la lista que
+   * traen de fábrica uBlock Origin, AdBlock Plus, AdGuard y el escudo de Brave—
+   * tiene la regla genérica `##.is-sponsored`: cualquier elemento con esa clase
+   * se oculta con display:none en TODOS los sitios, sin importar de quién sea.
+   *
+   * El síntoma era desconcertante: la campaña estaba al aire, el server la
+   * devolvía, React la contaba —el encabezado decía "Destacados · Lo que está
+   * pasando", que es el texto de UNA campaña— y abajo no había nada. Sólo pasaba
+   * con las publicidades: los eventos no llevan esta clase y se veían siempre.
+   *
+   * La clase no tenía ni una regla de CSS: era un marcador que no marcaba nada y
+   * a cambio hacía invisible lo único que la app le cobra a alguien. El estado
+   * "es paga" ya vive donde tiene que vivir: en `promo.sponsored`, que es lo que
+   * decide mostrar el cartel de PUBLICIDAD.
+   *
+   * Regla para lo que venga: nada en esta pantalla se nombra como el ad-tech de
+   * terceros —sponsor, banner, adslot—, aunque el contenido sea genuinamente una
+   * publicidad nuestra.
+   */
+  const clases = ["promo", preview ? "is-preview" : "", llevaAAlgunLado ? "is-clickable" : ""]
     .filter(Boolean)
     .join(" ");
 
