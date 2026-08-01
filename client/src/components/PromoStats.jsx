@@ -124,15 +124,21 @@ export default function PromoStats({ promoId, title, onClose }) {
             <article className="pstats__card">
               <span>Clics</span>
               <strong>{NUM.format(data.period.clicks)}</strong>
-              <small>Tocaron el botón</small>
+              {/* Toques, no gente: la misma persona puede tocar cinco veces. Por
+                  eso la efectividad de al lado no se calcula con este número. */}
+              <small>Veces que la tocaron</small>
             </article>
+            {/* La efectividad son personas sobre personas: cuánta gente de la que
+                la vio la tocó. Decía "clics sobre impresiones" y llegó a mostrar
+                130%, porque las impresiones se cuentan una vez por visita y los
+                clics no: eran dos cosas distintas en la misma fracción. */}
             <article className="pstats__card">
               <span>Efectividad</span>
               <strong>{data.period.ctr === null ? "—" : `${data.period.ctr}%`}</strong>
               <small>
                 {data.period.ctr === null
-                  ? "Hacen falta 20 impresiones para que el porcentaje signifique algo"
-                  : "Clics sobre impresiones"}
+                  ? "Hacen falta 20 personas para que el porcentaje signifique algo"
+                  : `${NUM.format(data.period.clickReach)} de ${NUM.format(data.period.reach)} personas la tocaron`}
               </small>
             </article>
           </div>

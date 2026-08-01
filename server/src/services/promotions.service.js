@@ -213,6 +213,42 @@ const recordEvents = async ({ entries = [], visitorHash = "", now = new Date() }
       }
     }
 
+    /**
+     * Personas distintas que TOCARON, no toques.
+     *
+     * Sin esto el panel dividía clics sin deduplicar sobre impresiones contadas
+     * una vez por visita, y mostraba efectividades del 130%: un porcentaje que no
+     * puede existir, y que delataba que arriba y abajo de la fracción se estaban
+     * contando cosas distintas.
+     *
+     * La marca vive en el mismo documento que ya deduplica las vistas, así que no
+     * hay colección nueva ni índice nuevo. Se hace de a una y no en lote porque
+     * hace falta saber, por campaña, si esta persona ya había tocado hoy —dato que
+     * un bulkWrite sólo devuelve sumado— y porque una persona toca una tarjeta por
+     * vez: el lote de clics es de uno.
+     */
+    const clickers = new Set();
+    if (visitorHash) {
+      for (const [id, v] of porId.entries()) {
+        if (!v.clicks) continue;
+        try {
+          const r = await PromotionView.updateOne(
+            { promotion: id, day, visitorHash },
+            {
+              $setOnInsert: { promotion: id, day, visitorHash, createdAt: now },
+              $set: { clicked: true },
+            },
+            { upsert: true }
+          );
+          // Entró una marca nueva, o existía sin tocar y recién ahora se tocó.
+          if (r.upsertedCount === 1 || r.modifiedCount === 1) clickers.add(id);
+        } catch {
+          // Igual que con el alcance: si la marca no se pudo escribir, el clic se
+          // cuenta igual. Perder el clic es peor que perder su deduplicación.
+        }
+      }
+    }
+
     const opsPromo = [];
     const opsStats = [];
 
@@ -222,6 +258,7 @@ const recordEvents = async ({ entries = [], visitorHash = "", now = new Date() }
       if (v.impressions) inc.impressions = v.impressions;
       if (v.clicks) inc.clicks = v.clicks;
       if (reach) inc.reach = reach;
+      if (clickers.has(id)) inc.clickReach = 1;
       if (Object.keys(inc).length === 0) continue;
 
       opsPromo.push({ updateOne: { filter: { _id: id }, update: { $inc: inc } } });
@@ -248,6 +285,34 @@ const recordEvents = async ({ entries = [], visitorHash = "", now = new Date() }
   }
 };
 
+/** Debajo de esto, el porcentaje es ruido: 1 de 3 no es "33% de efectividad". */
+const MINIMO_PARA_UN_PORCENTAJE = 20;
+
+/**
+ * Qué proporción de la gente que vio la campaña la tocó.
+ *
+ * ── EL 130% ─────────────────────────────────────────────────────────────────
+ * Antes esto era `clics / impresiones`, y llegó a mostrar 130%. No era un error
+ * de cuentas: era que arriba y abajo se contaban cosas distintas. Las impresiones
+ * se deduplican —una por tarjeta y por visita, y sólo si estuvo un segundo a la
+ * vista—, mientras que los clics se sumaban todos. Alguien probando su campaña y
+ * tocándola veinte veces generaba veinte clics sobre tres impresiones.
+ *
+ * Un porcentaje mayor a 100 no es sólo feo: le avisa al anunciante que los números
+ * no se pueden comparar entre sí, y a partir de ahí no hay razón para creerle a
+ * ninguno de los otros.
+ *
+ * Ahora los dos lados cuentan PERSONAS: cuánta gente la tocó sobre cuánta gente la
+ * vio. Es la pregunta que quiere hacer alguien que paga, y no puede pasar de 100.
+ * El `Math.min` es un cinturón por si un clic entra sin su impresión previa.
+ */
+const efectividad = (promo) => {
+  const gente = promo.reach || 0;
+  if (gente < MINIMO_PARA_UN_PORCENTAJE) return null;
+  const tocaron = Math.min(promo.clickReach || 0, gente);
+  return Math.round((tocaron / gente) * 1000) / 10;
+};
+
 // ── Panel ──────────────────────────────────────────────────────────────────
 
 /**
@@ -261,18 +326,13 @@ const recordEvents = async ({ entries = [], visitorHash = "", now = new Date() }
  */
 const paraPanel = (promo, ahora) => {
   const estado = estadoDe(promo, ahora);
-  const impressions = promo.impressions || 0;
-  const clicks = promo.clicks || 0;
 
   return {
     ...promo,
     state: estado,
     stateLabel: ESTADOS[estado].label,
     stateHint: ESTADOS[estado].hint,
-    // El porcentaje de clic con impresiones bajas no significa nada (1 de 3 es
-    // "33%"), así que se manda null y el panel muestra "—" en vez de un número que
-    // invita a conclusiones que el dato no aguanta.
-    ctr: impressions >= 20 ? Math.round((clicks / impressions) * 1000) / 10 : null,
+    ctr: efectividad(promo),
     form: {
       startsAt: aFechaInput(promo.startsAt),
       endsAt: aFechaInput(promo.endsAt),
@@ -678,25 +738,32 @@ const stats = async (id, { days = 30 } = {}) => {
       impressions: f?.impressions || 0,
       reach: f?.reach || 0,
       clicks: f?.clicks || 0,
+      clickReach: f?.clickReach || 0,
     };
   });
 
   const sumar = (campo) => daily.reduce((n, d) => n + d[campo], 0);
-  const impressions = sumar("impressions");
+  const reach = sumar("reach");
+  const clickReach = sumar("clickReach");
 
   return {
     promotion: paraPanel(promo, new Date()),
     range: { days: cantidad, from: rango[0], to: rango[rango.length - 1] },
     period: {
-      impressions,
-      reach: sumar("reach"),
+      impressions: sumar("impressions"),
+      reach,
       clicks: sumar("clicks"),
-      ctr: impressions >= 20 ? Math.round((sumar("clicks") / impressions) * 1000) / 10 : null,
+      clickReach,
+      // La misma cuenta que en la lista, con los mismos dos números de gente: ver
+      // `efectividad`. Sumar días puede contar dos veces a quien volvió otro día,
+      // pero arriba y abajo por igual, que es lo que hace comparable la fracción.
+      ctr: efectividad({ reach, clickReach }),
     },
     lifetime: {
       impressions: promo.impressions || 0,
       reach: promo.reach || 0,
       clicks: promo.clicks || 0,
+      clickReach: promo.clickReach || 0,
     },
     daily,
   };

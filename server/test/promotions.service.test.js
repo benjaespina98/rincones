@@ -548,7 +548,9 @@ test("el panel recibe el estado ya resuelto y las fechas en formato de formulari
       active: false,
       endsAt: new Date("2030-01-01T02:59:59.999Z"),
       impressions: 100,
-      clicks: 5,
+      clicks: 40,
+      reach: 40,
+      clickReach: 2,
     },
   ]);
   Promotion.countDocuments = async () => 1;
@@ -568,7 +570,9 @@ test("el panel recibe el estado ya resuelto y las fechas en formato de formulari
     // La fecha vuelve como el día que se cargó, no corrida por la zona horaria.
     assert.equal(fila.form.endsAt, "2029-12-31");
 
-    // 5 de 100 sí alcanza el mínimo para mostrar porcentaje.
+    // La efectividad son PERSONAS sobre PERSONAS: 2 de las 40 que la vieron la
+    // tocaron. Antes era clics sobre impresiones, y como los clics no se
+    // deduplican y las impresiones sí, el panel llegó a mostrar "130%".
     assert.equal(fila.ctr, 5);
   } finally {
     restore(Promotion, "find", originalFind);
@@ -581,15 +585,80 @@ test("el porcentaje de clic no se muestra con pocos datos", async () => {
   const originalFind = Promotion.find;
   const originalCount = Promotion.countDocuments;
 
-  // 1 clic de 3 impresiones no es "33% de efectividad": es ruido. Un número así en
+  // 1 clic de 3 personas no es "33% de efectividad": es ruido. Un número así en
   // un informe invita a una conclusión que el dato no aguanta.
-  mockFind([{ _id: ID_A, title: "Recién publicada", active: true, impressions: 3, clicks: 1 }]);
+  mockFind([
+    { _id: ID_A, title: "Recién publicada", active: true, impressions: 3, clicks: 1, reach: 3, clickReach: 1 },
+  ]);
   Promotion.countDocuments = async () => 1;
   limpio();
 
   try {
     const { items } = await promotions.listAll({});
     assert.equal(items[0].ctr, null);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "countDocuments", originalCount);
+    limpio();
+  }
+});
+
+test("la efectividad no puede pasar de 100%, que es lo que pasaba", async () => {
+  const originalFind = Promotion.find;
+  const originalCount = Promotion.countDocuments;
+
+  /**
+   * El caso real que apareció en el panel: "20 impresiones · 3 personas · 26
+   * clics · 130%".
+   *
+   * No era un error de cuentas: arriba y abajo se contaban cosas distintas. Las
+   * impresiones se deduplican —una por tarjeta y por visita— y los clics se
+   * sumaban todos, así que alguien probando su campaña generaba más clics que
+   * impresiones. Un porcentaje mayor a 100 le avisa al anunciante que los números
+   * no se pueden comparar entre sí, y desde ahí no hay razón para creerle a
+   * ninguno.
+   */
+  mockFind([
+    {
+      _id: ID_A,
+      title: "La que mostraba 130%",
+      active: true,
+      impressions: 20,
+      clicks: 26,
+      reach: 30,
+      clickReach: 3,
+    },
+  ]);
+  Promotion.countDocuments = async () => 1;
+  limpio();
+
+  try {
+    const { items } = await promotions.listAll({});
+    // 3 personas de las 30 que la vieron: 10%. Los 26 toques no entran en la
+    // cuenta, aunque se sigan mostrando como "26 clics".
+    assert.equal(items[0].ctr, 10);
+  } finally {
+    restore(Promotion, "find", originalFind);
+    restore(Promotion, "countDocuments", originalCount);
+    limpio();
+  }
+});
+
+test("aunque un clic entre sin su impresión, la efectividad queda en 100%", async () => {
+  const originalFind = Promotion.find;
+  const originalCount = Promotion.countDocuments;
+
+  // Cinturón: si por una carrera se cuenta a alguien que tocó sin haber sumado
+  // como visto, el porcentaje se planta en 100 y no vuelve a mostrar un absurdo.
+  mockFind([
+    { _id: ID_A, title: "Rara", active: true, impressions: 40, clicks: 99, reach: 20, clickReach: 25 },
+  ]);
+  Promotion.countDocuments = async () => 1;
+  limpio();
+
+  try {
+    const { items } = await promotions.listAll({});
+    assert.equal(items[0].ctr, 100);
   } finally {
     restore(Promotion, "find", originalFind);
     restore(Promotion, "countDocuments", originalCount);

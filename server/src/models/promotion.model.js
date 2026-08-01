@@ -174,10 +174,16 @@ const promotionSchema = new mongoose.Schema(
      * vieron. Son dos números diferentes y confundirlos es la forma clásica de
      * reportarle a un anunciante el triple de lo que pasó: la misma persona
      * abriendo Descubrí tres veces es una impresión cada vez, pero UNA persona.
+     *
+     * Con los clics pasa lo mismo y por eso son dos también: `clicks` son toques
+     * y `clickReach` es gente. La efectividad se calcula con los dos números de
+     * gente —`clickReach` sobre `reach`—, porque mezclar toques con personas daba
+     * porcentajes por encima de 100.
      */
     impressions: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
     reach: { type: Number, default: 0 },
+    clickReach: { type: Number, default: 0 },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
