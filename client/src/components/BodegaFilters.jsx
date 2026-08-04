@@ -51,6 +51,7 @@ export default function BodegaFilters({
   soloFavoritos,
   setSoloFavoritos,
   probado,
+  vista,
   setProbado,
   soloListos,
   setSoloListos,
@@ -128,16 +129,20 @@ export default function BodegaFilters({
                   <Icon name="heart" filled={soloFavoritos} size={13} /> Favoritos
                 </button>
                 {/* Sólo "sin probar", y no también "probados": la pregunta que se
-                    hace con la bodega en la mano es cuál falta abrir. El estado de
-                    cada vino ya se ve —y se cambia— en su propia fila. */}
-                <button
-                  type="button"
-                  className={`bfilters__chip ${probado === false ? "is-active" : ""}`}
-                  aria-pressed={probado === false}
-                  onClick={() => setProbado(probado === false ? null : false)}
-                >
-                  Sin probar
-                </button>
+                    hace con la bodega en la mano es cuál falta abrir, y "probados"
+                    ya es una de las tres vistas de arriba. Justamente por eso, en
+                    esa vista este chip no aparece: "los probados sin probar" no es
+                    una consulta, es una contradicción que devuelve cero. */}
+                {vista !== "probados" && (
+                  <button
+                    type="button"
+                    className={`bfilters__chip ${probado === false ? "is-active" : ""}`}
+                    aria-pressed={probado === false}
+                    onClick={() => setProbado(probado === false ? null : false)}
+                  >
+                    Sin probar
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`bfilters__chip ${soloListos ? "is-active" : ""}`}

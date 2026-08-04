@@ -13,6 +13,7 @@ import { normalizeSearchText } from "../utils/text";
 import { tiempoEnCava, enCavaDesde, stockLabel } from "../utils/cellarTime";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
+import { normalizarVista, pasaVista } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/BodyPage.css";
@@ -20,7 +21,7 @@ import "../styles/pages/BodyPage.css";
 /**
  * ── POR QUÉ LOS FILTROS SE SEPARARON EN EJES ────────────────────────────────
  * Había UN solo estado (`filterType`) que mezclaba cinco preguntas distintas:
- * si tenés el vino (en stock / historial), si lo probaste, si es favorito, de
+ * si tenés el vino, si lo probaste, si es favorito, de
  * qué tipo es y si está listo para abrir. Al ser uno solo, elegir "Tinto"
  * apagaba "En stock", así que "los tintos que tengo en casa" —la consulta más
  * obvia de una bodega— era imposible. No es un detalle: es la razón por la que
@@ -30,9 +31,6 @@ import "../styles/pages/BodyPage.css";
  * Ahora hay un eje PRINCIPAL (qué parte de la colección estás mirando) y
  * filtros que se combinan libremente encima.
  */
-
-/** El eje principal: qué parte de la colección. Excluyentes entre sí. */
-const VISTAS = ["instock", "all", "historial"];
 
 /** Los tipos de vino, para validar lo que llega por la URL. */
 const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
@@ -67,7 +65,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * pregunta con la que uno abre la bodega es "¿qué tengo para tomar?", no
    * "¿qué tuve alguna vez?".
    */
-  const [vista, setVista] = useState(() => (VISTAS.includes(inicial) ? inicial : "instock"));
+  const [vista, setVista] = useState(() => normalizarVista(inicial) || "instock");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   // Filtros que se COMBINAN entre sí y con la vista.
@@ -122,7 +120,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const pendingDeleteToastRef = useRef("");
 
   useEffect(() => {
-    if (VISTAS.includes(initialFilter)) setVista(initialFilter);
+    const v = normalizarVista(initialFilter);
+    if (v) setVista(v);
   }, [initialFilter]);
 
   useEffect(() => {
@@ -193,17 +192,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * quiere ver ahí. La red de seguridad para el toque equivocado es el "Deshacer"
    * del aviso, que dura ocho segundos y devuelve la botella a su lote.
    */
-  const pasaVista = useCallback(
-    (wine) => {
-      const conStock = Number(wine.quantity) > 0;
-      if (vista === "instock") return conStock;
-      // Historial: lo que ya no tenés en casa. Sigue siendo parte de tu colección
-      // —dice por dónde pasaste— pero no responde "¿qué abro hoy?".
-      if (vista === "historial") return !conStock;
-      return true;
-    },
-    [vista]
-  );
+  const enLaVista = useCallback((wine) => pasaVista(vista, wine), [vista]);
 
   const pasaFiltros = useCallback(
     (wine) => {
@@ -216,8 +205,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   );
 
   const filteredWines = useMemo(
-    () => wines.filter((w) => pasaVista(w) && pasaFiltros(w) && pasaBusqueda(w)),
-    [wines, pasaVista, pasaFiltros, pasaBusqueda]
+    () => wines.filter((w) => enLaVista(w) && pasaFiltros(w) && pasaBusqueda(w)),
+    [wines, enLaVista, pasaFiltros, pasaBusqueda]
   );
 
   /**
@@ -271,12 +260,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
      * —"Todos", un tipo de uva, favoritos— lo que ya se te terminó quedaba
      * intercalado entre lo que sí tenés, así que con 300 vinos había que ir
      * salteando botellas vacías para encontrar una llena. Lo vacío no desaparece
-     * (es tu historial y dice por dónde pasaste), pero deja de ser protagonista:
-     * baja al final, siempre.
+     * —sigue siendo parte de tu colección— pero deja de ser protagonista: baja al
+     * final, siempre.
      *
-     * En "En stock" y en "Historial" no cambia nada, porque ahí todos están del
-     * mismo lado. Y los recién tocados también caen al final, que es justo donde
-     * corresponde que quede un vino que acabás de vaciar.
+     * En "En stock" no cambia nada, porque ahí están todos llenos. Y los recién
+     * tocados también caen al final, que es justo donde corresponde que quede un
+     * vino que acabás de vaciar.
      */
     const conStockPrimero = (a, b) => {
       const sa = Number(a.quantity) > 0 ? 0 : 1;
@@ -377,9 +366,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const conteoPorVista = useMemo(() => {
     const base = wines.filter((w) => pasaFiltros(w) && pasaBusqueda(w));
     return {
-      instock: base.filter((w) => Number(w.quantity) > 0).length,
+      instock: base.filter((w) => pasaVista("instock", w)).length,
       all: base.length,
-      historial: base.filter((w) => Number(w.quantity) <= 0).length,
+      probados: base.filter((w) => pasaVista("probados", w)).length,
     };
   }, [wines, pasaFiltros, pasaBusqueda]);
 
@@ -409,6 +398,55 @@ export default function BodyPage({ initialFilter = "instock" }) {
     return fichas;
   }, [soloFavoritos, probado, soloListos, tipoFilter, varietalFilter, regionFilter]);
 
+  /**
+   * Qué decir cuando no hay nada que mostrar.
+   *
+   * Con algún filtro o búsqueda puesta, el vacío lo causaste vos y la salida es
+   * sacarlos. Sin nada puesto, el vacío es un estado real de tu bodega y mandarte
+   * a "limpiar los filtros" es mandarte a arreglar algo que no está roto.
+   */
+  const vacio = useMemo(() => {
+    const hayRecorte = Boolean(searchTerm.trim()) || filtrosActivos.length > 0;
+    if (hayRecorte) {
+      return {
+        icon: "search",
+        title: "Sin resultados",
+        hint: "Probá limpiando la búsqueda o cambiando los filtros.",
+        actionLabel: "Limpiar filtros",
+        onAction: () => {
+          setSearchTerm("");
+          clearAllFilters();
+        },
+      };
+    }
+    if (vista === "probados") {
+      return {
+        icon: "check",
+        title: "Todavía no probaste ninguno",
+        hint: "Cuando abrís una botella, el vino queda marcado acá solo.",
+        actionLabel: "Ver lo que tenés",
+        onAction: () => setVista("instock"),
+      };
+    }
+    if (vista === "instock") {
+      return {
+        icon: "bottle",
+        title: "No te queda ninguna botella",
+        // Lo que tomaste no se perdió: está en Probados. Decirlo acá es lo que
+        // evita pensar que la app borró algo.
+        hint: "Los vinos que tomaste siguen en Probados.",
+        actionLabel: "Escanear un vino",
+        onAction: () => navigate("/agregar"),
+      };
+    }
+    return {
+      icon: "bottle",
+      title: "Tu bodega está vacía",
+      actionLabel: "Escanear un vino",
+      onAction: () => navigate("/agregar"),
+    };
+  }, [searchTerm, filtrosActivos, vista, navigate]);
+
   const clearAllFilters = () => {
     setSoloFavoritos(false);
     setSoloListos(false);
@@ -435,21 +473,45 @@ export default function BodyPage({ initialFilter = "instock" }) {
       showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
     });
 
-  // Toggle puro: dice si ya lo tomaste alguna vez y no toca el stock. Sirve para
-  // un vino que probaste en otro lado, o para corregir el historial.
+  /**
+   * Toggle puro: dice si ya lo tomaste alguna vez y no toca el stock. Sirve para
+   * un vino que probaste en otro lado, o para corregir el dato.
+   *
+   * Desmarcarlo lleva deshacer porque, estando en la vista "Probados", la fila
+   * desaparece en el mismo gesto: sin la salida en el aviso habría que cambiar de
+   * vista y buscar el vino para arreglar un toque equivocado.
+   */
   const handleToggleTasted = (wine) =>
     withPendingAction(wine._id, async () => {
+      const desmarcando = wine.tasted === true;
       await updateWineTasted(wine._id, !wine.tasted);
-      showSuccess(wine.tasted ? "Marcado como no probado" : "Vino marcado como probado");
+
+      if (!desmarcando) {
+        showSuccess("Vino marcado como probado");
+        return;
+      }
+
+      const toastId = addToast("Marcado como no probado", "success", 8000, {
+        label: "Deshacer",
+        onClick: async () => {
+          removeToast(toastId);
+          try {
+            await updateWineTasted(wine._id, true);
+            showSuccess("Vuelve a estar entre los probados");
+          } catch {
+            showError("No se pudo deshacer");
+          }
+        },
+      });
     });
 
   /**
    * Abrir una botella: descuenta una y deja el vino como probado.
    *
    * Es la acción de la fila porque es lo que uno hace de verdad con un vino que
-   * tiene en casa. "Probado" quedó como lo que siempre fue —un dato de tu
-   * historial— y por eso convive sin ruido con el stock: podés haberlo tomado y
-   * que igual te queden dos botellas.
+   * tiene en casa. "Probado" es un hecho aparte del stock y por eso conviven sin
+   * pisarse: podés haberlo tomado y que igual te queden dos botellas, y podés
+   * reponerlo sin dejar de haberlo tomado.
    *
    * Siempre con deshacer: cuesta una botella de tu cava y se dispara con un
    * toque, así que tocarlo por error no puede ser definitivo. El aviso dice
@@ -622,9 +684,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
           del otro lado sin tener que tocar para averiguarlo. */}
       <div className="segmented bodega-vista" role="group" aria-label="Qué parte de tu bodega ver">
         {[
-          { id: "instock", label: "En stock", detalle: "Los vinos que tenés en casa" },
+          { id: "instock", label: "En stock", detalle: "Los que tenés en casa ahora" },
           { id: "all", label: "Todos", detalle: "Toda tu colección" },
-          { id: "historial", label: "Historial", detalle: "Los que se te terminaron" },
+          { id: "probados", label: "Probados", detalle: "Los que tomaste alguna vez, tengas o no" },
         ].map((v) => (
           <button
             key={v.id}
@@ -837,8 +899,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       </div>
 
                       {/* Mientras haya botellas, la acción es abrir una: es lo
-                          que se hace con un vino que tenés en casa, y de paso
-                          deja el historial al día. Sin stock ya no hay nada que
+                          que se hace con un vino que tenés en casa, y de paso lo
+                          deja marcado como probado. Sin stock ya no hay nada que
                           abrir, así que ahí el botón vuelve a ser el de marcar
                           probado —para un vino que tomaste en otro lado o para
                           corregir el dato—, que nunca toca el stock. */}
@@ -936,17 +998,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
         />
       )}
 
+      {/* El vacío dice POR QUÉ está vacío. "Sin resultados · probá limpiando los
+          filtros" sobre una vista sin ningún filtro puesto manda a buscar un
+          problema que no existe: lo que pasa es que todavía no tomaste ninguno, o
+          que te quedaste sin botellas, y cada caso tiene su salida distinta. */}
       {!loading && !error && wines.length > 0 && sortedWines.length === 0 && (
-        <EmptyState
-          icon="search"
-          title="Sin resultados"
-          hint="Probá limpiando la búsqueda o cambiando los filtros."
-          actionLabel="Limpiar filtros"
-          onAction={() => {
-            setSearchTerm("");
-            clearAllFilters();
-          }}
-        />
+        <EmptyState {...vacio} />
       )}
 
       <BodegaFilters
@@ -959,6 +1016,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         setSoloFavoritos={setSoloFavoritos}
         probado={probado}
         setProbado={setProbado}
+        vista={vista}
         soloListos={soloListos}
         setSoloListos={setSoloListos}
         tipoFilter={tipoFilter}
