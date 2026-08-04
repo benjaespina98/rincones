@@ -64,7 +64,3 @@ export const updatePassword = async (currentPassword, newPassword) => {
   return data;
 };
 
-export const getUserStats = async () => {
-  const { data } = await api.get("/users/stats");
-  return data.data;
-};

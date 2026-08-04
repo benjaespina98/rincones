@@ -291,7 +291,10 @@ const AdminLoginPage = () => {
             <section>
               <div className="admin-section-head">
                 <h2>Registro de actividad</h2>
-                <p>Auditoría reciente de altas, ediciones y bajas en las bodegas de los usuarios.</p>
+                {/* Dice CUÁNTOS muestra. El Resumen puede decir "340 movimientos"
+                    y acá verse treinta: son dos cosas distintas —un total y un
+                    detalle reciente— y sin aclararlo parece que falta data. */}
+                <p>Los últimos 30 movimientos en las bodegas de los usuarios.</p>
               </div>
 
               {loadingDashboard ? (

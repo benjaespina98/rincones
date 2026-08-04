@@ -205,7 +205,7 @@ export default function AdminAnalyticsPage() {
             <article className="an__card is-primary">
               <span className="an__card-label">Visitantes</span>
               <strong className="an__card-n">{t.visitors ?? 0}</strong>
-              <small>Personas distintas en el período</small>
+              <small>Distintas, sin repetir entre días</small>
             </article>
             <article className="an__card">
               <span className="an__card-label">Hoy</span>
@@ -215,12 +215,16 @@ export default function AdminAnalyticsPage() {
             <article className="an__card">
               <span className="an__card-label">Visitas</span>
               <strong className="an__card-n">{t.views ?? 0}</strong>
-              <small>Pantallas abiertas</small>
+              <small>Pantallas abiertas, todas las veces</small>
             </article>
+            {/* No es "sesiones" en el sentido de "de tal hora a tal hora": el
+                reloj se parte en bloques de media hora y se cuenta en cuántos
+                hubo actividad. El rótulo dice eso y no promete una precisión que
+                el dato no tiene. Ver SESION_MS en analytics.service.js. */}
             <article className="an__card">
-              <span className="an__card-label">Sesiones</span>
+              <span className="an__card-label">Ratos de uso</span>
               <strong className="an__card-n">{t.sessions ?? 0}</strong>
-              <small>Ratos de uso</small>
+              <small title="Bloques de media hora con actividad">Medias horas con actividad</small>
             </article>
           </div>
 
@@ -315,16 +319,55 @@ export default function AdminAnalyticsPage() {
         </>
       )}
 
-      {/* Los límites del método, dichos de frente. Un tablero que no aclara cómo
-          cuenta invita a tomar decisiones sobre números que no significan lo que
-          uno cree. */}
-      <p className="an__nota">
-        <Icon name="eye" size={13} /> Sin cookies y sin datos personales: cada
-        visitante se cuenta con un código anónimo derivado de su conexión. Dos
-        personas en la misma red y con el mismo teléfono cuentan como una, y quien
-        entra por wifi y por datos cuenta como dos. Se respeta la señal de "no me
-        rastrees" del navegador.
-      </p>
+      {/* Cómo se cuenta cada número, dicho de frente y sin ocupar la pantalla.
+          Un tablero que no explica su método invita a tomar decisiones sobre
+          números que no significan lo que uno cree, y la pregunta "¿esto es
+          real?" vuelve cada vez que se abre el panel. Cerrado es un renglón. */}
+      <details className="an__metodo">
+        <summary>
+          <Icon name="info" size={13} /> Cómo se cuenta cada número
+        </summary>
+
+        <dl className="an__metodo-lista">
+          <div>
+            <dt>Visitantes</dt>
+            <dd>
+              Códigos anónimos distintos en todo el período. No es la suma de los
+              días: quien entra el lunes y el martes cuenta una vez.
+            </dd>
+          </div>
+          <div>
+            <dt>Hoy</dt>
+            <dd>Los mismos códigos, contados sólo dentro del día de hoy.</dd>
+          </div>
+          <div>
+            <dt>Visitas</dt>
+            <dd>Cada vez que se abre una pantalla. La misma persona suma varias.</dd>
+          </div>
+          <div>
+            <dt>Ratos de uso</dt>
+            <dd>
+              El reloj se parte en bloques de media hora y se cuenta en cuántos
+              hubo actividad. No es la duración de una visita.
+            </dd>
+          </div>
+          <div>
+            <dt>Pantallas y orígenes</dt>
+            <dd>
+              Salen de los eventos de los últimos 180 días; más atrás no se
+              guardan, y por eso el panel no ofrece rangos más largos.
+            </dd>
+          </div>
+        </dl>
+
+        <p className="an__nota">
+          <Icon name="eye" size={13} /> Sin cookies y sin datos personales: el
+          código sale de la conexión y no se puede volver atrás. Dos personas en
+          la misma red y con el mismo teléfono cuentan como una, y quien entra por
+          wifi y por datos cuenta como dos. Se respeta la señal de "no me
+          rastrees" del navegador.
+        </p>
+      </details>
     </div>
   );
 }

@@ -100,6 +100,7 @@ const identificar = (req) => {
   const ip = ipDe(req);
   const ua = String(req.headers["user-agent"] || "");
   const visitorHash = sha(`${ip}|${ua}|${salt()}`);
+  // El bloque de media hora del reloj en el que cae este evento. Ver SESION_MS.
   const ventana = Math.floor(Date.now() / SESION_MS);
   return {
     visitorHash,

@@ -92,8 +92,11 @@ const getUsers = async (req, res, next) => {
     }
     if (role === "user" || role === "admin") filter.role = role;
 
+    // Sin `stats`: es el contador que se lleva a mano y puede haber quedado
+    // atrasado. Los números de cada fila salen de las agregaciones de abajo, que
+    // cuentan de verdad. Traer los dos era ofrecer dos respuestas para lo mismo.
     const users = await User.find(filter)
-      .select("_id email firstName lastName role createdAt stats")
+      .select("_id email firstName lastName role createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

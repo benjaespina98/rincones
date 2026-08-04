@@ -5,6 +5,7 @@ const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const { calculateAge, validateBirthDate } = require("../utils/age");
 const { fail } = require("../utils/apiError");
+const winesService = require("../services/wines.service");
 const { validatePasswordStrength } = require("../utils/password");
 const sessions = require("../services/session.service");
 
@@ -176,21 +177,31 @@ router.put("/password", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/users/stats - Obtener estadísticas del usuario
+/**
+ * GET /api/users/stats — las estadísticas del usuario.
+ *
+ * ── POR QUÉ NO DEVUELVE `user.stats` ────────────────────────────────────────
+ * Porque había DOS respuestas para la misma pregunta y salían de fuentes
+ * distintas: esta ruta devolvía `user.stats`, un contador que se mantiene a mano
+ * sumando y restando en ocho lugares del servicio de vinos, mientras que
+ * /wines/stats/summary cuenta los vinos de verdad. Dos números para el mismo
+ * hecho es un número que en algún momento va a estar mal, y encima sin fallar:
+ * alcanza con que una escritura se pierda, o con que alguien agregue un camino
+ * nuevo y se olvide de tocar el contador, para que empiecen a discrepar.
+ *
+ * Ahora las dos rutas cuentan lo mismo, contándolo. `user.stats` sigue
+ * existiendo y actualizándose, pero ya no lo lee nadie: dejó de ser una
+ * respuesta y pasó a ser lo que era, un caché.
+ */
 router.get("/stats", authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: "Usuario no encontrado" });
-    }
-
+    const resumen = await winesService.getStatsSummary(req.user.id);
     res.json({
       success: true,
-      data: user.stats || {
-        winesCount: 0,
-        tastedWines: 0,
-        averageRating: 0,
+      data: {
+        winesCount: resumen.totalWines,
+        tastedWines: resumen.tastedWines,
+        averageRating: resumen.averageRating,
       },
     });
   } catch (error) {
