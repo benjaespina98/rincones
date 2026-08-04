@@ -1078,16 +1078,71 @@
 
 .wines-list--protagonista .wine-row__main {
   width: 100%;
-  padding: 9px 0;
+  padding: 10px 0;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+/* Los datos arrancan arriba, a la altura del nombre, y no centrados contra la
+   foto: centrado, el nombre quedaba flotando en el medio del bloque. */
+.wines-list--protagonista .wine-row__info {
+  gap: 3px;
+  padding-top: 2px;
+}
+
+/* "Probado" sube a la altura del pie de la foto en vez de abrir un renglón
+   entero debajo: sin esto quedaba una franja vacía de 30px en cada tarjeta que
+   no tenía puntaje, y una tarjeta con un agujero en el medio se lee como que
+   algo no cargó. */
+.wines-list--protagonista .wine-row__tasted {
+  margin-top: -34px;
+}
+
+.wines-list--protagonista .wine-row__right {
+  align-self: flex-start;
+  padding-top: 2px;
 }
 
 .wines-list--protagonista .wine-row__tasted {
   margin-left: auto;
 }
 
+/* La foto, en formato botella y del tamaño de una foto.
+   A 46px cuadrados no se distingue una etiqueta de otra, que es exactamente para
+   lo que uno la mira: reconocer el vino sin leer. Vertical porque una botella lo
+   es, y así entra entera en vez de recortada por el medio. */
 .wines-list--protagonista .wine-row__thumb {
-  width: 58px;
-  height: 58px;
+  width: 72px;
+  height: 90px;
+  border-radius: var(--radius-lg);
+}
+
+/* El tipo con todas las letras: el color de la botella dibujada insinúa, pero un
+   rosado y un tinto claro se parecen demasiado en 40px. */
+.wine-row__type {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.wine-row__type--red { color: #f0899d; border-color: rgba(198, 70, 95, 0.34); }
+.wine-row__type--white { color: var(--gold-soft); border-color: rgba(242, 183, 55, 0.3); }
+.wine-row__type--rosé { color: #f2a0c0; border-color: rgba(242, 160, 192, 0.3); }
+.wine-row__type--sparkling { color: #8fd8e8; border-color: rgba(143, 216, 232, 0.3); }
+.wine-row__type--fortified { color: #d0a878; border-color: rgba(208, 168, 120, 0.32); }
+
+/* Las estrellas quedan sueltas bajo la bodega: en la vitrina hay lugar y se
+   comparan de un vistazo entre vinos vecinos. */
+.wines-list--protagonista .stars {
+  margin-top: 3px;
 }
 
 .wines-list--protagonista .wine-row__name {

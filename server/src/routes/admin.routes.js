@@ -5,6 +5,8 @@ const { authenticate, requireAdmin } = require("../middleware/auth.middleware");
 const router = Router();
 
 router.get("/logs", authenticate, requireAdmin, adminController.getChangeLogs);
+// Los números del Resumen, contados por la base. Ver el comentario del controlador.
+router.get("/summary", authenticate, requireAdmin, adminController.getSummary);
 
 // Usuarios y roles
 router.get("/users", authenticate, requireAdmin, adminController.getUsers);

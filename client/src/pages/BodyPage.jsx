@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
+import StarRating from "../components/StarRating";
 import BodegaFilters from "../components/BodegaFilters";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
@@ -842,6 +843,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
             const isPending = pendingActionId === wine._id;
             const esGrilla = viewMode === "grid";
             const elegido = seleccion.has(wine._id);
+            // La vitrina muestra más de cada vino porque son pocos y son los que
+            // podés abrir hoy: el tipo, la uva, el puntaje y una foto que se ve.
+            const esVitrina = vista === "instock";
             const expanded = expandedId === wine._id;
             // Uva y año en una línea, bodega en otra.
             //
@@ -930,7 +934,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           {elegido && <Icon name="check" size={17} />}
                         </span>
                       ) : (
-                        <WinePhoto src={wine.image} type={wine.type} alt="" artSize={46} />
+                        <WinePhoto src={wine.image} type={wine.type} alt="" artSize={esVitrina ? 84 : 40} />
                       )}
                     </span>
 
@@ -952,8 +956,30 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           El tipo de vino lo dice el dibujo de la botella —y el
                           encabezado del grupo cuando se agrupa por tipo—, así que
                           no se repite acá. */}
-                      {uvaYAño && <span className="wine-row__sub">{uvaYAño}</span>}
+                      {/* En la vitrina, el tipo se dice con todas las letras: el
+                          dibujo de la botella lo insinúa por el color, pero un
+                          rosado y un tinto claro se parecen demasiado como para
+                          dejarlo en manos de un ícono de 40px. */}
+                      {(esVitrina || uvaYAño) && (
+                        <span className="wine-row__sub">
+                          {esVitrina && (
+                            <span className={`wine-row__type wine-row__type--${wine.type || "unknown"}`}>
+                              {WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}
+                            </span>
+                          )}
+                          {uvaYAño}
+                        </span>
+                      )}
                       {bodega && <span className="wine-row__winery">{bodega}</span>}
+
+                      {/* El puntaje con estrellas y no como número: en la vitrina
+                          hay lugar, y cinco estrellas se comparan de un vistazo
+                          entre vinos vecinos, que es justo lo que uno hace acá.
+                          En el archivo sigue siendo el número, que ocupa un
+                          cuarto del ancho. */}
+                      {esVitrina && wine.rating > 0 && (
+                        <StarRating value={wine.rating} size="sm" />
+                      )}
                     </span>
 
                     <span className="wine-row__right">
@@ -967,7 +993,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       </span>
                       {/* Numérico en vez de cinco estrellas: dice lo mismo en un
                           cuarto del ancho. */}
-                      {wine.rating > 0 && (
+                      {!esVitrina && wine.rating > 0 && (
                         <span className="wine-row__rating" aria-label={`${wine.rating} de 5`}>
                           <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
                         </span>

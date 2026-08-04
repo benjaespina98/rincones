@@ -1,5 +1,16 @@
 import api from "./api";
 
+/**
+ * Los números del Resumen, contados por la base.
+ *
+ * Antes el panel los deducía de los últimos 60 movimientos, así que "Eventos 24h"
+ * se plantaba en 60 y "Actividad por tipo" no decía de qué período hablaba.
+ */
+export const getAdminSummary = async (hours = 24) => {
+  const { data } = await api.get("/admin/summary", { params: { hours } });
+  return data.data;
+};
+
 export const getChangeLogs = async (limit = 40) => {
   const { data } = await api.get("/admin/logs", { params: { limit } });
   return data.data;
