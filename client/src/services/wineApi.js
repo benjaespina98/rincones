@@ -105,3 +105,15 @@ export const addWineMoment = async (id, payload) => {
   return data.data;
 };
 
+
+/**
+ * Una acción sobre varios vinos, en una sola petición.
+ *
+ * `action`: "delete" | "tasted" | "untasted" | "favorite" | "unfavorite".
+ * Devuelve cuántos cambiaron de verdad, que no siempre es cuántos se mandaron:
+ * alguno pudo estar ya como se pedía, o haberse borrado en otra pestaña.
+ */
+export const bulkWines = async (ids, action) => {
+  const { data } = await api.post("/wines/bulk", { ids, action });
+  return data.data?.affected ?? 0;
+};

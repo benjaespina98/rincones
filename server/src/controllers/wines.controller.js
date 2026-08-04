@@ -134,6 +134,24 @@ const remove = async (req, res) => {
   }
 };
 
+/**
+ * Varios vinos, una acción, una petición. Ver `bulkAction` en el servicio.
+ *
+ * Devuelve cuántos cambiaron de verdad, no cuántos se mandaron: si alguno ya
+ * estaba como se pedía, o se borró en otra pestaña, el número que ve el usuario
+ * tiene que ser el real.
+ */
+const bulk = async (req, res) => {
+  try {
+    const { ids, action } = req.body || {};
+    const resultado = await winesService.bulkAction(req.user.id, ids, action);
+    if (!resultado) return res.status(400).json({ success: false, error: "Acción no válida" });
+    return res.json({ success: true, data: resultado });
+  } catch (error) {
+    return fail(res, error, req);
+  }
+};
+
 module.exports = {
   list,
   search,
@@ -148,4 +166,5 @@ module.exports = {
   getMoments,
   addMoment,
   remove,
+  bulk,
 };

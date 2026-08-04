@@ -8,6 +8,7 @@ import {
   openBottle as openBottleApi,
   undoOpenBottle as undoOpenBottleApi,
   getWineStats,
+  bulkWines,
 } from "../services/wineApi";
 
 export const useWineCollection = () => {
@@ -100,6 +101,33 @@ export const useWineCollection = () => {
     return updated;
   }, []);
 
+  /**
+   * Una acción sobre varios vinos. El estado local se actualiza de una sola vez
+   * y sin volver a pedir la lista: con doscientos vinos, recargar todo para
+   * reflejar un cambio que ya sabemos cuál es hace parpadear la pantalla entera.
+   */
+  const bulkAction = useCallback(async (ids, action) => {
+    const afectados = await bulkWines(ids, action);
+    const seleccion = new Set(ids.map(String));
+
+    setWines((prev) => {
+      if (action === "delete") return prev.filter((w) => !seleccion.has(String(w._id)));
+      const cambio = {
+        tasted: { tasted: true },
+        untasted: { tasted: false },
+        favorite: { favorite: true },
+        unfavorite: { favorite: false },
+      }[action];
+      if (!cambio) return prev;
+      return prev.map((w) => (seleccion.has(String(w._id)) ? { ...w, ...cambio } : w));
+    });
+
+    // Los contadores del perfil (cuántos vinos, cuántos probados) los lleva el
+    // server: se vuelven a pedir en vez de recalcularlos acá por segunda vez.
+    getWineStats().then(setStats).catch(() => {});
+    return afectados;
+  }, []);
+
   return {
     wines,
     loading,
@@ -114,6 +142,7 @@ export const useWineCollection = () => {
     adjustStock,
     openBottle,
     undoOpenBottle,
+    bulkAction,
     recargar: loadWines,
   };
 };
