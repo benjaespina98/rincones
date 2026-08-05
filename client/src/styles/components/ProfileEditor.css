@@ -55,7 +55,8 @@
   font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .profile-editor__bar-btn:first-child {

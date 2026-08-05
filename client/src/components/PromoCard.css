@@ -216,7 +216,7 @@
   font-size: var(--text-xs);
   font-weight: 800;
   white-space: nowrap;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .promo.is-clickable:hover .promo__cta {

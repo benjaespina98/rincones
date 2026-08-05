@@ -95,7 +95,7 @@
   padding: 11px 36px 11px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   background-color: var(--glass);
   color: var(--text);
@@ -119,7 +119,7 @@
 /* Quick filter chips */
 .active-filter-note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -134,7 +134,7 @@
   border: none;
   background: none;
   color: var(--accent-light);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   cursor: pointer;
   padding: 4px 0;
@@ -154,21 +154,18 @@
   background: var(--elevated);
   overflow: hidden;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
-  animation: rowIn 380ms var(--ease-out) both;
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-/* Entrada escalonada: cada fila aparece un pelito después que la anterior. */
+/* Entrada escalonada: cada fila aparece un pelito después que la anterior.
+   Los pasos bajaron de 45ms a 35ms y el techo de 220 a 140: con la animación
+   ahora en 220ms (era 380), la última fila entraba casi medio segundo después
+   que la primera y la lista se sentía perezosa en vez de fluida. */
 .wine-row:nth-child(1) { animation-delay: 0ms; }
-.wine-row:nth-child(2) { animation-delay: 45ms; }
-.wine-row:nth-child(3) { animation-delay: 90ms; }
-.wine-row:nth-child(4) { animation-delay: 135ms; }
-.wine-row:nth-child(5) { animation-delay: 180ms; }
-.wine-row:nth-child(n + 6) { animation-delay: 220ms; }
-
-@keyframes rowIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.wine-row:nth-child(2) { animation-delay: 35ms; }
+.wine-row:nth-child(3) { animation-delay: 70ms; }
+.wine-row:nth-child(4) { animation-delay: 105ms; }
+.wine-row:nth-child(n + 5) { animation-delay: 140ms; }
 
 @media (hover: hover) {
   .wine-row:not(.is-expanded):hover {
@@ -194,9 +191,9 @@
 .wine-row__main {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 11px;
+  padding: var(--card-pad-compact);
   border: 0;
   background: transparent;
   text-align: left;

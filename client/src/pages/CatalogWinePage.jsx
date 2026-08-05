@@ -115,7 +115,7 @@ export default function CatalogWinePage() {
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
         <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={150} priority />
+          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={220} fit="contain" priority />
         </div>
 
         <div className="wine-detail-hero__actions">

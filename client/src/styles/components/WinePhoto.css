@@ -26,8 +26,62 @@
   opacity: 1;
 }
 
+/* ══ Presentación de botella ═══════════════════════════════════════════════
+   `cover` recorta: las fotos de catálogo son botellas verticales, y en un marco
+   de 104×132 o en un cuadrado 1:1 el recorte se come el pico y la base. Quedaba
+   un fragmento de vidrio a sangre contra el borde — de ahí la sensación de
+   botella "chica y pegada al fondo": no era chica, estaba cortada.
+
+   Tres cosas la despegan del fondo, y ninguna es un efecto:
+     1. entra entera, con aire alrededor (contain + padding);
+     2. proyecta su propia sombra, como cualquier objeto sobre una superficie;
+     3. un halo tenue detrás le da profundidad sin iluminarla de más.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.wine-photo--contain .wine-photo__img {
+  object-fit: contain;
+  /* En % para que escale sola: el mismo aire relativo en el hero de 400px y en
+     la tarjeta de 92px. */
+  padding: 9%;
+  z-index: 2;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.5));
+}
+
+.wine-photo--contain .wine-photo__art {
+  z-index: 0;
+}
+
+/* Halo detrás de la botella. Muy por debajo del acento pleno: tiene que leerse
+   como que la botella está iluminada, no como que brilla. */
+.wine-photo--contain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(52% 46% at 50% 56%, rgba(167, 130, 239, 0.28), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-smooth);
+}
+
+.wine-photo--contain.is-loaded::after {
+  opacity: 1;
+}
+
+/* Con la foto entera a la vista, el dibujo de respaldo asomaría por los costados
+   de la botella real: dos botellas superpuestas. Se apaga el dibujo Y su fondo,
+   para que la botella flote sobre la superficie de la tarjeta en vez de sobre un
+   rectángulo propio. Sin foto, el placeholder queda intacto. */
+.wine-photo--contain.is-loaded .wine-artwork {
+  background: none;
+}
+
+.wine-photo--contain.is-loaded .wine-artwork svg {
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .wine-photo__img {
+  .wine-photo__img,
+  .wine-photo--contain::after {
     transition: none;
   }
 }
@@ -37,6 +91,7 @@
    con el detalle en el title— para cumplir sin ensuciar la tarjeta. */
 .wine-photo__credito {
   position: absolute;
+  z-index: 3;
   right: 3px;
   bottom: 3px;
   padding: 1px 4px;

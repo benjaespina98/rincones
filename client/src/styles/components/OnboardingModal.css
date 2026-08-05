@@ -158,7 +158,7 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
-  transition: filter var(--transition-fast);
+  transition: filter var(--transition-fast), transform var(--transition-fast);
 }
 
 .onb__next:hover:not(:disabled) { filter: brightness(1.08); }

@@ -262,7 +262,7 @@ export default function DiscoverPage() {
                     aria-label={`Ver detalle de ${r.name}`}
                   >
                     <div className="wine-result-card__media">
-                      <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} />
+                      <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} fit="contain" />
                       {r.type && r.type !== "unknown" && (
                         <span className="chip chip--type chip--overlay wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
                       )}
@@ -342,15 +342,25 @@ export default function DiscoverPage() {
             aria-label={`Ver detalle de ${spotlight.name}`}
           >
             <div className="spotlight__art">
-              <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={140} />
+              <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={150} fit="contain" priority />
             </div>
             <div className="spotlight__body">
-              {/* Decir POR QUÉ este vino vale más que rotularlo "Vino del día":
-                  el motivo sale de la propia bodega, no de un modelo. */}
+              {/* Dos renglones con trabajos distintos: el primero dice QUÉ es
+                  este bloque, el segundo POR QUÉ te tocó este vino. Antes había
+                  uno solo que hacía las dos cosas mal y terminaba en "Elegido
+                  para hoy", que no dice nada.
+
+                  El motivo sale del momento cruzado con tu propia bodega (ver
+                  utils/momentCopy.js), no de un modelo: es instantáneo, gratis
+                  y siempre verificable. */}
+              <span className="spotlight__eyebrow">
+                <Icon name="sparkle" size={12} />
+                {surprised ? "Al azar" : "Tu recomendación de hoy"}
+              </span>
               <span className="spotlight__kicker">
                 {surprised
-                  ? "Al azar, para salir de la rutina"
-                  : whyThisWine(spotlight, stats) || "Elegido para hoy"}
+                  ? "Salgamos un rato de la rutina"
+                  : whyThisWine(spotlight, stats)}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
@@ -444,7 +454,7 @@ export default function DiscoverPage() {
                     aria-label={`Ver detalle de ${wine.name}`}
                   >
                     <div className="discover-wine__art">
-                      <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />
+                      <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} fit="contain" />
                       {wine.type && wine.type !== "unknown" && (
                         <span className="chip chip--type chip--overlay discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
                       )}
