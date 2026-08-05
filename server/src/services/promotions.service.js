@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Promotion = require("../models/promotion.model");
 const PromotionStat = require("../models/promotionStat.model");
@@ -105,7 +106,7 @@ const consultarAlAire = async (now) =>
       { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
     ],
   })
-    .select("-createdBy -impressions -clicks -reach -sortDate -updatedAt")
+    .select("-createdBy -impressions -clicks -reach -clickReach -reportToken -sortDate -updatedAt")
     .sort({ priority: -1, sortDate: 1, createdAt: -1 })
     .limit(MAX_PUBLICAS)
     .lean();
@@ -769,8 +770,79 @@ const stats = async (id, { days = 30 } = {}) => {
   };
 };
 
+/**
+ * El enlace del informe para el anunciante.
+ *
+ * ── POR QUÉ ES UN ENLACE Y NO UNA CUENTA ────────────────────────────────────
+ * Porque el objetivo es que el anunciante MIRE sus números, y cada paso que le
+ * pongas adelante termina en "mandame una captura por WhatsApp". Una captura no
+ * la audita nadie: es tu palabra contra la suya, que es exactamente lo que un
+ * informe tiene que evitar.
+ *
+ * El token se genera recién cuando se pide, así que una campaña que nunca se
+ * compartió no tiene ninguna puerta abierta. Son 32 bytes al azar: no se adivina
+ * ni se enumera, y no da acceso a nada más que a los números de ESA campaña.
+ */
+const ensureReportToken = async (id) => {
+  if (!esId(id)) return null;
+  const promo = await Promotion.findById(id).select("reportToken").lean();
+  if (!promo) return null;
+  if (promo.reportToken) return promo.reportToken;
+
+  const token = crypto.randomBytes(24).toString("base64url");
+  await Promotion.updateOne({ _id: id }, { $set: { reportToken: token } });
+  return token;
+};
+
+/** Corta el enlace sin borrar la campaña ni sus números. */
+const revokeReportToken = async (id) => {
+  if (!esId(id)) return false;
+  const r = await Promotion.updateOne({ _id: id }, { $set: { reportToken: null } });
+  return r.matchedCount > 0;
+};
+
+/**
+ * El informe que ve el anunciante con su enlace.
+ *
+ * Devuelve MENOS que el informe del panel, y a propósito: la campaña de otro no
+ * es asunto suyo, y los datos internos —prioridad, quién la cargó, si está
+ * pausada— tampoco. Van los números que se facturan, la serie por día para que
+ * pueda verificar contra su propio calendario, y el período.
+ */
+const reportByToken = async (token, { days = 30 } = {}) => {
+  const limpio = String(token || "").trim();
+  if (limpio.length < 20) return null;
+
+  const promo = await Promotion.findOne({ reportToken: limpio }).lean();
+  if (!promo) return null;
+
+  const informe = await stats(promo._id, { days });
+  if (!informe) return null;
+
+  return {
+    campaign: {
+      title: promo.title,
+      summary: promo.summary,
+      image: promo.image,
+      sponsor: promo.sponsor?.name || "",
+      // El anunciante tiene que poder verificar que el período que se le cobra es
+      // el que estuvo al aire.
+      startsAt: aFechaInput(promo.startsAt),
+      endsAt: aFechaInput(promo.endsAt),
+      kind: promo.kind,
+    },
+    range: informe.range,
+    period: informe.period,
+    lifetime: informe.lifetime,
+    daily: informe.daily,
+  };
+};
+
 module.exports = {
   listPublic,
+  ensureReportToken,
+  revokeReportToken,
+  reportByToken,
   recordEvents,
   listAll,
   create,

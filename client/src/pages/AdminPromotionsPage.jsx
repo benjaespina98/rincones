@@ -12,6 +12,7 @@ import {
   setPromotionVisibility,
   movePromotion,
   deletePromotion,
+  getReportLink,
 } from "../services/promotionsApi";
 import "./styles/AdminPromotionsPage.css";
 
@@ -284,6 +285,24 @@ export default function AdminPromotionsPage() {
       else siguiente.delete(id);
       return siguiente;
     });
+
+  /**
+   * Copia el enlace del informe al portapapeles.
+   *
+   * Copiar y no abrir: lo que uno hace con esto es pegarlo en un mail o un
+   * mensaje al anunciante, no mirarlo. Abrirlo sería un paso de más y encima
+   * sumaría una visita del administrador al informe de otro.
+   */
+  const copiarInforme = async (p) => {
+    try {
+      const token = await getReportLink(p._id);
+      const enlace = `${window.location.origin}/informe/${token}`;
+      await navigator.clipboard.writeText(enlace);
+      showSuccess("Enlace copiado: se lo podés pasar al anunciante");
+    } catch {
+      showError("No se pudo generar el enlace");
+    }
+  };
 
   const alternarVisible = async (p) => {
     if (ocupadas.has(p._id)) return;
@@ -732,6 +751,24 @@ export default function AdminPromotionsPage() {
                         >
                           <Icon name="pencil" size={16} />
                         </button>
+
+                        {/* El enlace del informe para el anunciante. Sólo para
+                            publicidades: un evento propio no le rinde cuentas a
+                            nadie. Se genera recién al pedirlo, así que una
+                            campaña que nunca se compartió no tiene ninguna
+                            puerta abierta. */}
+                        {p.kind === "ad" && (
+                          <button
+                            type="button"
+                            className="pr__icon"
+                            onClick={() => copiarInforme(p)}
+                            disabled={ocupadas.has(p._id)}
+                            title="Copiar el enlace del informe para el anunciante"
+                            aria-label={`Copiar el enlace del informe de ${p.title}`}
+                          >
+                            <Icon name="share" size={16} />
+                          </button>
+                        )}
 
                         <button
                           type="button"

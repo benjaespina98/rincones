@@ -29,6 +29,7 @@
 const crypto = require("crypto");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
 const AnalyticsDaily = require("../models/analyticsDaily.model");
+const { peticionHumana } = require("../utils/trafficFilter");
 
 /** Cuántos eventos distintos acepta una sola petición. */
 const MAX_EVENTS_POR_LOTE = 20;
@@ -130,6 +131,10 @@ const track = async (req, eventos = []) => {
     .slice(0, MAX_EVENTS_POR_LOTE);
 
   if (lote.length === 0) return { accepted: 0 };
+
+  // El mismo filtro que usan las campañas, a propósito: si cada uno tuviera el
+  // suyo, el panel diría dos verdades distintas sobre el mismo tráfico.
+  if (!peticionHumana(req)) return { accepted: 0 };
 
   const { visitorHash, sessionHash, device } = identificar(req);
   const day = hoy();

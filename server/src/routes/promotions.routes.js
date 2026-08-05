@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const rateLimit = require("express-rate-limit");
 const promotionsController = require("../controllers/promotions.controller");
-const { authenticate, requireAdmin } = require("../middleware/auth.middleware");
+const { authenticate, optionalAuth, requireAdmin } = require("../middleware/auth.middleware");
 
 const router = Router();
 
@@ -29,10 +29,20 @@ const conteoLimiter = rateLimit({
 
 // Público: lo que ve cualquiera que abra Descubrí, con o sin sesión.
 router.get("/", promotionsController.listPublic);
-router.post("/events", conteoLimiter, promotionsController.collect);
+// `optionalAuth` y no `authenticate`: el visitante puede no tener sesión y sus
+// impresiones cuentan igual. Se lee el token, si viene, sólo para saber si quien
+// mira es un administrador —el suyo no se cuenta, ver el controlador—.
+router.post("/events", conteoLimiter, optionalAuth, promotionsController.collect);
+
+// El informe del anunciante. Público porque la llave es el enlace: pedirle una
+// cuenta a quien sólo quiere ver si su publicidad se está viendo termina en
+// "mandame una captura", y una captura no la audita nadie.
+router.get("/report/:token", promotionsController.publicReport);
 
 // Panel: cargar, programar, pausar, reordenar, medir. Sólo admin.
 router.get("/all", authenticate, requireAdmin, promotionsController.listAll);
+router.post("/:id/report-link", authenticate, requireAdmin, promotionsController.reportLink);
+router.delete("/:id/report-link", authenticate, requireAdmin, promotionsController.revokeReportLink);
 router.get("/:id/stats", authenticate, requireAdmin, promotionsController.stats);
 router.post("/", authenticate, requireAdmin, promotionsController.create);
 router.put("/:id", authenticate, requireAdmin, promotionsController.update);

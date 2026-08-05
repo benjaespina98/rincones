@@ -1,0 +1,231 @@
+/* El informe del anunciante.
+   Es la única pantalla de la app que ve alguien de afuera, así que se sostiene
+   sola: sin navegación, sin sesión y legible en el teléfono donde se abrió el
+   enlace. Mantiene la paleta del resto para que se note de dónde viene. */
+
+.rep {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 18px 48px;
+  display: grid;
+  gap: 20px;
+}
+
+.rep__msg,
+.rep__vacio {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.rep__vacio h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-2xl);
+  color: var(--text);
+}
+
+.rep__head {
+  display: grid;
+  gap: 5px;
+}
+
+.rep__marca {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.rep__titulo {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.rep__anunciante {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+
+.rep__periodo {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.rep__periodo em {
+  font-style: normal;
+  display: block;
+}
+
+.rep__rangos {
+  display: flex;
+  gap: 6px;
+}
+
+.rep__rango {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rep__rango.is-active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+/* Lo que se factura: dos tarjetas, y nada más compitiendo con ellas. */
+.rep__destacados {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .rep__destacados {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rep__card {
+  display: grid;
+  gap: 5px;
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.rep__card.is-primary {
+  border-color: var(--line-accent);
+  background: linear-gradient(160deg, rgba(126, 89, 201, 0.16), var(--elevated) 70%);
+}
+
+.rep__label {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rep__n {
+  font-family: var(--font-family-serif);
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__card small {
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* Las impresiones, abajo y en voz baja: es el número más grande y el que menos
+   dice, y arriba se leería como una venta y no como una rendición de cuentas. */
+.rep__secundarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 0 4px;
+}
+
+.rep__secundarios span {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__secundarios small {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rep__bloque h2,
+.rep__metodo h2 {
+  margin: 0 0 12px;
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.rep__grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.rep__barra-caja {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.rep__barra {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--accent-light), var(--accent));
+}
+
+.rep__eje {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rep__metodo {
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.rep__metodo dl {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+}
+
+.rep__metodo dt {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--accent-soft);
+}
+
+.rep__metodo dd {
+  margin: 3px 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.rep__pie {
+  text-align: center;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}

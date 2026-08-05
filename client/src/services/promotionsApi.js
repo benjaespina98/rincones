@@ -154,3 +154,25 @@ export const deletePromotion = async (id) => {
   await api.delete(`/promotions/${id}`);
   return true;
 };
+
+/**
+ * El informe que abre el anunciante con su enlace. No pide sesión: la llave es
+ * el enlace, y por eso este llamado no pasa por la instancia con credenciales.
+ */
+export const getPublicReport = async (token, days = 30) => {
+  const { data } = await api.get(`/promotions/report/${encodeURIComponent(token)}`, {
+    params: { days },
+  });
+  return data.data;
+};
+
+/** Genera o recupera el enlace del informe de una campaña. Sólo admin. */
+export const getReportLink = async (id) => {
+  const { data } = await api.post(`/promotions/${id}/report-link`);
+  return data.data?.token || "";
+};
+
+/** Corta el enlace. Los números quedan; sólo deja de poder verlos. */
+export const revokeReportLink = async (id) => {
+  await api.delete(`/promotions/${id}/report-link`);
+};
