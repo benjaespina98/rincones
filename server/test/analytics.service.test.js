@@ -67,3 +67,38 @@ test("la sesión es distinta del visitante, y deriva de él", () => {
   assert.notEqual(visitorHash, sessionHash, "no pueden ser el mismo valor");
   assert.match(sessionHash, /^[0-9a-f]{32}$/);
 });
+
+/**
+ * ── EL DÍA Y LA HORA SON LOS DE ACÁ, NO LOS DE UTC ──────────────────────────
+ * Es el error que corre toda la serie sin fallar: con el corte en UTC, lo que
+ * pasa entre las 21 y la medianoche de Argentina cae al día siguiente. Alguien
+ * mirando el panel a las 23 ve el día de hoy vacío y el de mañana con actividad.
+ *
+ * Y para el cuadro de horarios —a qué hora está la gente— la hora tiene que ser
+ * la del reloj de quien mira: si el pico real es a las 22, tiene que decir 22.
+ */
+
+test("el día se corta en el calendario argentino, no en UTC", () => {
+  const { hoy } = analytics;
+  // 3 de marzo, 23:30 en Argentina = 4 de marzo 02:30 UTC. El día es el 3.
+  assert.equal(hoy(new Date("2026-03-04T02:30:00Z")), "2026-03-03");
+  // Un minuto después de la medianoche argentina ya es el día siguiente.
+  assert.equal(hoy(new Date("2026-03-04T03:01:00Z")), "2026-03-04");
+  // Y al mediodía no hay ambigüedad posible.
+  assert.equal(hoy(new Date("2026-03-04T15:00:00Z")), "2026-03-04");
+});
+
+test("la hora es la del reloj de acá: un pico a las 22 dice 22", () => {
+  const { horaDe } = analytics;
+  assert.equal(horaDe(new Date("2026-03-04T01:00:00Z")), 22, "01:00 UTC son las 22 de acá");
+  assert.equal(horaDe(new Date("2026-03-04T15:00:00Z")), 12);
+  assert.equal(horaDe(new Date("2026-03-04T03:00:00Z")), 0, "la medianoche de acá es 0");
+});
+
+test("el rango se puede pedir más largo que la retención de los eventos", () => {
+  // Los cuadros del panel salen del resumen diario, que no caduca; los eventos
+  // crudos viven 180 días. Poder pedir dos años es justamente lo que se destrabó
+  // al dejar de depender de ellos.
+  assert.ok(analytics.MAX_DIAS > analytics.DIAS_DE_EVENTOS);
+  assert.equal(analytics.DIAS_DE_EVENTOS, 180, "es el TTL declarado en el modelo");
+});

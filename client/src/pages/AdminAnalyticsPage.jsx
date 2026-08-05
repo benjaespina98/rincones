@@ -22,11 +22,32 @@ import "./styles/AdminAnalyticsPage.css";
  * sólo vos vas a abrir.
  */
 
+/**
+ * Los períodos que se pueden mirar.
+ *
+ * Llega hasta un año porque los cuadros salen del resumen diario, que no caduca.
+ * Antes salían de los eventos crudos —que viven 180 días— y ofrecer un rango más
+ * largo habría devuelto listas recortadas sin decir que lo estaban: se leería
+ * como "no llegó nadie de ningún lado" cuando en realidad el dato caducó.
+ */
 const RANGOS = [
   { days: 7, label: "7 días" },
   { days: 30, label: "30 días" },
   { days: 90, label: "90 días" },
+  { days: 365, label: "1 año" },
 ];
+
+/** Las horas, agrupadas como se las mira: no hay que leer 24 números. */
+const FRANJAS = [
+  { desde: 6, hasta: 11, label: "Mañana" },
+  { desde: 12, hasta: 13, label: "Mediodía" },
+  { desde: 14, hasta: 19, label: "Tarde" },
+  { desde: 20, hasta: 23, label: "Noche" },
+  { desde: 0, hasta: 5, label: "Madrugada" },
+];
+
+const franjaDe = (hora) =>
+  FRANJAS.find((f) => (f.desde <= f.hasta ? hora >= f.desde && hora <= f.hasta : hora >= f.desde || hora <= f.hasta));
 
 /** "2026-07-29" → "29/7". Etiqueta corta para el eje. */
 const diaCorto = (day) => {
@@ -164,6 +185,25 @@ export default function AdminAnalyticsPage() {
   const serie = data?.daily || [];
   const sinDatos = (t.views || 0) === 0;
 
+  /**
+   * La hora pico y su franja.
+   *
+   * Se resume en palabras además del gráfico porque nadie se lleva "las 21" de un
+   * gráfico de 24 barras: se lleva "a la noche". El número exacto queda en el
+   * `title` de cada barra para quien lo quiera.
+   */
+  const horas = data?.byHour || [];
+  const maxHora = Math.max(0, ...horas.map((h) => h.count));
+  const picoHorario = (() => {
+    if (!maxHora) return null;
+    const pico = horas.find((h) => h.count === maxHora);
+    const franja = franjaDe(pico.hour);
+    return {
+      hora: pico.hour,
+      label: `${franja?.label || ""} · ${String(pico.hour).padStart(2, "0")}h`.trim(),
+    };
+  })();
+
   return (
     <div className="an">
       <div className="an__barra">
@@ -205,7 +245,11 @@ export default function AdminAnalyticsPage() {
             <article className="an__card is-primary">
               <span className="an__card-label">Visitantes</span>
               <strong className="an__card-n">{t.visitors ?? 0}</strong>
-              <small>Distintas, sin repetir entre días</small>
+              <small>
+                {t.visitorsExact === false
+                  ? "Distintas. Más allá de 180 días el número queda corto"
+                  : "Distintas, sin repetir entre días"}
+              </small>
             </article>
             <article className="an__card">
               <span className="an__card-label">Hoy</span>
@@ -250,6 +294,50 @@ export default function AdminAnalyticsPage() {
             </div>
             <Grafico serie={serie} metrica={metrica} />
           </div>
+
+          {/* ── A QUÉ HORA ESTÁ LA GENTE ──────────────────────────────────
+              Es la pregunta que contestan las herramientas de Meta con su "mejor
+              momento para publicar", y sirve para dos decisiones concretas:
+              cuándo mandar una notificación o publicar una campaña, y a qué hora
+              NO desplegar.
+
+              Van las 24 horas siempre, incluidas las que están en cero: un
+              gráfico al que le faltan las horas sin actividad miente sobre la
+              forma del día. Y arriba, en palabras, la franja donde se concentra
+              —que es lo único que uno se lleva de acá—. */}
+          {picoHorario && (
+            <div className="an__block">
+              <div className="an__block-head">
+                <h3>A qué hora entran</h3>
+                <span className="an__pico">
+                  Más actividad: <strong>{picoHorario.label}</strong>
+                </span>
+              </div>
+
+              <div className="an__horas" role="img" aria-label={`Actividad por hora. Pico a las ${picoHorario.hora} horas.`}>
+                {data.byHour.map((h) => (
+                  <div
+                    key={h.hour}
+                    className={`an__hora ${h.hour === picoHorario.hora ? "is-pico" : ""}`}
+                    title={`${String(h.hour).padStart(2, "0")}:00 · ${h.count} eventos`}
+                  >
+                    <div
+                      className="an__hora-barra"
+                      style={{ height: `${maxHora ? (h.count / maxHora) * 100 : 0}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="an__horas-eje" aria-hidden="true">
+                <span>00</span>
+                <span>06</span>
+                <span>12</span>
+                <span>18</span>
+                <span>23</span>
+              </div>
+            </div>
+          )}
 
           <div className="an__cols">
             <div className="an__block">
@@ -352,10 +440,19 @@ export default function AdminAnalyticsPage() {
             </dd>
           </div>
           <div>
-            <dt>Pantallas y orígenes</dt>
+            <dt>Pantallas, orígenes y horarios</dt>
             <dd>
-              Salen de los eventos de los últimos 180 días; más atrás no se
-              guardan, y por eso el panel no ofrece rangos más largos.
+              Salen del resumen diario, que no caduca: se pueden mirar años hacia
+              atrás. Sólo el conteo de personas distintas del período necesita los
+              eventos, que viven 180 días; pasado ese rango el panel lo aclara en
+              vez de mostrar un número corto como si fuera exacto.
+            </dd>
+          </div>
+          <div>
+            <dt>A qué hora entran</dt>
+            <dd>
+              En hora de Argentina, sumando todos los días del período. Sirve para
+              elegir cuándo publicar algo y cuándo no desplegar.
             </dd>
           </div>
         </dl>

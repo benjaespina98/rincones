@@ -103,18 +103,28 @@ export default function PromoReportPage() {
         </p>
       </header>
 
-      <div className="rep__rangos" role="group" aria-label="Período del informe">
-        {RANGOS.map((n) => (
-          <button
-            key={n}
-            type="button"
-            className={`rep__rango ${dias === n ? "is-active" : ""}`}
-            aria-pressed={dias === n}
-            onClick={() => setDias(n)}
-          >
-            {n} días
-          </button>
-        ))}
+      <div className="rep__acciones">
+        <div className="rep__rangos" role="group" aria-label="Período del informe">
+          {RANGOS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`rep__rango ${dias === n ? "is-active" : ""}`}
+              aria-pressed={dias === n}
+              onClick={() => setDias(n)}
+            >
+              {n} días
+            </button>
+          ))}
+        </div>
+
+        {/* Descargar es imprimir a PDF: lo hace el navegador, en todos los
+            sistemas, sin una librería de 300KB que hay que mantener y que rinde
+            peor —una captura del DOM sale borrosa y sin texto seleccionable—.
+            Lo que hace profesional al PDF es la hoja de impresión, no el motor. */}
+        <button type="button" className="rep__pdf" onClick={() => window.print()}>
+          <Icon name="share" size={14} /> Descargar PDF
+        </button>
       </div>
 
       {/* Los dos números que se facturan, arriba y solos. Las impresiones van
@@ -211,7 +221,16 @@ export default function PromoReportPage() {
       </section>
 
       <footer className="rep__pie">
-        Informe generado por Rincones · {new Date().toLocaleDateString("es-AR")}
+        <p>
+          Informe generado por <strong>Rincones</strong> el{" "}
+          {new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })}
+        </p>
+        {/* Sólo en pantalla: en el PDF el aviso no aplica —ya está impreso— y
+            ocuparía lugar en la hoja. */}
+        <p className="rep__aviso">
+          Enlace privado con los datos de esta campaña. Compartilo sólo con quien
+          corresponda.
+        </p>
       </footer>
     </div>
   );

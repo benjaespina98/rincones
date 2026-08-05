@@ -328,12 +328,18 @@ const efectividad = (promo) => {
 const paraPanel = (promo, ahora) => {
   const estado = estadoDe(promo, ahora);
 
+  const { reportToken, ...visible } = promo;
+
   return {
-    ...promo,
+    ...visible,
     state: estado,
     stateLabel: ESTADOS[estado].label,
     stateHint: ESTADOS[estado].hint,
     ctr: efectividad(promo),
+    // Si la campaña tiene un informe compartido. Va el booleano y NUNCA el
+    // token: el panel sólo necesita saber si hay enlace vivo para ofrecer
+    // cortarlo, y un token que viaja de más es un token que se filtra de más.
+    hasReport: Boolean(promo.reportToken),
     form: {
       startsAt: aFechaInput(promo.startsAt),
       endsAt: aFechaInput(promo.endsAt),

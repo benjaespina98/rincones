@@ -305,3 +305,55 @@
   background: transparent;
   padding: 0;
 }
+
+/* ── A qué hora entran ───────────────────────────────────────────────────────
+   Veinticuatro barras finas, una por hora. Las horas sin actividad quedan como
+   huecos y eso es información: la forma del día se lee de un vistazo. */
+.an__pico {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.an__pico strong {
+  color: var(--accent-soft);
+}
+
+.an__horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 96px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.an__hora {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.an__hora-barra {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: rgba(126, 89, 201, 0.45);
+  transition: background var(--transition-fast);
+}
+
+/* La hora pico marcada: es el dato que se viene a buscar acá. */
+.an__hora.is-pico .an__hora-barra {
+  background: linear-gradient(180deg, var(--accent-light), var(--accent));
+}
+
+.an__horas-eje {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

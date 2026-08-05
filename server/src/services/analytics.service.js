@@ -34,6 +34,18 @@ const { peticionHumana } = require("../utils/trafficFilter");
 /** Cuántos eventos distintos acepta una sola petición. */
 const MAX_EVENTS_POR_LOTE = 20;
 
+/**
+ * Cuánto viven los eventos crudos. Es el TTL declarado en el modelo, repetido
+ * acá para poder avisar cuándo un rango se pasa de lo que se puede contar exacto.
+ */
+const DIAS_DE_EVENTOS = 180;
+
+/**
+ * El rango más largo que se puede pedir. Ahora que los cuadros salen del resumen
+ * diario —que no caduca— se puede mirar dos años sin que falte nada.
+ */
+const MAX_DIAS = 730;
+
 /** Media hora sin moverse y la sesión se considera terminada. */
 const SESION_MS = 30 * 60 * 1000;
 
@@ -47,8 +59,23 @@ const salt = () =>
 
 const sha = (valor) => crypto.createHash("sha256").update(String(valor)).digest("hex").slice(0, 32);
 
-/** El día de hoy como YYYY-MM-DD. */
-const hoy = (fecha = new Date()) => fecha.toISOString().slice(0, 10);
+/**
+ * El día y la hora en Argentina.
+ *
+ * El corte del día se hace en hora local y no en UTC: para quien mira el panel,
+ * lo de anoche a las 22 pasó ayer, no hoy. Con UTC, todo lo que ocurre entre las
+ * 21 y la medianoche cae al día siguiente y la serie diaria queda corrida.
+ */
+const OFFSET_AR_MINUTOS = -180;
+
+const enArgentina = (fecha = new Date()) =>
+  new Date(fecha.getTime() + OFFSET_AR_MINUTOS * 60 * 1000);
+
+/** El día de hoy como YYYY-MM-DD, en calendario argentino. */
+const hoy = (fecha = new Date()) => enArgentina(fecha).toISOString().slice(0, 10);
+
+/** La hora del día (0-23), en hora argentina. */
+const horaDe = (fecha = new Date()) => enArgentina(fecha).getUTCHours();
 
 /**
  * La IP del visitante. Detrás de Vercel llega en `x-forwarded-for`, que puede
@@ -210,6 +237,13 @@ const actualizarResumen = async ({ day, visitorHash, sessionHash, userId, device
       }
     }
 
+    // De dónde llegó y a qué hora, en el resumen que no caduca. Antes los dos
+    // salían de los eventos crudos, que se borran a los 180 días: el panel
+    // contestaba "de nadie y de ninguna hora" en vez de "no tengo el dato".
+    const referrer = documentos[0]?.referrer;
+    if (referrer) inc[`byReferrer.${claveMapa(referrer)}`] = documentos.length;
+    inc[`byHour.${horaDe()}`] = (inc[`byHour.${horaDe()}`] || 0) + documentos.length;
+
     const addToSet = { visitors: visitorHash, sessionHashes: sessionHash };
     if (userId) addToSet.loggedInVisitors = visitorHash;
 
@@ -261,12 +295,25 @@ const ultimosDias = (n) => {
  * inflado, y es justo la que suele estar mal en los tableros hechos a mano.
  */
 const getSummary = async ({ days = 30 } = {}) => {
-  // El techo es 180 días porque es lo que viven los eventos crudos, y tres de
-  // los cuatro cuadros del panel (pantallas, tipos, orígenes) salen de ellos.
-  // Aceptar un rango mayor devolvería listas recortadas sin decir que lo están:
-  // se leerían como "nadie llegó desde otro sitio" cuando en realidad el dato
-  // caducó. Es mejor no ofrecer el rango que ofrecerlo mintiendo.
-  const rango = ultimosDias(Math.min(Math.max(Number(days) || 30, 1), 180));
+  /**
+   * ── POR QUÉ ESTO LEE LOS ACUMULADOS Y YA NO LOS EVENTOS CRUDOS ────────────
+   * Porque los eventos crudos caducan a los 180 días y tres de los cuadros del
+   * panel salían de ellos. El efecto no era un error visible: era que a los seis
+   * meses "de dónde llegan" empezaba a vaciarse sola y se leía como "no llegó
+   * nadie de ningún lado". Un dato que caducó y un dato que es cero se ven
+   * exactamente igual, y ése es el peor tipo de número.
+   *
+   * Ahora pantallas, tipos, orígenes y horarios salen del resumen diario, que no
+   * caduca. Eso además destraba los rangos largos: se puede mirar un año, o dos,
+   * que es lo que uno quiere cuando la app ya lleva un tiempo andando.
+   *
+   * La única excepción son los visitantes únicos DEL PERÍODO, que siguen saliendo
+   * de los eventos: contar personas distintas a lo largo de varios días exige
+   * cruzar sus hashes, y eso sólo está en el evento. Con rangos más largos que la
+   * retención, se avisa en la respuesta (`visitorsExact`) en vez de devolver un
+   * número corto sin decirlo.
+   */
+  const rango = ultimosDias(Math.min(Math.max(Number(days) || 30, 1), MAX_DIAS));
   const desde = rango[0];
 
   const filas = await AnalyticsDaily.find({ day: { $gte: desde } }).sort({ day: 1 }).lean();
@@ -282,57 +329,76 @@ const getSummary = async ({ days = 30 } = {}) => {
     };
   });
 
+  /** Suma los mapas `byAlgo` de todos los días del rango, ordenado y recortado. */
+  const ranking = (campo, limite) => {
+    const total = new Map();
+    for (const f of filas) {
+      for (const [clave, n] of Object.entries(f?.[campo] || {})) {
+        total.set(clave, (total.get(clave) || 0) + (Number(n) || 0));
+      }
+    }
+    return [...total.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limite)
+      .map(([clave, count]) => ({ clave, count }));
+  };
+
+  // Los únicos del período: hay que cruzar hashes entre días y eso sólo vive en
+  // el evento crudo. Si el rango se pasa de la retención, el número queda corto
+  // y la respuesta lo dice en vez de disimularlo.
+  const dentroDeRetencion = rango.length <= DIAS_DE_EVENTOS;
   const [unicosDelPeriodo] = await AnalyticsEvent.aggregate([
     { $match: { day: { $gte: desde } } },
     { $group: { _id: "$visitorHash" } },
     { $count: "total" },
   ]);
 
-  const topPantallas = await AnalyticsEvent.aggregate([
-    { $match: { day: { $gte: desde }, type: "pageview", path: { $ne: "" } } },
-    { $group: { _id: "$path", views: { $sum: 1 } } },
-    { $sort: { views: -1 } },
-    { $limit: 10 },
-  ]);
-
-  const porTipo = await AnalyticsEvent.aggregate([
-    { $match: { day: { $gte: desde } } },
-    { $group: { _id: "$type", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: 15 },
-  ]);
-
-  const porOrigen = await AnalyticsEvent.aggregate([
-    { $match: { day: { $gte: desde }, referrer: { $nin: ["", null] } } },
-    { $group: { _id: "$referrer", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: 8 },
-  ]);
-
   const sumar = (campo) => filas.reduce((n, f) => n + (f[campo] || 0), 0);
-  const dispositivos = { mobile: sumar("mobile"), desktop: sumar("desktop") };
+
+  // Las 24 horas siempre presentes, aunque alguna esté en cero: un gráfico al que
+  // le faltan las horas sin actividad miente sobre la forma del día.
+  const porHora = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+  for (const f of filas) {
+    for (const [h, n] of Object.entries(f?.byHour || {})) {
+      const i = Number(h);
+      if (Number.isInteger(i) && i >= 0 && i < 24) porHora[i].count += Number(n) || 0;
+    }
+  }
 
   return {
     range: { days: rango.length, from: desde, to: rango[rango.length - 1] },
     totals: {
       views: sumar("views"),
       sessions: sumar("sessions"),
-      // El número de la pregunta original: cuánta gente distinta entró.
       visitors: unicosDelPeriodo?.total || 0,
       today: porDia.get(hoy())?.visitorCount || 0,
+      // Falso cuando el rango se pasa de lo que viven los eventos: el panel lo
+      // aclara en vez de mostrar un número corto como si fuera exacto.
+      visitorsExact: dentroDeRetencion,
     },
     daily: serie,
-    devices: dispositivos,
-    topPaths: topPantallas.map((r) => ({ path: r._id, views: r.views })),
-    byType: porTipo.map((r) => ({ type: r._id, count: r.count })),
-    referrers: porOrigen.map((r) => ({ host: r._id, count: r.count })),
+    devices: { mobile: sumar("mobile"), desktop: sumar("desktop") },
+    topPaths: ranking("byPath", 10).map((r) => ({ path: r.clave, views: r.count })),
+    byType: ranking("byType", 15).map((r) => ({ type: r.clave, count: r.count })),
+    // Los puntos se guardan como "_" porque en una ruta de `$inc` significan
+    // "objeto anidado". Se devuelven como el host que son: "instagram_com" en el
+    // panel se lee como un dato mal guardado, no como Instagram.
+    referrers: ranking("byReferrer", 8).map((r) => ({
+      host: r.clave.replace(/_/g, "."),
+      count: r.count,
+    })),
+    byHour: porHora,
   };
 };
 
 module.exports = {
   track,
   getSummary,
-  // Exportados para los tests: son las dos piezas con reglas propias.
+  // Exportados para los tests: son las piezas con reglas propias.
   normalizarPath,
   identificar,
+  hoy,
+  horaDe,
+  DIAS_DE_EVENTOS,
+  MAX_DIAS,
 };
