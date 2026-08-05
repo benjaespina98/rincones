@@ -934,7 +934,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           {elegido && <Icon name="check" size={17} />}
                         </span>
                       ) : (
-                        <WinePhoto src={wine.image} type={wine.type} alt="" artSize={esVitrina ? 84 : 40} />
+                        <WinePhoto
+                          src={wine.image}
+                          type={wine.type}
+                          alt=""
+                          artSize={esVitrina ? 104 : 40}
+                          /* La vitrina presenta la botella; la fila es una miniatura
+                             de 46px, donde una botella entera no se leería. */
+                          fit={esVitrina ? "contain" : "cover"}
+                        />
                       )}
                     </span>
 
@@ -1059,7 +1067,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, -1)} disabled={isPending || Number(wine.quantity) <= 0} aria-label={`Quitar una botella de ${wineDisplayName(wine)}`} title="Quitar una botella (sin marcarla como tomada)">
                           <Icon name="minus" size={15} />
                         </button>
-                        <span className="wine-qty" aria-live="polite">{wine.quantity}</span>
+                        {/* El número va en un span interno con `key`: al cambiar,
+                            React lo remonta y la animación de rebote se vuelve a
+                            reproducir. La región viva es la de afuera y no se
+                            desmonta nunca, así el lector de pantalla sigue
+                            anunciando el cambio. */}
+                        <span className="wine-qty" aria-live="polite">
+                          <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
+                        </span>
                         <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, 1)} disabled={isPending} aria-label={`Sumar una botella de ${wineDisplayName(wine)}`} title="Sumá botellas si compraste más">
                           <Icon name="plus" size={15} />
                         </button>

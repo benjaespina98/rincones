@@ -50,6 +50,20 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
   
+  /* Padding de tarjeta, por jerarquía.
+     La escala --space-* (4/8/16/24/32) es demasiado gruesa para esto, y por eso
+     cada tarjeta terminó eligiendo su propio número: había 10, 11, 12, 14, 16 y
+     20px conviviendo, con el resultado absurdo de que el vino del día —el
+     protagonista de la home— tenía MENOS aire (14px) que un enlace a una nota
+     de blog (20px). El padding tiene que seguir la jerarquía, no contradecirla.
+
+     hero    → lo que manda en su pantalla (vino del día, destacado editorial)
+     card    → bloque de contenido con nombre propio (precio, ficha, reseñas)
+     compact → fila o tarjeta de rail, donde el aire lo pone la lista */
+  --card-pad-hero: 20px;
+  --card-pad: 16px;
+  --card-pad-compact: 12px;
+
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -195,6 +209,11 @@ button {
   /* Sin el flash gris de Android/iOS al tocar: el feedback lo damos nosotros
      con :active, que se siente más prolijo. */
   -webkit-tap-highlight-color: transparent;
+  /* El hundido de abajo no tenía transición: TODO botón de la app saltaba de
+     golpe al tocarlo en vez de hundirse. Una línea, y se siente en cada
+     interacción. Las reglas de clase que ya declaran su propio `transition`
+     con `transform` la pisan sin perder nada. */
+  transition: transform var(--transition-fast);
 }
 
 :focus-visible {
@@ -248,6 +267,15 @@ button svg {
 
 @keyframes rincon-spin {
   to { transform: rotate(360deg); }
+}
+
+/* Confirmación de que algo se encendió: favorito, probado. Un rebote corto y
+   contenido — la escala llega a 1.18 y vuelve. Es la única animación de la app
+   con `--ease-spring`, porque es la única que celebra algo. */
+@keyframes rincon-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -310,11 +338,9 @@ img {
   border: 3px solid rgba(255, 255, 255, 0.12);
   border-top-color: var(--accent-light);
   border-radius: 50%;
-  animation: appSpin 0.8s linear infinite;
-}
-
-@keyframes appSpin {
-  to { transform: rotate(360deg); }
+  /* `rincon-spin` del vocabulario compartido: `appSpin` era una copia idéntica
+     declarada 60 líneas más abajo en este mismo archivo. */
+  animation: rincon-spin 0.8s linear infinite;
 }
 
 .page-loading {

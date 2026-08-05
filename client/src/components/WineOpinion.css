@@ -82,7 +82,7 @@
   font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .wine-opinion__add:hover { background: var(--glass); }

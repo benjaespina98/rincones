@@ -1,8 +1,14 @@
+/* Los tokens de página, no valores propios. La Home era la ÚNICA pantalla con
+   padding horizontal de 14px contra los 16px del resto: el contenido se corría
+   2px al costado cada vez que cambiabas de tab. Es el mismo salto que el resto
+   de la app ya había resuelto con --page-pad-x, y esta pantalla había quedado
+   afuera. El fondo (120px) pasa al token, que además contempla el safe-area de
+   los teléfonos con notch. */
 .discover-page {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 8px 14px 120px;
+  padding: 8px var(--page-pad-x) var(--page-pad-bottom);
 }
 
 /* ── Hero + búsqueda ── */
@@ -98,8 +104,8 @@
 .spotlight {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 14px;
+  padding: var(--card-pad-hero);
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-accent);
   background:
@@ -108,13 +114,14 @@
     linear-gradient(160deg, rgba(40, 30, 70, 0.92), rgba(14, 17, 30, 0.95));
   box-shadow: var(--shadow-md);
   overflow: hidden;
-  animation: spotlightIn 420ms var(--ease-out) both;
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-/* Placeholder del vino del día mientras carga: reserva el alto exacto para que
-   la home no salte cuando llegan los datos. */
+/* Placeholder del vino del día mientras carga. Reserva el alto exacto de la
+   tarjeta ya armada para que la home no salte cuando llegan los datos:
+   botella (156) + padding (20×2) + acciones (40) + gaps (14×2). */
 .spotlight--skeleton {
-  min-height: 208px;
+  min-height: 264px;
   animation: none;
   background: var(--elevated);
   border-color: var(--line);
@@ -140,19 +147,17 @@
   margin-top: 2px;
 }
 
-@keyframes spotlightIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+/* Más grande y sin marco. El borde de 1px convertía la botella en "una foto
+   dentro de una cajita": con la botella entera (fit="contain") y su sombra
+   propia, el marco sobra y lo que corresponde es dejarla apoyada sobre el
+   degradado de la tarjeta. La proporción 3:4 es la de una botella de pie. */
 .spotlight__art {
   position: relative;
   flex-shrink: 0;
-  width: 104px;
-  height: 132px;
+  width: 118px;
+  height: 156px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--line);
 }
 
 .spotlight__body {
@@ -164,14 +169,42 @@
   justify-content: center;
 }
 
-/* Dejó de ser un rótulo ("VINO DEL DÍA") para ser una frase que explica por qué
-   te mostramos este vino. En versales una frase ocupa dos renglones y se lee
-   peor, así que va en caja normal, con el peso justo para seguir destacando. */
+/* Rótulo del bloque. Va en versales y en el violeta de marca, no en dorado: es
+   el nivel MÁS bajo de la jerarquía —sólo dice qué estás mirando— y no puede
+   competir con el motivo, que es lo que aporta. La chispa es el signo con el
+   que todas las apps marcan "esto se eligió para vos"; cuesta 12px y ahorra
+   explicarlo. */
+.spotlight__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.spotlight__eyebrow .icon {
+  color: var(--gold);
+}
+
+/* El motivo: la frase que explica por qué te tocó ESTE vino. En versales una
+   frase ocupa dos renglones y se lee peor, así que va en caja normal. Sube de
+   var(--text-xs) a var(--text-sm) porque ahora es una oración para leer, no una
+   etiqueta para reconocer, y con 12.8px se leía como letra chica legal. */
 .spotlight__kicker {
-  font-size: var(--text-xs);
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.4;
   letter-spacing: 0;
   color: var(--gold-soft);
+}
+
+/* Si no hubo ningún motivo verdadero que dar, el renglón no deja un hueco.
+   (Hoy momentCopy siempre devuelve algo, pero el layout no depende de eso.) */
+.spotlight__kicker:empty {
+  display: none;
 }
 
 .spotlight__name {
@@ -231,7 +264,8 @@
   font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    background var(--transition-fast), transform var(--transition-fast);
 }
 
 .spotlight__surprise:hover {
@@ -302,7 +336,7 @@
   background: var(--elevated);
   overflow: hidden;
   transition: transform var(--transition-fast), border-color var(--transition-fast);
-  animation: discoverWineIn 400ms var(--ease-out) both;
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
 @media (hover: hover) {
@@ -310,11 +344,6 @@
     transform: translateY(-3px);
     border-color: var(--line-accent);
   }
-}
-
-@keyframes discoverWineIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -350,24 +379,23 @@
   color: var(--accent-soft);
 }
 
+/* Sólo la posición. El aspecto (fondo, borde, blur, tipografía) lo pone
+   `.chip .chip--type .chip--overlay`, que el JSX ya aplica: acá estaba todo
+   reescrito a mano, así que la misma pastilla tenía dos definiciones y sólo
+   una se mantenía al tocar el sistema de chips. */
 .discover-wine__type {
   position: absolute;
   top: 8px;
   left: 8px;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  color: #fff;
-  background: rgba(12, 15, 25, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
+/* gap 3px apilaba nombre, bodega, uva y región casi tocándose: cuatro datos de
+   jerarquías distintas leídos como un bloque. Con 6px cada uno se lee solo. */
 .discover-wine__body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 10px 11px 12px;
+  gap: 6px;
+  padding: var(--card-pad-compact);
   flex: 1;
 }
 
@@ -404,14 +432,17 @@
   text-overflow: ellipsis;
 }
 
+/* `margin-top: auto` empuja el botón al fondo de la tarjeta para que todas las
+   del rail lo tengan a la misma altura. Estaba, pero un segundo `margin-top: 8px`
+   más abajo lo anulaba y los botones quedaban escalonados según el largo del
+   nombre. Ahora el aire lo pone el `gap` del contenedor. */
 .discover-wine__add {
   margin-top: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 38px;
-  margin-top: 8px;
+  min-height: var(--control-md);
   border: 1px solid var(--line-accent);
   border-radius: var(--radius-md);
   background: rgba(126, 89, 201, 0.16);
@@ -448,11 +479,8 @@
 }
 
 /* Toda la tarjeta es un botón: sin feedback, no se lee como tal.
-   El `transition` ya estaba declarado pero no había ningún estado que animar. */
-.spotlight__open:hover {
-  border-color: var(--accent-soft);
-}
-
+   (Había además un :hover que animaba `border-color` sobre un elemento
+   declarado con `border: 0`. No hacía nada.) */
 .spotlight__open:active {
   transform: scale(0.985);
 }
@@ -500,7 +528,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 20px;
+  padding: var(--card-pad-hero);
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-accent);
   background:
@@ -705,80 +733,10 @@
   gap: 12px;
 }
 
-.wine-search__input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.wine-search__icon {
-  position: absolute;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  color: var(--text-muted);
-  pointer-events: none;
-  transition: color var(--transition-fast);
-}
-
-.wine-search__input-wrap:focus-within .wine-search__icon {
-  color: var(--accent-light);
-}
-
-/* Prefijado con .wine-search__input-wrap para ganarle en especificidad a la
-   regla global `input[type="text"]` de App.css, que si no le pisa el padding
-   y el ícono termina montándose sobre el placeholder. */
-.wine-search__input-wrap .wine-search__input {
-  width: 100%;
-  height: 52px;
-  padding: 0 46px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
-  font-size: var(--text-lg);
-  background: var(--surface);
-  color: var(--text);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
-}
-
-.wine-search__input-wrap .wine-search__input::placeholder {
-  color: var(--text-subtle);
-}
-
-.wine-search__input-wrap .wine-search__input:focus {
-  outline: none;
-  border-color: var(--accent-light);
-  background: var(--surface-2);
-  box-shadow: var(--focus-ring);
-}
-
-.wine-search__clear {
-  position: absolute;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.wine-search__clear:hover {
-  background: var(--accent-muted);
-  color: var(--text);
-}
-
-.wine-search__empty {
-  margin: 0;
-  padding: 6px 0;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-}
+/* (Acá vivían .wine-search__input-wrap/__icon/__input/__clear/__empty: ~60
+   líneas del buscador viejo, cuando vivía en la pantalla de Agregar. El
+   buscador se mudó a esta pantalla con las clases .discover-search__*, y estas
+   quedaron sin un solo uso en el JSX.) */
 
 /* Atajos por varietal (búsqueda vacía). */
 .wine-search__chips {
@@ -840,7 +798,7 @@
   background: var(--elevated);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
-  animation: rincon-enter-up 320ms var(--ease-out) both;
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
 @media (hover: hover) {
@@ -888,10 +846,6 @@
   }
 }
 
-.wine-result-card__ph {
-  font-size: 2.6rem;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
-}
 
 .wine-result-card__type {
   position: absolute;
@@ -911,8 +865,8 @@
 .wine-result-card__body {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 12px;
+  gap: 6px;
+  padding: var(--card-pad-compact);
   flex: 1;
 }
 
@@ -958,9 +912,6 @@
   white-space: nowrap;
 }
 
-.wine-result-card__rating {
-  margin-top: 2px;
-}
 
 /* Acción: "Quiero probar" (guarda en Guardados, no en la bodega). */
 .wine-result-card__actions {
@@ -1011,11 +962,14 @@
   }
 }
 
-/* Promedio de reseñas de la comunidad junto a las estrellas. */
+/* Promedio de reseñas de la comunidad junto a las estrellas.
+   (Estaba declarada dos veces, a 100 líneas de distancia: una con el margen y
+   otra con el display. Unificadas acá.) */
 .wine-result-card__rating {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-top: 2px;
 }
 
 .wine-result-card__reviews {

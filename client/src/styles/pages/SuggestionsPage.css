@@ -155,12 +155,7 @@
   background: var(--elevated);
   cursor: pointer;
   transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth), transform var(--transition-smooth);
-  animation: suggestionIn 340ms var(--ease-out) both;
-}
-
-@keyframes suggestionIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
 @media (hover: hover) {

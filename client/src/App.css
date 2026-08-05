@@ -465,7 +465,7 @@ select:disabled {
   background: var(--surface-2);
   color: var(--text);
   font-weight: 800;
-  font-size: 15px;
+  font-size: var(--text-md);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
@@ -487,10 +487,23 @@ select:disabled {
 
 .wine-qty {
   min-width: 30px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text);
   text-align: center;
+  /* Los dígitos no cambian de ancho al pasar de 1 a 2 (ni de 9 a 10): sin esto
+     los botones + y − se corren solos mientras contás botellas. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* El número rebota cuando cambia. Es la única confirmación de que el toque en
+   + o − hizo algo: el número nuevo aparecía en el mismo lugar, del mismo color
+   y del mismo tamaño que el viejo, así que en un pulgar apurado no se
+   distinguía de "no pasó nada". `inline-block` es necesario para que un span de
+   texto acepte `transform`. */
+.wine-qty__n {
+  display: inline-block;
+  animation: rincon-pop var(--transition-smooth) var(--ease-spring) both;
 }
 
 /* Qué cuenta el stepper. Sin rótulo, "− 2 +" es un número suelto al lado de un
@@ -739,7 +752,14 @@ select:disabled {
   font-size: var(--text-2xs);
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* El ícono festeja el encendido; el chip no. Animar la pastilla entera movería
+   el texto de al lado y se leería como un salto de layout. */
+.toggle-chip.is-on .icon {
+  animation: rincon-pop var(--transition-smooth) var(--ease-spring) both;
 }
 
 .toggle-chip:hover:not(:disabled) {
@@ -801,7 +821,8 @@ select:disabled {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .segmented__btn.is-active {

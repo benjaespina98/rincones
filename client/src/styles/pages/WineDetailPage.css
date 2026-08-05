@@ -5,10 +5,16 @@
   padding-bottom: 32px;
 }
 
+/* La portada. Es la primera impresión del vino y era la parte más tímida de la
+   pantalla: 340px fijos con la botella recortada adentro.
+
+   Alto responsivo en vez de fijo: en un teléfono chico 340px se comían media
+   pantalla antes del contenido, y en uno grande sobraba fondo vacío. Con `vh`
+   la portada ocupa siempre la misma PROPORCIÓN de la vista. */
 .wine-detail-hero {
   position: relative;
   width: 100%;
-  height: 340px;
+  height: clamp(340px, 54vh, 440px);
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(167, 130, 239, 0.35), transparent 65%),
     linear-gradient(160deg, rgba(126, 89, 201, 0.32) 0%, rgba(12, 15, 25, 0.95) 100%);
@@ -19,11 +25,24 @@
   border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
 }
 
+/* Degradado de cinco paradas, no de dos. `transparent 40% → 0.75 100%` es una
+   rampa lineal, y el ojo detecta dónde arranca: se veía una banda gris cruzando
+   la foto. Escalonándola (imitando una curva) el oscurecimiento no tiene
+   principio visible, la botella queda limpia arriba y el título apoya sobre
+   negro casi pleno abajo — que es lo que lo hace legible sobre cualquier
+   etiqueta, clara u oscura. */
 .wine-detail-hero::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(9, 11, 19, 0.75) 100%);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(9, 11, 19, 0.05) 44%,
+    rgba(9, 11, 19, 0.32) 66%,
+    rgba(9, 11, 19, 0.68) 83%,
+    rgba(9, 11, 19, 0.92) 100%
+  );
   pointer-events: none;
 }
 
@@ -45,10 +64,10 @@
   right: 0;
   bottom: 0;
   z-index: 2;
-  padding: 22px 20px 24px;
+  padding: 28px var(--card-pad-hero) 26px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .wine-detail-hero__name {
@@ -106,7 +125,7 @@
 .wine-detail-body {
   position: relative;
   margin-top: 16px;
-  padding: 0 16px;
+  padding: 0 var(--page-pad-x);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -170,7 +189,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: var(--card-pad-compact) var(--card-pad);
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -243,7 +262,7 @@
 .wine-price {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  padding: var(--card-pad);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--elevated);
@@ -305,7 +324,7 @@
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 14px 16px 14px 18px;
+  padding: var(--card-pad) var(--card-pad) var(--card-pad) calc(var(--card-pad) + 2px);
   overflow: hidden;
 }
 
@@ -340,7 +359,7 @@
 .wine-about {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  padding: var(--card-pad);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--elevated);
@@ -462,7 +481,7 @@
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 10px;
+  padding: var(--card-pad-compact);
 }
 
 /* "Abrí una botella" encabeza la caja de acciones: es lo que uno viene a hacer
@@ -548,6 +567,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 4px;
 }
 
 .wine-moments__header {
@@ -556,9 +576,6 @@
   justify-content: space-between;
 }
 
-.wine-moments {
-  margin-top: 4px;
-}
 
 .wine-moments__header h3 {
   margin: 0;
@@ -595,7 +612,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 12px;
+  padding: var(--card-pad-compact);
 }
 
 .moment-form select,
@@ -629,7 +646,7 @@
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  padding: var(--card-pad-compact) var(--card-pad);
   display: flex;
   flex-direction: column;
   gap: 6px;

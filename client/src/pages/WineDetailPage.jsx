@@ -401,7 +401,7 @@ export default function WineDetailPage() {
     <div className="wine-detail-page">
       <div className="wine-detail-hero">
         <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={150} priority />
+          <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
         </div>
 
         {/* Sin medallas sobre la foto: "favorito" y "probado" ya están, con su
@@ -455,7 +455,11 @@ export default function WineDetailPage() {
                 <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella">
                   <Icon name="minus" size={16} />
                 </button>
-                <span className="wine-qty" aria-live="polite">{wine.quantity}</span>
+                {/* Ver BodyPage: el `key` va en el span interno para que la
+                    región viva no se desmonte y siga anunciando. */}
+                <span className="wine-qty" aria-live="polite">
+                  <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
+                </span>
                 <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella">
                   <Icon name="plus" size={16} />
                 </button>
