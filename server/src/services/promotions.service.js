@@ -16,6 +16,7 @@ const {
   esImagenSubida,
   colorSeguro,
 } = require("../utils/promotionState");
+const { construirRango } = require("../utils/dateRange");
 
 /**
  * El gestor de campañas del espacio destacado de Descubrí.
@@ -123,6 +124,15 @@ const listPublic = async (now = new Date()) => {
 // ── Métricas ───────────────────────────────────────────────────────────────
 
 const esId = (valor) => mongoose.Types.ObjectId.isValid(String(valor || ""));
+
+/**
+ * El período más largo que se puede pedir de una campaña.
+ *
+ * Dos años: las estadísticas diarias no caducan —son el respaldo de lo que se le
+ * informó a alguien que pagó— y una discusión por una factura puede aparecer
+ * bastante después.
+ */
+const MAX_DIAS_INFORME = 730;
 
 /**
  * Registra un lote de impresiones y clics.
@@ -721,19 +731,22 @@ const remove = async (id, actor) => {
  * Es lo que se le muestra —o se le manda— a un anunciante, así que dice de qué
  * período habla y no mezcla veces mostrada con personas distintas.
  */
-const stats = async (id, { days = 30 } = {}) => {
+const stats = async (id, { days = 30, from = "", to = "" } = {}) => {
   if (!esId(id)) return null;
 
   const promo = await Promotion.findById(id).lean();
   if (!promo) return null;
 
-  const cantidad = Math.min(Math.max(Number(days) || 30, 1), 365);
-  const rango = [];
-  for (let i = cantidad - 1; i >= 0; i -= 1) {
-    rango.push(diaDe(new Date(Date.now() - i * 24 * 60 * 60 * 1000)));
-  }
+  // El mismo armado de rango que las métricas de uso: un período elegido a mano
+  // (from/to) o los últimos N días. Que las dos pantallas usen la misma
+  // definición es lo que evita que el informe del panel y el que ve el
+  // anunciante digan cosas distintas sobre los mismos días.
+  const rango = construirRango({ days, from, to, maxDias: MAX_DIAS_INFORME });
+  const desde = rango[0];
+  const hasta = rango[rango.length - 1];
 
-  const filas = await PromotionStat.find({ promotion: id, day: { $gte: rango[0] } })
+  // Con las dos puntas: informar un mes cerrado exige cortar también por arriba.
+  const filas = await PromotionStat.find({ promotion: id, day: { $gte: desde, $lte: hasta } })
     .sort({ day: 1 })
     .lean();
   const porDia = new Map(filas.map((f) => [f.day, f]));
@@ -755,7 +768,7 @@ const stats = async (id, { days = 30 } = {}) => {
 
   return {
     promotion: paraPanel(promo, new Date()),
-    range: { days: cantidad, from: rango[0], to: rango[rango.length - 1] },
+    range: { days: rango.length, from: desde, to: hasta },
     period: {
       impressions: sumar("impressions"),
       reach,
@@ -815,14 +828,14 @@ const revokeReportToken = async (id) => {
  * pausada— tampoco. Van los números que se facturan, la serie por día para que
  * pueda verificar contra su propio calendario, y el período.
  */
-const reportByToken = async (token, { days = 30 } = {}) => {
+const reportByToken = async (token, { days = 30, from = "", to = "" } = {}) => {
   const limpio = String(token || "").trim();
   if (limpio.length < 20) return null;
 
   const promo = await Promotion.findOne({ reportToken: limpio }).lean();
   if (!promo) return null;
 
-  const informe = await stats(promo._id, { days });
+  const informe = await stats(promo._id, { days, from, to });
   if (!informe) return null;
 
   return {

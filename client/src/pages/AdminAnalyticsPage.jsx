@@ -124,6 +124,9 @@ function Grafico({ serie, metrica }) {
 
 export default function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
+  // Período elegido a mano. Mientras estén los dos, mandan sobre `days`.
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -144,7 +147,7 @@ export default function AdminAnalyticsPage() {
    */
   useEffect(() => {
     let active = true;
-    getAnalyticsSummary(days)
+    getAnalyticsSummary(desde && hasta ? { from: desde, to: hasta } : { days })
       .then((d) => {
         if (!active) return;
         setData(d);
@@ -155,14 +158,32 @@ export default function AdminAnalyticsPage() {
     return () => {
       active = false;
     };
-  }, [days, reloadToken]);
+  }, [days, desde, hasta, reloadToken]);
 
   /** Cambiar de período: el spinner se enciende acá, no en el efecto. */
   const cambiarRango = (n) => {
-    if (n === days) return;
     setLoading(true);
     setDays(n);
+    // Elegir un preset limpia las fechas a mano: si no, el botón se marcaría
+    // como activo y los números serían de otro período.
+    setDesde("");
+    setHasta("");
   };
+
+  /**
+   * Las fechas a mano piden sólo cuando están las dos: con una sola, el rango
+   * sería medio inventado y además dispararía una consulta por cada tecla del
+   * calendario.
+   */
+  const cambiarFecha = (cual, valor) => {
+    const d = cual === "desde" ? valor : desde;
+    const h = cual === "hasta" ? valor : hasta;
+    if (cual === "desde") setDesde(valor);
+    else setHasta(valor);
+    if (d && h) setLoading(true);
+  };
+
+  const aMano = Boolean(desde && hasta);
 
   const reintentar = () => {
     setLoading(true);
@@ -212,13 +233,46 @@ export default function AdminAnalyticsPage() {
             <button
               key={r.days}
               type="button"
-              className={`an__rango ${days === r.days ? "is-active" : ""}`}
-              aria-pressed={days === r.days}
+              className={`an__rango ${!aMano && days === r.days ? "is-active" : ""}`}
+              aria-pressed={!aMano && days === r.days}
               onClick={() => cambiarRango(r.days)}
             >
               {r.label}
             </button>
           ))}
+
+          {/* Fechas a mano, al lado de los atajos y no escondidas detrás de un
+              "personalizado": es lo que hace falta para informar un mes cerrado,
+              y esconderlo lo vuelve una función que existe pero no se usa. */}
+          <label className="an__fecha">
+            <span className="sr-only">Desde</span>
+            <input
+              type="date"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(e) => cambiarFecha("desde", e.target.value)}
+            />
+          </label>
+          <span className="an__fecha-sep" aria-hidden="true">→</span>
+          <label className="an__fecha">
+            <span className="sr-only">Hasta</span>
+            <input
+              type="date"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(e) => cambiarFecha("hasta", e.target.value)}
+            />
+          </label>
+
+          {aMano && (
+            <button
+              type="button"
+              className="an__rango an__rango--limpiar"
+              onClick={() => cambiarRango(30)}
+            >
+              Volver a los atajos
+            </button>
+          )}
         </div>
         {/* Al cambiar de período los números de abajo siguen siendo los anteriores
             hasta que llegue la respuesta: mostrarlos sin avisar haría creer que ya

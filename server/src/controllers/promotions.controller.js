@@ -74,6 +74,8 @@ const publicReport = async (req, res, next) => {
   try {
     const informe = await promotionsService.reportByToken(req.params.token, {
       days: Number(req.query.days) || 30,
+      from: req.query.from,
+      to: req.query.to,
     });
     if (!informe) return res.status(404).json({ success: false, error: "Informe no disponible" });
     // Sin caché: un anunciante que recarga tiene que ver el número de ahora, no
@@ -104,7 +106,11 @@ const listAll = async (req, res, next) => {
 
 const stats = async (req, res, next) => {
   try {
-    const data = await promotionsService.stats(req.params.id, { days: req.query.days });
+    const data = await promotionsService.stats(req.params.id, {
+      days: req.query.days,
+      from: req.query.from,
+      to: req.query.to,
+    });
     if (!data) return res.status(404).json({ success: false, error: "Campaña no encontrada" });
     return res.status(200).json({ success: true, data });
   } catch (error) {

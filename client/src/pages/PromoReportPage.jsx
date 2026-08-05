@@ -47,6 +47,11 @@ const RANGOS = [7, 30, 90];
 export default function PromoReportPage() {
   const { token } = useParams();
   const [dias, setDias] = useState(30);
+  // El período a mano: es lo que hace falta para cruzar el informe con una
+  // factura. "Últimos 30 días" se mueve todos los días y no sirve para eso.
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const aMano = Boolean(desde && hasta);
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [falló, setFalló] = useState(false);
@@ -55,13 +60,13 @@ export default function PromoReportPage() {
     try {
       setCargando(true);
       setFalló(false);
-      setDatos(await getPublicReport(token, dias));
+      setDatos(await getPublicReport(token, aMano ? { from: desde, to: hasta } : { days: dias }));
     } catch {
       setFalló(true);
     } finally {
       setCargando(false);
     }
-  }, [token, dias]);
+  }, [token, dias, desde, hasta, aMano]);
 
   useEffect(() => {
     cargar();
@@ -109,13 +114,36 @@ export default function PromoReportPage() {
             <button
               key={n}
               type="button"
-              className={`rep__rango ${dias === n ? "is-active" : ""}`}
-              aria-pressed={dias === n}
-              onClick={() => setDias(n)}
+              className={`rep__rango ${!aMano && dias === n ? "is-active" : ""}`}
+              aria-pressed={!aMano && dias === n}
+              onClick={() => { setDias(n); setDesde(""); setHasta(""); }}
             >
               {n} días
             </button>
           ))}
+
+          {/* Fechas a mano: el anunciante tiene que poder pedir exactamente el
+              período que se le facturó, y no un "últimos 30 días" que se corre
+              solo y nunca coincide con lo que dice la factura. */}
+          <label className="rep__fecha">
+            <span className="sr-only">Desde</span>
+            <input
+              type="date"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(e) => setDesde(e.target.value)}
+            />
+          </label>
+          <span className="rep__fecha-sep" aria-hidden="true">→</span>
+          <label className="rep__fecha">
+            <span className="sr-only">Hasta</span>
+            <input
+              type="date"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(e) => setHasta(e.target.value)}
+            />
+          </label>
         </div>
 
         {/* Descargar es imprimir a PDF: lo hace el navegador, en todos los

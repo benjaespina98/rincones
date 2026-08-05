@@ -159,9 +159,9 @@ export const deletePromotion = async (id) => {
  * El informe que abre el anunciante con su enlace. No pide sesión: la llave es
  * el enlace, y por eso este llamado no pasa por la instancia con credenciales.
  */
-export const getPublicReport = async (token, days = 30) => {
+export const getPublicReport = async (token, rango = { days: 30 }) => {
   const { data } = await api.get(`/promotions/report/${encodeURIComponent(token)}`, {
-    params: { days },
+    params: rango,
   });
   return data.data;
 };

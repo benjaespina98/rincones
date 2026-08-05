@@ -29,6 +29,7 @@
 const crypto = require("crypto");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
 const AnalyticsDaily = require("../models/analyticsDaily.model");
+const { construirRango } = require("../utils/dateRange");
 const { peticionHumana } = require("../utils/trafficFilter");
 
 /** Cuántos eventos distintos acepta una sola petición. */
@@ -275,16 +276,6 @@ const actualizarResumen = async ({ day, visitorHash, sessionHash, userId, device
   }
 };
 
-/** Los últimos N días como YYYY-MM-DD, del más viejo al más nuevo. */
-const ultimosDias = (n) => {
-  const dias = [];
-  for (let i = n - 1; i >= 0; i -= 1) {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - i);
-    dias.push(hoy(d));
-  }
-  return dias;
-};
 
 /**
  * El resumen para el panel: la evolución día por día y los totales del período.
@@ -294,7 +285,7 @@ const ultimosDias = (n) => {
  * sobre los eventos crudos. Es la diferencia entre un número correcto y uno
  * inflado, y es justo la que suele estar mal en los tableros hechos a mano.
  */
-const getSummary = async ({ days = 30 } = {}) => {
+const getSummary = async ({ days = 30, from = "", to = "" } = {}) => {
   /**
    * ── POR QUÉ ESTO LEE LOS ACUMULADOS Y YA NO LOS EVENTOS CRUDOS ────────────
    * Porque los eventos crudos caducan a los 180 días y tres de los cuadros del
@@ -313,10 +304,16 @@ const getSummary = async ({ days = 30 } = {}) => {
    * retención, se avisa en la respuesta (`visitorsExact`) en vez de devolver un
    * número corto sin decirlo.
    */
-  const rango = ultimosDias(Math.min(Math.max(Number(days) || 30, 1), MAX_DIAS));
+  // Un rango elegido a mano (from/to) o los últimos N días. Ver utils/dateRange.
+  const rango = construirRango({ days, from, to, maxDias: MAX_DIAS });
   const desde = rango[0];
+  const hasta = rango[rango.length - 1];
 
-  const filas = await AnalyticsDaily.find({ day: { $gte: desde } }).sort({ day: 1 }).lean();
+  // Las dos puntas: con un rango elegido a mano, un `$gte` suelto traería todo
+  // lo posterior y los totales incluirían días fuera del período informado.
+  const filas = await AnalyticsDaily.find({ day: { $gte: desde, $lte: hasta } })
+    .sort({ day: 1 })
+    .lean();
   const porDia = new Map(filas.map((f) => [f.day, f]));
 
   const serie = rango.map((day) => {
@@ -348,7 +345,7 @@ const getSummary = async ({ days = 30 } = {}) => {
   // y la respuesta lo dice en vez de disimularlo.
   const dentroDeRetencion = rango.length <= DIAS_DE_EVENTOS;
   const [unicosDelPeriodo] = await AnalyticsEvent.aggregate([
-    { $match: { day: { $gte: desde } } },
+    { $match: { day: { $gte: desde, $lte: hasta } } },
     { $group: { _id: "$visitorHash" } },
     { $count: "total" },
   ]);
@@ -366,7 +363,7 @@ const getSummary = async ({ days = 30 } = {}) => {
   }
 
   return {
-    range: { days: rango.length, from: desde, to: rango[rango.length - 1] },
+    range: { days: rango.length, from: desde, to: hasta },
     totals: {
       views: sumar("views"),
       sessions: sumar("sessions"),
