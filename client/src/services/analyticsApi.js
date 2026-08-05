@@ -145,7 +145,14 @@ export const initAnalytics = () => {
 };
 
 /** Para el panel admin. */
-export const getAnalyticsSummary = async (days = 30) => {
-  const { data } = await api.get("/analytics/summary", { params: { days } });
+/**
+ * El tablero de uso. `rango` puede ser `{ days }` o `{ from, to }`.
+ *
+ * Las fechas a mano son lo que hace falta para informar un período cerrado —un
+ * mes de facturación, la semana de una campaña—: "últimos 30 días" no sirve para
+ * eso, porque se mueve todos los días.
+ */
+export const getAnalyticsSummary = async (rango = { days: 30 }) => {
+  const { data } = await api.get("/analytics/summary", { params: rango });
   return data?.data || null;
 };

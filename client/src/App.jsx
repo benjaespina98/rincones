@@ -13,6 +13,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const PromoReportPage = lazy(() => import("./pages/PromoReportPage"));
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
 const BodyPage = lazy(() => import("./pages/BodyPage"));
 const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
@@ -54,6 +55,10 @@ function App() {
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* El informe del anunciante. Sin sesión y sin la navegación de la app:
+            lo abre alguien de afuera que sólo quiere ver sus números. */}
+        <Route path="/informe/:token" element={<PromoReportPage />} />
 
         {/* Home = Descubrí (recomendaciones + contenido) */}
         <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />

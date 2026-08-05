@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
-import { getChangeLogs, getUsers } from "../services/adminApi";
+import { getChangeLogs, getAdminSummary } from "../services/adminApi";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminReviewsPage from "./AdminReviewsPage";
 import AdminAnalyticsPage from "./AdminAnalyticsPage";
@@ -44,7 +44,7 @@ const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [usersSummary, setUsersSummary] = useState({ total: 0, admins: 0 });
+  const [resumen, setResumen] = useState(null);
   const [activeTab, setActiveTab] = useState("resumen");
 
   const nextPath = location.state?.from || "/admin";
@@ -57,21 +57,16 @@ const AdminLoginPage = () => {
     const loadDashboardData = async () => {
       try {
         setLoadingDashboard(true);
-        const [logsData, usersData] = await Promise.all([
-          getChangeLogs(60),
-          getUsers({ page: 1, limit: 100 }),
+        const [logsData, resumenData] = await Promise.all([
+          getChangeLogs(30),
+          getAdminSummary(24),
         ]);
 
-        const sampleUsers = usersData.data || [];
         setLogs(logsData);
-        setUsersSummary({
-          total: usersData.pagination?.total || sampleUsers.length,
-          // Conteo exacto que devuelve el server, no una estimación de la muestra.
-          admins: usersData.meta?.admins ?? sampleUsers.filter((u) => u.role === "admin").length,
-        });
+        setResumen(resumenData);
       } catch {
         setLogs([]);
-        setUsersSummary({ total: 0, admins: 0 });
+        setResumen(null);
       } finally {
         setLoadingDashboard(false);
       }
@@ -80,23 +75,22 @@ const AdminLoginPage = () => {
     loadDashboardData();
   }, [isAdmin]);
 
-  const metrics = useMemo(() => {
-    const now = Date.now();
-    const dayWindow = 24 * 60 * 60 * 1000;
-    const logsToday = logs.filter((item) => now - new Date(item.createdAt).getTime() <= dayWindow).length;
-    const createEvents = logs.filter((item) => item.action === "create").length;
-    const updateEvents = logs.filter((item) => item.action === "update").length;
-    const deleteEvents = logs.filter((item) => item.action === "delete").length;
-
-    return {
-      totalUsers: usersSummary.total,
-      admins: usersSummary.admins,
-      logsToday,
-      createEvents,
-      updateEvents,
-      deleteEvents,
-    };
-  }, [logs, usersSummary]);
+  /**
+   * Los números del Resumen salen del server contados uno por uno.
+   *
+   * Antes se deducían de los últimos 60 movimientos que ya se pedían para la
+   * lista de actividad: "Eventos 24h" no podía pasar de 60 aunque hubiera 300, y
+   * "Creaciones / Actualizaciones / Eliminaciones" eran los tipos de esos 60 sin
+   * decir de qué período. El número no fallaba: se congelaba, que es peor,
+   * porque se sigue mirando como si fuera cierto.
+   */
+  const metrics = resumen || {
+    users: 0,
+    admins: 0,
+    wines: 0,
+    reviews: 0,
+    activity: { total: 0, create: 0, update: 0, delete: 0 },
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -200,14 +194,28 @@ const AdminLoginPage = () => {
             <div className="admin-dashboard-grid">
               <article className="admin-metric-card">
                 <span>Usuarios</span>
-                <strong>{metrics.totalUsers}</strong>
-                <small>Total en sistema</small>
+                <strong>{metrics.users}</strong>
+                <small>Cuentas registradas</small>
+              </article>
+
+              {/* Dos números que el panel no tenía y son la salud del producto:
+                  cuánto cargó la gente y cuánto escribió. */}
+              <article className="admin-metric-card">
+                <span>Vinos</span>
+                <strong>{metrics.wines}</strong>
+                <small>Cargados por los usuarios</small>
               </article>
 
               <article className="admin-metric-card">
-                <span>Eventos 24h</span>
-                <strong>{metrics.logsToday}</strong>
-                <small>Actividad reciente</small>
+                <span>Reseñas</span>
+                <strong>{metrics.reviews}</strong>
+                <small>Publicadas en la comunidad</small>
+              </article>
+
+              <article className="admin-metric-card">
+                <span>Movimientos</span>
+                <strong>{metrics.activity.total}</strong>
+                <small>En las últimas 24 horas</small>
               </article>
 
               <article className="admin-metric-card">
@@ -216,12 +224,15 @@ const AdminLoginPage = () => {
                 <small>Con acceso a este panel</small>
               </article>
 
+              {/* El desglose de lo mismo que dice la tarjeta de arriba, y del
+                  mismo período: el título lo dice, porque un número sin período
+                  se lee como "desde siempre". */}
               <article className="admin-wide-card">
-                <h2>Actividad por tipo</h2>
+                <h2>Qué pasó en las últimas 24 horas</h2>
                 <div className="admin-chip-row">
-                  <span className="admin-chip">Creaciones: {metrics.createEvents}</span>
-                  <span className="admin-chip">Actualizaciones: {metrics.updateEvents}</span>
-                  <span className="admin-chip">Eliminaciones: {metrics.deleteEvents}</span>
+                  <span className="admin-chip">Se creó: {metrics.activity.create}</span>
+                  <span className="admin-chip">Se editó: {metrics.activity.update}</span>
+                  <span className="admin-chip">Se eliminó: {metrics.activity.delete}</span>
                 </div>
               </article>
 
@@ -280,7 +291,10 @@ const AdminLoginPage = () => {
             <section>
               <div className="admin-section-head">
                 <h2>Registro de actividad</h2>
-                <p>Auditoría reciente de altas, ediciones y bajas en las bodegas de los usuarios.</p>
+                {/* Dice CUÁNTOS muestra. El Resumen puede decir "340 movimientos"
+                    y acá verse treinta: son dos cosas distintas —un total y un
+                    detalle reciente— y sin aclararlo parece que falta data. */}
+                <p>Los últimos 30 movimientos en las bodegas de los usuarios.</p>
               </div>
 
               {loadingDashboard ? (

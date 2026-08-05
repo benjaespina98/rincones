@@ -22,6 +22,60 @@ const getChangeLogs = async (req, res, next) => {
   }
 };
 
+/**
+ * El resumen del panel, contado por la base y no deducido de una muestra.
+ *
+ * ── QUÉ ESTABA MAL ──────────────────────────────────────────────────────────
+ * El panel pedía los últimos 60 movimientos y sacaba de ahí todos sus números:
+ * "Eventos 24h" era "cuántos de esos 60 son de hoy" —o sea que se plantaba en 60
+ * y nunca podía decir más, aunque hubiera 300—, y "Creaciones / Actualizaciones /
+ * Eliminaciones" eran los tipos de esos mismos 60, sin decir de qué período. Un
+ * número que se congela solo, sin fallar y sin avisar, es peor que no tenerlo:
+ * se sigue mirando como si fuera cierto.
+ *
+ * Acá cada número es un `countDocuments` sobre el rango que dice ser, y viaja
+ * con `since` para que la pantalla pueda escribir de qué período habla.
+ */
+const getSummary = async (req, res, next) => {
+  try {
+    // Un valor inválido —cero, negativo, texto— vuelve al de siempre y no a "1
+    // hora": si alguien manda basura, la tarjeta tiene que seguir diciendo lo que
+    // dice su rótulo, no un período raro que nadie pidió.
+    const pedidas = Number(req.query.hours);
+    const horas = Number.isFinite(pedidas) && pedidas > 0 ? Math.min(pedidas, 24 * 30) : 24;
+    const desde = new Date(Date.now() - horas * 60 * 60 * 1000);
+    const enRango = { createdAt: { $gte: desde } };
+
+    // En paralelo: son consultas independientes sobre índices distintos y en
+    // serie el panel tardaría la suma de todas.
+    const [usuarios, admins, movimientos, creaciones, ediciones, borrados, vinos, resenas] =
+      await Promise.all([
+        User.countDocuments({}),
+        User.countDocuments({ role: "admin" }),
+        ChangeLog.countDocuments(enRango),
+        ChangeLog.countDocuments({ ...enRango, action: "create" }),
+        ChangeLog.countDocuments({ ...enRango, action: "update" }),
+        ChangeLog.countDocuments({ ...enRango, action: "delete" }),
+        Wine.countDocuments({}),
+        WineReview.countDocuments({}),
+      ]);
+
+    return res.status(200).json({
+      data: {
+        since: desde.toISOString(),
+        hours: horas,
+        users: usuarios,
+        admins,
+        wines: vinos,
+        reviews: resenas,
+        activity: { total: movimientos, create: creaciones, update: ediciones, delete: borrados },
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // Listar usuarios con búsqueda y conteo de actividad (solo para admins).
 const getUsers = async (req, res, next) => {
   try {
@@ -38,8 +92,11 @@ const getUsers = async (req, res, next) => {
     }
     if (role === "user" || role === "admin") filter.role = role;
 
+    // Sin `stats`: es el contador que se lleva a mano y puede haber quedado
+    // atrasado. Los números de cada fila salen de las agregaciones de abajo, que
+    // cuentan de verdad. Traer los dos era ofrecer dos respuestas para lo mismo.
     const users = await User.find(filter)
-      .select("_id email firstName lastName role createdAt stats")
+      .select("_id email firstName lastName role createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -214,6 +271,7 @@ const deleteReview = async (req, res, next) => {
 };
 
 module.exports = {
+  getSummary,
   getChangeLogs,
   getUsers,
   updateUserRole,

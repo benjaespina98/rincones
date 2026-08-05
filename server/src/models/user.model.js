@@ -82,6 +82,11 @@ const userSchema = new mongoose.Schema(
 
     // Estadísticas
     stats: {
+      // Caché, no fuente de verdad: quien necesite estos números los pide a
+      // /users/stats o /wines/stats/summary, que los cuentan. Se mantienen acá
+      // porque son baratos y evitan una agregación en caminos internos, pero un
+      // contador que se lleva a mano en ocho lugares termina discrepando, y
+      // discrepa en silencio.
       winesCount: { type: Number, default: 0 },
       tastedWines: { type: Number, default: 0 },
       averageRating: { type: Number, default: 0, min: 0, max: 5 },

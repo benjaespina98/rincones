@@ -28,7 +28,11 @@ const collect = async (req, res) => {
 /** GET /api/analytics/summary?days=30 — el tablero. Sólo admin. */
 const summary = async (req, res, next) => {
   try {
-    const data = await analyticsService.getSummary({ days: req.query.days });
+    const data = await analyticsService.getSummary({
+      days: req.query.days,
+      from: req.query.from,
+      to: req.query.to,
+    });
     return res.status(200).json({ success: true, data });
   } catch (error) {
     return next(error);

@@ -11,6 +11,8 @@ router.post("/suggest", authenticate, winesController.suggest);
 router.get("/cellar-ready", authenticate, winesController.cellarReady);
 router.get("/:id", authenticate, winesController.getOne);
 router.post("/", authenticate, winesController.create);
+// Va antes de "/:id" a propósito: si no, Express lee "bulk" como un id.
+router.post("/bulk", authenticate, winesController.bulk);
 router.put("/:id", authenticate, winesController.update);
 router.patch("/:id/stock", authenticate, winesController.adjustStock);
 router.get("/:id/moments", authenticate, winesController.getMoments);

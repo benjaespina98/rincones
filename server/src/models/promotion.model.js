@@ -180,6 +180,18 @@ const promotionSchema = new mongoose.Schema(
      * gente —`clickReach` sobre `reach`—, porque mezclar toques con personas daba
      * porcentajes por encima de 100.
      */
+    /**
+     * La llave del informe que ve el anunciante.
+     *
+     * Es un enlace y no una cuenta a propósito: pedirle a alguien que se
+     * registre para ver si su publicidad se está viendo es un trámite que
+     * termina en "mandame una captura", y una captura no la audita nadie. Con el
+     * enlace entra, mira sus números y los cruza con lo que le facturaste.
+     *
+     * Se genera recién cuando se pide, así que una campaña que nunca se compartió
+     * no tiene ninguna puerta abierta. Es de sólo lectura y sólo de SU campaña.
+     */
+    reportToken: { type: String, default: null, index: true, sparse: true },
     impressions: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
     reach: { type: Number, default: 0 },

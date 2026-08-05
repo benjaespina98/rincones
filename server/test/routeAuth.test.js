@@ -59,6 +59,17 @@ const PUBLICAS = new Set([
   // limit. Sin eso, el número que se le informa a un anunciante no se puede
   // defender.
   "promotions.routes.js: post /events",
+  // El informe del anunciante. Público porque la LLAVE es el enlace: son 32
+  // bytes al azar que no se adivinan ni se enumeran, y el enlace se genera recién
+  // cuando se comparte, así que una campaña que nunca se compartió no tiene
+  // ninguna puerta abierta. Pedirle una cuenta a alguien que sólo quiere ver si
+  // su publicidad se está viendo termina en "mandame una captura", y una captura
+  // no la audita nadie: el trámite se paga en credibilidad.
+  //
+  // Es de sólo lectura, devuelve únicamente los números de ESA campaña (ni el id,
+  // ni la prioridad, ni si está pausada) y se puede cortar desde el panel sin
+  // tocar los datos.
+  "promotions.routes.js: get /report/:token",
 ]);
 
 const routesDir = path.join(__dirname, "..", "src", "routes");

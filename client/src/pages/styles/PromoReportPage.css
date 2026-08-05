@@ -1,0 +1,401 @@
+/* El informe del anunciante.
+   Es la única pantalla de la app que ve alguien de afuera, así que se sostiene
+   sola: sin navegación, sin sesión y legible en el teléfono donde se abrió el
+   enlace. Mantiene la paleta del resto para que se note de dónde viene. */
+
+.rep {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 18px 48px;
+  display: grid;
+  gap: 20px;
+}
+
+.rep__msg,
+.rep__vacio {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.rep__vacio h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-2xl);
+  color: var(--text);
+}
+
+.rep__head {
+  display: grid;
+  gap: 5px;
+}
+
+.rep__marca {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.rep__titulo {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.rep__anunciante {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+
+.rep__periodo {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.rep__periodo em {
+  font-style: normal;
+  display: block;
+}
+
+/* La barra de acciones: el período a la izquierda, descargar a la derecha. */
+.rep__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rep__rangos {
+  display: flex;
+  gap: 6px;
+}
+
+.rep__pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.rep__pdf:hover {
+  background: var(--accent);
+}
+
+.rep__rango {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rep__rango.is-active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+/* Lo que se factura: dos tarjetas, y nada más compitiendo con ellas. */
+.rep__destacados {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .rep__destacados {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rep__card {
+  display: grid;
+  gap: 5px;
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.rep__card.is-primary {
+  border-color: var(--line-accent);
+  background: linear-gradient(160deg, rgba(126, 89, 201, 0.16), var(--elevated) 70%);
+}
+
+.rep__label {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rep__n {
+  font-family: var(--font-family-serif);
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__card small {
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* Las impresiones, abajo y en voz baja: es el número más grande y el que menos
+   dice, y arriba se leería como una venta y no como una rendición de cuentas. */
+.rep__secundarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 0 4px;
+}
+
+.rep__secundarios span {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__secundarios small {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rep__bloque h2,
+.rep__metodo h2 {
+  margin: 0 0 12px;
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.rep__grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.rep__barra-caja {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.rep__barra {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--accent-light), var(--accent));
+}
+
+.rep__eje {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rep__metodo {
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.rep__metodo dl {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+}
+
+.rep__metodo dt {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--accent-soft);
+}
+
+.rep__metodo dd {
+  margin: 3px 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.rep__pie {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rep__pie p {
+  margin: 0;
+}
+
+.rep__aviso {
+  opacity: 0.8;
+}
+
+
+/* ══ EL PDF ══════════════════════════════════════════════════════════════════
+   "Descargar" es imprimir a PDF con el navegador. No hace falta una librería:
+   una que capture el DOM produce una imagen borrosa, sin texto seleccionable ni
+   buscable, y pesa 300KB que después hay que mantener. Lo que hace presentable a
+   un PDF es la hoja de impresión, y eso es CSS.
+
+   El informe va a terminar adjunto a una factura, así que se imprime como un
+   documento y no como una captura de pantalla: fondo blanco, tinta negra, una
+   sola hoja A4 y sin los controles, que en papel no hacen nada. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  /* Papel blanco. Un informe con el fondo oscuro de la app gasta media
+     cartuchera y se lee peor, y el que lo recibe lo va a imprimir. */
+  :root,
+  body,
+  .rep {
+    background: #fff !important;
+    color: #14161f !important;
+  }
+
+  .rep {
+    max-width: none;
+    padding: 0;
+    gap: 14px;
+  }
+
+  /* Los controles no existen en papel: elegir el período o tocar "descargar" no
+     es algo que se pueda hacer sobre una hoja impresa. */
+  .rep__acciones,
+  .rep__aviso {
+    display: none !important;
+  }
+
+  .rep__marca {
+    color: #5b3fa8 !important;
+  }
+
+  .rep__titulo,
+  .rep__n,
+  .rep__vacio h1,
+  .rep__bloque h2,
+  .rep__metodo h2 {
+    color: #14161f !important;
+  }
+
+  .rep__anunciante {
+    color: #3d4152 !important;
+  }
+
+  .rep__periodo,
+  .rep__eje,
+  .rep__pie,
+  .rep__secundarios small {
+    color: #6b7080 !important;
+  }
+
+  .rep__card,
+  .rep__metodo,
+  .rep__grafico {
+    border-color: #d7d9e0 !important;
+    background: #fff !important;
+    /* Que no se corte una tarjeta entre dos hojas. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rep__card.is-primary {
+    background: #f4f1fb !important;
+    border-color: #b9a8e6 !important;
+  }
+
+  .rep__card small,
+  .rep__metodo dd {
+    color: #3d4152 !important;
+  }
+
+  .rep__label,
+  .rep__metodo dt {
+    color: #5b3fa8 !important;
+  }
+
+  .rep__secundarios span {
+    color: #14161f !important;
+  }
+
+  /* Los degradados no imprimen bien: barras planas y con contraste. */
+  .rep__barra {
+    background: #6b4fbb !important;
+  }
+
+  .rep__metodo,
+  .rep__bloque {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* Fechas a mano: el anunciante pide exactamente el período que se le facturó. */
+.rep__fecha input {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.rep__fecha input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.rep__fecha-sep {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.rep__rangos {
+  flex-wrap: wrap;
+  align-items: center;
+}

@@ -777,6 +777,87 @@ async function deleteWine(userId, id) {
   return true;
 }
 
+/**
+ * Cuántos vinos acepta una operación en lote.
+ *
+ * Es el techo de "seleccionar todo" en una bodega grande. Con más que esto la
+ * petición empieza a durar lo suficiente como para que alguien la cancele a la
+ * mitad, y una selección tan grande casi siempre es un error de dedo que conviene
+ * frenar antes de borrar media colección.
+ */
+const MAX_EN_LOTE = 200;
+
+/** Qué se puede hacer sobre varios vinos a la vez, y qué escribe cada cosa. */
+const ACCIONES_EN_LOTE = {
+  tasted: { $set: { tasted: true } },
+  untasted: { $set: { tasted: false } },
+  favorite: { $set: { favorite: true } },
+  unfavorite: { $set: { favorite: false } },
+};
+
+/**
+ * Aplica una acción a varios vinos de una.
+ *
+ * ── POR QUÉ UN ENDPOINT Y NO UN FOR EN EL NAVEGADOR ─────────────────────────
+ * Porque marcar treinta vinos serían treinta peticiones que llegan en cualquier
+ * orden, cada una con su chance de fallar: la pantalla queda a mitad de camino y
+ * el usuario no tiene forma de saber cuáles entraron. Acá es una escritura, y el
+ * número que vuelve es el que se le muestra.
+ *
+ * El `userId` va en el filtro de la consulta, no se verifica antes: es lo que
+ * hace imposible tocar el vino de otro mandando su id en la lista, incluso si
+ * alguien arma la petición a mano.
+ */
+async function bulkAction(userId, ids, action) {
+  const limpios = [...new Set((Array.isArray(ids) ? ids : []).map(String))]
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .slice(0, MAX_EN_LOTE);
+
+  if (limpios.length === 0) return { affected: 0 };
+
+  const filtro = { _id: { $in: limpios }, userId };
+
+  if (action === "delete") {
+    // Se leen antes de borrar: hacen falta para las estadísticas del usuario y
+    // para dejar en la auditoría qué era cada uno, que después no se puede saber.
+    const vinos = await Wine.find(filtro).select("_id name winery tasted").lean();
+    if (vinos.length === 0) return { affected: 0 };
+
+    const { deletedCount } = await Wine.deleteMany(filtro);
+
+    const user = await User.findById(userId);
+    if (user) {
+      const probados = vinos.filter((w) => w.tasted).length;
+      user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - vinos.length);
+      user.stats.tastedWines = Math.max(0, (user.stats.tastedWines || 0) - probados);
+      await user.save();
+      for (const w of vinos) {
+        await logChange(user, "delete", w._id, { name: w.name, winery: w.winery }, null);
+      }
+    }
+    return { affected: deletedCount };
+  }
+
+  const update = ACCIONES_EN_LOTE[action];
+  if (!update) return null;
+
+  const { modifiedCount } = await Wine.updateMany(filtro, update);
+
+  // `tastedWines` se recalcula contando, en vez de sumar y restar: en un lote no
+  // se sabe cuántos de los seleccionados ya estaban marcados, y una cuenta
+  // incremental sobre datos que no se leyeron es exactamente cómo un contador
+  // empieza a mentir sin que falle nada.
+  if (action === "tasted" || action === "untasted") {
+    const user = await User.findById(userId);
+    if (user) {
+      user.stats.tastedWines = await Wine.countDocuments({ userId, tasted: true });
+      await user.save();
+    }
+  }
+
+  return { affected: modifiedCount };
+}
+
 module.exports = {
   listWines,
   searchWines,
@@ -789,6 +870,8 @@ module.exports = {
   getMoments,
   addMoment,
   deleteWine,
+  bulkAction,
   suggestWines,
   getCellarReady,
+  MAX_EN_LOTE,
 };

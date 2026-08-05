@@ -22,11 +22,32 @@ import "./styles/AdminAnalyticsPage.css";
  * sólo vos vas a abrir.
  */
 
+/**
+ * Los períodos que se pueden mirar.
+ *
+ * Llega hasta un año porque los cuadros salen del resumen diario, que no caduca.
+ * Antes salían de los eventos crudos —que viven 180 días— y ofrecer un rango más
+ * largo habría devuelto listas recortadas sin decir que lo estaban: se leería
+ * como "no llegó nadie de ningún lado" cuando en realidad el dato caducó.
+ */
 const RANGOS = [
   { days: 7, label: "7 días" },
   { days: 30, label: "30 días" },
   { days: 90, label: "90 días" },
+  { days: 365, label: "1 año" },
 ];
+
+/** Las horas, agrupadas como se las mira: no hay que leer 24 números. */
+const FRANJAS = [
+  { desde: 6, hasta: 11, label: "Mañana" },
+  { desde: 12, hasta: 13, label: "Mediodía" },
+  { desde: 14, hasta: 19, label: "Tarde" },
+  { desde: 20, hasta: 23, label: "Noche" },
+  { desde: 0, hasta: 5, label: "Madrugada" },
+];
+
+const franjaDe = (hora) =>
+  FRANJAS.find((f) => (f.desde <= f.hasta ? hora >= f.desde && hora <= f.hasta : hora >= f.desde || hora <= f.hasta));
 
 /** "2026-07-29" → "29/7". Etiqueta corta para el eje. */
 const diaCorto = (day) => {
@@ -103,6 +124,9 @@ function Grafico({ serie, metrica }) {
 
 export default function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
+  // Período elegido a mano. Mientras estén los dos, mandan sobre `days`.
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -123,7 +147,7 @@ export default function AdminAnalyticsPage() {
    */
   useEffect(() => {
     let active = true;
-    getAnalyticsSummary(days)
+    getAnalyticsSummary(desde && hasta ? { from: desde, to: hasta } : { days })
       .then((d) => {
         if (!active) return;
         setData(d);
@@ -134,14 +158,32 @@ export default function AdminAnalyticsPage() {
     return () => {
       active = false;
     };
-  }, [days, reloadToken]);
+  }, [days, desde, hasta, reloadToken]);
 
   /** Cambiar de período: el spinner se enciende acá, no en el efecto. */
   const cambiarRango = (n) => {
-    if (n === days) return;
     setLoading(true);
     setDays(n);
+    // Elegir un preset limpia las fechas a mano: si no, el botón se marcaría
+    // como activo y los números serían de otro período.
+    setDesde("");
+    setHasta("");
   };
+
+  /**
+   * Las fechas a mano piden sólo cuando están las dos: con una sola, el rango
+   * sería medio inventado y además dispararía una consulta por cada tecla del
+   * calendario.
+   */
+  const cambiarFecha = (cual, valor) => {
+    const d = cual === "desde" ? valor : desde;
+    const h = cual === "hasta" ? valor : hasta;
+    if (cual === "desde") setDesde(valor);
+    else setHasta(valor);
+    if (d && h) setLoading(true);
+  };
+
+  const aMano = Boolean(desde && hasta);
 
   const reintentar = () => {
     setLoading(true);
@@ -164,6 +206,25 @@ export default function AdminAnalyticsPage() {
   const serie = data?.daily || [];
   const sinDatos = (t.views || 0) === 0;
 
+  /**
+   * La hora pico y su franja.
+   *
+   * Se resume en palabras además del gráfico porque nadie se lleva "las 21" de un
+   * gráfico de 24 barras: se lleva "a la noche". El número exacto queda en el
+   * `title` de cada barra para quien lo quiera.
+   */
+  const horas = data?.byHour || [];
+  const maxHora = Math.max(0, ...horas.map((h) => h.count));
+  const picoHorario = (() => {
+    if (!maxHora) return null;
+    const pico = horas.find((h) => h.count === maxHora);
+    const franja = franjaDe(pico.hour);
+    return {
+      hora: pico.hour,
+      label: `${franja?.label || ""} · ${String(pico.hour).padStart(2, "0")}h`.trim(),
+    };
+  })();
+
   return (
     <div className="an">
       <div className="an__barra">
@@ -172,13 +233,46 @@ export default function AdminAnalyticsPage() {
             <button
               key={r.days}
               type="button"
-              className={`an__rango ${days === r.days ? "is-active" : ""}`}
-              aria-pressed={days === r.days}
+              className={`an__rango ${!aMano && days === r.days ? "is-active" : ""}`}
+              aria-pressed={!aMano && days === r.days}
               onClick={() => cambiarRango(r.days)}
             >
               {r.label}
             </button>
           ))}
+
+          {/* Fechas a mano, al lado de los atajos y no escondidas detrás de un
+              "personalizado": es lo que hace falta para informar un mes cerrado,
+              y esconderlo lo vuelve una función que existe pero no se usa. */}
+          <label className="an__fecha">
+            <span className="sr-only">Desde</span>
+            <input
+              type="date"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(e) => cambiarFecha("desde", e.target.value)}
+            />
+          </label>
+          <span className="an__fecha-sep" aria-hidden="true">→</span>
+          <label className="an__fecha">
+            <span className="sr-only">Hasta</span>
+            <input
+              type="date"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(e) => cambiarFecha("hasta", e.target.value)}
+            />
+          </label>
+
+          {aMano && (
+            <button
+              type="button"
+              className="an__rango an__rango--limpiar"
+              onClick={() => cambiarRango(30)}
+            >
+              Volver a los atajos
+            </button>
+          )}
         </div>
         {/* Al cambiar de período los números de abajo siguen siendo los anteriores
             hasta que llegue la respuesta: mostrarlos sin avisar haría creer que ya
@@ -205,7 +299,11 @@ export default function AdminAnalyticsPage() {
             <article className="an__card is-primary">
               <span className="an__card-label">Visitantes</span>
               <strong className="an__card-n">{t.visitors ?? 0}</strong>
-              <small>Personas distintas en el período</small>
+              <small>
+                {t.visitorsExact === false
+                  ? "Distintas. Más allá de 180 días el número queda corto"
+                  : "Distintas, sin repetir entre días"}
+              </small>
             </article>
             <article className="an__card">
               <span className="an__card-label">Hoy</span>
@@ -215,12 +313,16 @@ export default function AdminAnalyticsPage() {
             <article className="an__card">
               <span className="an__card-label">Visitas</span>
               <strong className="an__card-n">{t.views ?? 0}</strong>
-              <small>Pantallas abiertas</small>
+              <small>Pantallas abiertas, todas las veces</small>
             </article>
+            {/* No es "sesiones" en el sentido de "de tal hora a tal hora": el
+                reloj se parte en bloques de media hora y se cuenta en cuántos
+                hubo actividad. El rótulo dice eso y no promete una precisión que
+                el dato no tiene. Ver SESION_MS en analytics.service.js. */}
             <article className="an__card">
-              <span className="an__card-label">Sesiones</span>
+              <span className="an__card-label">Ratos de uso</span>
               <strong className="an__card-n">{t.sessions ?? 0}</strong>
-              <small>Ratos de uso</small>
+              <small title="Bloques de media hora con actividad">Medias horas con actividad</small>
             </article>
           </div>
 
@@ -246,6 +348,50 @@ export default function AdminAnalyticsPage() {
             </div>
             <Grafico serie={serie} metrica={metrica} />
           </div>
+
+          {/* ── A QUÉ HORA ESTÁ LA GENTE ──────────────────────────────────
+              Es la pregunta que contestan las herramientas de Meta con su "mejor
+              momento para publicar", y sirve para dos decisiones concretas:
+              cuándo mandar una notificación o publicar una campaña, y a qué hora
+              NO desplegar.
+
+              Van las 24 horas siempre, incluidas las que están en cero: un
+              gráfico al que le faltan las horas sin actividad miente sobre la
+              forma del día. Y arriba, en palabras, la franja donde se concentra
+              —que es lo único que uno se lleva de acá—. */}
+          {picoHorario && (
+            <div className="an__block">
+              <div className="an__block-head">
+                <h3>A qué hora entran</h3>
+                <span className="an__pico">
+                  Más actividad: <strong>{picoHorario.label}</strong>
+                </span>
+              </div>
+
+              <div className="an__horas" role="img" aria-label={`Actividad por hora. Pico a las ${picoHorario.hora} horas.`}>
+                {data.byHour.map((h) => (
+                  <div
+                    key={h.hour}
+                    className={`an__hora ${h.hour === picoHorario.hora ? "is-pico" : ""}`}
+                    title={`${String(h.hour).padStart(2, "0")}:00 · ${h.count} eventos`}
+                  >
+                    <div
+                      className="an__hora-barra"
+                      style={{ height: `${maxHora ? (h.count / maxHora) * 100 : 0}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="an__horas-eje" aria-hidden="true">
+                <span>00</span>
+                <span>06</span>
+                <span>12</span>
+                <span>18</span>
+                <span>23</span>
+              </div>
+            </div>
+          )}
 
           <div className="an__cols">
             <div className="an__block">
@@ -315,16 +461,64 @@ export default function AdminAnalyticsPage() {
         </>
       )}
 
-      {/* Los límites del método, dichos de frente. Un tablero que no aclara cómo
-          cuenta invita a tomar decisiones sobre números que no significan lo que
-          uno cree. */}
-      <p className="an__nota">
-        <Icon name="eye" size={13} /> Sin cookies y sin datos personales: cada
-        visitante se cuenta con un código anónimo derivado de su conexión. Dos
-        personas en la misma red y con el mismo teléfono cuentan como una, y quien
-        entra por wifi y por datos cuenta como dos. Se respeta la señal de "no me
-        rastrees" del navegador.
-      </p>
+      {/* Cómo se cuenta cada número, dicho de frente y sin ocupar la pantalla.
+          Un tablero que no explica su método invita a tomar decisiones sobre
+          números que no significan lo que uno cree, y la pregunta "¿esto es
+          real?" vuelve cada vez que se abre el panel. Cerrado es un renglón. */}
+      <details className="an__metodo">
+        <summary>
+          <Icon name="info" size={13} /> Cómo se cuenta cada número
+        </summary>
+
+        <dl className="an__metodo-lista">
+          <div>
+            <dt>Visitantes</dt>
+            <dd>
+              Códigos anónimos distintos en todo el período. No es la suma de los
+              días: quien entra el lunes y el martes cuenta una vez.
+            </dd>
+          </div>
+          <div>
+            <dt>Hoy</dt>
+            <dd>Los mismos códigos, contados sólo dentro del día de hoy.</dd>
+          </div>
+          <div>
+            <dt>Visitas</dt>
+            <dd>Cada vez que se abre una pantalla. La misma persona suma varias.</dd>
+          </div>
+          <div>
+            <dt>Ratos de uso</dt>
+            <dd>
+              El reloj se parte en bloques de media hora y se cuenta en cuántos
+              hubo actividad. No es la duración de una visita.
+            </dd>
+          </div>
+          <div>
+            <dt>Pantallas, orígenes y horarios</dt>
+            <dd>
+              Salen del resumen diario, que no caduca: se pueden mirar años hacia
+              atrás. Sólo el conteo de personas distintas del período necesita los
+              eventos, que viven 180 días; pasado ese rango el panel lo aclara en
+              vez de mostrar un número corto como si fuera exacto.
+            </dd>
+          </div>
+          <div>
+            <dt>A qué hora entran</dt>
+            <dd>
+              En hora de Argentina, sumando todos los días del período. Sirve para
+              elegir cuándo publicar algo y cuándo no desplegar.
+            </dd>
+          </div>
+        </dl>
+
+        <p className="an__nota">
+          <Icon name="eye" size={13} /> Sin cookies y sin datos personales: el
+          código sale de la conexión y no se puede volver atrás. Dos personas en
+          la misma red y con el mismo teléfono cuentan como una, y quien entra por
+          wifi y por datos cuenta como dos. Se respeta la señal de "no me
+          rastrees" del navegador.
+        </p>
+      </details>
     </div>
   );
 }

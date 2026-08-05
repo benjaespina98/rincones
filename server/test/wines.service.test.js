@@ -318,3 +318,122 @@ test("la cosecha distingue: un 2021 no se mezcla con el 2019 que ya tenías", as
     restore(User, "findById", originalUserFindById);
   }
 });
+
+/**
+ * ── ACCIONES EN LOTE ────────────────────────────────────────────────────────
+ * Es la parte de la app donde un error cuesta más caro: una petición borra
+ * muchos vinos de una. Lo que se prueba acá es lo que no se ve leyendo el código:
+ * que el userId viaje SIEMPRE en el filtro (y no como una verificación previa
+ * que alguien puede olvidar), que haya un techo, y que el número que se le
+ * informa al usuario sea el que la base cambió de verdad.
+ */
+
+const conMock = async (objeto, clave, reemplazo, fn) => {
+  const original = objeto[clave];
+  objeto[clave] = reemplazo;
+  try {
+    return await fn();
+  } finally {
+    restore(objeto, clave, original);
+  }
+};
+
+const ID_1 = "507f1f77bcf86cd799439011";
+const ID_2 = "507f1f77bcf86cd799439012";
+
+test("el lote filtra SIEMPRE por dueño: no alcanza con mandar un id ajeno", async () => {
+  let filtroUsado = null;
+  const original = User.findById;
+  User.findById = async () => null;
+
+  try {
+    await conMock(Wine, "updateMany", async (filtro) => {
+      filtroUsado = filtro;
+      return { modifiedCount: 2 };
+    }, () => winesService.bulkAction("user-1", [ID_1, ID_2], "tasted"));
+  } finally {
+    restore(User, "findById", original);
+  }
+
+  assert.equal(filtroUsado.userId, "user-1", "el dueño va en la consulta, no en un if aparte");
+  assert.deepEqual(filtroUsado._id.$in, [ID_1, ID_2]);
+});
+
+test("el lote devuelve lo que CAMBIÓ, no lo que se mandó", async () => {
+  const original = User.findById;
+  User.findById = async () => null;
+
+  try {
+    // Se mandan dos, pero uno ya estaba marcado: informar "2 marcados" sería
+    // contarle al usuario un trabajo que no se hizo.
+    const r = await conMock(Wine, "updateMany", async () => ({ modifiedCount: 1 }), () =>
+      winesService.bulkAction("user-1", [ID_1, ID_2], "favorite")
+    );
+    assert.equal(r.affected, 1);
+  } finally {
+    restore(User, "findById", original);
+  }
+});
+
+test("el lote descarta ids inválidos, duplicados y lo que pase del tope", async () => {
+  let filtroUsado = null;
+  const original = User.findById;
+  User.findById = async () => null;
+
+  const muchos = Array.from({ length: winesService.MAX_EN_LOTE + 40 }, (_, i) =>
+    `507f1f77bcf86cd7994${String(390 + i).padStart(5, "0")}`.slice(0, 24)
+  );
+
+  try {
+    await conMock(Wine, "updateMany", async (filtro) => {
+      filtroUsado = filtro;
+      return { modifiedCount: 0 };
+    }, () => winesService.bulkAction("user-1", [ID_1, ID_1, "no-es-un-id", null, ...muchos], "tasted"));
+  } finally {
+    restore(User, "findById", original);
+  }
+
+  const ids = filtroUsado._id.$in;
+  assert.ok(ids.length <= winesService.MAX_EN_LOTE, "hay un techo");
+  assert.equal(ids.filter((i) => i === ID_1).length, 1, "el mismo id no va dos veces");
+  assert.ok(!ids.includes("no-es-un-id"), "lo que no es un id no llega a la consulta");
+});
+
+test("una acción inventada no hace nada y se puede distinguir de 'no cambió ninguno'", async () => {
+  // Devuelve null (≠ { affected: 0 }) para que el controlador conteste 400 y no
+  // un éxito silencioso: pedir algo que no existe no es lo mismo que pedir algo
+  // que no tuvo efecto.
+  const r = await winesService.bulkAction("user-1", [ID_1], "formatear-todo");
+  assert.equal(r, null);
+});
+
+test("borrar en lote no toca vinos de otro y ajusta las estadísticas una sola vez", async () => {
+  const user = { stats: { winesCount: 10, tastedWines: 4 }, save: async () => {} };
+  const originalFindById = User.findById;
+  User.findById = async () => user;
+
+  let filtroBorrado = null;
+
+  try {
+    const r = await conMock(Wine, "find", () => ({
+      select: () => ({
+        lean: async () => [
+          { _id: ID_1, name: "A", winery: "X", tasted: true },
+          { _id: ID_2, name: "B", winery: "Y", tasted: false },
+        ],
+      }),
+    }), () =>
+      conMock(Wine, "deleteMany", async (filtro) => {
+        filtroBorrado = filtro;
+        return { deletedCount: 2 };
+      }, () => winesService.bulkAction("user-1", [ID_1, ID_2], "delete"))
+    );
+
+    assert.equal(r.affected, 2);
+    assert.equal(filtroBorrado.userId, "user-1");
+    assert.equal(user.stats.winesCount, 8, "bajan los dos");
+    assert.equal(user.stats.tastedWines, 3, "sólo baja el que estaba probado");
+  } finally {
+    restore(User, "findById", originalFindById);
+  }
+});

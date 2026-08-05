@@ -12,6 +12,8 @@ import {
   setPromotionVisibility,
   movePromotion,
   deletePromotion,
+  getReportLink,
+  revokeReportLink,
 } from "../services/promotionsApi";
 import "./styles/AdminPromotionsPage.css";
 
@@ -171,6 +173,7 @@ export default function AdminPromotionsPage() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [borrar, setBorrar] = useState(null);
+  const [cortar, setCortar] = useState(null);
   const [informe, setInforme] = useState(null);
   const [plegadas, setPlegadas] = useState(() => new Set(["ended"]));
   // Cuáles están cambiando de estado: sin esto un toque repetido en el interruptor
@@ -284,6 +287,39 @@ export default function AdminPromotionsPage() {
       else siguiente.delete(id);
       return siguiente;
     });
+
+  /**
+   * Copia el enlace del informe al portapapeles.
+   *
+   * Copiar y no abrir: lo que uno hace con esto es pegarlo en un mail o un
+   * mensaje al anunciante, no mirarlo. Abrirlo sería un paso de más y encima
+   * sumaría una visita del administrador al informe de otro.
+   */
+  const copiarInforme = async (p) => {
+    try {
+      const token = await getReportLink(p._id);
+      const enlace = `${window.location.origin}/informe/${token}`;
+      await navigator.clipboard.writeText(enlace);
+      showSuccess("Enlace copiado: se lo podés pasar al anunciante");
+    } catch {
+      showError("No se pudo generar el enlace");
+    }
+  };
+
+  /** Corta el enlace. Los números quedan: sólo deja de poder verlos. */
+  const cortarInforme = async () => {
+    const p = cortar;
+    if (!p) return;
+    try {
+      await revokeReportLink(p._id);
+      showSuccess("El enlace dejó de funcionar");
+      await cargar();
+    } catch {
+      showError("No se pudo dar de baja el enlace");
+    } finally {
+      setCortar(null);
+    }
+  };
 
   const alternarVisible = async (p) => {
     if (ocupadas.has(p._id)) return;
@@ -733,6 +769,44 @@ export default function AdminPromotionsPage() {
                           <Icon name="pencil" size={16} />
                         </button>
 
+                        {/* El enlace del informe para el anunciante. Sólo para
+                            publicidades: un evento propio no le rinde cuentas a
+                            nadie. Se genera recién al pedirlo, así que una
+                            campaña que nunca se compartió no tiene ninguna
+                            puerta abierta. */}
+                        {p.kind === "ad" && (
+                          <button
+                            type="button"
+                            className={`pr__icon ${p.hasReport ? "is-on" : ""}`}
+                            onClick={() => copiarInforme(p)}
+                            disabled={ocupadas.has(p._id)}
+                            title={
+                              p.hasReport
+                                ? "Copiar de nuevo el enlace del informe"
+                                : "Crear y copiar el enlace del informe para el anunciante"
+                            }
+                            aria-label={`Enlace del informe de ${p.title}`}
+                          >
+                            <Icon name="share" size={16} />
+                          </button>
+                        )}
+
+                        {/* Cortar el enlace sólo aparece si hay uno: un botón para
+                            deshacer algo que no se hizo es una pregunta que el
+                            usuario tiene que contestar cada vez que mira la fila. */}
+                        {p.kind === "ad" && p.hasReport && (
+                          <button
+                            type="button"
+                            className="pr__icon pr__icon--danger"
+                            onClick={() => setCortar(p)}
+                            disabled={ocupadas.has(p._id)}
+                            title="Dar de baja el enlace del informe"
+                            aria-label={`Dar de baja el enlace del informe de ${p.title}`}
+                          >
+                            <Icon name="eye-off" size={16} />
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           className="pr__icon pr__icon--danger"
@@ -779,6 +853,19 @@ export default function AdminPromotionsPage() {
               }.`}
         </p>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(cortar)}
+        title="¿Dar de baja el enlace?"
+        // Se dice qué se pierde y qué no: el miedo a borrar datos es lo que hace
+        // que nadie corte un enlace que ya no debería estar vivo.
+        message={`Quien tenga el enlace del informe de "${cortar?.title || ""}" va a dejar de poder abrirlo. Los números no se tocan, y podés generar uno nuevo cuando quieras.`}
+        confirmText="Dar de baja"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={cortarInforme}
+        onCancel={() => setCortar(null)}
+      />
 
       <ConfirmModal
         isOpen={borrar !== null}

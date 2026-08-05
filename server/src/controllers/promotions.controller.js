@@ -1,5 +1,6 @@
 const promotionsService = require("../services/promotions.service");
 const { identificar } = require("../services/analytics.service");
+const { peticionHumana } = require("../utils/trafficFilter");
 
 /**
  * GET /api/promotions — lo que ve el visitante. Público.
@@ -44,6 +45,18 @@ const listPublic = async (req, res, next) => {
  */
 const collect = async (req, res) => {
   try {
+    // Los bots no ven publicidad. Es la primera objeción de cualquiera que pague
+    // por impresiones, y contestarla con "no lo sé" termina la conversación. Se
+    // descarta antes de tocar la base: el evento de un rastreador no existe.
+    if (!peticionHumana(req)) return res.status(204).end();
+
+    // Y tampoco cuenta el tráfico de los administradores. Sos vos probando tu
+    // propia campaña: se vio con 26 clics sobre 20 impresiones, todos tuyos. Un
+    // número que incluye al que factura no lo puede defender nadie, y de paso
+    // esto vuelve el conteo conservador, que es como tiene que estar sesgado un
+    // número que se cobra.
+    if (req.user?.role === "admin") return res.status(204).end();
+
     const entries = Array.isArray(req.body?.events) ? req.body.events : [];
     const { visitorHash } = identificar(req);
     await promotionsService.recordEvents({ entries, visitorHash });
@@ -51,6 +64,27 @@ const collect = async (req, res) => {
     // Un contador no puede romperle la navegación a nadie.
   }
   return res.status(204).end();
+};
+
+/**
+ * El informe que abre el anunciante con su enlace. Público a propósito: la llave
+ * ES el enlace. Ver `ensureReportToken` en el servicio.
+ */
+const publicReport = async (req, res, next) => {
+  try {
+    const informe = await promotionsService.reportByToken(req.params.token, {
+      days: Number(req.query.days) || 30,
+      from: req.query.from,
+      to: req.query.to,
+    });
+    if (!informe) return res.status(404).json({ success: false, error: "Informe no disponible" });
+    // Sin caché: un anunciante que recarga tiene que ver el número de ahora, no
+    // uno de hace media hora que ya no coincide con lo que le dijiste.
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, data: informe });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 // ── Panel admin ────────────────────────────────────────────────────────────
@@ -72,7 +106,11 @@ const listAll = async (req, res, next) => {
 
 const stats = async (req, res, next) => {
   try {
-    const data = await promotionsService.stats(req.params.id, { days: req.query.days });
+    const data = await promotionsService.stats(req.params.id, {
+      days: req.query.days,
+      from: req.query.from,
+      to: req.query.to,
+    });
     if (!data) return res.status(404).json({ success: false, error: "Campaña no encontrada" });
     return res.status(200).json({ success: true, data });
   } catch (error) {
@@ -136,7 +174,32 @@ const remove = async (req, res, next) => {
   }
 };
 
+/** Genera (o devuelve) el enlace del informe de una campaña. Sólo admin. */
+const reportLink = async (req, res, next) => {
+  try {
+    const token = await promotionsService.ensureReportToken(req.params.id);
+    if (!token) return res.status(404).json({ success: false, error: "Campaña no encontrada" });
+    return res.json({ success: true, data: { token } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/** Corta el enlace. Los números no se tocan: sólo deja de poder verlos. */
+const revokeReportLink = async (req, res, next) => {
+  try {
+    const ok = await promotionsService.revokeReportToken(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: "Campaña no encontrada" });
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
+  publicReport,
+  reportLink,
+  revokeReportLink,
   listPublic,
   collect,
   listAll,

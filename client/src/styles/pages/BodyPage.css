@@ -1047,3 +1047,328 @@
   grid-column: 1 / -1;
 }
 
+
+/* ══ DOS DENSIDADES, PORQUE SON DOS PANTALLAS DISTINTAS ══════════════════════
+   "En stock" es la vitrina: son pocos, son los que podés abrir hoy, y la
+   pregunta es cuál elijo. Ahí cada vino se muestra grande y su stock es el dato
+   protagonista.
+
+   "Probados" y "Todos" son el archivo, y el archivo crece: con doscientos vinos
+   la pregunta ya no es cuál elijo sino cómo encuentro uno, y para eso la
+   respuesta es que entren más en pantalla —no que cada uno se vea mejor—.
+   Es la misma decisión que toman Vivino o Delectable entre su vitrina y su
+   historial, y no cuesta un control nuevo: lo decide la vista en la que estás. */
+
+/* ── La vitrina ──────────────────────────────────────────────────────────── */
+
+.wines-list--protagonista .wine-row {
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: var(--shadow-sm);
+}
+
+/* En la vitrina, "Probado" baja a su propio renglón.
+   Con el chip al lado, al nombre le quedaban 133px de los 438 de la fila y medio
+   listado mostraba "Trapiche Chardonnay…". El nombre es lo que se lee para
+   reconocer un vino: es lo último que puede quedar sin lugar. */
+.wines-list--protagonista .wine-row__head {
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 4px 12px 10px;
+}
+
+.wines-list--protagonista .wine-row__main {
+  width: 100%;
+  padding: 10px 0;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+/* Los datos arrancan arriba, a la altura del nombre, y no centrados contra la
+   foto: centrado, el nombre quedaba flotando en el medio del bloque. */
+.wines-list--protagonista .wine-row__info {
+  gap: 3px;
+  padding-top: 2px;
+}
+
+/* "Probado" sube a la altura del pie de la foto en vez de abrir un renglón
+   entero debajo: sin esto quedaba una franja vacía de 30px en cada tarjeta que
+   no tenía puntaje, y una tarjeta con un agujero en el medio se lee como que
+   algo no cargó. */
+.wines-list--protagonista .wine-row__tasted {
+  margin-top: -34px;
+}
+
+.wines-list--protagonista .wine-row__right {
+  align-self: flex-start;
+  padding-top: 2px;
+}
+
+.wines-list--protagonista .wine-row__tasted {
+  margin-left: auto;
+}
+
+/* La foto, en formato botella y del tamaño de una foto.
+   A 46px cuadrados no se distingue una etiqueta de otra, que es exactamente para
+   lo que uno la mira: reconocer el vino sin leer. Vertical porque una botella lo
+   es, y así entra entera en vez de recortada por el medio. */
+.wines-list--protagonista .wine-row__thumb {
+  width: 72px;
+  height: 90px;
+  border-radius: var(--radius-lg);
+}
+
+/* El tipo con todas las letras: el color de la botella dibujada insinúa, pero un
+   rosado y un tinto claro se parecen demasiado en 40px. */
+.wine-row__type {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.wine-row__type--red { color: #f0899d; border-color: rgba(198, 70, 95, 0.34); }
+.wine-row__type--white { color: var(--gold-soft); border-color: rgba(242, 183, 55, 0.3); }
+.wine-row__type--rosé { color: #f2a0c0; border-color: rgba(242, 160, 192, 0.3); }
+.wine-row__type--sparkling { color: #8fd8e8; border-color: rgba(143, 216, 232, 0.3); }
+.wine-row__type--fortified { color: #d0a878; border-color: rgba(208, 168, 120, 0.32); }
+
+/* Las estrellas quedan sueltas bajo la bodega: en la vitrina hay lugar y se
+   comparan de un vistazo entre vinos vecinos. */
+.wines-list--protagonista .stars {
+  margin-top: 3px;
+}
+
+.wines-list--protagonista .wine-row__name {
+  font-size: var(--text-lg);
+}
+
+/* El chip de stock: el dato con el que decidís si este vino puede ser el de hoy.
+   En la vitrina es una pastilla de verdad, con el color de la app y el número en
+   grande; en el archivo vuelve a ser un dato más. */
+.wines-list--protagonista .wine-row__qty {
+  font-size: var(--text-base);
+  font-weight: 800;
+  padding: 6px 13px;
+  color: var(--accent-soft);
+  background: rgba(126, 89, 201, 0.16);
+  border: 1px solid var(--line-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Última botella: si la abrís, se termina. Vale avisarlo antes, no después. */
+.wines-list--protagonista .wine-row__qty.is-last {
+  color: var(--gold-soft);
+  background: rgba(242, 183, 55, 0.14);
+  border-color: rgba(242, 183, 55, 0.32);
+}
+
+/* ── El archivo ──────────────────────────────────────────────────────────── */
+
+.wines-list--archivo .wine-row {
+  animation: none; /* Con cien filas, la entrada escalonada es un temblor. */
+}
+
+.wines-list--archivo .wine-row__head {
+  padding: 8px 12px;
+}
+
+.wines-list--archivo .wine-row__thumb {
+  width: 38px;
+  height: 38px;
+}
+
+.wines-list--archivo .wine-row__name {
+  font-size: var(--text-base);
+}
+
+/* ── Selección múltiple ──────────────────────────────────────────────────── */
+
+.bodega-seleccion-entrada {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 -2px;
+}
+
+.bodega-seleccionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.bodega-seleccionar:hover {
+  color: var(--text);
+  border-color: var(--line-accent);
+}
+
+/* La tilde ocupa el lugar de la foto: la fila no se reacomoda al entrar al modo
+   y el elegido se distingue sin comparar dos casillas de doce píxeles. */
+.wine-row__thumb.is-picking {
+  border-color: transparent;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+.wine-row__tick {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--line-accent);
+  color: #fff;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.wine-row__tick.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.wine-row.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+/* Mientras seleccionás, la flecha de "desplegar" miente sobre lo que va a pasar. */
+.wines-list.is-selecting .wine-row__caret {
+  opacity: 0;
+}
+
+/* Lugar para la barra: sin esto tapa las últimas filas, que son justo las que
+   alguien está por elegir cuando llega al final de la lista. */
+.wines-list.is-selecting {
+  padding-bottom: 128px;
+}
+
+.bodega-barra {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Encima de la navegación, no debajo: es la barra de la tarea que estás
+     haciendo ahora y tiene que quedar al alcance del pulgar. */
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: var(--z-nav);
+  width: min(560px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line-accent);
+  background: rgba(18, 21, 33, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-lg);
+  animation: barraIn 220ms var(--ease-out) both;
+}
+
+@keyframes barraIn {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.bodega-barra__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bodega-barra__todos {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bodega-barra__todos .wine-row__tick {
+  width: 22px;
+  height: 22px;
+}
+
+.bodega-barra__n {
+  flex: 1;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.bodega-barra__salir {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bodega-barra__acciones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.bodega-barra__accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.bodega-barra__accion:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  background: var(--elevated);
+}
+
+.bodega-barra__accion:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* La destructiva se ve distinta desde antes de tocarla, no sólo al confirmar. */
+.bodega-barra__accion--peligro {
+  color: #f0899d;
+  border-color: rgba(198, 70, 95, 0.3);
+}
+
+.bodega-barra__accion--peligro:hover:not(:disabled) {
+  background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.5);
+}

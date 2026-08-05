@@ -110,6 +110,38 @@ const analyticsDailySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: () => ({}),
     },
+    /**
+     * De dónde llegaron, por host. Misma forma que `byType` y `byPath`.
+     *
+     * Estaba sólo en los eventos crudos, que caducan a los 180 días: el panel
+     * decía "de dónde llegan" y a los seis meses esa respuesta se vaciaba sola
+     * sin avisar, y se leía como "no llegó nadie de ningún lado".
+     */
+    byReferrer: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    /**
+     * Actividad por hora del día, 0 a 23, en hora de Argentina.
+     *
+     * ── PARA QUÉ SIRVE ────────────────────────────────────────────────────
+     * Es la pregunta que contesta el "mejor momento para publicar" de las
+     * herramientas de Meta: a qué hora está la gente. Sirve para dos cosas
+     * concretas: cuándo conviene mandar una notificación o publicar una campaña,
+     * y a qué hora NO conviene desplegar.
+     *
+     * ── POR QUÉ ACÁ Y NO CALCULADO DE LOS EVENTOS ─────────────────────────
+     * Porque los eventos crudos caducan a los 180 días y esto tiene que poder
+     * mirarse a dos años. Son 24 números por día: cuesta nada y no se pierde.
+     *
+     * En hora local y no UTC porque la pregunta es "¿a qué hora está la gente?",
+     * y para alguien en Argentina las 22 son las 22. Guardarlo en UTC obligaría a
+     * corregir al leer, que es donde se cuela el error de tres horas.
+     */
+    byHour: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
     updatedAt: {
       type: Date,
       default: Date.now,
