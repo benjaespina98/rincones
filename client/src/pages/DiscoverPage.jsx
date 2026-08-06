@@ -10,7 +10,10 @@ import { visibleContent, itemSubtitle, pickFeatured } from "../data/discoverCont
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
-import { greeting, homeTitle, whyThisWine, recoHint } from "../utils/momentCopy";
+// `recoHint` ya no se usa: era el subtítulo del segundo bloque de
+// recomendaciones ("Elegidos pensando en tus Malbec"), que ahora es el catálogo
+// para seguir mirando. La función queda en momentCopy por si vuelve.
+import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -129,6 +132,17 @@ export default function DiscoverPage() {
   const buscando = query.trim().length >= 2;
 
   const spotlight = featured[spotlightIdx] || null;
+
+  /**
+   * La fila de abajo, SIN el vino destacado.
+   *
+   * Eran dos recomendaciones para lo mismo: el destacado sale de `featured`, que
+   * es el mismo array que alimenta la fila, así que el vino de arriba volvía a
+   * aparecer unos píxeles más abajo —y con "Sorprendeme" cambiaba el de arriba
+   * pero no el duplicado—. Excluirlo es lo que ya se hacía con el contenido
+   * destacado de "Aprendé y explorá" (ver `visibleContent`), por la misma razón.
+   */
+  const railWines = spotlight ? featured.filter((w) => w.id !== spotlight.id) : featured;
 
   const surpriseMe = () => {
     if (featured.length < 2) return;
@@ -420,11 +434,16 @@ export default function DiscoverPage() {
           </section>
         )}
 
-        {/* Recomendados del catálogo argentino */}
+        {/* ── Más para descubrir ────────────────────────────────────────────
+            Ya no es una segunda recomendación. Arriba está LA recomendación del
+            día —una, elegida, con su motivo y su "Sorprendeme"—; esto es el
+            catálogo para seguir mirando. Tener dos bloques que dicen "elegidos
+            para vos" en la misma pantalla le quita valor al primero: si todo
+            está elegido para vos, nada lo está. */}
         <section className="discover-section">
           <div className="discover-section__head">
-            <h2>Recomendados para vos</h2>
-            <span className="discover-section__hint">{recoHint({ stats })}</span>
+            <h2>Más para descubrir</h2>
+            <span className="discover-section__hint">Vinos argentinos para sumar a tu lista</span>
           </div>
 
           {loading ? (
@@ -436,7 +455,7 @@ export default function DiscoverPage() {
               onRetry={loadFeatured}
               compact
             />
-          ) : featured.length === 0 ? (
+          ) : railWines.length === 0 ? (
             <EmptyState
               icon="search"
               title="No hay recomendaciones ahora"
@@ -445,7 +464,7 @@ export default function DiscoverPage() {
             />
           ) : (
             <div className="discover-rail">
-              {featured.map((wine) => (
+              {railWines.map((wine) => (
                 <article key={wine.id} className="discover-wine">
                   <button
                     type="button"
