@@ -106,7 +106,7 @@ export default function PromoStats({ promoId, title, onClose }) {
       </div>
 
       {loading && <p className="pstats__msg">Cargando el informe…</p>}
-      {failed && <p className="pstats__msg">No pudimos traer el informe.</p>}
+      {failed && <p className="pstats__msg">No se pudo traer el informe.</p>}
 
       {data && !loading && (
         <>

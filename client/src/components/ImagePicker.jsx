@@ -140,7 +140,7 @@ export default function ImagePicker({
 
       {falla && value && (
         <small className="imgpick__error">
-          <Icon name="alert-triangle" size={12} /> No pudimos mostrar esa imagen. Revisá
+          <Icon name="alert-triangle" size={12} /> No se pudo mostrar esa imagen. Revisá
           el enlace antes de publicar.
         </small>
       )}

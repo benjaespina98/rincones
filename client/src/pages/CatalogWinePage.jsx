@@ -6,6 +6,7 @@ import WineReviews from "../components/WineReviews";
 import WinePhoto from "../components/WinePhoto";
 import WineAbout from "../components/WineAbout";
 import WineIdentity from "../components/WineIdentity";
+import WinePlan from "../components/WinePlan";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
@@ -76,7 +77,7 @@ export default function CatalogWinePage() {
       <div className="wine-detail-page">
         <EmptyState
           icon="bottle"
-          title="No encontramos el vino"
+          title="Este vino no está disponible"
           hint="Volvé a la lista y elegí uno para ver su ficha."
           actionLabel="Volver"
           onAction={() => navigate(-1)}
@@ -145,17 +146,24 @@ export default function CatalogWinePage() {
             un vino del catálogo no se edita, se agrega a la bodega. */}
         <WineIdentity wine={wine} />
 
+        {/* El plan de la noche también acá, y esto NO es un extra: para un vino
+            que todavía no comprás, saber qué se cocina con él y con qué suena es
+            justamente lo que ayuda a decidir si lo querés. La botella no hace
+            falta tenerla para planear la noche en que la vas a abrir. */}
+        <WinePlan wine={wine} info={aiInfo} />
+
         {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
         <WineAbout
           loading={aiLoading}
           failed={aiFailed}
           info={aiInfo}
           onRetry={loadDescription}
+          wine={wine}
         />
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
             la ficha de un vino que todavía no tiene. */}
-        <WineReviews name={wine.name} winery={wine.winery} />
+        <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
         {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
         <div className="wine-price">

@@ -39,6 +39,153 @@
   gap: 7px;
 }
 
+/* ── Escribí qué vas a comer ────────────────────────────────────────────────
+   La vía principal de la pantalla. Los chips cubren diez comidas y la cena de
+   esta noche casi nunca es una de esas diez; escribirlo no tiene techo.
+
+   Se ve como un campo importante —alto, redondeado, con el ícono adentro y el
+   botón de enviar incorporado— porque es lo primero que hay que hacer acá. */
+.dish-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px 0 14px;
+  min-height: 52px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background:
+    radial-gradient(120% 160% at 0% 50%, rgba(167, 130, 239, 0.14), transparent 62%),
+    var(--surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dish-field:focus-within {
+  border-color: var(--accent-light);
+  box-shadow: 0 0 0 3px rgba(126, 89, 201, 0.18);
+}
+
+.dish-field__icon {
+  flex-shrink: 0;
+  color: var(--accent-soft);
+}
+
+.dish-field__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--text-md);
+  outline: none;
+  /* El input global (App.css) trae padding propio y min-height: acá adentro
+     sumaba 16px a la izquierda del ícono —se veía un hueco entre el cubierto y
+     el texto— y estiraba la píldora. El alto lo pone el contenedor. */
+  padding: 0;
+  min-height: 0;
+}
+
+.dish-field__input::placeholder {
+  color: var(--text-muted);
+}
+
+.dish-field__go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.dish-field__go:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dish-field__go:not(:disabled):active {
+  transform: scale(0.92);
+}
+
+.dish-field__spin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: dish-spin 700ms linear infinite;
+}
+
+@keyframes dish-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Cómo lo entendimos ─────────────────────────────────────────────────────
+   Traducir "risotto de hongos" a Pasta en silencio es decidir por el usuario sin
+   contarle. Acá se le devuelve lo que escribió y en qué lo convertimos: si no
+   está de acuerdo, toca otro atajo y listo. */
+.dish-reading {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.dish-reading .icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--accent-soft);
+}
+
+.dish-reading em {
+  font-style: normal;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.dish-reading strong {
+  color: var(--accent-soft);
+  font-weight: 800;
+}
+
+.dish-reading__note {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── Los atajos ─────────────────────────────────────────────────────────────
+   Una sola fila que se desliza. Diez chips envueltos en tres renglones son un
+   muro; en una fila son lo que deben ser: un atajo al costado del camino. */
+.chip-rail {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Que el primero y el último no queden pegados al borde de la tarjeta. */
+  padding: 2px 2px 4px;
+  margin: 0 -2px;
+  scroll-snap-type: x proximity;
+}
+
+.chip-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-rail .context-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
 .context-label {
   font-size: var(--text-2xs);
   font-weight: 800;
@@ -325,6 +472,28 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* La razón por la que este vino está en la lista. Mismo lenguaje que la razón de
+   los vinos de tu bodega —ícono de chispa, texto en gris— para que se lean como
+   lo que son: la misma clase de dato en las dos secciones. */
+.discover-card__reason {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-align: left;
+  /* Una sola línea: es un renglón de apoyo dentro de una tarjeta compacta. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.discover-card__reason .icon {
+  flex-shrink: 0;
+  color: var(--accent-soft);
 }
 
 .discover-card__caret {

@@ -11,6 +11,12 @@ router.get("/search", authenticate, aiLimiter, catalogController.search);
 // POST /api/catalog/describe - ficha del vino (descripción, aromas, maridaje).
 router.post("/describe", authenticate, aiLimiter, catalogController.describe);
 
+// POST /api/catalog/recipe - plato con receta para acompañar la botella.
+router.post("/recipe", authenticate, aiLimiter, catalogController.recipe);
+
+// POST /api/catalog/pairing - qué maridaje le corresponde a un plato escrito a mano.
+router.post("/pairing", authenticate, aiLimiter, catalogController.pairing);
+
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
 router.get("/featured", authenticate, catalogController.featured);
 
@@ -21,6 +27,9 @@ router.get("/price", authenticate, catalogController.price);
 router.post("/match", authenticate, aiLimiter, catalogController.match);
 
 // Reseñas públicas de vinos (comunidad).
+// "/reviews/mine" va antes que "/reviews" por claridad; son rutas distintas y
+// Express no las confunde, pero leerlas juntas evita duplicarlas por error.
+router.get("/reviews/mine", authenticate, catalogController.myReviews);
 router.get("/reviews", authenticate, catalogController.reviews);
 router.post("/reviews", authenticate, catalogController.publishReview);
 router.delete("/reviews", authenticate, catalogController.removeReview);

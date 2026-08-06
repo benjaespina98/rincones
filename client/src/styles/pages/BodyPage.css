@@ -854,7 +854,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
+     toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
+     salir del modo selección, marcar todos— se habían quedado en 34. */
+  min-height: 40px;
   padding: 0 10px 0 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line-accent);
@@ -1197,7 +1200,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
+     toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
+     salir del modo selección, marcar todos— se habían quedado en 34. */
+  min-height: 40px;
   padding: 0 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
@@ -1291,7 +1297,10 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
+  /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
+     toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
+     salir del modo selección, marcar todos— se habían quedado en 34. */
+  min-height: 40px;
   padding: 0 10px 0 4px;
   border: 0;
   background: none;
@@ -1316,7 +1325,10 @@
 }
 
 .bodega-barra__salir {
-  min-height: 34px;
+  /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
+     toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
+     salir del modo selección, marcar todos— se habían quedado en 34. */
+  min-height: 40px;
   padding: 0 12px;
   border-radius: var(--radius-full);
   border: 0;

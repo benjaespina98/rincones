@@ -58,6 +58,10 @@ export const FOOD_PAIRINGS = {
   solo:     { types: [],                            varietals: [] },
 };
 
+// Mariscos y ensalada tenían maridaje en FOOD_PAIRINGS pero no nombre: cuando el
+// Sommelier a texto libre resuelve "ceviche" o "tarta de verduras", tiene que
+// poder decir en qué lo convirtió. Ahora también son atajos, que la fila de
+// chips se desliza y ya no cuesta nada sumarlos.
 export const FOOD_LABELS = {
   asado:    "Asado",
   carne:    "Carnes",
@@ -65,8 +69,10 @@ export const FOOD_LABELS = {
   pasta:    "Pasta",
   pizza:    "Pizza",
   pescado:  "Pescado",
+  mariscos: "Mariscos",
   picada:   "Picada",
   queso:    "Quesos",
+  ensalada: "Verduras",
   postre:   "Postres",
   solo:     "Sin comida",
 };

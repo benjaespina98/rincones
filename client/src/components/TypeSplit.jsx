@@ -40,6 +40,10 @@ export default function TypeSplit({ counts = [], total = 0 }) {
         ))}
       </div>
 
+      {/* El porcentaje, además del conteo. "Tinto 2" al lado de una barra llena
+          obliga a hacer la cuenta para saber qué parte de la bodega es; "82%" es
+          la lectura que uno quiere de un gráfico de proporciones. Con un solo
+          tipo dice 100%, que también es información: es lo único que tomás. */}
       <ul className="type-split__legend">
         {rows.map((r) => (
           <li key={r.type} className="type-split__item">
@@ -50,6 +54,7 @@ export default function TypeSplit({ counts = [], total = 0 }) {
             />
             {WINE_TYPE_LABELS[r.type] || WINE_TYPE_LABELS.unknown}
             <span className="type-split__n">{r.count}</span>
+            <span className="type-split__pct">{Math.round((r.count / total) * 100)}%</span>
           </li>
         ))}
       </ul>

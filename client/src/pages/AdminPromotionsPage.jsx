@@ -633,7 +633,7 @@ export default function AdminPromotionsPage() {
 
       {failed && !loading && (
         <div className="admin-empty-state">
-          <p>No pudimos cargar las campañas.</p>
+          <p>No se pudieron cargar las campañas.</p>
           <button className="button" type="button" onClick={cargar}>Reintentar</button>
         </div>
       )}

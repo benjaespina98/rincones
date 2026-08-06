@@ -1,0 +1,82 @@
+/* ══ Término con definición ════════════════════════════════════════════════
+   Un rótulo que ya estaba, ahora tocable. Hereda TODO del texto que envuelve
+   —tamaño, peso, color, mayúsculas— y sólo agrega el punteado: si se viera como
+   un botón, cada barra de la ficha tendría un botón al lado y la pantalla se
+   llenaría de controles para leer una definición.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.concept-term {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  cursor: help;
+  /* El punteado es la única señal, y va en el color del texto a media
+     opacidad para no ganarle a lo que dice el rótulo. */
+  text-decoration: underline dotted currentColor;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  opacity: 0.95;
+}
+
+.concept-term:hover {
+  opacity: 1;
+  text-decoration-color: var(--accent-soft);
+}
+
+/* El área de toque real: el rótulo puede medir 10px de alto y un dedo necesita
+   más. Se agranda por fuera, sin mover el texto ni empujar el layout. */
+.concept-term::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}
+
+.concept-term {
+  position: relative;
+}
+
+/* ── La hoja ─────────────────────────────────────────────────────────────── */
+
+.concept-sheet {
+  max-width: 460px;
+}
+
+.concept-sheet__body {
+  gap: 14px;
+}
+
+.concept-sheet__text {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* El renglón que la ata a tu botella. Lleva el acento porque es lo único de la
+   tarjeta que no podrías leer en cualquier otro lado. */
+.concept-sheet__anchor {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(167, 130, 239, 0.1);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.concept-sheet__anchor .icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent-soft);
+}

@@ -163,6 +163,11 @@ body {
     linear-gradient(180deg, #090b13 0%, #101423 100%),
     var(--bg);
   overflow-x: hidden;
+  /* Se hereda a todo el texto. Sin esto, una palabra larga sin espacios —el
+     nombre de una bodega alemana, un mail, una URL pegada en las notas— estira
+     su caja y el `overflow-x: hidden` de arriba la corta: se ve media palabra y
+     ninguna señal de que falta el resto. Cortarla es mejor que esconderla. */
+  overflow-wrap: break-word;
 }
 
 a {

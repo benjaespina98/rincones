@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "./Icon";
 import WineStructure from "./WineStructure";
 import LoadingSkeleton from "./LoadingSkeleton";
@@ -23,8 +24,24 @@ import ErrorState from "./ErrorState";
 
 const MAX_CHIPS = 4;
 
-export default function WineAbout({ loading, failed, info, onRetry }) {
+export default function WineAbout({ loading, failed, info, onRetry, wine }) {
+  // Plegado por defecto. El resumen es lo que se lee siempre; las barras, los
+  // aromas y la graduación son material de consulta que se mira una vez y
+  // sumaba media pantalla de scroll en TODAS las visitas siguientes.
+  const [abierto, setAbierto] = useState(false);
+
   if (!loading && !failed && !info) return null;
+
+  // Si no hay nada detrás del resumen, no se ofrece abrir nada.
+  const hayDetalle = Boolean(
+    info &&
+      (info.body ||
+        info.structure ||
+        info.profile?.length ||
+        info.aromas?.length ||
+        info.alcohol ||
+        info.funFact)
+  );
 
   return (
     <div className="wine-about">
@@ -44,61 +61,81 @@ export default function WineAbout({ loading, failed, info, onRetry }) {
       {loading && <LoadingSkeleton type="inline" count={3} />}
 
       {failed && !loading && (
-        <ErrorState title="No pudimos generar la descripción" onRetry={onRetry} compact />
+        <ErrorState title="No se pudo generar la descripción" onRetry={onRetry} compact />
       )}
 
       {info && !loading && (
         <>
           {info.summary && <p className="wine-about__summary">{info.summary}</p>}
-          {info.body && <p className="wine-about__body">{info.body}</p>}
 
-          <WineStructure structure={info.structure} />
-
-          {!info.structure && info.profile?.length > 0 && (
-            <div className="wine-about__profile">
-              {info.profile.map((p) => (
-                <span key={p} className="wine-about__pill">{p}</span>
-              ))}
-            </div>
+          {hayDetalle && (
+            <button
+              type="button"
+              className="wine-about__toggle"
+              onClick={() => setAbierto((v) => !v)}
+              aria-expanded={abierto}
+            >
+              {abierto ? "Ocultar el detalle" : "Cómo es en boca"}
+              <Icon name={abierto ? "minus" : "plus"} size={14} />
+            </button>
           )}
 
-          {info.aromas?.length > 0 && (
-            <div className="wine-about__block">
-              <span className="wine-about__label">Aromas</span>
-              <div className="wine-about__chips">
-                {info.aromas.slice(0, MAX_CHIPS).map((a) => (
-                  <span key={a} className="wine-about__chip">{a}</span>
-                ))}
-              </div>
-            </div>
-          )}
+          {abierto && (
+            <>
+              {info.body && <p className="wine-about__body">{info.body}</p>}
 
-          {/* Sin ícono por chip: el rótulo ya dijo que se come. Cuatro cubiertos
-              repetidos son cuatro manchas de color. */}
-          {info.foodPairing?.length > 0 && (
-            <div className="wine-about__block">
-              <span className="wine-about__label">Marida con</span>
-              <div className="wine-about__chips">
-                {info.foodPairing.slice(0, MAX_CHIPS).map((f) => (
-                  <span key={f} className="wine-about__chip">{f}</span>
-                ))}
-              </div>
-            </div>
-          )}
+              {/* `wine` sólo viaja para que los conceptos puedan decir "el tuyo
+                  es un tinto": la estructura se dibuja igual sin él. */}
+              <WineStructure structure={info.structure} wine={wine} />
 
-          {(info.alcohol || info.serve) && (
-            <div className="wine-about__facts">
+              {!info.structure && info.profile?.length > 0 && (
+                <div className="wine-about__profile">
+                  {info.profile.map((p) => (
+                    <span key={p} className="wine-about__pill">{p}</span>
+                  ))}
+                </div>
+              )}
+
+              {info.aromas?.length > 0 && (
+                <div className="wine-about__block">
+                  <span className="wine-about__label">Aromas</span>
+                  <div className="wine-about__chips">
+                    {info.aromas.slice(0, MAX_CHIPS).map((a) => (
+                      <span key={a} className="wine-about__chip">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Los chips de maridaje no están más. Desde que dicen platos
+                  concretos ("ojo de bife a la parrilla") se pisan con el plato
+                  que propone el Plan de la noche, en la misma pantalla y con
+                  receta: cuatro sugerencias sin desarrollar al lado de una
+                  desarrollada. Para elegir vino desde la comida está el
+                  Sommelier.
+
+                  La temperatura tampoco: la dice el Plan, y la dice mejor.
+                  "Servila a 16-18 °C" es una instrucción; "16-18 °C servir" era
+                  una ficha técnica diciendo lo mismo dos renglones más abajo. */}
               {info.alcohol && (
-                <span className="wine-about__fact">
-                  <strong>{info.alcohol}%</strong> alcohol
-                </span>
+                <div className="wine-about__facts">
+                  <span className="wine-about__fact">
+                    <strong>{info.alcohol}%</strong> alcohol
+                  </span>
+                </div>
               )}
-              {info.serve && (
-                <span className="wine-about__fact">
-                  <strong>{info.serve}</strong> servir
-                </span>
+
+              {/* El "¿sabías que?", último y dentro de lo plegado: es lo más
+                  lindo de leer y lo menos urgente. A quien no le interesa no le
+                  cuesta un píxel de scroll, porque esta sección arranca cerrada;
+                  quien la abrió es porque vino a leer sobre el vino. */}
+              {info.funFact && (
+                <p className="wine-about__fact-fun">
+                  <Icon name="sparkle" size={14} />
+                  <span>{info.funFact}</span>
+                </p>
               )}
-            </div>
+            </>
           )}
         </>
       )}

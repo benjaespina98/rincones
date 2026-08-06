@@ -8,7 +8,7 @@ import Icon from "./Icon";
  * creer que había perdido sus vinos. Acá decimos qué pasó y ofrecemos reintentar.
  */
 export default function ErrorState({
-  title = "No pudimos cargar esto",
+  title = "No se pudo cargar esto",
   hint = "Revisá tu conexión y probá de nuevo.",
   onRetry,
   retrying = false,

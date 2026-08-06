@@ -1,0 +1,310 @@
+/* ══ Plan de la noche ══════════════════════════════════════════════════════
+   La tarjeta que convierte una botella en un plan: a qué temperatura, qué poner
+   de música y qué cocinar.
+
+   Comparte el aire de WineOpinion (acento tenue en la esquina) porque son las
+   dos cosas que se HACEN en la ficha; el resto de los bloques son consulta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wine-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-accent);
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(167, 130, 239, 0.12), transparent 60%),
+    var(--elevated);
+}
+
+.wine-plan__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wine-plan__head h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.wine-plan__head h3 .icon {
+  color: var(--accent-soft);
+}
+
+.wine-plan__hint {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── Los cuatro planes ─────────────────────────────────────────────────────
+   Un solo toque y aparece todo. No hay paso siguiente, ni "continuar": elegir el
+   plan ES la interacción. */
+.wine-plan__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wine-plan__chip {
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.wine-plan__chip.is-on {
+  border-color: var(--line-accent);
+  background: rgba(167, 130, 239, 0.16);
+  color: #fff;
+}
+
+.wine-plan__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: wine-plan-in 200ms var(--ease-out);
+}
+
+@keyframes wine-plan-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Temperatura ─────────────────────────────────────────────────────────── */
+.wine-plan__line {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.wine-plan__line .icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent-soft);
+}
+
+.wine-plan__line strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ── Música ────────────────────────────────────────────────────────────────
+   Es un link a Spotify y se comporta como tal: no promete reproducir nada acá
+   adentro. Verde de Spotify sólo en el ícono — la tarjeta sigue siendo de la
+   app, no un banner de otra marca. */
+.wine-plan__music {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wine-plan__music:active {
+  transform: scale(0.99);
+}
+
+.wine-plan__music-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1db954;
+  color: #06210f;
+}
+
+.wine-plan__music-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wine-plan__music-text strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.wine-plan__music-text em {
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.wine-plan__music > .icon:last-child {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* ── El botón de la receta ─────────────────────────────────────────────────
+   Dice qué va a pasar y para qué plan ("Qué cocinar para un asado"), no
+   "generar con IA": lo que importa es la cena, no de dónde sale. */
+.wine-plan__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgba(167, 130, 239, 0.13);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wine-plan__cta:active {
+  transform: scale(0.99);
+}
+
+.wine-plan__cta:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.wine-plan__spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  animation: wine-plan-spin 700ms linear infinite;
+}
+
+@keyframes wine-plan-spin {
+  to { transform: rotate(360deg); }
+}
+
+.wine-plan__failed {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── La receta, en su propia hoja ───────────────────────────────────────────
+   Hereda la hoja de los filtros y las preferencias (settings-sheet): misma
+   forma, mismo cierre, mismo lugar de la X. Acá sólo va lo que es propio de una
+   receta. */
+.wine-recipe-sheet {
+  max-width: 520px;
+}
+
+.wine-recipe {
+  gap: 12px;
+}
+
+.wine-recipe__label {
+  margin: 6px 0 -2px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.wine-recipe__web {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  color: var(--accent-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wine-recipe__why {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* El único término que no envuelve un rótulo existente sino que agrega una
+   pregunta. Va en el acento para que se distinga de la frase que lo precede. */
+.wine-recipe__why-term {
+  color: var(--accent-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wine-recipe__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.wine-recipe__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.wine-recipe__ingredients {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.wine-recipe__steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.wine-recipe__steps::marker,
+.wine-recipe__steps li::marker {
+  color: var(--accent-soft);
+  font-weight: 800;
+}
+
+.wine-recipe__note {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-plan__body { animation: none; }
+}

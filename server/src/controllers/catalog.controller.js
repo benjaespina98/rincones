@@ -1,10 +1,12 @@
 const catalogService = require("../services/catalog.service");
 const wineReviews = require("../services/wineReviews.service");
 const User = require("../models/user.model");
-const { describeWine } = require("../services/wineAi.service");
+const { describeWine, suggestRecipe, classifyDish, PLANS } = require("../services/wineAi.service");
 const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");
+const WineRecipe = require("../models/wineRecipe.model");
+const DishPairing = require("../models/dishPairing.model");
 
 // GET /api/catalog/search?q=...
 const search = async (req, res, next) => {
@@ -59,7 +61,7 @@ const describe = async (req, res, next) => {
     });
 
     if (!info) {
-      return res.status(503).json({ message: "No pudimos generar la descripción ahora" });
+      return res.status(503).json({ message: "No se pudo generar la descripción ahora" });
     }
 
     try {
@@ -69,6 +71,95 @@ const describe = async (req, res, next) => {
     }
 
     return res.status(200).json({ data: info, cached: false });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// POST /api/catalog/recipe { name, winery, varietal, type, region, plan }
+// Un plato con receta para acompañar la botella, según el plan de la noche.
+// Misma mecánica que /describe: caché compartida primero, IA sólo si hace falta.
+const recipe = async (req, res, next) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    if (!name) {
+      return res.status(400).json({ message: "Falta el nombre del vino" });
+    }
+
+    const winery = String(req.body.winery || "").trim();
+    // Un plan desconocido cae en "cena": es el más neutro de los cuatro y evita
+    // que un valor viejo del cliente rompa la clave de caché.
+    const plan = Object.keys(PLANS).includes(req.body.plan) ? req.body.plan : "cena";
+    const key = `${fold(name)}|${fold(winery)}|${plan}`;
+
+    try {
+      const cached = await WineRecipe.findOne({ key }).lean();
+      if (cached?.recipe) return res.status(200).json({ data: cached.recipe, cached: true });
+    } catch {
+      // Sin caché: generamos.
+    }
+
+    const data = await suggestRecipe(
+      {
+        name,
+        winery,
+        varietal: String(req.body.varietal || "").trim(),
+        type: String(req.body.type || "").trim(),
+        region: String(req.body.region || "").trim(),
+      },
+      plan
+    );
+
+    if (!data) {
+      return res.status(503).json({ message: "No se pudo armar la receta ahora" });
+    }
+
+    try {
+      await WineRecipe.updateOne({ key }, { $set: { key, recipe: data } }, { upsert: true });
+    } catch {
+      // La caché es una optimización; la receta ya está lista.
+    }
+
+    return res.status(200).json({ data, cached: false });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// POST /api/catalog/pairing { dish }
+// Traduce un plato escrito a mano a una categoría de maridaje. El cliente sólo
+// llega acá cuando su tabla local no lo reconoció, así que lo normal es que esto
+// casi no se llame.
+const pairing = async (req, res, next) => {
+  try {
+    const dish = String(req.body.dish || "").trim().slice(0, 80);
+    if (dish.length < 3) {
+      return res.status(400).json({ message: "Escribí qué vas a comer" });
+    }
+
+    const key = fold(dish);
+
+    try {
+      const cached = await DishPairing.findOne({ key }).lean();
+      if (cached?.food) {
+        return res.status(200).json({ data: { food: cached.food, note: cached.note || "" }, cached: true });
+      }
+    } catch {
+      // Sin caché: clasificamos.
+    }
+
+    const data = await classifyDish(dish);
+    if (!data) {
+      return res.status(503).json({ message: "No se pudo interpretar ese plato ahora" });
+    }
+
+    try {
+      await DishPairing.updateOne({ key }, { $set: { key, ...data } }, { upsert: true });
+    } catch {
+      // La caché es una optimización.
+    }
+
+    return res.status(200).json({ data, cached: false });
   } catch (error) {
     return next(error);
   }
@@ -124,8 +215,20 @@ const reviews = async (req, res, next) => {
     const data = await wineReviews.listReviews(
       String(req.query.name || ""),
       String(req.query.winery || ""),
-      req.user.id
+      req.user.id,
+      20,
+      String(req.query.varietal || "")
     );
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// GET /api/catalog/reviews/mine - tus reseñas, para el perfil.
+const myReviews = async (req, res, next) => {
+  try {
+    const data = await wineReviews.listByUser(req.user.id);
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);
@@ -138,7 +241,7 @@ const reviews = async (req, res, next) => {
 // cuando el usuario manda esto, su puntuación y su texto se vuelven públicos.
 const publishReview = async (req, res, next) => {
   try {
-    const { name, winery, rating, text } = req.body;
+    const { name, winery, varietal, vintage, rating, text } = req.body;
     if (!String(name || "").trim()) {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
@@ -159,6 +262,8 @@ const publishReview = async (req, res, next) => {
       userId: req.user.id,
       name,
       winery,
+      varietal,
+      vintage,
       rating,
       text,
       author,
@@ -179,6 +284,7 @@ const removeReview = async (req, res, next) => {
       userId: req.user.id,
       name: String(req.query.name || req.body?.name || ""),
       winery: String(req.query.winery || req.body?.winery || ""),
+      varietal: String(req.query.varietal || req.body?.varietal || ""),
     });
     if (!ok) return res.status(404).json({ message: "No tenías una reseña de este vino" });
     return res.status(200).json({ message: "Reseña eliminada" });
@@ -187,4 +293,4 @@ const removeReview = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, featured, price, match, reviews, publishReview, removeReview };
+module.exports = { search, describe, recipe, pairing, featured, price, match, reviews, myReviews, publishReview, removeReview };

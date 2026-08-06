@@ -34,7 +34,7 @@ const LoginPage = () => {
       showSuccess("¡Bienvenido de vuelta!");
       navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.message || "No pudimos iniciar sesión. Revisá tus datos.";
+      const msg = err.response?.data?.message || "No se pudo iniciar sesión. Revisá tus datos.";
       setError(msg);
       showError(msg);
     } finally {

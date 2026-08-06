@@ -34,7 +34,7 @@ const AdminReviewsPage = ({ embedded = false }) => {
       setReviews(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || "No pudimos cargar las reseñas");
+      setError(err.response?.data?.message || "No se pudieron cargar las reseñas");
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const AdminReviewsPage = ({ embedded = false }) => {
       showSuccess("Reseña eliminada");
       await load();
     } catch (err) {
-      showError(err.response?.data?.message || "No pudimos eliminar la reseña");
+      showError(err.response?.data?.message || "No se pudo eliminar la reseña");
     } finally {
       setBusyId(null);
     }
@@ -88,7 +88,7 @@ const AdminReviewsPage = ({ embedded = false }) => {
       {loading && <p className="admin-users__loading">Cargando reseñas…</p>}
 
       {!loading && error && (
-        <ErrorState title="No pudimos cargar las reseñas" onRetry={load} compact />
+        <ErrorState title="No se pudieron cargar las reseñas" onRetry={load} compact />
       )}
 
       {!loading && !error && reviews.length === 0 && (

@@ -32,6 +32,21 @@ const wineReviewSchema = new mongoose.Schema(
     // Para poder mostrar de qué vino es sin resolver la clave.
     name: { type: String, trim: true, default: "" },
     winery: { type: String, trim: true, default: "" },
+    // Parte de la identidad del vino, igual que en los pools de fotos y precios.
+    // La clave ya la incorpora; guardarla aparte permite reclavear si algún día
+    // cambia la fórmula, cosa que sin este campo sería imposible.
+    varietal: { type: String, trim: true, default: "" },
+    /**
+     * Qué cosecha tomó ESA persona.
+     *
+     * NO entra en la clave, y esa es la decisión de fondo: separando el promedio
+     * por año, cada balde quedaría con una o dos reseñas y el promedio dejaría
+     * de decir nada. Vivino puede porque tiene millones de opiniones por vino.
+     *
+     * Como dato de cada reseña sí sirve: un 2019 y un 2024 del mismo vino no
+     * son la misma botella, y quien lee quiere saber cuál probó el otro.
+     */
+    vintage: { type: Number, min: 1900 },
   },
   { timestamps: true }
 );

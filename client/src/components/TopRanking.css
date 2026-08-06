@@ -22,40 +22,46 @@
   list-style: none;
 }
 
-/* Nombre, barra y cuenta en una sola línea: las dos listas quedan alineadas
-   entre sí y se comparan sin tener que leer los números. */
+/* Cada fila es su propia barra: el fondo es la escala y el relleno, el valor.
+   El nombre y el número van encima, así el ancho completo de la columna
+   trabaja para el gráfico en vez de quedar vacío. */
 .rank__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px 16px;
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  background: var(--surface-2);
+  isolation: isolate;
+}
+
+.rank__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  border-radius: var(--radius-sm, 6px);
+  /* Se apaga hacia la derecha para que el borde del relleno no compita con el
+     número, que está justo ahí. */
+  background: linear-gradient(90deg, rgba(126, 89, 201, 0.85), rgba(167, 130, 239, 0.35));
 }
 
 .rank__name {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rank__bar {
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  overflow: hidden;
-}
-
-.rank__fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--accent-light), var(--accent));
-}
-
 .rank__n {
+  flex-shrink: 0;
   font-size: var(--text-2xs);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
-  text-align: right;
+  font-variant-numeric: tabular-nums;
 }

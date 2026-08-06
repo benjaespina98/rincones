@@ -14,20 +14,41 @@ const looksLikeImage = (value) =>
   typeof value === "string" && /^(data:image\/|https?:\/\/)/.test(value.trim());
 
 /**
- * Aporta una foto al pool para un vino. No pisa la existente (nos quedamos con
- * la primera). Best-effort: nunca lanza, para no romper el alta del vino.
+ * Aporta una foto al pool para un vino.
+ *
+ * ── QUIÉN PUEDE PISAR LA FOTO ───────────────────────────────────────────────
+ * La primera foto que llega se queda: así, la de un desconocido no puede
+ * reemplazar a otra sólo por ser más nueva, y nadie puede arruinar la foto de
+ * un vino para todos los demás.
+ *
+ * La excepción es quien la aportó. Antes no existía y era un callejón sin
+ * salida: si tu foto salió movida o con el flash en la etiqueta, quedaba de
+ * cara visible de ese vino para toda la app y ni siquiera vos podías
+ * cambiarla. Ahora sí — sólo vos, y sólo sobre la tuya.
+ *
+ * Best-effort: nunca lanza, para no romper el alta ni la edición del vino.
  */
 const contribute = async ({ name, winery, varietal, image, userId }) => {
   try {
     const key = wineKey(name, winery, varietal);
     if (!key || !looksLikeImage(image)) return;
 
+    const limpia = image.trim();
+    const existente = await WineImage.findOne({ key }).select("contributedBy").lean();
+
+    if (existente) {
+      // Sólo el autor de la foto actual puede reemplazarla.
+      if (!userId || String(existente.contributedBy || "") !== String(userId)) return;
+      await WineImage.updateOne({ key }, { $set: { image: limpia } });
+      return;
+    }
+
     await WineImage.updateOne(
       { key },
       {
         $setOnInsert: {
           key,
-          image: image.trim(),
+          image: limpia,
           contributedBy: userId,
           name: String(name || "").trim(),
           winery: String(winery || "").trim(),

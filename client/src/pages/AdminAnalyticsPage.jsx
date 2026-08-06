@@ -196,7 +196,7 @@ export default function AdminAnalyticsPage() {
   if (failed) {
     return (
       <div className="admin-empty-state">
-        <p>No pudimos cargar las métricas.</p>
+        <p>No se pudieron cargar las métricas.</p>
         <button className="button" type="button" onClick={reintentar}>Reintentar</button>
       </div>
     );

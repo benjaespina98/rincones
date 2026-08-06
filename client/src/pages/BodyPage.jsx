@@ -36,6 +36,22 @@ import "../styles/pages/BodyPage.css";
 /** Los tipos de vino, para validar lo que llega por la URL. */
 const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
 
+// Los filtros sobreviven a la sesión, igual que lista/grilla. Una sola clave con
+// todo adentro: son una configuración, no ocho preferencias sueltas.
+const FILTROS_KEY = "rincones_bodega_filtros";
+
+const leerFiltrosGuardados = () => {
+  try {
+    const raw = localStorage.getItem(FILTROS_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    // Cualquier cosa que no sea un objeto (una versión vieja, algo tocado a
+    // mano) se ignora en silencio: no vale romper la bodega por un filtro.
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 export default function BodyPage({ initialFilter = "instock" }) {
   const navigate = useNavigate();
   const { addToast, removeToast, showSuccess, showError } = useToast();
@@ -67,17 +83,39 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * pregunta con la que uno abre la bodega es "¿qué tengo para tomar?", no
    * "¿qué tuve alguna vez?".
    */
+  /**
+   * Los filtros guardados de la última visita.
+   *
+   * Se lee UNA vez, al montar. Quien filtró por Malbec de Valle de Uco espera
+   * encontrarlo así al volver: rehacer la misma selección en cada entrada es
+   * pedirle al usuario que repita una decisión que ya tomó.
+   *
+   * Lo que NO se guarda: la búsqueda escrita (es del momento, no una
+   * preferencia) y la vista, que la decide de dónde entraste.
+   *
+   * Una navegación explícita gana siempre: si venís de "Favoritos" o de un tipo
+   * desde otra pantalla, manda eso y no lo guardado.
+   */
+  const [guardados] = useState(leerFiltrosGuardados);
+
   const [vista, setVista] = useState(() => normalizarVista(inicial) || "instock");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("recent");
+  const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
   // Filtros que se COMBINAN entre sí y con la vista.
-  const [soloFavoritos, setSoloFavoritos] = useState(inicial === "favorites");
-  const [soloListos, setSoloListos] = useState(false);
+  const [soloFavoritos, setSoloFavoritos] = useState(
+    inicial === "favorites" || Boolean(guardados.soloFavoritos)
+  );
+  const [soloListos, setSoloListos] = useState(Boolean(guardados.soloListos));
   // null = no filtra por probado; true = sólo probados; false = sólo pendientes.
-  const [probado, setProbado] = useState(null);
-  const [tipoFilter, setTipoFilter] = useState(TIPOS.includes(inicial) ? inicial : "all");
-  const [varietalFilter, setVarietalFilter] = useState("all");
-  const [regionFilter, setRegionFilter] = useState("all");
+  const [probado, setProbado] = useState(
+    guardados.probado === true || guardados.probado === false ? guardados.probado : null
+  );
+  const [tipoFilter, setTipoFilter] = useState(
+    TIPOS.includes(inicial) ? inicial : guardados.tipoFilter || "all"
+  );
+  const [varietalFilter, setVarietalFilter] = useState(guardados.varietalFilter || "all");
+  const [regionFilter, setRegionFilter] = useState(guardados.regionFilter || "all");
+  const [vintageFilter, setVintageFilter] = useState(guardados.vintageFilter || "all");
   /**
    * Selección múltiple.
    *
@@ -120,6 +158,36 @@ export default function BodyPage({ initialFilter = "instock" }) {
       // Si no se puede guardar, la app funciona igual: sólo no se recuerda.
     }
   }, [viewMode]);
+
+  // Se guardan en cada cambio: no hay un "aplicar" que sirva de momento único.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILTROS_KEY,
+        JSON.stringify({
+          sortBy,
+          soloFavoritos,
+          soloListos,
+          probado,
+          tipoFilter,
+          varietalFilter,
+          regionFilter,
+          vintageFilter,
+        })
+      );
+    } catch {
+      // Igual que arriba: si no se puede guardar, sólo no se recuerda.
+    }
+  }, [
+    sortBy,
+    soloFavoritos,
+    soloListos,
+    probado,
+    tipoFilter,
+    varietalFilter,
+    regionFilter,
+    vintageFilter,
+  ]);
   /**
    * La agrupación ya no es un control: agrupa sola por tipo cuando la lista deja
    * de recorrerse de un vistazo.
@@ -169,6 +237,45 @@ export default function BodyPage({ initialFilter = "instock" }) {
     () => [...new Set(wines.map((wine) => wine.region).filter(Boolean))].sort(),
     [wines]
   );
+  /**
+   * Las cosechas que tenés, de la más nueva a la más vieja.
+   *
+   * Faltaba, y es de las tres cosas por las que uno busca una botella (uva,
+   * región, año). Se podía escribir "2019" en el buscador —el año entró al
+   * haystack— pero eso no es lo mismo: escribir no te dice QUÉ años tenés, y
+   * acá la lista es la respuesta a esa pregunta antes de filtrar nada.
+   */
+  const vintageOptions = useMemo(
+    () =>
+      [...new Set(wines.map((wine) => wine.vintage).filter(Boolean))]
+        .sort((a, b) => b - a)
+        .map(String),
+    [wines]
+  );
+
+  /**
+   * Un filtro guardado que ya no existe se descarta solo.
+   *
+   * Si la última vez filtraste por "Tannat" y desde entonces te tomaste el único
+   * que tenías, al volver la bodega aparecería vacía por un filtro imposible —y
+   * el combo ni lo mostraría, porque esa uva ya no está entre las opciones—. Se
+   * espera a que haya vinos cargados: con la lista vacía, todo filtro parecería
+   * inválido y se limpiarían todos al entrar.
+   */
+  useEffect(() => {
+    if (wines.length === 0) return;
+    if (varietalFilter !== "all" && !varietalOptions.includes(varietalFilter)) setVarietalFilter("all");
+    if (regionFilter !== "all" && !regionOptions.includes(regionFilter)) setRegionFilter("all");
+    if (vintageFilter !== "all" && !vintageOptions.includes(vintageFilter)) setVintageFilter("all");
+  }, [
+    wines.length,
+    varietalOptions,
+    regionOptions,
+    vintageOptions,
+    varietalFilter,
+    regionFilter,
+    vintageFilter,
+  ]);
 
   /**
    * Los términos de búsqueda, normalizados UNA vez por tecla y no una vez por
@@ -205,9 +312,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
       if (tipoFilter !== "all" && wine.type !== tipoFilter) return false;
       if (varietalFilter !== "all" && wine.varietal !== varietalFilter) return false;
       if (regionFilter !== "all" && wine.region !== regionFilter) return false;
+      // El año se compara como texto porque la opción viene del combo, que
+      // maneja strings; el vino lo guarda como número.
+      if (vintageFilter !== "all" && String(wine.vintage || "") !== vintageFilter) return false;
       return true;
     },
-    [terms, tipoFilter, varietalFilter, regionFilter]
+    [terms, tipoFilter, varietalFilter, regionFilter, vintageFilter]
   );
 
   /**
@@ -357,6 +467,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     tipoFilter,
     varietalFilter,
     regionFilter,
+    vintageFilter,
     sortBy,
     effectiveGroupBy,
   ]);
@@ -423,8 +534,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
     if (varietalFilter !== "all") fichas.push({ id: "uva", label: varietalFilter, quitar: () => setVarietalFilter("all") });
     if (regionFilter !== "all") fichas.push({ id: "region", label: regionFilter, quitar: () => setRegionFilter("all") });
+    // "2019" solo no se entiende entre las demás fichas (¿precio? ¿cantidad?).
+    if (vintageFilter !== "all") {
+      fichas.push({ id: "cosecha", label: `Cosecha ${vintageFilter}`, quitar: () => setVintageFilter("all") });
+    }
     return fichas;
-  }, [soloFavoritos, probado, soloListos, tipoFilter, varietalFilter, regionFilter]);
+  }, [soloFavoritos, probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter]);
 
   /**
    * Qué decir cuando no hay nada que mostrar.
@@ -538,6 +653,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setTipoFilter("all");
     setVarietalFilter("all");
     setRegionFilter("all");
+    setVintageFilter("all");
   };
 
   const withPendingAction = async (id, action) => {
@@ -827,7 +943,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
       {!loading && error && (
         <ErrorState
-          title="No pudimos cargar tu bodega"
+          title="No se pudo cargar tu bodega"
           hint="Tus vinos están guardados. Revisá tu conexión y probá de nuevo."
           onRetry={recargar}
         />
@@ -1209,6 +1325,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
         regionFilter={regionFilter}
         setRegionFilter={setRegionFilter}
         regionOptions={regionOptions}
+        vintageFilter={vintageFilter}
+        setVintageFilter={setVintageFilter}
+        vintageOptions={vintageOptions}
         viewMode={viewMode}
         setViewMode={setViewMode}
         hayFiltros={filtrosActivos.length > 0}

@@ -56,7 +56,11 @@ export default function ScanWinePage() {
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
     // que permite saber si el lector de etiquetas vale lo que cuesta.
     trackEvent("wine_added", { source: draft?.source || "escaneo" });
-    navigate(`/vino/${created._id}`);
+    // `recienAgregado` enciende, una sola vez y en la ficha, el "¿sabías que?"
+    // del vino: acabás de guardar la botella y en vez de un "listo" seco la app
+    // te cuenta algo que no sabías. Es el único momento del recorrido donde no
+    // compite con nada.
+    navigate(`/vino/${created._id}`, { state: { recienAgregado: true } });
     return created;
   };
 

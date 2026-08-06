@@ -132,6 +132,34 @@
   font-weight: 800;
 }
 
+/* ── Desde cuándo lo tenés ──────────────────────────────────────────────────
+   Un renglón sin caja, justo debajo de la guarda: es el dato que la completa
+   ("mejor a partir de 2028" pesa distinto si lo tenés desde 2019), pero no
+   compite con ella — no cambia ninguna decisión por sí solo. */
+.wine-id__since {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 0 2px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.wine-id__since strong {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wine-id__since-ago {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
 @media (min-width: 520px) {
   .wine-id__grid {
     /* En pantallas más anchas, dos columnas: la ficha entra sin scrollear y las

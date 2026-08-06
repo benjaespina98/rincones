@@ -24,6 +24,9 @@ const wineInfoSchema = new mongoose.Schema(
       alcohol: Number,
       serve: String,
       known: Boolean,
+      // El "¿sabías que?". Va en la caché compartida como todo lo demás: la
+      // curiosidad es del vino, no de quien la pidió.
+      funFact: String,
     },
   },
   { timestamps: true }
