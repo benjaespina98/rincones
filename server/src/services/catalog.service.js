@@ -323,7 +323,7 @@ const withReviews = async (results) => {
   try {
     const summaries = await wineReviews.getSummaries(results);
     return results.map((w) => {
-      const s = summaries.get(wineReviews.wineKey(w.name, w.winery));
+      const s = summaries.get(wineReviews.wineKey(w.name, w.winery, w.varietal));
       return s ? { ...w, rating: s.avg, reviewCount: s.count } : w;
     });
   } catch {

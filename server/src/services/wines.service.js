@@ -306,6 +306,7 @@ async function updateWine(userId, id, payload) {
     currency,
     store,
     purchasedAt,
+    image,
   } = payload;
 
   if (name !== undefined) wine.name = String(name).trim();
@@ -341,7 +342,35 @@ async function updateWine(userId, id, payload) {
   if (price !== undefined) wine.purchase = { ...wine.purchase, price: price !== "" ? parseFloat(price) : undefined };
   if (currency !== undefined) wine.purchase = { ...wine.purchase, currency };
   if (store !== undefined) wine.purchase = { ...wine.purchase, store: store?.trim() || undefined };
-  if (purchasedAt !== undefined) wine.purchase = { ...wine.purchase, purchasedAt: purchasedAt ? new Date(purchasedAt) : null };
+  /**
+   * La foto, ahora también al editar.
+   *
+   * Faltaba por completo: la foto sólo podía entrar al crear el vino, así que
+   * quien cargó una botella sin foto —o con una mala— no tenía forma de
+   * arreglarlo, ni para su ficha ni para el banco compartido. El banco sólo
+   * podía aprender en el alta, y si en el alta no hubo foto, ese vino se
+   * quedaba sin foto para siempre.
+   *
+   * Cadena vacía = borrar la foto y volver al dibujo de respaldo. `undefined` =
+   * no se tocó (el formulario no la mandó).
+   */
+  let fotoNueva = "";
+  if (image !== undefined) {
+    const bruta = String(image || "").trim();
+    if (!bruta) {
+      wine.image = null;
+      wine.imageSource = "local";
+    } else if (/^(data:image\/|https?:\/\/)/.test(bruta)) {
+      // Sólo se sube a Cloudinary lo que cambió: si vino la MISMA URL que ya
+      // estaba guardada (el formulario reenvía la foto actual sin tocarla), no
+      // hay nada que subir ni que aportar.
+      if (bruta !== String(wine.image || "")) {
+        fotoNueva = await imageStorage.store(bruta);
+        wine.image = fotoNueva;
+        wine.imageSource = "user-upload";
+      }
+    }
+  }
 
   const wasTasted = wine.tasted;
 
@@ -372,6 +401,19 @@ async function updateWine(userId, id, payload) {
 
   wine.updatedAt = new Date();
   const updatedWine = await wine.save();
+
+  // La foto nueva alimenta el banco compartido, igual que en el alta: es el
+  // camino por el que el banco se llena con el uso, porque editar es cuando la
+  // gente arregla lo que el escaneo no capturó.
+  if (fotoNueva) {
+    await wineImages.contribute({
+      name: updatedWine.name,
+      winery: updatedWine.winery,
+      varietal: updatedWine.varietal,
+      image: fotoNueva,
+      userId,
+    });
+  }
 
   const user = await User.findById(userId);
   if (wasTasted !== updatedWine.tasted) {
@@ -509,6 +551,40 @@ async function getMoments(userId, id) {
 
   const moments = await WineMoment.find({ wineId: wine._id, userId }).sort({ consumedAt: -1 });
   return moments;
+}
+
+/**
+ * Todos tus momentos, de todos tus vinos, del más nuevo al más viejo.
+ *
+ * Es el diario: hasta ahora los momentos existían pero sólo se podían ver vino
+ * por vino, así que la pregunta natural —"¿qué tomé este año, con quién?"— no
+ * tenía respuesta en ninguna pantalla. Cada uno viaja con el vino al que
+ * pertenece (nombre, bodega, foto) para poder mostrarlo y linkearlo sin pedir
+ * un vino por fila.
+ *
+ * Privado por definición: filtra por `userId` y no hay ninguna ruta que
+ * devuelva los momentos de otra persona.
+ */
+async function getAllMoments(userId, { limit = 100 } = {}) {
+  const moments = await WineMoment.find({ userId })
+    .sort({ consumedAt: -1 })
+    .limit(Math.min(Number(limit) || 100, 300))
+    .lean();
+
+  if (moments.length === 0) return [];
+
+  const wineIds = [...new Set(moments.map((m) => String(m.wineId)))];
+  const wines = await Wine.find({ _id: { $in: wineIds }, userId })
+    .select("name winery varietal type image")
+    .lean();
+  const byId = new Map(wines.map((w) => [String(w._id), w]));
+
+  return moments.map((m) => ({
+    ...m,
+    // El vino puede haber sido eliminado de la bodega: el momento sigue siendo
+    // tuyo y se muestra igual, sin link.
+    wine: byId.get(String(m.wineId)) || null,
+  }));
 }
 
 async function addMoment(userId, id, body) {
@@ -869,6 +945,7 @@ module.exports = {
   updateWine,
   adjustStock,
   getMoments,
+  getAllMoments,
   addMoment,
   deleteWine,
   bulkAction,

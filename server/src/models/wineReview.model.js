@@ -32,6 +32,10 @@ const wineReviewSchema = new mongoose.Schema(
     // Para poder mostrar de qué vino es sin resolver la clave.
     name: { type: String, trim: true, default: "" },
     winery: { type: String, trim: true, default: "" },
+    // Parte de la identidad del vino, igual que en los pools de fotos y precios.
+    // La clave ya la incorpora; guardarla aparte permite reclavear si algún día
+    // cambia la fórmula, cosa que sin este campo sería imposible.
+    varietal: { type: String, trim: true, default: "" },
   },
   { timestamps: true }
 );

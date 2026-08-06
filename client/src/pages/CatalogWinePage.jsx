@@ -162,7 +162,7 @@ export default function CatalogWinePage() {
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
             la ficha de un vino que todavía no tiene. */}
-        <WineReviews name={wine.name} winery={wine.winery} />
+        <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
         {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
         <div className="wine-price">

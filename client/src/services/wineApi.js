@@ -100,6 +100,15 @@ export const getWineMoments = async (id) => {
   return data.data || [];
 };
 
+/**
+ * Tu diario completo: todos tus momentos, de todos tus vinos. Cada uno trae el
+ * vino al que pertenece (o null, si lo borraste de la bodega).
+ */
+export const getAllMoments = async () => {
+  const { data } = await api.get("/wines/moments");
+  return data.data || [];
+};
+
 export const addWineMoment = async (id, payload) => {
   const { data } = await api.post(`/wines/${id}/moments`, payload);
   return data.data;

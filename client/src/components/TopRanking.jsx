@@ -17,13 +17,19 @@ export default function TopRanking({ label, items = [], nameKey }) {
   return (
     <div className="rank">
       <span className="rank__label">{label}</span>
+      {/* La barra es la fila entera y el nombre va ENCIMA, no al lado.
+          Antes el nombre, una barrita de 40px y el número eran tres columnas:
+          la barra quedaba flotando en el medio del renglón, demasiado corta
+          para comparar nada y con la mitad del ancho vacío a los costados. */}
       <ul className="rank__list">
         {rows.map((item) => (
           <li key={item[nameKey]} className="rank__row">
+            <span
+              className="rank__fill"
+              style={{ width: `${Math.max((item.count / max) * 100, 12)}%` }}
+              aria-hidden="true"
+            />
             <span className="rank__name" title={item[nameKey]}>{item[nameKey]}</span>
-            <span className="rank__bar" aria-hidden="true">
-              <span className="rank__fill" style={{ width: `${(item.count / max) * 100}%` }} />
-            </span>
             <span className="rank__n">{item.count}</span>
           </li>
         ))}

@@ -13,7 +13,7 @@ import "./WineReviews.css";
  * separadas evita los dos widgets de estrellas que antes convivían en la misma
  * pantalla y hacían puntuar dos veces lo mismo.
  */
-export default function WineReviews({ name, winery = "" }) {
+export default function WineReviews({ name, winery = "", varietal = "" }) {
 
   const [state, setState] = useState({ summary: null, mine: null, reviews: [] });
   const [loading, setLoading] = useState(true);
@@ -25,14 +25,14 @@ export default function WineReviews({ name, winery = "" }) {
     try {
       setLoading(true);
       setFailed(false);
-      const data = await getWineReviews(name, winery);
+      const data = await getWineReviews(name, winery, varietal);
       setState(data);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [name, winery]);
+  }, [name, winery, varietal]);
 
   useEffect(() => { load(); }, [load]);
 

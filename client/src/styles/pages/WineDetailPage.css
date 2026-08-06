@@ -674,11 +674,28 @@
 
 
 .wine-moments__header h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   margin: 0;
   font-family: var(--font-family-serif);
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text);
+}
+
+/* El opuesto exacto del "Se publica" de tu opinión, y por eso se ve igual de
+   discreto: los dos son la misma información —quién ve esto— y tienen que
+   leerse como pares, no como una advertencia y un adorno. */
+.wine-moments__private {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-family-base);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-muted);
 }
 
 .wine-moments__add-btn {

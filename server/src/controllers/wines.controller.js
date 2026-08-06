@@ -86,6 +86,16 @@ const getMoments = async (req, res) => {
   }
 };
 
+// GET /api/wines/moments - tu diario completo, de todos tus vinos.
+const getAllMoments = async (req, res) => {
+  try {
+    const moments = await winesService.getAllMoments(req.user.id, { limit: req.query.limit });
+    return res.json({ success: true, data: moments, count: moments.length });
+  } catch (error) {
+    return fail(res, error, req);
+  }
+};
+
 const addMoment = async (req, res) => {
   try {
     const moment = await winesService.addMoment(req.user.id, req.params.id, req.body);
@@ -164,6 +174,7 @@ module.exports = {
   update,
   adjustStock,
   getMoments,
+  getAllMoments,
   addMoment,
   remove,
   bulk,

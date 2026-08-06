@@ -27,6 +27,9 @@ router.get("/price", authenticate, catalogController.price);
 router.post("/match", authenticate, aiLimiter, catalogController.match);
 
 // Reseñas públicas de vinos (comunidad).
+// "/reviews/mine" va antes que "/reviews" por claridad; son rutas distintas y
+// Express no las confunde, pero leerlas juntas evita duplicarlas por error.
+router.get("/reviews/mine", authenticate, catalogController.myReviews);
 router.get("/reviews", authenticate, catalogController.reviews);
 router.post("/reviews", authenticate, catalogController.publishReview);
 router.delete("/reviews", authenticate, catalogController.removeReview);

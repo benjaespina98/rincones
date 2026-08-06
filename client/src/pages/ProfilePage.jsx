@@ -8,13 +8,15 @@ import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { calculateAge } from "../utils/age";
 import { errorHaptic } from "../utils/haptics";
-import { getLevel, getAchievements, countUnlocked } from "../utils/gamification";
+import { getLevel } from "../utils/gamification";
 import Icon from "../components/Icon";
 import ProfileEditor from "../components/ProfileEditor";
 import PreferencesEditor from "../components/PreferencesEditor";
 import PasswordEditor from "../components/PasswordEditor";
 import TypeSplit from "../components/TypeSplit";
 import TopRanking from "../components/TopRanking";
+import MomentsDiary from "../components/MomentsDiary";
+import MyRatings from "../components/MyRatings";
 import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
@@ -262,34 +264,12 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {/* Los logros van al final: son celebración, no información. Antes se
-          metían entre el nivel y las estadísticas, empujando los números —que
-          son el dato duro del perfil— más abajo que las medallitas. */}
-      {!statsLoading && (() => {
-        const achievements = getAchievements(wineStats);
-        const unlocked = countUnlocked(achievements);
-        return (
-            <div className="ach">
-            <div className="ach__head">
-              <span className="ach__title">Logros</span>
-              <span className="ach__count">{unlocked}/{achievements.length}</span>
-            </div>
-            <div className="ach__grid">
-              {achievements.map((a) => (
-                <div key={a.id} className={`ach__item ${a.done ? "is-done" : ""}`} title={a.hint}>
-                  <span className="ach__emoji">{a.icon}</span>
-                  <span className="ach__label">{a.label}</span>
-                  {a.done ? (
-                    <Icon name="check" size={13} className="ach__check" />
-                  ) : (
-                    <span className="ach__hint">{a.hint}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Los logros no están más. Eran ocho medallas de las que la mayoría se
+          veía apagada —"Coleccionista: llegá a 10 vinos"— y una cuadrícula de
+          seis pendientes al lado de dos cumplidas es un recordatorio de lo que
+          NO hiciste, no una celebración. El nivel de arriba ya cuenta el avance
+          con un solo número y sin señalar deudas. El código de `getAchievements`
+          queda en utils/gamification por si vuelven con otra forma. */}
 
       {spending && spending.totalSpent > 0 && (
         <section className="insights">
@@ -328,6 +308,14 @@ export default function ProfilePage() {
           </div>
         </section>
       )}
+
+      {/* Lo que registraste, en dos secciones: las valoraciones (públicas) y el
+          diario (privado). Van después de las estadísticas porque se leen de
+          otra manera —una por una, sin apuro— y porque crecen sin techo,
+          mientras que lo de arriba mide siempre lo mismo. Las dos se esconden
+          solas si están vacías. */}
+      <MyRatings />
+      <MomentsDiary />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

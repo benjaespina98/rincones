@@ -15,7 +15,7 @@ import "./WineOpinion.css";
  * ese vino. El texto es opcional y aparece recién después de puntuar, para no
  * pedir de entrada un esfuerzo que la mayoría no va a hacer.
  */
-export default function WineOpinion({ name, winery = "", onRated }) {
+export default function WineOpinion({ name, winery = "", varietal = "", onRated }) {
   const { showSuccess, showError } = useToast();
 
   const [mine, setMine] = useState(null);
@@ -28,14 +28,14 @@ export default function WineOpinion({ name, winery = "", onRated }) {
   const load = useCallback(async () => {
     if (!name) return;
     try {
-      const data = await getWineReviews(name, winery);
+      const data = await getWineReviews(name, winery, varietal);
       setMine(data.mine || null);
       setRating(data.mine?.rating || 0);
       setText(data.mine?.text || "");
     } catch {
       // Sin reseña previa: se puntúa desde cero.
     }
-  }, [name, winery]);
+  }, [name, winery, varietal]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -48,7 +48,7 @@ export default function WineOpinion({ name, winery = "", onRated }) {
     if (next === 0) {
       if (!mine) return;
       try {
-        await deleteWineReview(name, winery);
+        await deleteWineReview(name, winery, varietal);
         setMine(null);
         setText("");
         onRated?.(0);
@@ -60,7 +60,7 @@ export default function WineOpinion({ name, winery = "", onRated }) {
 
     try {
       setSaving(true);
-      const saved = await publishWineReview({ name, winery, rating: next, text });
+      const saved = await publishWineReview({ name, winery, varietal, rating: next, text });
       setMine(saved);
       onRated?.(next);
     } catch {
@@ -74,7 +74,7 @@ export default function WineOpinion({ name, winery = "", onRated }) {
   const saveText = async () => {
     try {
       setSaving(true);
-      const saved = await publishWineReview({ name, winery, rating, text });
+      const saved = await publishWineReview({ name, winery, varietal, rating, text });
       setMine(saved);
       setWriting(false);
       showSuccess(text.trim() ? "Reseña publicada" : "Puntuación guardada");

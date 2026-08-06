@@ -215,8 +215,20 @@ const reviews = async (req, res, next) => {
     const data = await wineReviews.listReviews(
       String(req.query.name || ""),
       String(req.query.winery || ""),
-      req.user.id
+      req.user.id,
+      20,
+      String(req.query.varietal || "")
     );
+    return res.status(200).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// GET /api/catalog/reviews/mine - tus reseñas, para el perfil.
+const myReviews = async (req, res, next) => {
+  try {
+    const data = await wineReviews.listByUser(req.user.id);
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);
@@ -229,7 +241,7 @@ const reviews = async (req, res, next) => {
 // cuando el usuario manda esto, su puntuación y su texto se vuelven públicos.
 const publishReview = async (req, res, next) => {
   try {
-    const { name, winery, rating, text } = req.body;
+    const { name, winery, varietal, rating, text } = req.body;
     if (!String(name || "").trim()) {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
@@ -250,6 +262,7 @@ const publishReview = async (req, res, next) => {
       userId: req.user.id,
       name,
       winery,
+      varietal,
       rating,
       text,
       author,
@@ -270,6 +283,7 @@ const removeReview = async (req, res, next) => {
       userId: req.user.id,
       name: String(req.query.name || req.body?.name || ""),
       winery: String(req.query.winery || req.body?.winery || ""),
+      varietal: String(req.query.varietal || req.body?.varietal || ""),
     });
     if (!ok) return res.status(404).json({ message: "No tenías una reseña de este vino" });
     return res.status(200).json({ message: "Reseña eliminada" });
@@ -278,4 +292,4 @@ const removeReview = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, recipe, pairing, featured, price, match, reviews, publishReview, removeReview };
+module.exports = { search, describe, recipe, pairing, featured, price, match, reviews, myReviews, publishReview, removeReview };

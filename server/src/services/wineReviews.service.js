@@ -5,26 +5,35 @@
 // reseña individual, no un agregado, porque el texto y el autor se muestran.
 
 const WineReview = require("../models/wineReview.model");
+const { poolKey } = require("../data/wineIdentity");
 
-const fold = (text = "") =>
-  String(text)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-
-const wineKey = (name, winery) => {
-  const n = fold(name);
-  if (n.length < 3) return null;
-  return `${n}|${fold(winery)}`;
-};
+/**
+ * La clave de una reseña: nombre + uva + bodega, la MISMA que usan las fotos y
+ * los precios compartidos.
+ *
+ * ── POR QUÉ CAMBIÓ ──────────────────────────────────────────────────────────
+ * Era `nombre|bodega`, sin la uva, y eso rompía dos cosas a la vez:
+ *
+ * 1. La misma botella daba claves distintas según desde dónde la miraras. En tu
+ *    bodega el vino se llama "Rutini" (la uva es campo aparte) y en el catálogo
+ *    "Rutini Malbec": puntuabas desde el catálogo y tu propia ficha no veía tu
+ *    reseña ni tu promedio. Estaba pasando de verdad, con datos reales.
+ * 2. Dos vinos distintos compartían reseñas. "Rutini Malbec" y "Rutini Cabernet"
+ *    son botellas diferentes y caían en la misma clave: las opiniones de una
+ *    aparecían en la otra.
+ *
+ * `poolKey` mete la uva adentro del nombre sólo si no está ya, así que las dos
+ * formas convergen en la misma clave y las reseñas viejas —cuyo nombre traía la
+ * uva— conservan la suya. No hace falta migrar nada.
+ */
+const wineKey = (name, winery, varietal = "") => poolKey(name, winery, varietal);
 
 /**
  * Publica (o edita) la reseña del usuario para un vino.
  * Una por persona por vino: volver a publicar reemplaza la anterior.
  */
-const upsertReview = async ({ userId, name, winery, rating, text, author }) => {
-  const key = wineKey(name, winery);
+const upsertReview = async ({ userId, name, winery, varietal, rating, text, author }) => {
+  const key = wineKey(name, winery, varietal);
   if (!key) throw new Error("Faltan datos del vino");
 
   const value = Number(rating);
@@ -44,6 +53,9 @@ const upsertReview = async ({ userId, name, winery, rating, text, author }) => {
         authorAvatar: String(author?.avatar || "").trim(),
         name: String(name || "").trim(),
         winery: String(winery || "").trim(),
+        // Se guarda aunque la clave ya lo incorpore: sin esto, una reseña vieja
+        // no se puede volver a clavear si algún día cambia la fórmula.
+        varietal: String(varietal || "").trim(),
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -52,8 +64,8 @@ const upsertReview = async ({ userId, name, winery, rating, text, author }) => {
   return doc;
 };
 
-const deleteReview = async ({ userId, name, winery }) => {
-  const key = wineKey(name, winery);
+const deleteReview = async ({ userId, name, winery, varietal }) => {
+  const key = wineKey(name, winery, varietal);
   if (!key) return false;
   const res = await WineReview.deleteOne({ key, userId });
   return res.deletedCount > 0;
@@ -63,8 +75,8 @@ const deleteReview = async ({ userId, name, winery }) => {
  * Reseñas de un vino + resumen. `userId` sirve para separar la propia del
  * resto, así el cliente puede mostrarla como editable.
  */
-const listReviews = async (name, winery, userId, limit = 20) => {
-  const key = wineKey(name, winery);
+const listReviews = async (name, winery, userId, limit = 20, varietal = "") => {
+  const key = wineKey(name, winery, varietal);
   if (!key) return { summary: null, mine: null, reviews: [] };
 
   try {
@@ -97,7 +109,7 @@ const listReviews = async (name, winery, userId, limit = 20) => {
  * Devuelve un Map keyed por `wineKey`.
  */
 const getSummaries = async (wines = []) => {
-  const keys = [...new Set(wines.map((w) => wineKey(w.name, w.winery)).filter(Boolean))];
+  const keys = [...new Set(wines.map((w) => wineKey(w.name, w.winery, w.varietal)).filter(Boolean))];
   if (keys.length === 0) return new Map();
 
   try {
@@ -114,4 +126,24 @@ const getSummaries = async (wines = []) => {
   }
 };
 
-module.exports = { upsertReview, deleteReview, listReviews, getSummaries, wineKey };
+/**
+ * Todas las reseñas que escribió una persona, de la más nueva a la más vieja.
+ *
+ * Las puntuaciones se publicaban y desaparecían: quedaban en la ficha del vino
+ * y en ningún lado propio. Para acordarte de cuánto le pusiste a algo había que
+ * buscar la botella, que es justo lo que no se recuerda. En el perfil son, de
+ * hecho, tu historial de puntajes.
+ */
+const listByUser = async (userId, limit = 50) => {
+  try {
+    return await WineReview.find({ userId })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(Math.min(Number(limit) || 50, 200))
+      .select("name winery rating text createdAt updatedAt")
+      .lean();
+  } catch {
+    return [];
+  }
+};
+
+module.exports = { upsertReview, deleteReview, listReviews, listByUser, getSummaries, wineKey };

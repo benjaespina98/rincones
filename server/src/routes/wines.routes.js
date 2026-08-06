@@ -9,6 +9,9 @@ router.get("/stats/summary", authenticate, winesController.statsSummary);
 router.get("/stats/spending", authenticate, winesController.spendingStats);
 router.post("/suggest", authenticate, winesController.suggest);
 router.get("/cellar-ready", authenticate, winesController.cellarReady);
+// Tu diario completo. Va ANTES de "/:id" por lo mismo que "bulk": si no,
+// Express lee "moments" como el id de un vino y devuelve 404.
+router.get("/moments", authenticate, winesController.getAllMoments);
 router.get("/:id", authenticate, winesController.getOne);
 router.post("/", authenticate, winesController.create);
 // Va antes de "/:id" a propósito: si no, Express lee "bulk" como un id.

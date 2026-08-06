@@ -26,28 +26,13 @@ import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSea
 import { wineDisplayName } from "../utils/wineIdentity";
 import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
+import { OCCASIONS, EMOTIONS } from "../data/momentOptions";
 import { toUploadableDataUrl } from "../utils/image";
 import WinePhoto from "../components/WinePhoto";
 import PhotoLightbox from "../components/PhotoLightbox";
+import ImagePicker from "../components/ImagePicker";
 import Dropdown from "../components/Dropdown";
 import "../styles/pages/WineDetailPage.css";
-
-const OCCASIONS = [
-  { value: "dinner", label: "Cena" },
-  { value: "celebration", label: "Celebración" },
-  { value: "gift", label: "Regalo" },
-  { value: "tasting", label: "Degustación" },
-  { value: "casual", label: "Casual" },
-  { value: "other", label: "Otra" },
-];
-
-const EMOTIONS = [
-  { value: "happy", label: "Feliz" },
-  { value: "relaxed", label: "Relajado" },
-  { value: "social", label: "Social" },
-  { value: "thoughtful", label: "Reflexivo" },
-  { value: "adventurous", label: "Aventurero" },
-];
 
 const EMPTY_MOMENT = {
   occasion: "",
@@ -283,6 +268,7 @@ export default function WineDetailPage() {
       vintage: wine.vintage || "",
       type: wine.type || "unknown",
       notes: wine.notes || "",
+      image: wine.image || "",
       cellarLocation: wine.cellar?.location || "",
       drinkFrom: wine.cellar?.drinkFrom || "",
       drinkUntil: wine.cellar?.drinkUntil || "",
@@ -313,6 +299,10 @@ export default function WineDetailPage() {
         vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
         type: draft.type,
         notes: draft.notes.trim(),
+        // La foto viaja siempre (aunque sea ""), porque el vacío también es una
+        // decisión: es "sacale la que tiene". El server distingue "" de que el
+        // campo no venga.
+        image: draft.image || "",
         cellarLocation: draft.cellarLocation?.trim() || undefined,
         drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : undefined,
         drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : undefined,
@@ -556,6 +546,7 @@ export default function WineDetailPage() {
             <WineOpinion
               name={wine.name}
               winery={wine.winery}
+              varietal={wine.varietal}
               onRated={(value) => {
                 // Se guarda también en el vino para que las estadísticas, los
                 // filtros y el orden de Bodega sigan funcionando.
@@ -607,7 +598,7 @@ export default function WineDetailPage() {
             />
 
             {/* Opiniones de otros (el promedio y las reseñas ajenas). */}
-            <WineReviews name={wine.name} winery={wine.winery} />
+            <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
             {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
             <div className="wine-price">
@@ -638,6 +629,18 @@ export default function WineDetailPage() {
           </>
         ) : (
           <div className="scan-edit-grid">
+            {/* La foto, primera y en la edición: hasta ahora sólo podía entrar al
+                crear el vino, así que una botella cargada sin foto —o con una
+                mala— se quedaba así para siempre. Y como la foto propia alimenta
+                el banco compartido, eso también trababa el banco: sólo podía
+                aprender en el alta. */}
+            <ImagePicker
+              label="Foto de la botella"
+              hint="La tuya sirve para todos: si nadie subió una de este vino, va a ser la que vean los demás."
+              value={draft.image}
+              onChange={(v) => updateDraftField("image", v)}
+              disabled={saving}
+            />
             <input
               type="text"
               className="scan-edit-input"
@@ -791,7 +794,17 @@ export default function WineDetailPage() {
 
         <section className="wine-moments">
           <div className="wine-moments__header">
-            <h3>Momentos</h3>
+            {/* "Privado" dicho con todas las letras, y no por prolijidad: en la
+                misma pantalla, tu opinión SÍ se publica. Sin el cartel, alguien
+                que acaba de leer "Se publica" arriba tiene motivos para dudar de
+                dónde termina lo que escribe acá —y con quién comió, dónde y qué
+                sintió es lo más personal que guarda la app—. */}
+            <h3>
+              Momentos
+              <span className="wine-moments__private" title="Nadie más puede verlos">
+                <Icon name="lock" size={12} /> Sólo vos
+              </span>
+            </h3>
             {!showMomentForm && (
               <button type="button" className="wine-moments__add-btn" onClick={() => setShowMomentForm(true)}>
                 + Agregar
