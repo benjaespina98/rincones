@@ -7,11 +7,28 @@
 
 const Wine = require("../models/wine.model");
 const WineInfo = require("../models/wineInfo.model");
-const { fold } = require("../data/argentineWines");
+const { poolKey } = require("../data/wineIdentity");
 const { describeWine } = require("./wineAi.service");
 const { isGeminiConfigured } = require("./gemini.service");
 
-const describeKey = (name, winery) => `${fold(name)}|${fold(winery)}`;
+/**
+ * La clave de la ficha compartida: nombre + uva + bodega.
+ *
+ * Era `nombre|bodega`, sin la uva, y eso rompía dos cosas —las mismas que ya
+ * habían roto en las reseñas—:
+ *
+ * 1. Dos vinos distintos compartían ficha. "Rutini Malbec" y "Rutini Cabernet"
+ *    caían en la misma clave, así que el segundo recibía la descripción, los
+ *    aromas, la estructura y el "¿sabías que?" del primero.
+ * 2. El MISMO vino se cacheaba dos veces, porque el nombre cambia según de dónde
+ *    venga: "Rutini" desde tu bodega y "Rutini Malbec" desde el catálogo. Se
+ *    pagaba la generación dos veces y dos personas con la misma botella podían
+ *    leer descripciones distintas.
+ *
+ * `poolKey` es la misma clave que usan las fotos, los precios y las reseñas: mete
+ * la uva adentro del nombre sólo si no está ya, así las dos formas convergen.
+ */
+const describeKey = (name, winery, varietal = "") => poolKey(name, winery, varietal);
 
 /**
  * Genera (o reusa) la ficha del vino y la guarda en el documento.
@@ -22,7 +39,7 @@ const ensureDescription = async (wine) => {
   if (!wine?.name) return null;
   if (!isGeminiConfigured()) return null;
 
-  const key = describeKey(wine.name, wine.winery);
+  const key = describeKey(wine.name, wine.winery, wine.varietal);
 
   // 1) Caché compartida entre todos los usuarios.
   let info = null;
