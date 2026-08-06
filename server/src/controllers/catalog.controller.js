@@ -5,6 +5,7 @@ const { describeWine, suggestRecipe, classifyDish, PLANS } = require("../service
 const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");
+const { describeKey } = require("../services/wineDescription.service");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
 
@@ -41,7 +42,10 @@ const describe = async (req, res, next) => {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
     const winery = String(req.body.winery || "").trim();
-    const key = `${fold(name)}|${fold(winery)}`;
+    const varietal = String(req.body.varietal || "").trim();
+    // La misma clave que usa el alta del vino (wineDescription.service): si acá
+    // se armara distinto, el vino que ya tiene ficha volvería a generarla.
+    const key = describeKey(name, winery, varietal);
 
     // Cache compartida primero.
     try {
@@ -54,7 +58,7 @@ const describe = async (req, res, next) => {
     const info = await describeWine({
       name,
       winery,
-      varietal: String(req.body.varietal || "").trim(),
+      varietal,
       type: String(req.body.type || "").trim(),
       region: String(req.body.region || "").trim(),
       vintage: req.body.vintage,
