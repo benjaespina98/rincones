@@ -158,6 +158,7 @@ export default function CatalogWinePage() {
           failed={aiFailed}
           info={aiInfo}
           onRetry={loadDescription}
+          wine={wine}
         />
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira

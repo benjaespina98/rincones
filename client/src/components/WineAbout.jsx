@@ -24,7 +24,7 @@ import ErrorState from "./ErrorState";
 
 const MAX_CHIPS = 4;
 
-export default function WineAbout({ loading, failed, info, onRetry }) {
+export default function WineAbout({ loading, failed, info, onRetry, wine }) {
   // Plegado por defecto. El resumen es lo que se lee siempre; las barras, los
   // aromas y la graduación son material de consulta que se mira una vez y
   // sumaba media pantalla de scroll en TODAS las visitas siguientes.
@@ -78,7 +78,9 @@ export default function WineAbout({ loading, failed, info, onRetry }) {
             <>
               {info.body && <p className="wine-about__body">{info.body}</p>}
 
-              <WineStructure structure={info.structure} />
+              {/* `wine` sólo viaja para que los conceptos puedan decir "el tuyo
+                  es un tinto": la estructura se dibuja igual sin él. */}
+              <WineStructure structure={info.structure} wine={wine} />
 
               {!info.structure && info.profile?.length > 0 && (
                 <div className="wine-about__profile">

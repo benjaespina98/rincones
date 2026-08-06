@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import Portal from "./Portal";
+import ConceptTerm from "./ConceptTerm";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
 import { getWineRecipe } from "../services/wineSearchApi";
 import "../styles/components/SettingsSheet.css";
@@ -119,9 +120,25 @@ export default function WinePlan({ wine, info }) {
       {temperatura && (
         <p className="wine-plan__line">
           <Icon name="bottle" size={14} />
+          {/* Dos conceptos en una línea, cada uno en su palabra: la temperatura
+              en el número y el aireado en la instrucción. Son las dos preguntas
+              que se hacen con la botella en la mano. */}
           <span>
-            Servila a <strong>{temperatura}</strong>
-            {airear && " — abrila media hora antes: el aire le baja el tanino"}
+            Servila a{" "}
+            <strong>
+              <ConceptTerm id="temperatura" ctx={{ wine, info, serve: temperatura }}>
+                {temperatura}
+              </ConceptTerm>
+            </strong>
+            {airear && (
+              <>
+                {" — "}
+                <ConceptTerm id="decantar" ctx={{ wine, info }}>
+                  abrila media hora antes
+                </ConceptTerm>
+                : el aire le baja el tanino
+              </>
+            )}
           </span>
         </p>
       )}
@@ -212,7 +229,17 @@ export default function WinePlan({ wine, info }) {
               </div>
 
               <div className="settings-sheet__body wine-recipe">
-                {receta.why && <p className="wine-recipe__why">{receta.why}</p>}
+                {/* El maridaje se explica justo donde acaba de aplicarse: abajo
+                    de la frase que dice por qué ESTE plato va con ESTE vino. En
+                    abstracto, "maridaje" no le interesa a nadie. */}
+                {receta.why && (
+                  <p className="wine-recipe__why">
+                    {receta.why}{" "}
+                    <ConceptTerm id="maridaje" ctx={{ wine, info }} className="wine-recipe__why-term">
+                      ¿cómo se marida?
+                    </ConceptTerm>
+                  </p>
+                )}
 
                 {(receta.time || receta.servings) && (
                   <p className="wine-recipe__meta">

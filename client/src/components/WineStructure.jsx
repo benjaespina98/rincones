@@ -1,3 +1,4 @@
+import ConceptTerm from "./ConceptTerm";
 import "./WineStructure.css";
 
 /**
@@ -18,14 +19,16 @@ import "./WineStructure.css";
  * la lista de abajo, en la misma pantalla, decía "Cuerpo medio". Dos etiquetas
  * distintas para el mismo número.
  */
+// `concept` cuelga la explicación del rótulo. El dulzor no tiene: se entiende
+// solo y no hay nada que aclarar que la palabra ("Seco") no diga ya.
 const SCALES = [
-  { key: "body", label: "Cuerpo", words: ["Liviano", "Liviano", "Medio", "Corpulento", "Corpulento"] },
-  { key: "acidity", label: "Acidez", words: ["Suave", "Suave", "Media", "Fresca", "Fresca"] },
-  { key: "tannin", label: "Taninos", words: ["Sedosos", "Sedosos", "Medios", "Firmes", "Firmes"] },
+  { key: "body", label: "Cuerpo", concept: "cuerpo", words: ["Liviano", "Liviano", "Medio", "Corpulento", "Corpulento"] },
+  { key: "acidity", label: "Acidez", concept: "acidez", words: ["Suave", "Suave", "Media", "Fresca", "Fresca"] },
+  { key: "tannin", label: "Taninos", concept: "taninos", words: ["Sedosos", "Sedosos", "Medios", "Firmes", "Firmes"] },
   { key: "sweetness", label: "Dulzor", words: ["Seco", "Seco", "Semiseco", "Dulce", "Dulce"] },
 ];
 
-export default function WineStructure({ structure }) {
+export default function WineStructure({ structure, wine }) {
   if (!structure) return null;
 
   // Los blancos y espumantes vienen con taninos en 1: mostrar una barra vacía
@@ -40,12 +43,24 @@ export default function WineStructure({ structure }) {
     <div className="wine-structure">
       <span className="wine-structure__title">Perfil de sabor</span>
       <div className="wine-structure__rows">
-        {rows.map(({ key, label, words }) => {
+        {rows.map(({ key, label, words, concept }) => {
           const value = structure[key];
           const palabra = words[Math.min(Math.max(value, 1), 5) - 1];
           return (
             <div className="wine-structure__row" key={key}>
-              <span className="wine-structure__label">{label}</span>
+              {/* El rótulo abre la explicación del concepto, con el número de
+                  ESTE vino adentro. Es donde de verdad se hace la pregunta:
+                  nadie se pregunta qué son los taninos en abstracto, se lo
+                  pregunta mirando una barra que dice 4 de 5. */}
+              <span className="wine-structure__label">
+                {concept ? (
+                  <ConceptTerm id={concept} ctx={{ wine, info: { structure } }}>
+                    {label}
+                  </ConceptTerm>
+                ) : (
+                  label
+                )}
+              </span>
               <div
                 className="wine-structure__track"
                 role="meter"

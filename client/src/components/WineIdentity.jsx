@@ -1,4 +1,5 @@
 import Icon from "./Icon";
+import ConceptTerm from "./ConceptTerm";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus, cellarSourceNote } from "../utils/cellarStatus";
 import { enCavaDesde, tiempoEnCava } from "../utils/cellarTime";
@@ -70,7 +71,9 @@ export default function WineIdentity({ wine, onEdit }) {
     },
     // La región no está acá: la dice el encabezado, debajo del nombre. Repetirla
     // sería el mismo dato dos veces con dos pesos distintos.
-    { rotulo: "Uva", valor: wine.varietal },
+    // La uva abre "las uvas argentinas": qué esperar de un Malbec, un Cabernet
+    // o un Torrontés, dicho en una línea cada uno.
+    { rotulo: "Uva", valor: wine.varietal, concepto: "uvas" },
     { rotulo: "Cosecha", valor: wine.vintage ? String(wine.vintage) : "" },
     { rotulo: "Tipo", valor: tipo },
   ].filter((f) => f.valor || f.obligatorio);
@@ -82,7 +85,12 @@ export default function WineIdentity({ wine, onEdit }) {
           <div key={f.rotulo} className="wine-id__row">
             <dt>{f.rotulo}</dt>
             <dd className={f.valor ? "" : "is-empty"}>
-              {f.valor || (
+              {f.valor && f.concepto ? (
+                <ConceptTerm id={f.concepto} ctx={{ wine }}>{f.valor}</ConceptTerm>
+              ) : (
+                f.valor
+              )}
+              {!f.valor && (
                 <>
                   {SIN_DATO}
                   {onEdit && (
@@ -106,7 +114,11 @@ export default function WineIdentity({ wine, onEdit }) {
           title={cellarSourceNote(guarda)}
         >
           <span className="wine-id__dot" aria-hidden="true" />
-          <strong>{guarda.label}</strong>
+          {/* El veredicto abre "Guarda": por qué un vino mejora, cuándo deja de
+              hacerlo, y en qué punto de esa curva está el tuyo. */}
+          <strong>
+            <ConceptTerm id="guarda" ctx={{ wine, guarda }}>{guarda.label}</ConceptTerm>
+          </strong>
           <span className="wine-id__cellar-detail">{guarda.detail}</span>
         </div>
       )}

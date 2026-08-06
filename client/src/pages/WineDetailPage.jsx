@@ -596,6 +596,7 @@ export default function WineDetailPage() {
               failed={aiFailed}
               info={aiInfo}
               onRetry={() => loadDescription(true)}
+              wine={wine}
             />
 
             {/* Opiniones de otros (el promedio y las reseñas ajenas). */}

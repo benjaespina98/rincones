@@ -247,6 +247,14 @@
   color: var(--text-secondary);
 }
 
+/* El único término que no envuelve un rótulo existente sino que agrega una
+   pregunta. Va en el acento para que se distinga de la frase que lo precede. */
+.wine-recipe__why-term {
+  color: var(--accent-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .wine-recipe__meta {
   display: flex;
   flex-wrap: wrap;
