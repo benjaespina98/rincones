@@ -11,6 +11,12 @@ router.get("/search", authenticate, aiLimiter, catalogController.search);
 // POST /api/catalog/describe - ficha del vino (descripción, aromas, maridaje).
 router.post("/describe", authenticate, aiLimiter, catalogController.describe);
 
+// POST /api/catalog/recipe - plato con receta para acompañar la botella.
+router.post("/recipe", authenticate, aiLimiter, catalogController.recipe);
+
+// POST /api/catalog/pairing - qué maridaje le corresponde a un plato escrito a mano.
+router.post("/pairing", authenticate, aiLimiter, catalogController.pairing);
+
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
 router.get("/featured", authenticate, catalogController.featured);
 

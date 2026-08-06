@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       }
       showSuccess("Si el email existe, te enviamos instrucciones.");
     } catch (err) {
-      showError(err.response?.data?.message || "No pudimos procesar la solicitud.");
+      showError(err.response?.data?.message || "No se pudo procesar la solicitud.");
     } finally {
       setLoading(false);
     }

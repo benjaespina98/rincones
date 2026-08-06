@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
       showSuccess("Contraseña actualizada. ¡Listo!");
       navigate("/login");
     } catch (err) {
-      const msg = err.response?.data?.message || "No pudimos restablecer la contraseña.";
+      const msg = err.response?.data?.message || "No se pudo restablecer la contraseña.";
       setError(msg);
       showError(msg);
     } finally {

@@ -33,6 +33,19 @@ const ORDENES = [
   { value: "year", label: "Cosecha nueva" },
 ];
 
+const NOMBRE_FACETA = { uva: "Uva", region: "región", cosecha: "cosecha" };
+
+/**
+ * El rótulo de la sección, armado con las facetas que se están mostrando:
+ * "Uva", "Uva y cosecha", "Uva, región y cosecha". Prometer un filtro que no
+ * está abajo es peor que no tener la sección.
+ */
+const rotuloFacetas = (facetas) => {
+  const nombres = facetas.map((f) => NOMBRE_FACETA[f]);
+  if (nombres.length === 1) return nombres[0];
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+};
+
 const TIPOS = [
   { value: "all", label: "Todos" },
   { value: "red", label: "Tintos" },
@@ -63,6 +76,9 @@ export default function BodegaFilters({
   regionFilter,
   setRegionFilter,
   regionOptions,
+  vintageFilter,
+  setVintageFilter,
+  vintageOptions,
   viewMode,
   setViewMode,
   hayFiltros,
@@ -80,6 +96,13 @@ export default function BodegaFilters({
   }, [abierto, onClose]);
 
   if (!abierto) return null;
+
+  // Qué facetas tienen algo para elegir en ESTA bodega.
+  const facetas = [
+    varietalOptions.length > 1 && "uva",
+    regionOptions.length > 1 && "region",
+    vintageOptions.length > 1 && "cosecha",
+  ].filter(Boolean);
 
   return (
     <Portal>
@@ -171,14 +194,19 @@ export default function BodegaFilters({
               </div>
             </section>
 
-            {/* Uva y región aparecen sólo si tu bodega tiene más de una: con tres
+            {/* Uva, región y cosecha aparecen sólo si tenés más de una: con tres
                 vinos, un combo de "todas las regiones" es un control que no filtra
-                nada y hay que leer igual. */}
-            {(varietalOptions.length > 1 || regionOptions.length > 1) && (
+                nada y hay que leer igual.
+
+                El rótulo se arma con lo que de verdad se está mostrando. Decía
+                siempre "Uva y región" y, si todos tus vinos eran Malbec, quedaba
+                anunciando un filtro por uva que no estaba abajo: el usuario lo
+                buscaba y no existía. */}
+            {facetas.length > 0 && (
               <section className="bfilters__group">
-                <span className="bfilters__label">Uva y región</span>
+                <span className="bfilters__label">{rotuloFacetas(facetas)}</span>
                 <div className="bfilters__combos">
-                  {varietalOptions.length > 1 && (
+                  {facetas.includes("uva") && (
                     <Dropdown
                       ariaLabel="Filtrar por uva"
                       value={varietalFilter}
@@ -189,7 +217,7 @@ export default function BodegaFilters({
                       ]}
                     />
                   )}
-                  {regionOptions.length > 1 && (
+                  {facetas.includes("region") && (
                     <Dropdown
                       ariaLabel="Filtrar por región"
                       value={regionFilter}
@@ -197,6 +225,17 @@ export default function BodegaFilters({
                       options={[
                         { value: "all", label: "Todas las regiones" },
                         ...regionOptions.map((r) => ({ value: r, label: r })),
+                      ]}
+                    />
+                  )}
+                  {facetas.includes("cosecha") && (
+                    <Dropdown
+                      ariaLabel="Filtrar por cosecha"
+                      value={vintageFilter}
+                      onChange={setVintageFilter}
+                      options={[
+                        { value: "all", label: "Todas las cosechas" },
+                        ...vintageOptions.map((v) => ({ value: v, label: v })),
                       ]}
                     />
                   )}

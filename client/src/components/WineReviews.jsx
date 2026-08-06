@@ -18,6 +18,7 @@ export default function WineReviews({ name, winery = "" }) {
   const [state, setState] = useState({ summary: null, mine: null, reviews: [] });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [abierto, setAbierto] = useState(false);
 
   const load = useCallback(async () => {
     if (!name) return;
@@ -57,7 +58,7 @@ export default function WineReviews({ name, winery = "" }) {
 
       {!loading && failed && (
         <ErrorState
-          title="No pudimos cargar las reseñas"
+          title="No se pudieron cargar las reseñas"
           hint="Probá de nuevo en un momento."
           onRetry={load}
           compact
@@ -66,7 +67,22 @@ export default function WineReviews({ name, winery = "" }) {
 
       {!loading && !failed && (
         <>
-          {state.reviews.length > 0 && (
+          {/* Plegadas por defecto: el promedio y cuántas hay es lo que se mira
+              siempre —y ya está en el encabezado—; los textos se leen una vez y
+              empujaban todo lo demás una pantalla hacia abajo en cada visita. */}
+          {state.reviews.length > 0 && !abierto && (
+            <button
+              type="button"
+              className="wine-reviews__toggle"
+              onClick={() => setAbierto(true)}
+              aria-expanded={false}
+            >
+              Leer {state.reviews.length === 1 ? "la reseña" : `las ${state.reviews.length} reseñas`}
+              <Icon name="arrow-right" size={15} />
+            </button>
+          )}
+
+          {state.reviews.length > 0 && abierto && (
             <ul className="review-list">
               {state.reviews.map((r) => (
                 <li key={r._id} className="review-card">
@@ -82,6 +98,17 @@ export default function WineReviews({ name, winery = "" }) {
                 </li>
               ))}
             </ul>
+          )}
+
+          {abierto && state.reviews.length > 0 && (
+            <button
+              type="button"
+              className="wine-reviews__toggle"
+              onClick={() => setAbierto(false)}
+              aria-expanded
+            >
+              Ocultar las reseñas
+            </button>
           )}
 
           {!state.summary && (

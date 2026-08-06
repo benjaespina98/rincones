@@ -54,7 +54,7 @@ export default function ProfilePage() {
           setProfileData((prev) => ({ ...prev, ...profile }));
         }
       } catch (err) {
-        showError?.("No pudimos cargar tu perfil");
+        showError?.("No se pudo cargar tu perfil");
         console.error(err);
       } finally {
         if (mounted) setLoading(false);

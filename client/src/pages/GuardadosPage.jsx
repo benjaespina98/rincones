@@ -104,7 +104,7 @@ export default function GuardadosPage() {
 
       {!loading && error && (
         <ErrorState
-          title="No pudimos cargar tus guardados"
+          title="No se pudieron cargar tus guardados"
           hint="Tus vinos siguen ahí. Revisá tu conexión y probá de nuevo."
           onRetry={reload}
         />

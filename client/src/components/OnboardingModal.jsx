@@ -45,7 +45,7 @@ export default function OnboardingModal({ onDone }) {
       successHaptic();
       onDone?.();
     } catch {
-      showError("No pudimos guardar tus preferencias. Probá de nuevo.");
+      showError("No se pudieron guardar tus preferencias. Probá de nuevo.");
     } finally {
       setSaving(false);
     }

@@ -61,7 +61,7 @@ const RegisterPage = () => {
       showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
       navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.message || "No pudimos crear la cuenta.";
+      const msg = err.response?.data?.message || "No se pudo crear la cuenta.";
       setError(msg);
       showError(msg);
     } finally {

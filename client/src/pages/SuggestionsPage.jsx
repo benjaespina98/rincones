@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useRecommendations } from "../hooks/useRecommendations";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
-import { searchWines } from "../services/wineSearchApi";
+import { searchWines, classifyDish } from "../services/wineSearchApi";
+import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
@@ -20,12 +21,32 @@ import "../styles/pages/SuggestionsPage.css";
 
 const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
 
+/**
+ * Por qué un vino que no tenés aparece en la lista.
+ *
+ * No hace falta preguntarle a nadie: está ahí porque su uva es una de las que
+ * buscamos para ese plato. Decirlo cuesta cero y es la diferencia entre una
+ * lista de botellas y una recomendación.
+ */
+// No repite el varietal: ya está como chip dos renglones arriba, y decirlo dos
+// veces en la misma tarjeta es justamente el ruido que hay que evitar.
+const razonDescubrimiento = (wine) =>
+  wine.varietal
+    ? "Una de las uvas que le van a este plato"
+    : "Va con lo que estás por comer";
+
 export default function SuggestionsPage() {
   const navigate = useNavigate();
   const { addWish } = useWishlist();
   const { showError, showSuccess } = useToast();
   const { suggestions, loading, error, context, fetchSuggestions, clearContext } =
     useRecommendations();
+
+  // Lo que el usuario escribió, y cómo lo entendimos. `reading` es lo que se le
+  // muestra de vuelta: nunca clasificamos su plato en silencio.
+  const [query, setQuery] = useState("");
+  const [reading, setReading] = useState(null);
+  const [resolving, setResolving] = useState(false);
 
   // Descubrimiento: vinos argentinos del catálogo, para cuando la bodega no alcanza.
   const [discover, setDiscover] = useState([]);
@@ -60,13 +81,26 @@ export default function SuggestionsPage() {
       const batches = await Promise.all(
         queries.map((q) => searchWines(q).catch(() => []))
       );
+      // El mismo veto que aplica el server sobre tu bodega: si la comida define
+      // tipos, el vino tiene que ser de alguno. Faltaba acá, y se notaba —
+      // buscar "Malbec" para un asado devolvía también los Malbec BLANCOS, que
+      // el server jamás habría recomendado. Los de tipo desconocido pasan: no
+      // sabemos que estén mal.
+      const tiposOk = FOOD_PAIRINGS[ctx.food]?.types || [];
+      const sirve = (wine) =>
+        tiposOk.length === 0 || !wine.type || wine.type === "unknown" || tiposOk.includes(wine.type);
+
       const seen = new Set();
       const merged = [];
-      // Intercalamos los varietales para no llenar la lista con uno solo.
-      for (let i = 0; i < 3; i += 1) {
+      // Intercalamos los varietales para no llenar la lista con uno solo. Se
+      // recorre más hondo que los 6 que se muestran porque ahora el veto de tipo
+      // descarta resultados: quedándonos en 3 por uva, un par de blancos mal
+      // devueltos dejaban la sección casi vacía.
+      for (let i = 0; i < 6; i += 1) {
         for (const batch of batches) {
           const wine = batch[i];
           if (!wine || seen.has(wine.id)) continue;
+          if (!sirve(wine)) continue;
           // "Para descubrir" es justamente lo que NO tenés: mostrar acá un vino
           // que ya está arriba en "De tu bodega" es decir dos veces lo mismo.
           if (yaLosTengo.has(wineKey(wine))) continue;
@@ -94,8 +128,55 @@ export default function SuggestionsPage() {
     else clearContext();
   };
 
-  const handleFood = (value) =>
+  // Tocar un chip es la vía rápida y sigue siendo un solo toque: no pasa por
+  // ninguna traducción ni espera a nadie.
+  const handleFood = (value) => {
+    setReading(null);
+    setQuery("");
     applyContext({ food: context.food === value ? null : value });
+  };
+
+  /**
+   * Lo que escribiste a mano.
+   *
+   * Dos escalones, y el orden importa: primero la tabla local, que resuelve al
+   * instante lo que la gente come de verdad; sólo si no la reconoce le
+   * preguntamos a la IA. Así "milanesa" no espera nada y "risotto de hongos"
+   * espera una vez en la vida de la app (después queda cacheado para todos).
+   */
+  const handleDish = async (event) => {
+    event.preventDefault();
+    const texto = query.trim();
+    if (texto.length < 3 || resolving) return;
+
+    const local = resolveFood(texto);
+    if (local) {
+      setReading({ text: texto, food: local.food, note: "" });
+      applyContext({ food: local.food });
+      return;
+    }
+
+    setResolving(true);
+    try {
+      const data = await classifyDish(texto);
+      if (data?.food) {
+        setReading({ text: texto, food: data.food, note: data.note || "" });
+        applyContext({ food: data.food });
+      } else {
+        showError("No se pudo interpretar ese plato. Probá con uno de los clásicos de abajo.");
+      }
+    } catch {
+      showError("No se pudo interpretar ese plato. Probá con uno de los clásicos de abajo.");
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const resetAll = () => {
+    setQuery("");
+    setReading(null);
+    clearContext();
+  };
 
   // "Quiero probar": guarda el vino en Guardados (no en la bodega).
   const handleWantDiscover = async (wine) => {
@@ -123,14 +204,54 @@ export default function SuggestionsPage() {
   return (
     <div className="suggestions-page">
       <header className="sommelier-header">
-        <h1>¿Qué abrimos hoy?</h1>
-        <p>Elegí el contexto y te sugerimos qué tomar.</p>
+        <h1>¿Qué descorchamos?</h1>
+        <p>Contame qué vas a comer y te digo cuál abrir.</p>
       </header>
 
       <section className="context-selector">
+        {/* Escribir lo que sea es la vía principal, y los chips el atajo: en una
+            barra de diez categorías, la comida de esta noche casi nunca está.
+            La tabla local responde al instante; la IA sólo entra en lo raro. */}
+        <form className="dish-field" onSubmit={handleDish}>
+          <Icon name="utensils" size={17} className="dish-field__icon" />
+          <input
+            type="text"
+            className="dish-field__input"
+            placeholder="Milanesas, sushi, lo que estés por cocinar…"
+            aria-label="Qué vas a comer"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            enterKeyHint="search"
+          />
+          <button
+            type="submit"
+            className="dish-field__go"
+            disabled={query.trim().length < 3 || resolving}
+            aria-label="Buscar el vino para ese plato"
+          >
+            {resolving ? <span className="dish-field__spin" aria-hidden="true" /> : <Icon name="arrow-right" size={17} />}
+          </button>
+        </form>
+
+        {/* Cómo lo entendimos. Va siempre que la respuesta no salga de un chip:
+            si tradujimos "risotto de hongos" a Pasta, el usuario tiene derecho a
+            verlo y a corregirlo. */}
+        {reading && (
+          <p className="dish-reading">
+            <Icon name="sparkles" size={13} />
+            <span>
+              <em>{reading.text}</em> — para eso vamos a{" "}
+              <strong>{FOOD_LABELS[reading.food] || reading.food}</strong>
+              {reading.note && <span className="dish-reading__note">{reading.note}</span>}
+            </span>
+          </p>
+        )}
+
         <div className="context-group">
-          <span className="context-label">¿Con qué vas a comer?</span>
-          <div className="chip-row">
+          <span className="context-label">O tocá un clásico</span>
+          {/* Una sola fila con scroll horizontal: diez chips en dos o tres
+              renglones son una pared, y acá son el camino corto, no el menú. */}
+          <div className="chip-rail">
             {FOOD_OPTIONS.map(({ value, label }) => (
               <button
                 key={value}
@@ -145,7 +266,7 @@ export default function SuggestionsPage() {
         </div>
 
         {hasContext && (
-          <button type="button" className="clear-context-btn" onClick={clearContext}>
+          <button type="button" className="clear-context-btn" onClick={resetAll}>
             Empezar de nuevo
           </button>
         )}
@@ -155,8 +276,8 @@ export default function SuggestionsPage() {
         {!hasContext && (
           <EmptyState
             icon="wine-glass"
-            title="Contanos qué vas a comer"
-            hint="Elegí un plato arriba y te decimos qué abrir de tu bodega — y qué probar si todavía no lo tenés."
+            title="Contame qué vas a comer"
+            hint="Escribilo arriba o tocá un clásico: te digo qué abrir de tu bodega, y qué buscar si todavía no lo tenés."
             compact
           />
         )}
@@ -164,7 +285,7 @@ export default function SuggestionsPage() {
         {loading && <LoadingSkeleton type="list" count={3} />}
         {error && !loading && (
           <ErrorState
-            title="No pudimos armar las sugerencias"
+            title="No se pudieron armar las sugerencias"
             hint="Probá de nuevo; si sigue, elegí otra comida."
             onRetry={() => fetchSuggestions(context)}
             compact
@@ -223,8 +344,8 @@ export default function SuggestionsPage() {
             {!discoverLoading && discover.length === 0 && cellarWines.length === 0 && !error && (
               <EmptyState
                 icon="search"
-                title="No encontramos nada para ese plato"
-                hint="Probá con otra comida, o buscá un vino puntual desde Agregar."
+                title="Para ese plato no tengo nada que ofrecerte"
+                hint="Probá con otra comida, o buscá una botella puntual desde Agregar."
                 compact
               />
             )}
@@ -233,8 +354,8 @@ export default function SuggestionsPage() {
               <>
                 <p className="suggestions-results__label">
                   {cellarWines.length > 0
-                    ? "Para descubrir — vinos argentinos"
-                    : "Para descubrir — todavía no lo tenés"}
+                    ? "Para descubrir — argentinos que te irían"
+                    : "Para descubrir — no lo tenés, pero le va"}
                 </p>
                 <ul className="discover-list">
                   {discover.map((wine) => (
@@ -266,6 +387,15 @@ export default function SuggestionsPage() {
                                   <Icon name="map-pin" size={12} /> {wine.region}
                                 </span>
                               )}
+                            </span>
+                            {/* Por qué está acá. Los de tu bodega venían con su
+                                razón y estos no, que es al revés de lo que hace
+                                falta: de los tuyos ya sabés algo, de estos no
+                                sabés nada. La nota del catálogo es mejor que la
+                                nuestra cuando existe, porque habla de ESE vino. */}
+                            <span className="discover-card__reason">
+                              <Icon name="sparkles" size={12} />
+                              {wine.note || razonDescubrimiento(wine)}
                             </span>
                           </span>
                           <Icon name="arrow-right" size={18} className="discover-card__caret" />

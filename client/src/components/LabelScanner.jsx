@@ -72,7 +72,7 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
     } catch {
       // NO llamamos a onCapture: si lo hacíamos, el padre desmontaba el escáner
       // y este mensaje nunca llegaba a verse. Ahora el usuario decide.
-      setAnalyzeError("No pudimos leer la etiqueta. Probá con otra foto o cargá los datos a mano.");
+      setAnalyzeError("No se pudo leer la etiqueta. Probá con otra foto o cargá los datos a mano.");
     } finally {
       setAnalyzing(false);
     }

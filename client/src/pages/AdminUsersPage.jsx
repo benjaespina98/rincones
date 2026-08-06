@@ -37,7 +37,7 @@ const AdminUsersPage = ({ embedded = false }) => {
       setAdmins(data.meta?.admins || 0);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || "No pudimos cargar los usuarios");
+      setError(err.response?.data?.message || "No se pudieron cargar los usuarios");
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ const AdminUsersPage = ({ embedded = false }) => {
       showSuccess(res.message || "Rol actualizado");
       await loadUsers();
     } catch (err) {
-      showError(err.response?.data?.message || "No pudimos actualizar el rol");
+      showError(err.response?.data?.message || "No se pudo actualizar el rol");
     } finally {
       setBusyId(null);
     }
@@ -74,7 +74,7 @@ const AdminUsersPage = ({ embedded = false }) => {
       showSuccess(res.message || "Cuenta eliminada");
       await loadUsers();
     } catch (err) {
-      showError(err.response?.data?.message || "No pudimos eliminar la cuenta");
+      showError(err.response?.data?.message || "No se pudo eliminar la cuenta");
     } finally {
       setBusyId(null);
     }
@@ -132,7 +132,7 @@ const AdminUsersPage = ({ embedded = false }) => {
       {loading && <p className="admin-users__loading">Cargando usuarios…</p>}
 
       {!loading && error && (
-        <ErrorState title="No pudimos cargar los usuarios" onRetry={loadUsers} compact />
+        <ErrorState title="No se pudieron cargar los usuarios" onRetry={loadUsers} compact />
       )}
 
       {!loading && !error && users.length === 0 && (

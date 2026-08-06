@@ -186,15 +186,19 @@ const buildDescribePrompt = (wine) => {
     wine.vintage && `Añada: ${wine.vintage}`,
   ].filter(Boolean).join("\n");
 
-  return `Sos un sommelier argentino. Describí este vino para una app de bodega personal:
+  return `Sos sommelier argentino, de los que explican bien. Describí este vino para una app de bodega personal:
 
 ${parts}
 
 Devolvé:
-- summary: 2-3 oraciones, tono cercano y claro (no marketinero), sobre el estilo y a qué apunta.
-- body: una frase sobre CÓMO tomarlo: si conviene decantarlo, si gana con el aire,
-  para qué momento va. NO repitas cuerpo, taninos ni acidez: eso ya va en structure
-  y la app lo muestra en barras justo al lado.
+- summary: 2-3 oraciones sobre el estilo y a qué apunta, con precisión de sommelier:
+  nombrá lo que se percibe (la fruta, la madera, el final) en vez de calificarlo.
+  Nada de "excelente", "exquisito" ni "de gran calidad" — no dicen nada y podrían
+  estar hablando de cualquier botella. Que suene a alguien que lo tomó, no a una
+  contraetiqueta.
+- body: una frase sobre CÓMO tomarlo: si conviene decantarlo y cuánto, si gana con el
+  aire, en qué copa o para qué momento va. NO repitas cuerpo, taninos ni acidez: eso
+  ya va en structure y la app lo muestra en barras justo al lado.
 - profile: 3 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Frutado"). Solo el atributo, sin explicación.
 - structure: la estructura en números del 1 al 5, para poder compararla con otros vinos:
   body 1=muy liviano 5=muy corpulento · acidity 1=baja 5=muy fresca ·
@@ -204,7 +208,9 @@ Devolvé:
   guste este podría empezar. Formato "Bodega Línea" (ej: "Catena Alta Malbec").
   Si no se te ocurre ninguno del que estés seguro, devolvé lista vacía.
 - aromas: 3 o 4 aromas/sabores, los que MÁS lo caracterizan (ej: "cereza", "vainilla", "pimienta").
-- foodPairing: 3 o 4 comidas que maridan bien, concretas y argentinas.
+- foodPairing: 3 o 4 platos concretos y argentinos, con el corte o la preparación
+  dicha (ej: "ojo de bife a la parrilla", "provoleta con orégano"), no categorías
+  sueltas como "carnes" o "quesos", que no le sirven a nadie para decidir la cena.
 - alcohol: graduación típica del estilo (número, ej 14). 0 si no sabés.
 - serve: temperatura de servicio sugerida (ej "16-18 °C").
 - known: true sólo si conocés este vino o su estilo con razonable certeza; false si estarías adivinando.
@@ -269,4 +275,178 @@ const describeWine = async (wine) => {
   };
 };
 
-module.exports = { isAiSearchConfigured, searchWinesWithAi, describeWine };
+// --- Receta para acompañar la botella ---
+//
+// El maridaje de la ficha son tres palabras ("carne roja, quesos, pastas"): a
+// nadie parado en la cocina le sirven. Esto es lo contrario: UN plato concreto,
+// con lo que hay que comprar y cinco pasos, elegido para ese vino y para el plan
+// de la noche. Se pide a mano (no se genera al abrir la ficha) y se cachea entre
+// todos los usuarios, así una receta cuesta una sola llamada para siempre.
+
+const PLANS = {
+  cena:   "una cena tranquila de a dos, en casa",
+  asado:  "un asado con familia o amigos",
+  amigos: "una juntada con amigos, picoteando",
+  solo:   "una noche solo, sin apuro",
+};
+
+const RECIPE_SCHEMA = {
+  type: "object",
+  properties: {
+    dish: { type: "string" },
+    why: { type: "string" },
+    time: { type: "string" },
+    servings: { type: "integer" },
+    ingredients: { type: "array", items: { type: "string" } },
+    steps: { type: "array", items: { type: "string" } },
+  },
+  required: ["dish", "why", "ingredients", "steps"],
+};
+
+const buildRecipePrompt = (wine, plan) => {
+  const datos = [
+    wine.name && `Nombre: ${wine.name}`,
+    wine.winery && `Bodega: ${wine.winery}`,
+    wine.varietal && `Varietal: ${wine.varietal}`,
+    wine.region && `Región: ${wine.region}`,
+    wine.type && wine.type !== "unknown" && `Tipo: ${wine.type}`,
+  ].filter(Boolean).join("\n");
+
+  return `Sos chef de un restaurante argentino y sabés de vinos. Alguien va a abrir esta botella:
+
+${datos}
+
+El plan es ${PLANS[plan] || PLANS.cena}.
+
+Proponé UN plato para acompañarla, de cocina de casa pero pensado como lo pensaría
+un cocinero: con criterio, con el punto justo y con una razón detrás de cada paso.
+
+- dish: el nombre del plato como iría en una carta, concreto y argentino
+  (ej: "Ojo de bife con manteca de romero y papas confitadas", no "carne roja").
+  Acorde al plan: para un asado, parrilla; para una juntada, algo de picoteo con
+  altura; para una cena de a dos, un plato de sartén o de horno.
+- why: UNA oración de sommelier sobre por qué ese plato va con ESTE vino, nombrando
+  lo que pasa en la boca: qué corta la grasa, qué levanta la acidez, qué hace el
+  tanino con la proteína, qué recoge el ahumado. Nada de "armonía perfecta",
+  "matrimonio ideal" ni "explosión de sabores": eso es chamuyo de contraetiqueta.
+- time: cuánto lleva en total (ej: "40 min", "1 h 20").
+- servings: para cuántas personas rinde (número), acorde al plan.
+- ingredients: 5 a 9 ingredientes CON cantidades exactas, todos comprables en un
+  supermercado argentino. Nada exótico. Si un ingrediente es el que define el plato,
+  aclaralo (ej: "manteca fría, 50 g" o "sal gruesa, para la costra").
+- steps: 4 a 6 pasos, uno por oración, en orden y EN VOSEO argentino ("sellá",
+  "dejá reposar", "bañá"), nunca en infinitivo: la app le habla de vos al usuario
+  en todas las pantallas y una receta en infinitivo suena a manual fotocopiado.
+  Escribilos como un chef que enseña:
+  nombrá la técnica (sellar, nacarar, reducir, napar, dejar reposar) y decí CÓMO se
+  sabe que está listo —el color, el sonido, el tiempo, la textura—, que es lo que
+  separa una receta que sale de una que no. Sin numerar (la app numera).
+
+Reglas: ningún ingrediente que no esté en la lista, ningún paso que necesite
+equipamiento de restaurante, y ninguna palabra que no diga algo concreto.`;
+};
+
+/**
+ * Genera la receta para un vino + plan. Devuelve null si no está configurado
+ * Gemini; lanza si la API falla, para que el llamador decida qué mostrar.
+ */
+const suggestRecipe = async (wine, plan) => {
+  if (!isGeminiConfigured()) return null;
+  if (!wine?.name) return null;
+
+  const parsed = await generateJson({
+    parts: [{ text: buildRecipePrompt(wine, plan) }],
+    schema: RECIPE_SCHEMA,
+    timeoutMs: 14000,
+    budgetMs: 22000,
+  });
+
+  const clean = (s) => String(s || "").trim();
+  const list = (arr, max) =>
+    Array.isArray(arr) ? arr.map((x) => clean(x)).filter(Boolean).slice(0, max) : [];
+
+  const dish = clean(parsed?.dish);
+  const ingredients = list(parsed?.ingredients, 9);
+  const steps = list(parsed?.steps, 6);
+  // Una receta sin plato, sin ingredientes o sin pasos no es una receta: es peor
+  // que no mostrar nada, porque promete algo que no está.
+  if (!dish || ingredients.length === 0 || steps.length === 0) return null;
+
+  const servings = Math.round(Number(parsed?.servings));
+
+  return {
+    dish,
+    why: clean(parsed?.why),
+    time: clean(parsed?.time),
+    servings: Number.isFinite(servings) && servings > 0 && servings <= 20 ? servings : null,
+    ingredients,
+    steps,
+  };
+};
+
+// --- Clasificar un plato escrito a mano ---
+//
+// El Sommelier razona sobre once categorías de comida. El cliente traduce solo
+// lo que puede con una tabla local (milanesa → carne, sushi → pescado); esto es
+// el último escalón, para lo que se le ocurra a cualquiera un martes: "risotto
+// de hongos", "curry", "pizza de rúcula con jamón crudo". Devuelve la categoría
+// y una línea que dice por qué, que es lo que después lee el usuario.
+
+const FOOD_KEYS = [
+  "asado", "carne", "pollo", "pasta", "pizza", "pescado",
+  "mariscos", "picada", "queso", "ensalada", "postre", "solo",
+];
+
+const DISH_SCHEMA = {
+  type: "object",
+  properties: {
+    food: { type: "string", enum: FOOD_KEYS },
+    note: { type: "string" },
+  },
+  required: ["food"],
+};
+
+/**
+ * Clasifica un plato en una de las categorías de maridaje.
+ * Devuelve { food, note } o null si no está configurado Gemini.
+ */
+const classifyDish = async (dish) => {
+  if (!isGeminiConfigured()) return null;
+  const plato = String(dish || "").trim();
+  if (!plato) return null;
+
+  const parsed = await generateJson({
+    parts: [{
+      text: `Sos sommelier. Alguien va a comer: "${plato}".
+
+Elegí en cuál de estas categorías cae, pensando en QUÉ VINO le va (no en el ingrediente principal):
+${FOOD_KEYS.join(", ")}.
+
+- Si el plato es contundente y graso, pesa más eso que el ingrediente: un risotto de hongos va con "pasta", un curry de pollo con "pollo".
+- Los platos sin carne (verduras, legumbres, tartas, woks) van en "ensalada", que es la categoría de blancos y rosados.
+- "solo" es sólo para cuando no va a comer nada.
+- note: UNA frase de sommelier (máximo 70 caracteres) sobre qué hace ese vino con ese
+  plato: qué corta, qué levanta, qué acompaña. Concreta y sensorial, sin adjetivos de
+  catálogo ("exquisito", "perfecto", "sublime"). Si no tenés nada útil, dejala vacía.`,
+    }],
+    schema: DISH_SCHEMA,
+    // Es una clasificación de una palabra: si tarda, el usuario ya se fue.
+    timeoutMs: 7000,
+    budgetMs: 11000,
+  });
+
+  const food = FOOD_KEYS.includes(parsed?.food) ? parsed.food : null;
+  if (!food) return null;
+
+  const note = String(parsed?.note || "").trim();
+  return { food, note: note.length > 120 ? "" : note };
+};
+
+module.exports = {
+  isAiSearchConfigured,
+  searchWinesWithAi,
+  describeWine,
+  suggestRecipe,
+  classifyDish,
+  PLANS,
+};

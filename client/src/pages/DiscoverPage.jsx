@@ -233,7 +233,7 @@ export default function DiscoverPage() {
 
           {!searchLoading && searched && searchFailed && (
             <ErrorState
-              title="No pudimos completar la búsqueda"
+              title="No se pudo completar la búsqueda"
               hint="Revisá tu conexión y probá de nuevo."
               onRetry={() => setRetryToken((t) => t + 1)}
               compact
@@ -431,7 +431,7 @@ export default function DiscoverPage() {
             <LoadingSkeleton type="list" count={3} />
           ) : loadFailed ? (
             <ErrorState
-              title="No pudimos traer las recomendaciones"
+              title="No se pudieron traer las recomendaciones"
               hint="Puede ser tu conexión. Probá de nuevo en un momento."
               onRetry={loadFeatured}
               compact

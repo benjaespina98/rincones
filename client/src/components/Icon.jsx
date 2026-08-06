@@ -173,6 +173,9 @@ const PATHS = {
       <path d="M12 11v5M12 7.5v.5" />
     </>
   ),
+  // Cuatro esquinas abriéndose: "esto se ve más grande". Va sobre las fotos que
+  // abren el visor a pantalla completa.
+  expand: <path d="M9 3H3v6M21 9V3h-6M15 21h6v-6M3 15v6h6" />,
 };
 
 // Variantes sólidas. Además de heart/star, acá viven los íconos de la barra de

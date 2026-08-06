@@ -15,7 +15,7 @@ export function useWishlist(onWineAdded) {
       const data = await getWishes();
       setWishes(data);
     } catch {
-      setError("No pudimos cargar tus guardados.");
+      setError("No se pudieron cargar tus guardados.");
     } finally {
       setLoading(false);
     }

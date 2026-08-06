@@ -65,9 +65,8 @@
   gap: 8px;
 }
 
-/* En pantallas anchas, uva y región comparten renglón. */
-@media (min-width: 420px) {
-  .bfilters__combos {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+/* Un combo por renglón, siempre.
+   Compartían renglón a partir de 420px de PANTALLA, pero el que manda es el
+   ancho de la HOJA, que está topeada en 440px: dos columnas daban ~196px cada
+   una y "Todas las regiones" no entra — se leía "Todas las region…". Un combo
+   cuya opción por defecto está cortada no dice ni qué filtra ni cómo está. */

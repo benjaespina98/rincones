@@ -42,11 +42,14 @@
   color: var(--text);
 }
 
+/* 40px: es el botón de cerrar de TODAS las hojas de la app (filtros,
+   preferencias, contraseña, receta) y estaba por debajo del mínimo de toque que
+   usa el resto. El que más se toca no puede ser el más chico. */
 .settings-sheet__close {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--glass);

@@ -646,6 +646,28 @@ function daysSince(date) {
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
+/**
+ * La comida, dicha como la diría alguien en la mesa.
+ *
+ * Las claves son slugs ("carne", "queso", "postre") y se imprimían tal cual:
+ * "Va bien con queso" suena a etiqueta de góndola. La razón por la que un vino
+ * está primero es lo único que el usuario lee de la recomendación: si suena a
+ * base de datos, la recomendación suena a base de datos.
+ */
+const COMIDA_EN_FRASE = {
+  asado: "un asado",
+  carne: "una carne",
+  pollo: "el pollo",
+  pasta: "unas pastas",
+  pizza: "una pizza",
+  pescado: "el pescado",
+  mariscos: "los mariscos",
+  picada: "una picada",
+  queso: "los quesos",
+  ensalada: "algo verde",
+  postre: "el postre",
+};
+
 function scoreWine(wine, context) {
   let score = 0;
   const reasons = [];
@@ -669,7 +691,7 @@ function scoreWine(wine, context) {
   // "Disponible en tu bodega", que no explica nada.
   if (pairing && pairing.types.length > 0 && pairing.types.includes(wine.type)) {
     score += 20;
-    reasons.push(`Va bien con ${context.food}`);
+    reasons.push(`Va con ${COMIDA_EN_FRASE[context.food] || context.food}`);
   }
 
   // Maridaje — varietal
@@ -679,7 +701,7 @@ function scoreWine(wine, context) {
     );
     if (match) {
       score += 15;
-      reasons.push("Maridaría bien");
+      reasons.push("La uva justa");
     }
   }
 
@@ -702,7 +724,7 @@ function scoreWine(wine, context) {
   // mejor: es el más débil de todos y no debería tapar al maridaje.
   if (!wine.tasted) {
     score += 5;
-    if (reasons.length === 0) reasons.push("Todavía no lo probaste");
+    if (reasons.length === 0) reasons.push("Todavía no lo abriste");
   }
 
   // Penalización por consumo reciente
@@ -712,7 +734,7 @@ function scoreWine(wine, context) {
   const cellar = getCellarStatus(wine);
   if (cellar.status === "peak") {
     score += 10;
-    reasons.push("Momento óptimo");
+    reasons.push("Está en su punto");
   }
 
   return { score, reasons };
@@ -752,7 +774,7 @@ async function suggestWines(userId, context = {}) {
   return scored.map(({ wine, score, reasons }) => ({
     ...wine.toObject(),
     matchScore: score,
-    matchReason: reasons.join(" · ") || "Disponible en tu bodega",
+    matchReason: reasons.join(" · ") || "Lo tenés a mano",
   }));
 }
 

@@ -10,6 +10,7 @@ import WineReviews from "../components/WineReviews";
 import WineAbout from "../components/WineAbout";
 import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
+import WinePlan from "../components/WinePlan";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -27,6 +28,7 @@ import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { toUploadableDataUrl } from "../utils/image";
 import WinePhoto from "../components/WinePhoto";
+import PhotoLightbox from "../components/PhotoLightbox";
 import Dropdown from "../components/Dropdown";
 import "../styles/pages/WineDetailPage.css";
 
@@ -71,6 +73,8 @@ export default function WineDetailPage() {
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Foto abierta a pantalla completa: la del vino o la de un momento.
+  const [lightbox, setLightbox] = useState(null);
 
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -375,7 +379,7 @@ export default function WineDetailPage() {
     return (
       <div className="wine-detail-page">
         <ErrorState
-          title="No pudimos cargar el vino"
+          title="No se pudo cargar el vino"
           hint="Puede ser tu conexión. El vino sigue en tu bodega."
           onRetry={loadWine}
         />
@@ -388,7 +392,7 @@ export default function WineDetailPage() {
       <div className="wine-detail-page">
         <EmptyState
           icon="bottle"
-          title="No encontramos este vino"
+          title="Este vino ya no está en tu bodega"
           hint="Puede que ya lo hayas eliminado de tu bodega."
           actionLabel="Volver a mi bodega"
           onAction={() => navigate("/bodega")}
@@ -399,10 +403,36 @@ export default function WineDetailPage() {
 
   return (
     <div className="wine-detail-page">
-      <div className="wine-detail-hero">
-        <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
-        </div>
+      <div className={`wine-detail-hero ${wine.image ? "has-photo" : ""}`}>
+        {/* El fondo sale de la propia foto, ampliada y desenfocada. El violeta
+            fijo de antes no tenía nada que ver con el vino y dejaba la foto
+            flotando como un recorte pegado sobre otra pantalla; así el borde se
+            disuelve y el encabezado toma el color de la etiqueta. */}
+        {wine.image && (
+          <div
+            className="wine-detail-hero__ambient"
+            style={{ backgroundImage: `url("${wine.image}")` }}
+            aria-hidden="true"
+          />
+        )}
+
+        {wine.image ? (
+          <button
+            type="button"
+            className="wine-detail-hero__placeholder wine-detail-hero__photo-btn"
+            onClick={() => setLightbox({ src: wine.image, alt: wineDisplayName(wine) })}
+            aria-label="Ampliar la foto del vino"
+          >
+            <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
+            <span className="wine-detail-hero__zoom" aria-hidden="true">
+              <Icon name="expand" size={14} />
+            </span>
+          </button>
+        ) : (
+          <div className="wine-detail-hero__placeholder">
+            <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
+          </div>
+        )}
 
         {/* Sin medallas sobre la foto: "favorito" y "probado" ya están, con su
             palabra y a un toque de distancia, en la misma pantalla y sin scrollear.
@@ -508,6 +538,19 @@ export default function WineDetailPage() {
               </div>
             </div>
 
+            {/* Qué hacer con la botella esta noche: temperatura, música y un
+                plato con receta. Va acá, pegado a "Abrí una botella", porque es
+                la continuación natural de esa decisión — y no cuesta nada
+                mostrarlo: sólo la receta llama al server, y sólo si la pedís.
+
+                Se muestra siempre, también sin stock. Lo habíamos escondido con
+                cero botellas por prolijidad, pero el razonamiento estaba al
+                revés: el plan es de la noche, no del inventario. Una botella que
+                se terminó es una que vas a reponer, y saber qué cocinar con ella
+                es parte de decidirlo. Por lo mismo vive también en la ficha de
+                los vinos del catálogo, que ni siquiera tenés. */}
+            <WinePlan wine={wine} info={aiInfo} />
+
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
             <WineOpinion
@@ -533,7 +576,7 @@ export default function WineDetailPage() {
                 renglón de datos: cada ícono ya dice qué es y ninguno necesita que
                 se lo presente con un encabezado. La ventana de guarda no está acá
                 porque ya la dice el bloque de arriba. */}
-            {(wine.cellar?.location || wine.purchase?.price > 0) && (
+            {(wine.cellar?.location || wine.purchase?.price > 0 || wine.purchase?.store) && (
               <div className="wine-meta-row">
                 {wine.cellar?.location && (
                   <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
@@ -546,11 +589,10 @@ export default function WineDetailPage() {
                 {wine.purchase?.store && (
                   <span className="wine-meta-chip"><Icon name="store" size={13} /> {wine.purchase.store}</span>
                 )}
-                {wine.purchase?.purchasedAt && (
-                  <span className="wine-meta-chip">
-                    <Icon name="calendar" size={13} /> {new Date(wine.purchase.purchasedAt).toLocaleDateString("es-AR")}
-                  </span>
-                )}
+                {/* La fecha de compra no está acá: subió a la ficha, al lado de
+                    la guarda, donde "desde cuándo lo tengo" y "cuándo tomarlo"
+                    se leen juntas y significan algo. Repetirla sería el mismo
+                    dato dos veces. */}
               </div>
             )}
 
@@ -880,7 +922,7 @@ export default function WineDetailPage() {
           {momentsLoading ? (
             <LoadingSkeleton type="inline" count={2} />
           ) : momentsFailed ? (
-            <ErrorState title="No pudimos cargar tus momentos" onRetry={loadMoments} compact />
+            <ErrorState title="No se pudieron cargar tus momentos" onRetry={loadMoments} compact />
           ) : moments.length === 0 ? (
             !showMomentForm && (
               <EmptyState
@@ -907,12 +949,26 @@ export default function WineDetailPage() {
                     {moment.emotion && <span><Icon name="sparkle" size={12} /> {emotionLabel(moment.emotion)}</span>}
                   </div>
                   {moment.notes && <p className="moment-item__notes">{moment.notes}</p>}
+                  {/* Antes abrían la imagen suelta en otra pestaña: se salía de
+                      la app para ver una foto propia. Ahora el mismo visor que
+                      la foto del vino, con la fecha del momento al pie. */}
                   {moment.photos?.length > 0 && (
                     <div className="moment-item__photos">
                       {moment.photos.map((src, i) => (
-                        <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() =>
+                            setLightbox({
+                              src,
+                              alt: `Foto ${i + 1} del momento`,
+                              caption: new Date(moment.consumedAt).toLocaleDateString("es-AR"),
+                            })
+                          }
+                          aria-label={`Ampliar la foto ${i + 1} del momento`}
+                        >
                           <img src={src} alt={`Foto ${i + 1}`} loading="lazy" />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -937,6 +993,15 @@ export default function WineDetailPage() {
           </div>
         )}
       </div>
+
+      {lightbox && (
+        <PhotoLightbox
+          src={lightbox.src}
+          alt={lightbox.alt}
+          caption={lightbox.caption}
+          onClose={() => setLightbox(null)}
+        />
+      )}
 
       <ConfirmModal
         isOpen={showDeleteConfirm}

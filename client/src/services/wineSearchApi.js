@@ -61,6 +61,32 @@ export const describeWine = async (wine) => {
 };
 
 /**
+ * Un plato con receta para acompañar la botella, según el plan de la noche.
+ * Se pide sólo cuando el usuario la pide: es la única parte del "plan de la
+ * noche" que cuesta una llamada. El server la cachea por vino + plan.
+ */
+export const getWineRecipe = async (wine, plan) => {
+  const { data } = await api.post("/catalog/recipe", {
+    name: wine.name,
+    winery: wine.winery,
+    varietal: wine.varietal,
+    type: wine.type,
+    region: wine.region,
+    plan,
+  });
+  return data?.data || null;
+};
+
+/**
+ * Traduce un plato escrito a mano ("risotto de hongos") a una categoría de
+ * maridaje. Sólo se llama cuando la tabla local del cliente no lo reconoció.
+ */
+export const classifyDish = async (dish) => {
+  const { data } = await api.post("/catalog/pairing", { dish });
+  return data?.data || null;
+};
+
+/**
  * Busca en el catálogo el vino que corresponde a una lectura de etiqueta.
  * Devuelve null si no hay coincidencia confiable — el server prefiere no
  * completar nada antes que completar con otra botella.
