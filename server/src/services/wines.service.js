@@ -646,28 +646,6 @@ function daysSince(date) {
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
-/**
- * La comida, dicha como la diría alguien en la mesa.
- *
- * Las claves son slugs ("carne", "queso", "postre") y se imprimían tal cual:
- * "Va bien con queso" suena a etiqueta de góndola. La razón por la que un vino
- * está primero es lo único que el usuario lee de la recomendación: si suena a
- * base de datos, la recomendación suena a base de datos.
- */
-const COMIDA_EN_FRASE = {
-  asado: "un asado",
-  carne: "una carne",
-  pollo: "el pollo",
-  pasta: "unas pastas",
-  pizza: "una pizza",
-  pescado: "el pescado",
-  mariscos: "los mariscos",
-  picada: "una picada",
-  queso: "los quesos",
-  ensalada: "algo verde",
-  postre: "el postre",
-};
-
 function scoreWine(wine, context) {
   let score = 0;
   const reasons = [];
@@ -686,23 +664,21 @@ function scoreWine(wine, context) {
 
   const pairing = context.food ? FOOD_PAIRINGS[context.food] : null;
 
-  // Maridaje — tipo. Es la regla que MÁS puntaje da (+20) y hasta ahora era
-  // muda: el vino subía al primer puesto sin decir por qué, y la tarjeta caía a
-  // "Disponible en tu bodega", que no explica nada.
+  // Maridaje — tipo y varietal. Suman puntaje (son la regla que más pesa) pero
+  // NO hablan, y es a propósito: el maridaje es la condición para entrar a esta
+  // lista, así que se cumple en todos los que la ves. "Va con una carne" abajo
+  // de cada uno de los cinco resultados de "carne" no informa nada — se lee como
+  // relleno justamente porque lo es. La razón sólo vale si distingue a este vino
+  // de los otros de la lista.
   if (pairing && pairing.types.length > 0 && pairing.types.includes(wine.type)) {
     score += 20;
-    reasons.push(`Va con ${COMIDA_EN_FRASE[context.food] || context.food}`);
   }
 
-  // Maridaje — varietal
   if (pairing && wine.varietal) {
     const match = pairing.varietals.some((v) =>
       wine.varietal.toLowerCase().includes(v.toLowerCase())
     );
-    if (match) {
-      score += 15;
-      reasons.push("La uva justa");
-    }
+    if (match) score += 15;
   }
 
   // Estilo buscado (refina; la comida es el driver principal).
@@ -774,7 +750,10 @@ async function suggestWines(userId, context = {}) {
   return scored.map(({ wine, score, reasons }) => ({
     ...wine.toObject(),
     matchScore: score,
-    matchReason: reasons.join(" · ") || "Lo tenés a mano",
+    // Vacío cuando no hay nada propio que decir. Antes caía en "Disponible en tu
+    // bodega" —después "Lo tenés a mano"—, que es una frase para no dejar el
+    // renglón vacío: está en la lista de tu bodega, ya se sabe que lo tenés.
+    matchReason: reasons.join(" · "),
   }));
 }
 

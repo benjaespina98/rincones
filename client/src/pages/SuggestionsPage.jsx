@@ -21,19 +21,6 @@ import "../styles/pages/SuggestionsPage.css";
 
 const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
 
-/**
- * Por qué un vino que no tenés aparece en la lista.
- *
- * No hace falta preguntarle a nadie: está ahí porque su uva es una de las que
- * buscamos para ese plato. Decirlo cuesta cero y es la diferencia entre una
- * lista de botellas y una recomendación.
- */
-// No repite el varietal: ya está como chip dos renglones arriba, y decirlo dos
-// veces en la misma tarjeta es justamente el ruido que hay que evitar.
-const razonDescubrimiento = (wine) =>
-  wine.varietal
-    ? "Una de las uvas que le van a este plato"
-    : "Va con lo que estás por comer";
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
@@ -388,15 +375,20 @@ export default function SuggestionsPage() {
                                 </span>
                               )}
                             </span>
-                            {/* Por qué está acá. Los de tu bodega venían con su
-                                razón y estos no, que es al revés de lo que hace
-                                falta: de los tuyos ya sabés algo, de estos no
-                                sabés nada. La nota del catálogo es mejor que la
-                                nuestra cuando existe, porque habla de ESE vino. */}
-                            <span className="discover-card__reason">
-                              <Icon name="sparkles" size={12} />
-                              {wine.note || razonDescubrimiento(wine)}
-                            </span>
+                            {/* Sólo la nota del catálogo, que habla de ESTE vino.
+                                No hay línea de respaldo: "una de las uvas que le
+                                van a este plato" era verdad para los seis
+                                resultados —el maridaje es la condición para
+                                entrar a la lista—, así que no distinguía ninguno
+                                y se leía como lo que era, relleno. Sin nota, la
+                                tarjeta se queda con el nombre, la bodega y los
+                                datos, que ya dicen bastante. */}
+                            {wine.note && (
+                              <span className="discover-card__reason">
+                                <Icon name="sparkles" size={12} />
+                                {wine.note}
+                              </span>
+                            )}
                           </span>
                           <Icon name="arrow-right" size={18} className="discover-card__caret" />
                         </button>
