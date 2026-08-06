@@ -10,9 +10,6 @@ import { visibleContent, itemSubtitle, pickFeatured } from "../data/discoverCont
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
-// `recoHint` ya no se usa: era el subtítulo del segundo bloque de
-// recomendaciones ("Elegidos pensando en tus Malbec"), que ahora es el catálogo
-// para seguir mirando. La función queda en momentCopy por si vuelve.
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";

@@ -36,27 +36,14 @@ export const getLevel = (total = 0) => {
   };
 };
 
-// Lista de logros con estado (desbloqueado o no) a partir de las stats.
-export const getAchievements = (stats) => {
-  const total = stats?.totals?.total || 0;
-  const consumed = stats?.totals?.consumed || 0;
-  const avg = stats?.avgRating || 0;
-  const regions = stats?.topRegions?.length || 0;
-  const varietals = stats?.topVarietals?.length || 0;
-  const typesCovered = (stats?.countsByType || []).filter((t) => t.count > 0).length;
-
-  const list = [
-    { id: "first", icon: "🍷", label: "Primer vino", hint: "Sumá tu primer vino", done: total >= 1 },
-    { id: "ten", icon: "📦", label: "Coleccionista", hint: "Llegá a 10 vinos", done: total >= 10 },
-    { id: "taste1", icon: "👅", label: "Primera cata", hint: "Marcá 1 vino como probado", done: consumed >= 1 },
-    { id: "taste5", icon: "🎯", label: "Catador", hint: "Probá 5 vinos", done: consumed >= 5 },
-    { id: "regions", icon: "🗺️", label: "Explorador", hint: "Vinos de 3 regiones distintas", done: regions >= 3 },
-    { id: "varietals", icon: "🍇", label: "Curador", hint: "5 varietales diferentes", done: varietals >= 5 },
-    { id: "palate", icon: "⭐", label: "Buen paladar", hint: "Rating promedio 4+", done: avg >= 4 },
-    { id: "variety", icon: "🌈", label: "Bodega surtida", hint: "3 tipos de vino distintos", done: typesCovered >= 3 },
-  ];
-
-  return list.map((a) => ({ ...a }));
-};
-
-export const countUnlocked = (achievements = []) => achievements.filter((a) => a.done).length;
+/*
+ * Acá vivían los logros: ocho medallas con su estado. Se sacaron del perfil
+ * porque seis de las ocho se veían apagadas, y una cuadrícula de pendientes es
+ * un recordatorio de lo que NO hiciste. El nivel de arriba cuenta el mismo
+ * avance con un número y sin señalar deudas.
+ *
+ * El código no se guarda "por si vuelven": si vuelven, van a tener otra forma, y
+ * mientras tanto son cincuenta líneas que alguien tiene que leer y mantener sin
+ * que nadie las ejecute. Están en el historial de git, que es donde va lo que ya
+ * no se usa.
+ */

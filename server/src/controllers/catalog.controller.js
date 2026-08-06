@@ -6,6 +6,8 @@ const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");
 const { describeKey } = require("../services/wineDescription.service");
+const { fold } = require("../data/argentineWines");
+const { poolKey } = require("../data/wineIdentity");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
 
@@ -26,12 +28,9 @@ const search = async (req, res, next) => {
   }
 };
 
-const fold = (text = "") =>
-  String(text)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
+// Se usaba una copia local de `fold`. Es la misma que exporta data/argentineWines
+// y la que usan todas las claves compartidas: dos definiciones de cómo se
+// normaliza un nombre es la forma más segura de que un día dejen de coincidir.
 
 // POST /api/catalog/describe { name, winery, varietal, type, region, vintage }
 // Devuelve la ficha (estilo Vivino) del vino, generada por Gemini y cacheada.
@@ -94,7 +93,11 @@ const recipe = async (req, res, next) => {
     // Un plan desconocido cae en "cena": es el más neutro de los cuatro y evita
     // que un valor viejo del cliente rompa la clave de caché.
     const plan = Object.keys(PLANS).includes(req.body.plan) ? req.body.plan : "cena";
-    const key = `${fold(name)}|${fold(winery)}|${plan}`;
+    // Con la uva adentro, igual que la ficha, las fotos, los precios y las
+    // reseñas: sin ella, un "Rutini Malbec" y un "Rutini Cabernet" compartían
+    // receta, y el mismo vino se cacheaba dos veces según viniera de tu bodega
+    // ("Rutini") o del catálogo ("Rutini Malbec").
+    const key = `${poolKey(name, winery, String(req.body.varietal || "").trim())}|${plan}`;
 
     try {
       const cached = await WineRecipe.findOne({ key }).lean();

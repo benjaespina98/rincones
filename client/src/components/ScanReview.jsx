@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Icon from "./Icon";
+import ConceptTerm from "./ConceptTerm";
 import { WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineReference";
 import { composeDisplayName, guessWineType, confidenceLevel } from "../utils/wineIdentity";
 import "./ScanReview.css";
@@ -23,6 +24,20 @@ const FIELD_LABELS = {
   varietal: "Uva",
   vintage: "Cosecha",
   region: "Región",
+};
+
+/**
+ * Qué concepto explica cada rótulo.
+ *
+ * Es el único momento del recorrido en que la persona tiene una etiqueta
+ * adelante y está tratando de descifrarla: acá "Línea" y "Región" son preguntas
+ * de verdad, y en cualquier otra pantalla serían un glosario que nadie abre.
+ */
+const FIELD_CONCEPTS = {
+  winery: "etiqueta",
+  line: "reserva",
+  region: "terroir",
+  varietal: "uvas",
 };
 
 const DATALISTS = {
@@ -147,7 +162,13 @@ export default function ScanReview({
             return (
               <label key={field} className={`scan-review__field is-${tone}`}>
                 <span className="scan-review__label">
-                  {FIELD_LABELS[field]}
+                  {FIELD_CONCEPTS[field] ? (
+                    <ConceptTerm id={FIELD_CONCEPTS[field]} ctx={{ wine: values }}>
+                      {FIELD_LABELS[field]}
+                    </ConceptTerm>
+                  ) : (
+                    FIELD_LABELS[field]
+                  )}
                   {!isManual && level === "low" && !values[field] && <em> · no lo leímos</em>}
                   {!isManual && level === "review" && <em> · verificá</em>}
                 </span>

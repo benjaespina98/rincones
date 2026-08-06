@@ -94,6 +94,42 @@ export const CONCEPTS = {
     anchor: () => null,
   },
 
+  /* ── Los cuatro de la etiqueta ────────────────────────────────────────────
+     Estos no llevan renglón "en tu bodega" y está bien: no hay nada que
+     personalizar en qué significa una palabra impresa en el papel. Se ganan el
+     lugar por CUÁNDO aparecen —mientras cargás la botella y estás mirando la
+     etiqueta— y no por a quién le hablan. */
+
+  etiqueta: {
+    title: "Cómo leer una etiqueta",
+    body: "En una etiqueta argentina conviven cuatro datos distintos y es fácil mezclarlos. La bodega es quién lo hace (Trapiche, Rutini). La línea es la gama dentro de esa bodega (Reserva, Broquel, Serie A). La uva es la variedad (Malbec, Bonarda). Y el origen dice de dónde salió esa uva (Valle de Uco, Mendoza). El error más común es creer que el vino \"se llama Malbec\": Malbec es la uva, y hay miles de Malbec distintos.",
+    anchor: () => null,
+  },
+
+  reserva: {
+    title: "Reserva y Gran Reserva",
+    body: "En España e Italia son categorías reguladas por ley, con años mínimos de barrica y de botella. En Argentina no: cada bodega usa la palabra como quiere. Suele indicar la gama media o alta de esa bodega —y muchas veces sí implica algo más de madera— pero no lo garantiza nadie, y entre dos bodegas distintas no significan lo mismo. Como señal de calidad, vale menos de lo que parece; como pista del lugar que ocupa ese vino dentro de su bodega, sirve.",
+    anchor: () => null,
+  },
+
+  crianza: {
+    title: "Crianza: roble, cemento y huevo",
+    body: "Los aromas a vainilla, coco, tostado o humo no vienen de la uva: los pone la madera. El roble aporta esos sabores y también tanino, y cuanto más nueva la barrica, más se nota. El cemento y el huevo de hormigón hacen lo contrario: no aportan sabor y dejan la fruta limpia, por eso volvieron a usarse en los últimos años. \"Sin madera\" no es peor: es otra intención.",
+    anchor: ({ info }) => {
+      const aromas = Array.isArray(info?.aromas) ? info.aromas.join(" ").toLowerCase() : "";
+      if (!aromas) return null;
+      return /roble|vainilla|coco|tostad|humo|ahumad|especia/.test(aromas)
+        ? "Los aromas de este vino delatan paso por madera."
+        : "Los aromas de este vino apuntan a la fruta, no a la madera.";
+    },
+  },
+
+  terroir: {
+    title: "Terroir",
+    body: "Es una palabra que suena mística y no lo es: son el suelo, la altura y el clima donde creció la uva. En Mendoza la altura es la variable que más manda —a más metros, más amplitud térmica entre el día y la noche, y eso da uvas con más acidez y color—. Por eso \"Valle de Uco\" o \"Gualtallary\" dicen bastante más que \"Mendoza\" a secas: cuanto más chico es el lugar nombrado, más preciso es el dato.",
+    anchor: ({ wine }) => (wine?.region ? `El tuyo viene de ${wine.region}.` : null),
+  },
+
   uvas: {
     title: "Las uvas argentinas",
     body: "Malbec: fruta madura, taninos redondos, el que casi siempre funciona. Cabernet Sauvignon: más firme y herbal, con un dejo a pimiento verde. Bonarda: la segunda más plantada del país y la más subestimada; jugosa, liviana, ideal para pizza. Syrah: especiado, oscuro, muy de San Juan. Torrontés: el blanco argentino de verdad, floral en la nariz y seco en la boca, que sorprende a todo el mundo.",

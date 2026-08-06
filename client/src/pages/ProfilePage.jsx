@@ -268,8 +268,7 @@ export default function ProfilePage() {
           veía apagada —"Coleccionista: llegá a 10 vinos"— y una cuadrícula de
           seis pendientes al lado de dos cumplidas es un recordatorio de lo que
           NO hiciste, no una celebración. El nivel de arriba ya cuenta el avance
-          con un solo número y sin señalar deudas. El código de `getAchievements`
-          queda en utils/gamification por si vuelven con otra forma. */}
+          con un solo número y sin señalar deudas. */}
 
       {spending && spending.totalSpent > 0 && (
         <section className="insights">

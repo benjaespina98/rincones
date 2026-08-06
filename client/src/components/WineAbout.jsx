@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "./Icon";
+import ConceptTerm from "./ConceptTerm";
 import WineStructure from "./WineStructure";
 import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
@@ -98,7 +99,12 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
 
               {info.aromas?.length > 0 && (
                 <div className="wine-about__block">
-                  <span className="wine-about__label">Aromas</span>
+                  {/* Los aromas a vainilla, coco o tostado no vienen de la uva
+                      sino de la madera: el rótulo es el lugar exacto donde esa
+                      pregunta aparece. */}
+                  <span className="wine-about__label">
+                    <ConceptTerm id="crianza" ctx={{ wine, info }}>Aromas</ConceptTerm>
+                  </span>
                   <div className="wine-about__chips">
                     {info.aromas.slice(0, MAX_CHIPS).map((a) => (
                       <span key={a} className="wine-about__chip">{a}</span>
