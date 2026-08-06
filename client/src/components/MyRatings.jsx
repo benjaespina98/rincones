@@ -72,7 +72,16 @@ export default function MyRatings() {
                 <div className="myrat-item__top">
                   <span className="myrat-item__wine">
                     <strong>{r.name}</strong>
-                    {r.winery && <em>{r.winery}</em>}
+                    {/* Bodega y cosecha en el mismo renglón: sin la añada, dos
+                        valoraciones tuyas del mismo vino en años distintos se
+                        ven idénticas y no se sabe cuál es cuál. */}
+                    {(r.winery || r.vintage) && (
+                      <em>
+                        {r.winery}
+                        {r.winery && r.vintage ? " · " : ""}
+                        {r.vintage ? `cosecha ${r.vintage}` : ""}
+                      </em>
+                    )}
                   </span>
                   <StarRating value={r.rating} size="sm" />
                 </div>

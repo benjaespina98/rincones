@@ -96,9 +96,15 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
               {state.reviews.map((r) => (
                 <li key={r._id} className="review-card">
                   <div className="review-card__head">
+                    {/* La cosecha que tomó ESA persona, al lado de su nombre.
+                        No parte el promedio —todas las añadas suman al mismo,
+                        porque separarlas dejaría un puntaje por balde— pero
+                        contesta lo que uno se pregunta leyendo: un 2019 y un
+                        2024 del mismo vino no son la misma botella. */}
                     <span className="review-card__author">
                       <span className="review-card__avatar">{r.authorAvatar || "🍷"}</span>
                       {r.authorName || "Alguien"}
+                      {r.vintage && <span className="review-card__vintage">cosecha {r.vintage}</span>}
                     </span>
                     <span className="review-card__date">{fmtDate(r.createdAt)}</span>
                   </div>

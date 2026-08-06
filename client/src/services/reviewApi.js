@@ -21,8 +21,14 @@ export const getMyReviews = async () => {
 };
 
 /** Publica (o edita) tu reseña. Esto es lo que la vuelve pública. */
-export const publishWineReview = async ({ name, winery, varietal, rating, text }) => {
-  const { data } = await api.post("/catalog/reviews", { name, winery, varietal, rating, text });
+/**
+ * `vintage` es la cosecha que tomó QUIEN escribe, y viaja como dato de la
+ * reseña, no como parte de la identidad del vino: el promedio sigue siendo uno
+ * solo para todas las añadas (ver el modelo en el server). Se muestra al lado
+ * del autor, que es donde contesta la pregunta "¿cuál probó?".
+ */
+export const publishWineReview = async ({ name, winery, varietal, vintage, rating, text }) => {
+  const { data } = await api.post("/catalog/reviews", { name, winery, varietal, vintage, rating, text });
   return data?.data || null;
 };
 

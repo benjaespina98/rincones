@@ -32,7 +32,7 @@ const wineKey = (name, winery, varietal = "") => poolKey(name, winery, varietal)
  * Publica (o edita) la reseña del usuario para un vino.
  * Una por persona por vino: volver a publicar reemplaza la anterior.
  */
-const upsertReview = async ({ userId, name, winery, varietal, rating, text, author }) => {
+const upsertReview = async ({ userId, name, winery, varietal, vintage, rating, text, author }) => {
   const key = wineKey(name, winery, varietal);
   if (!key) throw new Error("Faltan datos del vino");
 
@@ -40,6 +40,19 @@ const upsertReview = async ({ userId, name, winery, varietal, rating, text, auth
   if (!Number.isFinite(value) || value < 1 || value > 5) {
     throw new Error("La puntuación tiene que ser de 1 a 5");
   }
+
+  // La cosecha es opcional y sólo se valida contra el calendario: un año
+  // imposible se descarta en vez de rechazar la reseña entera, que es lo que la
+  // persona vino a dejar.
+  //
+  // Se escribe `null` y no `undefined` a propósito: Mongoose saca del `$set` las
+  // claves undefined, así que al editar una reseña que ya tenía cosecha, el año
+  // viejo sobrevivía a un valor nuevo inválido —o a que el vino se hubiera
+  // quedado sin añada—. Con null, la reseña refleja siempre lo último que se
+  // mandó.
+  const anio = Math.round(Number(vintage));
+  const cosecha =
+    Number.isFinite(anio) && anio >= 1900 && anio <= new Date().getFullYear() ? anio : null;
 
   const doc = await WineReview.findOneAndUpdate(
     { key, userId },
@@ -56,6 +69,7 @@ const upsertReview = async ({ userId, name, winery, varietal, rating, text, auth
         // Se guarda aunque la clave ya lo incorpore: sin esto, una reseña vieja
         // no se puede volver a clavear si algún día cambia la fórmula.
         varietal: String(varietal || "").trim(),
+        vintage: cosecha,
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -139,7 +153,7 @@ const listByUser = async (userId, limit = 50) => {
     return await WineReview.find({ userId })
       .sort({ updatedAt: -1, createdAt: -1 })
       .limit(Math.min(Number(limit) || 50, 200))
-      .select("name winery rating text createdAt updatedAt")
+      .select("name winery varietal vintage rating text createdAt updatedAt")
       .lean();
   } catch {
     return [];

@@ -194,6 +194,19 @@
   color: var(--text);
 }
 
+/* La cosecha, en pastilla y en voz baja: acompaña al autor, no compite con él.
+   Es contexto de la opinión ("probó la 2019"), no un titular. */
+.review-card__vintage {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .review-card__avatar {
   display: grid;
   place-items: center;

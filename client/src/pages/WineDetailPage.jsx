@@ -547,6 +547,7 @@ export default function WineDetailPage() {
               name={wine.name}
               winery={wine.winery}
               varietal={wine.varietal}
+              vintage={wine.vintage}
               onRated={(value) => {
                 // Se guarda también en el vino para que las estadísticas, los
                 // filtros y el orden de Bodega sigan funcionando.

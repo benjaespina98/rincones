@@ -241,7 +241,7 @@ const myReviews = async (req, res, next) => {
 // cuando el usuario manda esto, su puntuación y su texto se vuelven públicos.
 const publishReview = async (req, res, next) => {
   try {
-    const { name, winery, varietal, rating, text } = req.body;
+    const { name, winery, varietal, vintage, rating, text } = req.body;
     if (!String(name || "").trim()) {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
@@ -263,6 +263,7 @@ const publishReview = async (req, res, next) => {
       name,
       winery,
       varietal,
+      vintage,
       rating,
       text,
       author,

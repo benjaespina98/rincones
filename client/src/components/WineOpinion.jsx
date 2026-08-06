@@ -15,7 +15,7 @@ import "./WineOpinion.css";
  * ese vino. El texto es opcional y aparece recién después de puntuar, para no
  * pedir de entrada un esfuerzo que la mayoría no va a hacer.
  */
-export default function WineOpinion({ name, winery = "", varietal = "", onRated }) {
+export default function WineOpinion({ name, winery = "", varietal = "", vintage, onRated }) {
   const { showSuccess, showError } = useToast();
 
   const [mine, setMine] = useState(null);
@@ -60,7 +60,7 @@ export default function WineOpinion({ name, winery = "", varietal = "", onRated 
 
     try {
       setSaving(true);
-      const saved = await publishWineReview({ name, winery, varietal, rating: next, text });
+      const saved = await publishWineReview({ name, winery, varietal, vintage, rating: next, text });
       setMine(saved);
       onRated?.(next);
     } catch {
@@ -74,7 +74,7 @@ export default function WineOpinion({ name, winery = "", varietal = "", onRated 
   const saveText = async () => {
     try {
       setSaving(true);
-      const saved = await publishWineReview({ name, winery, varietal, rating, text });
+      const saved = await publishWineReview({ name, winery, varietal, vintage, rating, text });
       setMine(saved);
       setWriting(false);
       showSuccess(text.trim() ? "Reseña publicada" : "Puntuación guardada");
