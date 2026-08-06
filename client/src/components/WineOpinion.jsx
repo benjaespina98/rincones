@@ -89,13 +89,16 @@ export default function WineOpinion({ name, winery = "", onRated }) {
 
   return (
     <section className="wine-opinion">
+      {/* El aviso de "pública" se mostraba SÓLO después de puntuar. La idea era
+          no advertir sobre algo que todavía no pasó, pero es al revés: enterarte
+          de que tu puntuación se publica cuando ya se publicó llega tarde. Ahora
+          está siempre, y así también se distingue de un vistazo de la sección de
+          abajo: acá está la tuya, abajo la de los demás. */}
       <div className="wine-opinion__head">
         <span className="wine-opinion__title">Tu opinión</span>
-        {rating > 0 && (
-          <span className="wine-opinion__public" title="Otros la ven al buscar este vino">
-            <Icon name="eye" size={12} /> Pública
-          </span>
-        )}
+        <span className="wine-opinion__public" title="Otros la ven al buscar este vino">
+          <Icon name="eye" size={12} /> {rating > 0 ? "Pública" : "Se publica"}
+        </span>
       </div>
 
       <div

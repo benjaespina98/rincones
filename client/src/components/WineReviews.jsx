@@ -41,14 +41,23 @@ export default function WineReviews({ name, winery = "" }) {
 
   return (
     <section className="wine-reviews">
+      {/* "Otras opiniones" con un promedio que INCLUYE la tuya era una
+          contradicción, y encima con dos números distintos: el encabezado
+          contaba todas las reseñas y la lista de abajo mostraba sólo las
+          ajenas —"3 reseñas" arriba, dos fichas abajo—.
+
+          Ahora el título dice de quién es el promedio (de la comunidad, y la
+          tuya cuenta) y el botón dice exactamente cuántas de OTRA gente hay.
+          Arriba, en "Tu opinión", está la tuya y sólo la tuya. */}
       <div className="wine-reviews__head">
-        <h3><Icon name="chat" size={16} /> Otras opiniones</h3>
+        <h3><Icon name="chat" size={16} /> Opiniones de la comunidad</h3>
         {state.summary && (
           <div className="wine-reviews__summary">
             {/* StarRating ya imprime el número, no lo repetimos al lado. */}
             <StarRating value={state.summary.avg} size="sm" />
             <span className="wine-reviews__count">
-              {state.summary.count} {state.summary.count === 1 ? "reseña" : "reseñas"}
+              {state.summary.count} {state.summary.count === 1 ? "opinión" : "opiniones"}
+              {state.mine && " · incluida la tuya"}
             </span>
           </div>
         )}
@@ -77,7 +86,7 @@ export default function WineReviews({ name, winery = "" }) {
               onClick={() => setAbierto(true)}
               aria-expanded={false}
             >
-              Leer {state.reviews.length === 1 ? "la reseña" : `las ${state.reviews.length} reseñas`}
+              Leer {state.reviews.length === 1 ? "la opinión" : `las ${state.reviews.length} opiniones`} de otras personas
               <Icon name="arrow-right" size={15} />
             </button>
           )}
@@ -111,9 +120,19 @@ export default function WineReviews({ name, winery = "" }) {
             </button>
           )}
 
+          {/* Nadie escribió todavía, o el único que escribió sos vos: son dos
+              situaciones distintas y antes las dos mostraban la misma frase —o
+              ninguna, cuando tu reseña era la única y la sección quedaba con el
+              título, tu promedio y nada más. */}
           {!state.summary && (
             <p className="wine-reviews__empty">
-              Todavía nadie más reseñó este vino. Si lo probaste, tu opinión puede ser la primera.
+              Todavía nadie reseñó este vino. Si lo probaste, tu opinión puede ser la primera.
+            </p>
+          )}
+
+          {state.summary && state.reviews.length === 0 && (
+            <p className="wine-reviews__empty">
+              Por ahora sos la única opinión sobre este vino.
             </p>
           )}
         </>
