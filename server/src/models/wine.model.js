@@ -171,6 +171,9 @@ const wineSchema = new mongoose.Schema(
       },
       serve: { type: String, trim: true }, // "16-18 °C"
       known: { type: Boolean },
+      // Una curiosidad sobre la uva, la región o el estilo: lo que se muestra al
+      // terminar de escanear y dentro de "Sobre este vino".
+      funFact: { type: String, trim: true },
       generatedAt: { type: Date },
     },
     cellar: {

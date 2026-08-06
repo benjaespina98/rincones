@@ -68,6 +68,7 @@ const ensureDescription = async (wine) => {
             alcohol: info.alcohol ?? undefined,
             serve: info.serve || "",
             known: info.known !== false,
+            funFact: info.funFact || "",
             generatedAt: new Date(),
           },
         },

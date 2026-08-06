@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -48,6 +48,17 @@ const EMPTY_MOMENT = {
 export default function WineDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  /**
+   * ¿Venís de guardar este vino recién?
+   *
+   * Se lee UNA vez al montar y se limpia del historial enseguida: si quedara en
+   * el state, recargar la página o volver con el botón de atrás mostraría la
+   * bienvenida de nuevo, y una sorpresa que se repite deja de serlo.
+   */
+  const [recienAgregado, setRecienAgregado] = useState(
+    Boolean(location.state?.recienAgregado)
+  );
   const { addToast, removeToast, showSuccess, showError } = useToast();
 
   const [wine, setWine] = useState(null);
@@ -117,6 +128,15 @@ export default function WineDetailPage() {
     loadWine();
     loadMoments();
   }, [loadWine, loadMoments]);
+
+  // Se borra del historial apenas se leyó (ver `recienAgregado`).
+  useEffect(() => {
+    if (location.state?.recienAgregado) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // Sólo al montar: después el state ya está limpio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.
   const wineName = wine?.name;
@@ -464,6 +484,30 @@ export default function WineDetailPage() {
             {/* Quién lo hace, de dónde es, de qué uva y de qué año — con rótulos y
                 no como cuatro pastillas de colores del mismo peso. La bodega es el
                 dato que más ubica un vino y era el único que faltaba. */}
+            {/* La bienvenida del vino recién guardado: aparece una sola vez, en
+                la ficha a la que caés después de escanear, y sólo si el modelo
+                tenía algo bueno para contar. Si la ficha IA todavía no llegó, no
+                se muestra nada —no hay lugar reservado esperando— y si no tiene
+                dato tampoco: un "¿sabías que?" vacío es peor que ninguno. */}
+            {recienAgregado && aiInfo?.funFact && (
+              <div className="wine-welcome">
+                <div className="wine-welcome__head">
+                  <span className="wine-welcome__title">
+                    <Icon name="sparkle" size={14} /> Ya está en tu bodega
+                  </span>
+                  <button
+                    type="button"
+                    className="wine-welcome__close"
+                    onClick={() => setRecienAgregado(false)}
+                    aria-label="Cerrar"
+                  >
+                    <Icon name="x" size={14} />
+                  </button>
+                </div>
+                <p className="wine-welcome__fact">{aiInfo.funFact}</p>
+              </div>
+            )}
+
             <WineIdentity wine={wine} onEdit={startEditing} />
 
             {/* Las acciones, arriba de todo. Estaban novenas de once: para abrir

@@ -172,6 +172,14 @@ const DESCRIBE_SCHEMA = {
     serve: { type: "string" },
     // Confianza de que el vino es real y conocido: true/false.
     known: { type: "boolean" },
+    /**
+     * El "¿sabías que?": una curiosidad sobre la UVA, la REGIÓN o el ESTILO.
+     *
+     * Viaja en el mismo pedido que ya se hacía y se cachea con el resto, así que
+     * no cuesta ni una llamada ni un token de cuota extra —el mismo argumento
+     * por el que la nota viaja con los resultados de búsqueda—.
+     */
+    funFact: { type: "string" },
   },
   required: ["summary", "known"],
 };
@@ -214,6 +222,15 @@ Devolvé:
 - alcohol: graduación típica del estilo (número, ej 14). 0 si no sabés.
 - serve: temperatura de servicio sugerida (ej "16-18 °C").
 - known: true sólo si conocés este vino o su estilo con razonable certeza; false si estarías adivinando.
+- funFact: UNA oración con algo que la persona probablemente no sepa, sobre la UVA,
+  la REGIÓN o el ESTILO. Ejemplos del tipo que sirve: que el Cabernet Sauvignon
+  nació de un cruce espontáneo entre Cabernet Franc y Sauvignon Blanc en Burdeos;
+  que en la Patagonia el viento y la amplitud térmica dan uvas de piel más gruesa;
+  que el Torrontés es un cruce criollo que sólo existe acá.
+  PROHIBIDO: premios, puntajes, la historia de la bodega o cualquier cosa sobre
+  ESA botella puntual — ahí es donde se inventa. Nada de datos que no puedas
+  sostener. Si no tenés algo bueno y verificable, devolvé la cadena vacía: un
+  "sabías que" flojo es peor que ninguno.
 
 Reglas: no inventes datos específicos que no puedas saber (premios, puntajes, precios).
 Si no conocés el vino puntual, describí de forma general según su varietal y región, y poné known:false.`;
@@ -272,6 +289,12 @@ const describeWine = async (wine) => {
     alcohol: Number.isFinite(alcohol) && alcohol > 0 && alcohol < 25 ? alcohol : null,
     serve: clean(parsed?.serve),
     known: parsed?.known !== false,
+    // Una oración, no un párrafo: si el modelo se entusiasma y manda tres, se
+    // descarta entero en vez de recortarlo al medio.
+    funFact: (() => {
+      const f = clean(parsed?.funFact);
+      return f.length >= 20 && f.length <= 320 ? f : "";
+    })(),
   };
 };
 

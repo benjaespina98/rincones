@@ -34,7 +34,13 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
 
   // Si no hay nada detrás del resumen, no se ofrece abrir nada.
   const hayDetalle = Boolean(
-    info && (info.body || info.structure || info.profile?.length || info.aromas?.length || info.alcohol)
+    info &&
+      (info.body ||
+        info.structure ||
+        info.profile?.length ||
+        info.aromas?.length ||
+        info.alcohol ||
+        info.funFact)
   );
 
   return (
@@ -117,6 +123,17 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
                     <strong>{info.alcohol}%</strong> alcohol
                   </span>
                 </div>
+              )}
+
+              {/* El "¿sabías que?", último y dentro de lo plegado: es lo más
+                  lindo de leer y lo menos urgente. A quien no le interesa no le
+                  cuesta un píxel de scroll, porque esta sección arranca cerrada;
+                  quien la abrió es porque vino a leer sobre el vino. */}
+              {info.funFact && (
+                <p className="wine-about__fact-fun">
+                  <Icon name="sparkle" size={14} />
+                  <span>{info.funFact}</span>
+                </p>
               )}
             </>
           )}
