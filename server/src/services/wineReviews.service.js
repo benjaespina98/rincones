@@ -86,6 +86,42 @@ const deleteReview = async ({ userId, name, winery, varietal }) => {
 };
 
 /**
+ * Reemplaza el nombre y el avatar guardados por los que la persona tiene HOY.
+ *
+ * El autor se copiaba dentro de la reseña al publicarla, así que quedaba
+ * congelado: cambiabas tu nombre en el perfil y tus reseñas viejas seguían
+ * firmadas con el anterior —o con la parte de tu mail antes del arroba, si
+ * todavía no habías puesto nombre—. Para el que las lee, parecen de otra
+ * persona.
+ *
+ * Una sola consulta para toda la lista. Lo guardado queda como respaldo: si la
+ * cuenta se borró, la reseña se sigue leyendo con el nombre que tenía.
+ *
+ * Muta los documentos recibidos (ya vienen de `.lean()`, son objetos sueltos).
+ */
+const conNombresActuales = async (docs = []) => {
+  const ids = [...new Set(docs.map((d) => String(d.userId)).filter(Boolean))];
+  if (ids.length === 0) return docs;
+
+  try {
+    const User = require("../models/user.model");
+    const users = await User.find({ _id: { $in: ids } }).select("firstName avatar email").lean();
+    const byId = new Map(users.map((u) => [String(u._id), u]));
+
+    for (const d of docs) {
+      const u = byId.get(String(d.userId));
+      if (!u) continue;
+      const actual = (u.firstName || "").trim() || (u.email || "").split("@")[0];
+      if (actual) d.authorName = actual;
+      d.authorAvatar = u.avatar || d.authorAvatar || "";
+    }
+  } catch {
+    // Sin perfiles: se muestran los nombres guardados, que es como estaba antes.
+  }
+  return docs;
+};
+
+/**
  * Reseñas de un vino + resumen. `userId` sirve para separar la propia del
  * resto, así el cliente puede mostrarla como editable.
  */
@@ -106,6 +142,8 @@ const listReviews = async (name, winery, userId, limit = 20, varietal = "") => {
 
     const agg = all[0];
     const summary = agg ? { avg: Math.round(agg.avg * 10) / 10, count: agg.count } : null;
+
+    await conNombresActuales(docs);
 
     const uid = String(userId || "");
     const mine = docs.find((d) => String(d.userId) === uid) || null;

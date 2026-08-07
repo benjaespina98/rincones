@@ -157,11 +157,10 @@ export const whyThisWine = (wine, stats) => {
   return isEvening() ? "Para abrir esta noche" : "Para la próxima que descorches";
 };
 
-/** Hint de la sección de recomendados, según haya o no un motivo. */
-export const recoHint = ({ stats } = {}) => {
-  const total = stats?.totals?.total || 0;
-  if (total === 0) return "Para empezar tu colección";
-  const top = stats?.topVarietals?.[0];
-  if (top?.count >= 3) return `Elegidos pensando en tus ${top.varietal}`;
-  return "Vinos argentinos para sumar";
-};
+/*
+ * Acá estaba `recoHint`, el subtítulo del segundo bloque de recomendaciones de
+ * Descubrí ("Elegidos pensando en tus Malbec"). Ese bloque dejó de ser una
+ * recomendación —es el catálogo para seguir mirando— porque dos secciones
+ * diciendo "elegidos para vos" en la misma pantalla le quitaban valor a la
+ * primera. Sin llamador, la función se va: está en el historial de git.
+ */
