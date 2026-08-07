@@ -6,7 +6,7 @@ import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines, searchWines } from "../services/wineSearchApi";
 import StarRating from "../components/StarRating";
-import { visibleContent, itemSubtitle, pickFeatured } from "../data/discoverContent";
+import { visibleContent, itemSubtitle } from "../data/discoverContent";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
@@ -118,10 +118,8 @@ export default function DiscoverPage() {
   }, [query, retryToken]);
 
   const name = displayName(user);
-  // El destacado sale del propio contenido (marcado o el de fecha más próxima)
-  // y se excluye del listado para no mostrarlo dos veces.
-  const exploreFeatured = pickFeatured();
-  const content = visibleContent(new Date(), exploreFeatured?.id);
+  // Sin destacado que excluir: todos los ítems viven en su grupo.
+  const content = visibleContent(new Date());
 
   // Con una búsqueda activa, los resultados se quedan con la pantalla: mezclarlos
   // con el vino del día y los recomendados obliga a scrollear entre dos cosas que
@@ -513,37 +511,21 @@ export default function DiscoverPage() {
         </section>
 
         {/* ── Aprendé y explorá ──────────────────────────────────────────────
-            Composición editorial, no una grilla: primero UN contenido
-            protagonista, después las secciones. Antes las nueve tarjetas tenían
-            exactamente el mismo peso visual, así que la pantalla se leía como una
-            lista de enlaces y no como algo curado. */}
+            Era la parte más pesada de la home y la única que te saca de la app:
+            título, bajada, un destacado grande, tres grupos y un pie. Quedaron
+            los tres grupos.
+
+            Qué se fue y por qué:
+            · El destacado repetía en grande un ítem que ya estaba en la lista
+              —de hecho había que excluirlo del listado para no verlo dos veces—.
+              Ahora vuelve a su grupo y la sección arranca 150px más arriba.
+            · La bajada ("Dónde seguir descubriendo: catas, cursos y gente que
+              sabe") decía lo mismo que el título con más palabras.
+            · El pie invitaba a "contarnos" algo sin ningún lugar donde hacerlo. */}
         <section className="explore">
           <header className="explore__head">
             <h2 className="explore__title">Aprendé y explorá</h2>
-            <p className="explore__lead">
-              Dónde seguir descubriendo: catas, cursos y gente que sabe.
-            </p>
           </header>
-
-          {exploreFeatured && (
-            <a
-              className="explore__hero"
-              href={exploreFeatured.source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => tapHaptic()}
-            >
-              <span className="explore__hero-kicker">
-                <Icon name="sparkle" size={12} /> Destacado
-              </span>
-              <h3 className="explore__hero-title">{exploreFeatured.title}</h3>
-              <p className="explore__hero-summary">{exploreFeatured.summary}</p>
-              <span className="explore__hero-foot">
-                <span className="explore__hero-meta">{itemSubtitle(exploreFeatured)}</span>
-                <Icon name="arrow-right" size={16} />
-              </span>
-            </a>
-          )}
 
           {content.map((group) => (
             <div key={group.id} className="explore__group">
@@ -581,7 +563,6 @@ export default function DiscoverPage() {
             </div>
           ))}
 
-          <p className="explore__foot">Curaduría propia. Si conocés algo que merezca estar acá, contanos.</p>
         </section>
         </>
       )}

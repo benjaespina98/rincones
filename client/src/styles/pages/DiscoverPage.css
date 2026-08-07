@@ -511,102 +511,6 @@
   color: var(--text);
 }
 
-.explore__lead {
-  margin: 0;
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  color: var(--text-muted);
-  max-width: 32ch;
-}
-
-/* ── Destacado ──
-   Lo primero que ve el usuario al llegar acá. No compite con el vino del día de
-   arriba: aquel es una botella, éste es contenido, y el borde superior de la
-   sección los separa. */
-.explore__hero {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: var(--card-pad-hero);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--line-accent);
-  background:
-    radial-gradient(130% 120% at 100% 0%, rgba(126, 89, 201, 0.2), transparent 60%),
-    var(--elevated);
-  box-shadow: var(--shadow-md);
-  text-decoration: none;
-  overflow: hidden;
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
-}
-
-/* Filete de acento sobre el borde superior: el recurso con el que las revistas
-   marcan la nota principal. Cuesta una línea de CSS y separa el destacado del
-   resto sin agregarle peso ni otro color de fondo. */
-.explore__hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent-light), var(--wine));
-}
-
-@media (hover: hover) {
-  .explore__hero:hover {
-    border-color: var(--accent-light);
-  }
-}
-
-.explore__hero:active {
-  transform: scale(0.99);
-}
-
-.explore__hero-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--gold-soft);
-}
-
-.explore__hero-title {
-  margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.explore__hero-summary {
-  margin: 0;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.explore__hero-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  color: var(--accent-soft);
-}
-
-.explore__hero-meta {
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 /* ── Secciones ── */
 .explore__group {
   display: flex;
@@ -711,14 +615,6 @@
   color: var(--text-subtle);
 }
 
-.explore__foot {
-  margin: 0;
-  padding-top: 4px;
-  font-size: var(--text-2xs);
-  line-height: 1.5;
-  color: var(--text-subtle);
-  text-align: center;
-}
 
 /* ── Buscar en el catálogo ──────────────────────────────────────────────────
    Vivía en la pantalla de Agregar, donde el buscador no podía sumar nada a la
