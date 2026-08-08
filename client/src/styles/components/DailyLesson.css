@@ -1,0 +1,160 @@
+/* ── "Para aprender hoy" ─────────────────────────────────────────────────────
+   La tarjeta protagonista de "Aprendé y explorá".
+
+   ── QUÉ SE CORRIGIÓ DE LA PRIMERA VERSIÓN ─────────────────────────────────
+   Era una caja grande con rótulo, título y una línea: mucho marco y casi nada
+   adentro, así que se leía hueca justo en la pantalla que tiene que verse
+   llena. Además envolvía un `ConceptTerm` para reusar su hoja, y con eso
+   heredaba el `text-decoration: underline dotted` que corresponde a una palabra
+   con definición: los tres renglones salían punteados.
+
+   Ahora tiene su propio botón (cero herencia) y tres alturas de lectura —
+   cabecera con ícono, dos líneas del texto real, y el gancho al pie separado
+   por una línea—. El punteado no existe más en ningún nivel.
+
+   La paleta: comparte la anatomía del vino del día para que la home hable un
+   solo idioma, pero usa el morado frío de "Cursos" en vez del rojo vino. Con la
+   misma paleta serían dos protagonistas peleando en la misma pantalla.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.lesson-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: var(--card-pad);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(126, 89, 201, 0.24), transparent 60%),
+    linear-gradient(160deg, rgba(30, 28, 56, 0.9), rgba(14, 17, 30, 0.94));
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  animation: rincon-enter-up var(--transition-smooth) both;
+}
+
+@media (hover: hover) {
+  .lesson-card:hover {
+    border-color: var(--accent);
+  }
+}
+
+.lesson-card:active {
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lesson-card { animation: none; }
+  .lesson-card:active { transform: none; }
+}
+
+/* ── Cabecera: ícono + rótulo + título ── */
+.lesson-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Mismo cuadro que los íconos del directorio de abajo: la tarjeta es el
+   protagonista de la sección, no un objeto de otra familia. */
+.lesson-card__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: rgba(126, 89, 201, 0.22);
+  color: var(--accent-soft);
+}
+
+.lesson-card__heads {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lesson-card__eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+/* El título del concepto es el ancla: "Taninos", "Terroir". */
+.lesson-card__title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+/* ── Las dos líneas de texto real ──
+   Lo que separa una tarjeta que se empieza a leer de una que sólo promete.
+
+   `max-width` es el mismo tope de lectura que usa `.ccard__body`, y faltaba:
+   esta tarjeta se escribió ANTES que ContentCard, con CSS propio, así que se
+   quedó sin él. El efecto en desktop era que el párrafo se estiraba los 900px
+   de la pantalla mientras las tarjetas de al lado cortaban en 62 caracteres —
+   la lección se veía enorme y descompensaba la sección entera. */
+.lesson-card__excerpt {
+  display: -webkit-box;
+  /* Tres y no dos. Eran dos cuando el párrafo se estiraba a todo el ancho de la
+     pantalla; al acotarlo a 62ch entra menos texto por línea y el corte caía
+     demasiado pronto —a media idea, con el "…" comiéndose el final de la
+     primera oración—. Tres líneas dejan cerrar la idea y la tarjeta crece
+     apenas 22px. */
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 62ch;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ── El pie: por qué te toca esta ──
+   Separado por una línea porque cambia de voz: arriba se explica un concepto,
+   acá se te habla a vos. Dorado, el mismo tratamiento que el motivo del vino
+   del día, que hace exactamente el mismo trabajo. */
+/* `max-width` igual que el resto del cuerpo. Sin esto la fila se estiraba al
+   ancho completo de la tarjeta y la flecha terminaba medio metro a la derecha
+   del gancho, contra el borde: se leían como dos cosas sin relación en vez de
+   una línea con su acción al final. */
+.lesson-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  max-width: 62ch;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* `flex: 1` y sin `max-width` propio: el tope de lectura ya lo pone el pie. Con
+   los dos limitados, un gancho de dos líneas empujaba la flecha fuera de la
+   caja y el pie quedaba sin su remate. */
+.lesson-card__hook {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--gold-soft);
+}
+
+.lesson-card__foot .icon {
+  flex-shrink: 0;
+  color: var(--accent-soft);
+}
+
+/* El distintivo "Gratis" / "Pago · inglés" se mudó a `.ccard__badge`
+   (ContentCard.css) cuando las filas del directorio pasaron a ser ContentCard:
+   ahora lo puede llevar cualquier tipo de contenido, no sólo un enlace curado. */

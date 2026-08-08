@@ -1,0 +1,57 @@
+/* ══ Las secciones de Descubrí ═════════════════════════════════════════════
+   Encabezado común para "Dónde comprar" y "Para agendar". Comparten forma con
+   `.explore__head` a propósito: la pantalla venía siendo una pila de secciones
+   que no se conocían entre sí, cada una con su propio tamaño de título y su
+   propio aire, y eso es la mitad de por qué se leía como cinco pantallas
+   apiladas en vez de una.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dsec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dsec__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.dsec__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.dsec__hint {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+/* ── La grilla de vinotecas ──
+   Una columna en celular. En pantalla ancha, dos: es la única sección con
+   grilla porque es la única cuyas tarjetas son chicas por diseño, y una tarjeta
+   compacta estirada a 900px queda hueca — que es exactamente el problema que
+   tenía la pantalla. */
+.dsec__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  /* Cada tarjeta con su altura natural.
+     Por defecto la grilla estira las celdas para igualar la fila, y con
+     vinotecas cargadas de forma despareja —una con bajada y ciudad, otra sólo
+     con el nombre— la corta se infla al alto de la larga y queda un cuadro
+     enorme con dos palabras en el medio. En el panel sólo el título es
+     obligatorio, así que ese caso es lo normal, no la excepción. */
+  align-items: start;
+}
+
+@media (min-width: 640px) {
+  .dsec__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

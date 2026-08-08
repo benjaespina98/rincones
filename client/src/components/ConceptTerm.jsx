@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import Icon from "./Icon";
-import Portal from "./Portal";
-import { CONCEPTS, conceptAnchor } from "../data/wineConcepts";
-import "../styles/components/SettingsSheet.css";
+import { useState } from "react";
+import ConceptSheet from "./ConceptSheet";
+import { CONCEPTS } from "../data/wineConcepts";
 import "../styles/components/ConceptTerm.css";
 
 /**
@@ -13,27 +11,20 @@ import "../styles/components/ConceptTerm.css";
  * nueva: lo único que cambia es un punteado tenue abajo, como una palabra con
  * definición.
  *
- * La explicación se abre en la misma hoja que la receta y los filtros: leés,
- * cerrás y seguís donde estabas. Cada término monta su propia hoja sólo cuando
- * está abierto, así que no hay estado global ni contexto que atravesar la app
- * para algo que se usa de a uno por vez.
+ * La explicación la muestra `ConceptSheet`, en la misma hoja que la receta y
+ * los filtros: leés, cerrás y seguís donde estabas. Acá quedó sólo el
+ * disparador — el panel se separó cuando apareció un segundo lugar que lo abre
+ * (la tarjeta de "Para aprender hoy"), porque envolverla en este componente le
+ * contagiaba el subrayado punteado que corresponde a una palabra, no a una
+ * tarjeta.
  *
- * `ctx` es lo que la tarjeta necesita para escribir el renglón "en tu bodega"
- * (el vino, su ficha IA, su guarda). Es opcional: sin él, la tarjeta se lee
- * igual, sólo que general.
+ * `ctx` es lo que la hoja necesita para escribir el renglón "en tu bodega"
+ * (el vino, su ficha IA, su guarda). Es opcional: sin él, se lee igual, sólo
+ * que general.
  */
 export default function ConceptTerm({ id, ctx, children, className = "" }) {
   const [abierto, setAbierto] = useState(false);
   const concepto = CONCEPTS[id];
-
-  useEffect(() => {
-    if (!abierto) return undefined;
-    const alTeclear = (e) => {
-      if (e.key === "Escape") setAbierto(false);
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, [abierto]);
 
   // Concepto inexistente, o que no aplica a este vino (taninos en un espumante):
   // se devuelve el contenido tal cual, sin volverlo tocable. Así el llamador no
@@ -41,8 +32,6 @@ export default function ConceptTerm({ id, ctx, children, className = "" }) {
   if (!concepto || (concepto.appliesTo && ctx && !concepto.appliesTo(ctx.wine))) {
     return children;
   }
-
-  const enTuBodega = abierto ? conceptAnchor(id, ctx || {}) : null;
 
   return (
     <>
@@ -61,45 +50,7 @@ export default function ConceptTerm({ id, ctx, children, className = "" }) {
         {children}
       </button>
 
-      {abierto && (
-        <Portal>
-          <div className="settings-sheet" onClick={() => setAbierto(false)} role="presentation">
-            <div
-              className="settings-sheet__panel concept-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={concepto.title}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="settings-sheet__head">
-                <h2>{concepto.title}</h2>
-                <button
-                  type="button"
-                  className="settings-sheet__close"
-                  onClick={() => setAbierto(false)}
-                  aria-label="Cerrar"
-                >
-                  <Icon name="x" size={16} />
-                </button>
-              </div>
-
-              <div className="settings-sheet__body concept-sheet__body">
-                <p className="concept-sheet__text">{concepto.body}</p>
-
-                {/* Lo que ninguna enciclopedia puede decirte: cómo se aplica a la
-                    botella que tenés adelante. Si el dato no está, no hay línea
-                    —jamás se completa con una frase genérica—. */}
-                {enTuBodega && (
-                  <p className="concept-sheet__anchor">
-                    <Icon name="bottle" size={14} />
-                    <span>{enTuBodega}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
+      {abierto && <ConceptSheet id={id} ctx={ctx} onClose={() => setAbierto(false)} />}
     </>
   );
 }

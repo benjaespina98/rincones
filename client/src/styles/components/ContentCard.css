@@ -1,0 +1,379 @@
+/* ══ ContentCard ═══════════════════════════════════════════════════════════
+   Una tarjeta, tres jerarquías. Ver ContentCard.jsx para el porqué.
+
+   Lo que comparten las tres: bloque visual a la izquierda, texto a la derecha
+   con ancho máximo de lectura, y el toque cubriendo toda la superficie.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ccard {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  border-radius: var(--radius-lg);
+  text-align: left;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* La capa de toque: cubre todo pero va DEBAJO del contenido, así el texto se
+   puede seleccionar y las imágenes se ven. */
+.ccard__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+  /* Sin texto: la etiqueta la da aria-label. */
+  font-size: 0;
+}
+
+.ccard__hit:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
+.ccard > *:not(.ccard__hit) {
+  position: relative;
+  pointer-events: none;
+}
+
+.ccard.is-clickable:active {
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ccard,
+  .ccard.is-clickable:active {
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ── El bloque visual ── */
+.ccard__figure {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ccard-accent) 16%, transparent);
+  color: var(--ccard-accent);
+  overflow: hidden;
+}
+
+.ccard__logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── El texto ──
+   `min-width: 0` para que el recorte de las líneas largas funcione dentro de un
+   contenedor flex; `max-width` para que en desktop la línea no se estire a 120
+   caracteres, que es donde el ojo pierde el renglón al volver. */
+.ccard__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 62ch;
+}
+
+.ccard__kicker {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ccard-accent);
+}
+
+/* El cartel de publicidad. Neutro a propósito: no compite con el contenido ni
+   se disfraza de él. */
+.ccard__adtag {
+  padding: 2px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.ccard__by {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.ccard__title {
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ccard__summary {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ccard__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.ccard__badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* El CTA con fondo, no una flecha suelta al final de la línea. */
+.ccard__cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ccard-accent) 18%, transparent);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ccard-accent);
+}
+
+/* ══ row — la fila del feed ════════════════════════════════════════════════
+   La más densa y la que más se repite. Sin caja propia: sólo una línea que la
+   separa de la siguiente. Diez cajas con borde, una debajo de la otra, hacen
+   mucho ruido para poco contenido. */
+.ccard--row {
+  align-items: flex-start;
+  padding: 11px 4px;
+}
+
+.ccard--row .ccard__figure {
+  width: 34px;
+  height: 34px;
+}
+
+.ccard--row .ccard__title {
+  font-size: var(--text-base);
+}
+
+/* En la fila el CTA es redundante: la flecha del final y el hecho de que toda
+   la fila sea tocable ya lo dicen. Se saca para que la lista respire. */
+.ccard--row .ccard__cta {
+  display: none;
+}
+
+.ccard--row + .ccard--row {
+  border-top: 1px solid var(--line);
+}
+
+@media (hover: hover) {
+  .ccard--row.is-clickable:hover {
+    background: var(--surface);
+  }
+}
+
+/* ══ compact — las vinotecas ═══════════════════════════════════════════════
+   Tarjeta chica de verdad: por la spec, "Dónde comprar" tiene que sentirse una
+   utilidad y no un aviso. Por eso lleva caja pero discreta, y el CTA es lo más
+   parecido a un botón de las tres variantes: es la acción del bloque. */
+/* `align-items: center` y no `flex-start`: una vinoteca cargada a medias —sin
+   bajada, sin ciudad— deja el cuerpo en dos renglones al lado de un logo de
+   42px, y alineado arriba el resto de la tarjeta queda como un hueco. Centrado,
+   una tarjeta incompleta se ve compacta en vez de rota.
+
+   No es un caso hipotético: en el panel sólo el título es obligatorio, así que
+   la tarjeta tiene que sostenerse con lo mínimo. */
+.ccard--compact {
+  align-items: center;
+  padding: var(--card-pad-compact);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+/* Con bajada o pie, el logo vuelve a anclarse arriba: ahí sí hay cuerpo que
+   acompañar y centrarlo lo dejaría flotando en el medio. */
+.ccard--compact:has(.ccard__summary),
+.ccard--compact:has(.ccard__cta) {
+  align-items: flex-start;
+}
+
+.ccard--compact .ccard__figure {
+  width: 42px;
+  height: 42px;
+}
+
+.ccard--compact .ccard__title {
+  font-size: var(--text-base);
+}
+
+.ccard--compact .ccard__summary {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+@media (hover: hover) {
+  .ccard--compact.is-clickable:hover {
+    border-color: var(--ccard-accent);
+  }
+}
+
+/* ══ hero — el evento destacado ════════════════════════════════════════════
+   Uno por pantalla como mucho. Sólo lo usa un evento con imagen Y fecha: sin
+   las dos cosas, en grande es un rectángulo con dos renglones en el medio (ver
+   `deservesHero`). */
+.ccard--hero {
+  flex-direction: column;
+  gap: 0;
+  /* 190 → 205. Subir el piso es lo último que se toca, no lo primero: agrandar
+     la tarjeta para que entre el caso extremo castiga al caso normal, que es el
+     99%. Estos 15px son el resto después de acomodar el degradado y el
+     interlineado (ver abajo); alcanzan para que con contenido largo la foto siga
+     asomando arriba en vez de quedar tapada. */
+  min-height: 205px;
+  padding: 0;
+  border: 1px solid var(--line-accent);
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--ccard-accent) 22%, transparent), transparent 60%),
+    linear-gradient(160deg, rgba(30, 28, 56, 0.92), rgba(14, 17, 30, 0.95));
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: rincon-enter-up var(--transition-smooth) both;
+}
+
+.ccard--hero .ccard__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* El texto va encima: sin esto, una foto clara lo vuelve ilegible. */
+  opacity: 0.42;
+}
+
+.ccard--hero .ccard__body {
+  justify-content: flex-end;
+  gap: 5px;
+  /* Por encima del degradado: un pseudo-elemento se pinta DESPUÉS de los hijos,
+     así que sin esto la capa oscura taparía el texto que vino a hacer legible. */
+  z-index: 1;
+  padding: var(--card-pad-hero);
+  /* 60 → 40: con título de tres líneas, sesenta píxeles de aire arriba del
+     texto empujaban todo hacia abajo y estiraban la tarjeta sin que se viera
+     más foto. */
+  padding-top: 40px;
+  max-width: 46ch;
+}
+
+/* ── El degradado que sostiene el texto sobre la foto ──
+   El problema que resuelve: el fondo vivía en `.ccard__body`, que crece con el
+   contenido. Con un título largo el cuerpo ocupaba casi toda la tarjeta y su
+   degradado se comía la imagen entera — quedaba una franja de foto arriba y el
+   resto un rectángulo oscuro. La imagen dejaba de ser reconocible, que es lo
+   único que justifica que la tarjeta sea grande.
+
+   Ahora el degradado es una capa propia anclada ABAJO, con alto máximo: cubre
+   lo que necesita el texto y nunca más que eso. Los tres stops hacen el trabajo
+   fino — opaco donde apoya el texto, medio en la transición, transparente antes
+   de llegar arriba— así que la foto se sigue leyendo aunque el título ocupe
+   tres renglones. */
+.ccard--hero.has-image::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 82%;
+  background: linear-gradient(
+    to top,
+    rgba(9, 11, 20, 0.95) 30%,
+    rgba(9, 11, 20, 0.72) 58%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Tres líneas acá, dos en las demás variantes. El modelo acepta títulos de
+   hasta 90 caracteres y en el hero la tipografía es la más grande de todas: con
+   el clamp en 2, "Fiesta Nacional de la Vendimia y Cosecha de Altura del Valle
+   de Uco 2027" cortaba en "Valle de Uc…". Justamente el nombre del evento, que
+   es lo único que esta tarjeta tiene que comunicar. */
+.ccard--hero .ccard__title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.ccard--hero .ccard__summary {
+  color: var(--text);
+  opacity: 0.86;
+}
+
+/* Lugar y fecha en UN renglón. "Teatro Griego Frank Romero Day, Ciudad de
+   Mendoza · 7 de marzo" son dos líneas, y en el hero cada línea de más empuja
+   la foto fuera de la tarjeta. Cortado con puntos suspensivos se sigue
+   entendiendo dónde y cuándo, que es lo que hace falta para decidir si te
+   interesa; el detalle completo está del otro lado del toque. */
+.ccard--hero .ccard__meta {
+  flex-wrap: nowrap;
+  font-size: var(--text-xs);
+  color: var(--gold-soft);
+  font-weight: 600;
+}
+
+.ccard--hero .ccard__meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccard--hero .ccard__cta {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .ccard--hero.is-clickable:hover {
+    border-color: var(--accent);
+  }
+}
+
+/* ── Vista previa del panel ──
+   Se ve igual que en la app pero no navega: es lo que hay que poder mirar antes
+   de publicar. */
+.ccard.is-preview {
+  cursor: default;
+}

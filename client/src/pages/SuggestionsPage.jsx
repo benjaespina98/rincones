@@ -150,7 +150,7 @@ export default function SuggestionsPage() {
         setReading({ text: texto, food: data.food, note: data.note || "" });
         applyContext({ food: data.food });
       } else {
-        showError("No se pudo interpretar ese plato. Probá con uno de los clásicos de abajo.");
+        showError("No se pudo interpretar ese plato. Probá con alguna de las opciones de abajo.");
       }
     } catch {
       showError("No se pudo interpretar ese plato. Probá con uno de los clásicos de abajo.");
@@ -235,7 +235,7 @@ export default function SuggestionsPage() {
         )}
 
         <div className="context-group">
-          <span className="context-label">O tocá un clásico</span>
+          <span className="context-label">O elegí de acá</span>
           {/* Una sola fila con scroll horizontal: diez chips en dos o tres
               renglones son una pared, y acá son el camino corto, no el menú. */}
           <div className="chip-rail">
@@ -264,7 +264,7 @@ export default function SuggestionsPage() {
           <EmptyState
             icon="wine-glass"
             title="Contame qué vas a comer"
-            hint="Escribilo arriba o tocá un clásico: te digo qué abrir de tu bodega, y qué buscar si todavía no lo tenés."
+            hint="Escribilo arriba o elegí de la lista: te digo qué abrir de tu bodega, y qué buscar si todavía no lo tenés."
             compact
           />
         )}

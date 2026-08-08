@@ -274,195 +274,17 @@
   background: var(--surface);
 }
 
-/* ── Secciones ── */
-.discover-section {
-  display: grid;
-  gap: 14px;
-}
+/* Acá vivía `.discover-section` (y su `__head`, `__hint` y `--promos`): el
+   encabezado genérico de las secciones de esta pantalla. Lo reemplazó `.dsec`
+   en styles/components/DiscoverSections.css, que hace lo mismo pero lo comparten
+   "Dónde comprar" y "Para agendar" — antes cada sección traía su propio tamaño
+   de título y su propio aire, que es la mitad de por qué la pantalla se leía
+   como cinco pantallas apiladas.
 
-.discover-section__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.discover-section__head h2 {
-  margin: 0;
-  font-family: var(--font-family-serif);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.discover-section__hint {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-/* Los destacados traen su propia fila de puntos abajo, así que no necesitan el
-   respiro completo de una sección: con el gap normal el bloque queda flotando. */
-.discover-section--promos {
-  gap: 10px;
-}
-
-/* ── Rail horizontal de recomendados ── */
-.discover-rail {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 168px;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 2px 2px 8px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
-
-.discover-rail::-webkit-scrollbar {
-  height: 6px;
-}
-.discover-rail::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 999px;
-}
-
-.discover-wine {
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
-  overflow: hidden;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
-  animation: rincon-enter-up var(--transition-smooth) both;
-}
-
-@media (hover: hover) {
-  .discover-wine:hover {
-    transform: translateY(-3px);
-    border-color: var(--line-accent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .discover-wine { animation: none; }
-}
-
-.discover-wine__open {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.discover-wine__art {
-  position: relative;
-  aspect-ratio: 1 / 1;
-}
-
-/* Nombre tappable: botón sin estilo propio, hereda del texto. */
-.discover-wine__namebtn {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-  cursor: pointer;
-}
-
-.discover-wine__namebtn:hover .discover-wine__name {
-  color: var(--accent-soft);
-}
-
-/* Sólo la posición. El aspecto (fondo, borde, blur, tipografía) lo pone
-   `.chip .chip--type .chip--overlay`, que el JSX ya aplica: acá estaba todo
-   reescrito a mano, así que la misma pastilla tenía dos definiciones y sólo
-   una se mantenía al tocar el sistema de chips. */
-.discover-wine__type {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-}
-
-/* gap 3px apilaba nombre, bodega, uva y región casi tocándose: cuatro datos de
-   jerarquías distintas leídos como un bloque. Con 6px cada uno se lee solo. */
-.discover-wine__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: var(--card-pad-compact);
-  flex: 1;
-}
-
-.discover-wine__name {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.discover-wine__winery {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.discover-wine__region {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* `margin-top: auto` empuja el botón al fondo de la tarjeta para que todas las
-   del rail lo tengan a la misma altura. Estaba, pero un segundo `margin-top: 8px`
-   más abajo lo anulaba y los botones quedaban escalonados según el largo del
-   nombre. Ahora el aire lo pone el `gap` del contenedor. */
-.discover-wine__add {
-  margin-top: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-height: var(--control-md);
-  border: 1px solid var(--line-accent);
-  border-radius: var(--radius-md);
-  background: rgba(126, 89, 201, 0.16);
-  color: var(--accent-soft);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.discover-wine__add:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-}
-
-.discover-wine__add.is-added {
-  background: rgba(47, 182, 123, 0.16);
-  border-color: rgba(47, 182, 123, 0.34);
-  color: #7fe3b4;
-}
+   Acá vivían `.discover-rail` y las quince reglas de `.discover-wine`: la fila
+   horizontal de "Más para descubrir". Esa sección se sacó de la home porque
+   recomendaba vinos por segunda vez, del mismo set que el vino del día y unos
+   píxeles más abajo. Sin JSX que las use, las reglas eran peso muerto. */
 
 /* ── Contenido (aprendé/explorá) ── */
 /* Qué es el recurso: la línea que decide si vale la pena el clic. */
@@ -472,9 +294,6 @@
   .discover-page {
     max-width: 900px;
     margin: 0 auto;
-  }
-  .discover-rail {
-    grid-auto-columns: 190px;
   }
 }
 
@@ -489,12 +308,20 @@
    Composición editorial. Antes las nueve tarjetas tenían exactamente el mismo
    peso visual: la sección se leía como una lista de enlaces, no como algo
    curado. Ahora hay un protagonista y las secciones respiran. */
+/* 26px estaban calculados para tres grupos de enlaces uno abajo del otro. Con
+   la tarjeta de la lección arriba, ese mismo aire la dejaba flotando lejos de
+   los grupos a los que encabeza. 18px la ata al resto sin apretarla. */
 .explore {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 18px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
+}
+
+/* La lección respira un poco más del primer grupo: es de otra jerarquía. */
+.lesson-card + .explore__group {
+  margin-top: 4px;
 }
 
 .explore__head {
@@ -545,75 +372,11 @@
   gap: 6px;
 }
 
-/* Las filas no llevan tarjeta: sólo una línea que las separa. Nueve cajas con
-   borde propio, una debajo de la otra, hacían mucho ruido para poco contenido.
-   El peso visual queda para el destacado. */
-.explore__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 11px 4px;
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  transition: background var(--transition-fast);
-}
-
-.explore__item + .explore__item {
-  border-top: 1px solid var(--line);
-}
-
-@media (hover: hover) {
-  .explore__item:hover {
-    background: var(--surface);
-  }
-}
-
-.explore__item:active {
-  background: var(--surface-2);
-}
-
-.explore__item-icon {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--accent-content) 16%, transparent);
-  color: var(--accent-content);
-}
-
-.explore__item-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.explore__item-title {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.explore__item-summary {
-  font-size: var(--text-xs);
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.explore__item-meta {
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-}
-
-.explore__item-arrow {
-  flex-shrink: 0;
-  margin-top: 9px;
-  color: var(--text-subtle);
-}
+/* Acá vivían las once reglas de `.explore__item`: la fila del directorio de
+   enlaces, con su ícono, su texto, su meta y su flecha. Las reemplazó
+   `.ccard--row` (styles/components/ContentCard.css), que dibuja exactamente lo
+   mismo pero también las vinotecas, el evento destacado y cualquier tipo que se
+   sume. Eran la quinta copia de "una fila con ícono, título y bajada". */
 
 
 /* ── Buscar en el catálogo ──────────────────────────────────────────────────

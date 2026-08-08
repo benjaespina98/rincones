@@ -22,8 +22,16 @@
 //     when?:  { start, end, recurrence },   // ISO, o mes recurrente ("03" = marzo)
 //     place?: { city, province, venue },
 //     icon?,                                // pisa el ícono del grupo
+//     badge?,                               // lo que conviene saber ANTES de tocar
 //     tags?, featured?
 //   }
+//
+// ── SOBRE `badge` ───────────────────────────────────────────────────────────
+// Los seis ítems se veían exactamente iguales, así que un curso pago del Reino
+// Unido pesaba lo mismo que un video argentino de diez minutos, y sólo te
+// enterabas después del clic. El badge dice lo único que cambia la decisión de
+// tocar o no: si es gratis, si está en inglés. Va sólo donde aporta — poner
+// "en castellano" en los cuatro que lo están es ruido, no jerarquía.
 //
 // ── ACÁ NO VAN EVENTOS ──────────────────────────────────────────────────────
 // La regla es una sola: si tiene FECHA, va por el panel; si es atemporal, va acá.
@@ -42,7 +50,10 @@
 // suspende una feria, la app la sigue anunciando hasta el próximo deploy. Una
 // campaña se apaga con un toque y tiene su ventana de vigencia.
 //
-// Lo que queda acá es lo que NO caduca: videos, cursos y comunidad.
+// Lo que queda acá es lo que NO caduca: videos y cursos. La música se genera
+// (ver `musicItems`), no se escribe.
+
+import { suggestedPlaylists, playlistUrl } from "./playlists";
 
 /**
  * Las secciones, en orden de aparición.
@@ -69,20 +80,66 @@ export const DISCOVER_GROUPS = [
     icon: "graduation",
     accent: "#7e59c9",
   },
+  /* ── Los dos grupos que hoy nacen vacíos ─────────────────────────────────
+     No tienen ítems curados: se llenan sólo con lo que se cargue desde el
+     panel (notas, bodegas, eventos que no se llevaron la tarjeta grande). Un
+     grupo sin ítems no se renderiza, así que estar declarados acá no cuesta un
+     píxel — y el día que se cargue la primera nota, aparece en su lugar sin
+     tocar código.
+
+     Ésta es la parte concreta de "preparar la arquitectura para soportar
+     distintos tipos de contenido": el tipo nuevo ya tiene dónde caer. */
+  /* Los `hint` de acá arriba ("Catas y guías para ver tranquilo", "De la
+     curiosidad al diploma") ya tienen voz propia y se quedan como están. Los de
+     estos dos decían "Notas y lecturas sobre vino" y "Bodegas y eventos": el
+     rótulo repetido en otras palabras, que es exactamente el relleno que se
+     escribe cuando un campo pide texto y no hay nada que agregar. */
   {
-    id: "comunidad",
-    label: "Comunidad",
-    hint: "Donde se sigue hablando de vino",
-    icon: "chat",
+    id: "lecturas",
+    label: "Para leer",
+    hint: "Para leer con una copa",
+    icon: "list",
+    accent: "#7e59c9",
+  },
+  {
+    id: "lugares",
+    label: "Para ir",
+    hint: "Para salir a conocer",
+    icon: "map-pin",
     accent: "#f2b737",
+  },
+  /* ── Música ───────────────────────────────────────────────────────────────
+     Reemplazó a "Comunidad" (un canal de YouTube y r/wine). Esos dos eran los
+     enlaces más flojos de la lista: uno en inglés, los dos hacia foros que no
+     tienen nada que ver con la botella que tenés en la mano, y ninguno con una
+     razón para volver. Si alguna vez hay comunidad de verdad, va a ser adentro
+     de la app y no un link a Reddit.
+
+     La música, en cambio, sí es parte de tomar un vino, ya estaba probada en la
+     ficha (el plan de la botella sugiere una playlist) y a diferencia del resto
+     de esta sección CAMBIA: las dos que salen dependen de la hora y del día.
+     Verde, que es el color con el que todo el mundo lee "Spotify". */
+  {
+    id: "musica",
+    label: "Música",
+    hint: "Para poner mientras descorchás",
+    icon: "music",
+    accent: "#1db954",
   },
 ];
 
+/**
+ * El `kind` de cada ítem pasó a ser `type`, la misma clave que usan las
+ * campañas del panel (ver data/contentTypes.js). No es un renombre cosmético:
+ * es lo que permite que un video curado y un video cargado desde el panel caigan
+ * en el mismo grupo y los dibuje la misma tarjeta, sin que el feed tenga que
+ * saber de dónde vino cada uno.
+ */
 export const DISCOVER_ITEMS = [
   {
     id: "cata-martin-bruno",
     group: "videos",
-    kind: "video",
+    type: "video",
     title: "Cómo catar vino, por Martín Bruno",
     summary: "Los cuatro pasos de una cata, explicados sin vueltas",
     source: { name: "YouTube", url: "https://www.youtube.com/watch?v=GgjdxzuW7l8" },
@@ -91,7 +148,7 @@ export const DISCOVER_ITEMS = [
   {
     id: "cata-principiantes",
     group: "videos",
-    kind: "video",
+    type: "video",
     title: "Cata de vino para principiantes",
     summary: "Desde cero: qué mirar, oler y sentir en la copa",
     source: { name: "YouTube", url: "https://www.youtube.com/watch?v=to-oQp5UzPs" },
@@ -100,42 +157,31 @@ export const DISCOVER_ITEMS = [
   {
     id: "sol-sommelier",
     group: "cursos",
-    kind: "curso",
+    type: "course",
     title: "Sol Sommelier",
     summary: "Masterclasses y e-books gratuitos, en castellano",
     source: { name: "Web oficial", url: "https://www.solsommelier.com.ar/" },
     place: { province: "Argentina" },
     tags: ["gratis"],
+    badge: "Gratis",
   },
   {
     id: "wset",
     group: "cursos",
-    kind: "curso",
+    type: "course",
     title: "WSET",
     summary: "La certificación de vino más reconocida del mundo",
     source: { name: "Web oficial", url: "https://www.wsetglobal.com/" },
     tags: ["certificación"],
-  },
-  {
-    id: "catatu",
-    group: "comunidad",
-    kind: "comunidad",
-    title: "CataTú",
-    summary: "Canal de vino en español, con catas y recomendaciones",
-    source: {
-      name: "YouTube",
-      url: "https://www.youtube.com/channel/UCnX3wjgErD_rZMoDNcbjxlg",
-    },
-  },
-  {
-    id: "reddit-wine",
-    group: "comunidad",
-    kind: "comunidad",
-    title: "r/wine",
-    summary: "Preguntas, hallazgos y debates de todo el mundo",
-    source: { name: "Reddit", url: "https://www.reddit.com/r/wine/" },
+    badge: "Pago · inglés",
   },
 ];
+
+/*
+ * Acá estaban `catatu` (canal de YouTube) y `reddit-wine`, el grupo "Comunidad".
+ * Se fueron con el grupo: ver el comentario en DISCOVER_GROUPS. Están en el
+ * historial de git si alguna vez vuelven.
+ */
 
 const MONTHS = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -202,12 +248,85 @@ const isLive = (item, today) => {
  * Ya no recibe un `excludeId`: existía para sacar del listado al que se mostraba
  * como destacado, y ese destacado no está más.
  */
+/**
+ * Las dos playlists del momento, con el shape de un ítem del directorio.
+ *
+ * A diferencia de los videos y los cursos, estas NO están escritas en la lista
+ * de arriba: se derivan de la hora y del día (ver data/playlists.js). Es lo
+ * único de esta sección que cambia solo, y por eso vale la pena el rodeo de
+ * generarlas en vez de tipear dos enlaces fijos más.
+ *
+ * Las playlists son las mismas siete oficiales de Spotify que ya usa el plan de
+ * la ficha, verificadas una por una: no se suma ni un link que se pueda romper.
+ */
+const musicItems = (now) =>
+  suggestedPlaylists(now.getHours(), now.getDay()).map((p) => ({
+    id: `playlist-${p.id}`,
+    group: "musica",
+    type: "playlist",
+    title: p.name,
+    summary: p.mood,
+    source: { name: "Spotify", url: playlistUrl(p) },
+  }));
+
+/**
+ * Un ítem curado con la forma que espera `ContentCard`.
+ *
+ * La curaduría se sigue escribiendo con los campos que le quedan cómodos a
+ * quien la edita (`source`, `place`, `when`), y acá se traduce a la forma común
+ * —igual que `fromPromotion` traduce lo que viene del panel—. Las dos fuentes
+ * llegan a la tarjeta iguales y la tarjeta no sabe cuál es cuál.
+ */
+const aContenido = (item) => ({
+  id: item.id,
+  type: item.type,
+  title: item.title,
+  summary: item.summary,
+  url: item.source?.url || "",
+  meta: itemSubtitle(item),
+  badge: item.badge || "",
+});
+
 export const visibleContent = (now = new Date()) => {
   const today = now.getTime();
-  const live = DISCOVER_ITEMS.filter((i) => isLive(i, today));
+  const live = [...DISCOVER_ITEMS.filter((i) => isLive(i, today)), ...musicItems(now)];
 
   return DISCOVER_GROUPS.map((group) => ({
     ...group,
-    items: live.filter((i) => i.group === group.id),
+    items: live.filter((i) => i.group === group.id).map(aContenido),
   })).filter((g) => g.items.length > 0);
+};
+
+/** En qué grupo del feed cae cada tipo que puede venir del panel. */
+const GRUPO_POR_TIPO = {
+  video: "videos",
+  course: "cursos",
+  article: "lecturas",
+  winery: "lugares",
+  event: "lugares",
+};
+
+/**
+ * Mezcla la curaduría con lo que se cargó desde el panel, en los mismos grupos.
+ *
+ * Es la pieza que convierte "Aprendé y explorá" de una lista de enlaces fijos en
+ * un feed: un video curado y un video cargado desde el panel terminan en el
+ * mismo grupo, con la misma tarjeta, y el feed no sabe cuál es cuál.
+ *
+ * Lo del panel va PRIMERO dentro de su grupo: es lo que cambia y lo que alguien
+ * acaba de publicar; lo curado es el fondo estable que siempre está.
+ */
+export const mergeIntoGroups = (curados, delPanel = []) => {
+  const porGrupo = new Map(DISCOVER_GROUPS.map((g) => [g.id, []]));
+
+  for (const g of curados) {
+    if (porGrupo.has(g.id)) porGrupo.get(g.id).push(...g.items);
+  }
+
+  for (const item of delPanel) {
+    const destino = GRUPO_POR_TIPO[item.type];
+    if (destino && porGrupo.has(destino)) porGrupo.get(destino).unshift(item);
+  }
+
+  return DISCOVER_GROUPS.map((g) => ({ ...g, items: porGrupo.get(g.id) || [] }));
 };
