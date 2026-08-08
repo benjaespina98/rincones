@@ -40,6 +40,16 @@ const PATHS = {
     </>
   ),
   play: <path d="M7 5v14l11-7-11-7Z" />,
+  // Nota musical. Las playlists podrían usar `play`, pero es el mismo ícono que
+  // los videos: en una lista donde los dos grupos conviven, el color no alcanza
+  // para distinguir un tema de un video.
+  music: (
+    <>
+      <path d="M9 18V5l10-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="16" cy="16" r="3" />
+    </>
+  ),
   graduation: (
     <>
       <path d="M12 4 2 9l10 5 10-5-10-5Z" />

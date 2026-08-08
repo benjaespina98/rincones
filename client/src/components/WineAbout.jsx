@@ -21,28 +21,32 @@ import ErrorState from "./ErrorState";
  * 2. Aromas y maridajes se cortan en cuatro. Los primeros son los que definen el
  *    vino; del quinto en adelante son variaciones que ya no lo distinguen de
  *    ningún otro, y la ficha se vuelve una pared de pastillas.
+ *
+ * ── QUÉ SE VE SIN ABRIR NADA ────────────────────────────────────────────────
+ * Todo estaba plegado menos el resumen, y eso enterró justo lo que la ficha
+ * tiene de mejor: las barras de perfil. Un párrafo de prosa se lee una vez; las
+ * barras y los aromas se miran de un vistazo, se comparan entre botellas y son
+ * la razón por la que alguien abre la ficha de un vino que ya conoce. Escondido
+ * detrás de un botón, ese vistazo no existe.
+ *
+ * Arriba, siempre visible: el resumen, el perfil en barras, los aromas y la
+ * graduación. Detrás del botón: cómo tomarlo y el "¿sabías que?" — los dos
+ * párrafos, que se leen una vez y después sólo cuestan scroll.
  */
 
 const MAX_CHIPS = 4;
 
 export default function WineAbout({ loading, failed, info, onRetry, wine }) {
-  // Plegado por defecto. El resumen es lo que se lee siempre; las barras, los
-  // aromas y la graduación son material de consulta que se mira una vez y
-  // sumaba media pantalla de scroll en TODAS las visitas siguientes.
+  // Plegado por defecto, pero ahora esconde bastante menos: sólo lo que se
+  // consulta una vez (cómo tomarlo, la graduación, la curiosidad).
   const [abierto, setAbierto] = useState(false);
 
   if (!loading && !failed && !info) return null;
 
-  // Si no hay nada detrás del resumen, no se ofrece abrir nada.
-  const hayDetalle = Boolean(
-    info &&
-      (info.body ||
-        info.structure ||
-        info.profile?.length ||
-        info.aromas?.length ||
-        info.alcohol ||
-        info.funFact)
-  );
+  // Si no hay nada detrás de lo que ya se ve, no se ofrece abrir nada. La
+  // graduación salió de esta cuenta al subir a la parte visible: si no, un vino
+  // con alcohol y nada más ofrecía un botón que abría en blanco.
+  const hayDetalle = Boolean(info && (info.body || info.funFact));
 
   return (
     <div className="wine-about">
@@ -69,6 +73,57 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
         <>
           {info.summary && <p className="wine-about__summary">{info.summary}</p>}
 
+          {/* El perfil en barras, sin nada que tocar: es lo que se mira de un
+              vistazo y lo único de la ficha que se puede comparar entre dos
+              botellas. `wine` sólo viaja para que los conceptos puedan decir
+              "el tuyo es un tinto": la estructura se dibuja igual sin él. */}
+          <WineStructure structure={info.structure} wine={wine} />
+
+          {/* Sin barras, las pastillas dicen lo mismo en palabras. Nunca las dos
+              cosas: son los mismos cuatro ejes y a veces no coinciden. */}
+          {!info.structure && info.profile?.length > 0 && (
+            <div className="wine-about__profile">
+              {info.profile.map((p) => (
+                <span key={p} className="wine-about__pill">{p}</span>
+              ))}
+            </div>
+          )}
+
+          {info.aromas?.length > 0 && (
+            <div className="wine-about__block">
+              {/* Los aromas a vainilla, coco o tostado no vienen de la uva
+                  sino de la madera: el rótulo es el lugar exacto donde esa
+                  pregunta aparece. */}
+              <span className="wine-about__label">
+                <ConceptTerm id="crianza" ctx={{ wine, info }}>Aromas</ConceptTerm>
+              </span>
+              <div className="wine-about__chips">
+                {info.aromas.slice(0, MAX_CHIPS).map((a) => (
+                  <span key={a} className="wine-about__chip">{a}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* La graduación, a la vista: es un dato de una línea que mucha gente
+              mira antes de decidir si abre la botella un martes, y estaba
+              costando un toque. Al lado de los aromas no agrega scroll —
+              comparte renglón con ellos— así que esconderlo no ahorraba nada.
+
+              La temperatura NO se suma acá, aunque sea la otra mitad de la
+              pregunta: la dice el Plan, que en esta misma pantalla va MÁS
+              ARRIBA que esta sección. Repetirla dos bloques después sería
+              exactamente la clase de duplicación que se está sacando del
+              resto de la app. Y allá se dice mejor: "Servila a 16-18 °C" es
+              una instrucción, y viene con el aireado cuando el vino lo pide. */}
+          {info.alcohol && (
+            <div className="wine-about__facts">
+              <span className="wine-about__fact">
+                <strong>{info.alcohol}%</strong> alcohol
+              </span>
+            </div>
+          )}
+
           {hayDetalle && (
             <button
               type="button"
@@ -76,7 +131,7 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
               onClick={() => setAbierto((v) => !v)}
               aria-expanded={abierto}
             >
-              {abierto ? "Ocultar el detalle" : "Cómo es en boca"}
+              {abierto ? "Ocultar el detalle" : "Cómo tomarlo"}
               <Icon name={abierto ? "minus" : "plus"} size={14} />
             </button>
           )}
@@ -85,51 +140,11 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
             <>
               {info.body && <p className="wine-about__body">{info.body}</p>}
 
-              {/* `wine` sólo viaja para que los conceptos puedan decir "el tuyo
-                  es un tinto": la estructura se dibuja igual sin él. */}
-              <WineStructure structure={info.structure} wine={wine} />
-
-              {!info.structure && info.profile?.length > 0 && (
-                <div className="wine-about__profile">
-                  {info.profile.map((p) => (
-                    <span key={p} className="wine-about__pill">{p}</span>
-                  ))}
-                </div>
-              )}
-
-              {info.aromas?.length > 0 && (
-                <div className="wine-about__block">
-                  {/* Los aromas a vainilla, coco o tostado no vienen de la uva
-                      sino de la madera: el rótulo es el lugar exacto donde esa
-                      pregunta aparece. */}
-                  <span className="wine-about__label">
-                    <ConceptTerm id="crianza" ctx={{ wine, info }}>Aromas</ConceptTerm>
-                  </span>
-                  <div className="wine-about__chips">
-                    {info.aromas.slice(0, MAX_CHIPS).map((a) => (
-                      <span key={a} className="wine-about__chip">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Los chips de maridaje no están más. Desde que dicen platos
                   concretos ("ojo de bife a la parrilla") se pisan con el plato
-                  que propone el Plan de la noche, en la misma pantalla y con
-                  receta: cuatro sugerencias sin desarrollar al lado de una
-                  desarrollada. Para elegir vino desde la comida está el
-                  Sommelier.
-
-                  La temperatura tampoco: la dice el Plan, y la dice mejor.
-                  "Servila a 16-18 °C" es una instrucción; "16-18 °C servir" era
-                  una ficha técnica diciendo lo mismo dos renglones más abajo. */}
-              {info.alcohol && (
-                <div className="wine-about__facts">
-                  <span className="wine-about__fact">
-                    <strong>{info.alcohol}%</strong> alcohol
-                  </span>
-                </div>
-              )}
+                  que propone el Plan, en la misma pantalla y con receta: cuatro
+                  sugerencias sin desarrollar al lado de una desarrollada. Para
+                  elegir vino desde la comida está el Sommelier. */}
 
               {/* El "¿sabías que?", último y dentro de lo plegado: es lo más
                   lindo de leer y lo menos urgente. A quien no le interesa no le

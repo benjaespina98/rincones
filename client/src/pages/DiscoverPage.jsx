@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWineStats } from "../hooks/useWineStats";
@@ -6,17 +6,27 @@ import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines, searchWines } from "../services/wineSearchApi";
 import StarRating from "../components/StarRating";
-import { visibleContent, itemSubtitle } from "../data/discoverContent";
+import { visibleContent, mergeIntoGroups } from "../data/discoverContent";
+import { fromPromotion, deservesHero } from "../data/contentTypes";
+import WineShops from "../components/WineShops";
+import FeaturedEvent from "../components/FeaturedEvent";
+import ExploreFeed from "../components/ExploreFeed";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
+import DailyLesson from "../components/DailyLesson";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
-import PromoCarousel from "../components/PromoCarousel";
+/* PromoCarousel y PromoCard se fueron con el rediseño. El carrusel repartía
+   todo el contenido del panel en un solo bloque rotativo —"la parte de los
+   avisos"— y su tarjeta era una sexta forma de dibujar lo mismo que ya dibujan
+   las otras cinco. Ahora cada cosa cae en su sección y todas usan ContentCard.
+   La medición de impresiones, que vivía adentro del carrusel, se mudó a
+   hooks/usePromoMetrics.js para no perderse con él. */
 import { getPromotions } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/DiscoverPage.css";
@@ -55,10 +65,18 @@ export default function DiscoverPage() {
   // usuario tenga que tocar el texto del buscador.
   const [retryToken, setRetryToken] = useState(0);
   const [addedIds, setAddedIds] = useState(() => new Set());
-  // Vino del día = el primero de los destacados (rota por día en el server).
-  // "Sorprendeme" cambia el foco a uno al azar del set.
+  // La recomendación en foco. El server rota el set por día; acá se entra por
+  // uno cualquiera del set en vez de siempre por el primero, así abrir la app
+  // dos veces el mismo día no da exactamente la misma tarjeta.
+  // "Sorprendeme" sigue moviéndose por el resto.
   const [spotlightIdx, setSpotlightIdx] = useState(0);
   const [surprised, setSurprised] = useState(false);
+
+  /* Semilla de la sesión: decide con cuál de las redacciones se cuentan el
+     título y el motivo (ver utils/momentCopy.js). Se calcula una sola vez al
+     montar — si cambiara en cada render, el texto parpadearía mientras lo
+     estás leyendo. */
+  const [seed] = useState(() => Math.floor(Math.random() * 997));
 
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
   // pantalla quedaba con un carrusel vacío, sin explicación ni salida.
@@ -67,7 +85,13 @@ export default function DiscoverPage() {
     setLoading(true);
     setLoadFailed(false);
     getFeaturedWines()
-      .then((w) => active && setFeatured(w))
+      .then((w) => {
+        if (!active) return;
+        setFeatured(w);
+        // Entrar por uno al azar del set, no siempre por el primero.
+        setSpotlightIdx(w.length > 0 ? Math.floor(Math.random() * w.length) : 0);
+        setSurprised(false);
+      })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
     return () => {
@@ -118,8 +142,46 @@ export default function DiscoverPage() {
   }, [query, retryToken]);
 
   const name = displayName(user);
-  // Sin destacado que excluir: todos los ítems viven en su grupo.
-  const content = visibleContent(new Date());
+
+  /**
+   * ── EL REPARTO DEL CONTENIDO DEL PANEL ────────────────────────────────────
+   * Todo lo que se carga desde el panel llega por el mismo endpoint y se reparte
+   * acá según su `type`. Antes iba todo al mismo carrusel, que es lo que hacía
+   * que la pantalla tuviera "la parte de los avisos": un bloque que la persona
+   * aprende a saltear porque sabe que ahí está lo comprado.
+   *
+   * Ahora cada cosa cae donde alguien la buscaría —una vinoteca en "Dónde
+   * comprar", una feria en "Para agendar", una nota en el feed— y lo pagado se
+   * distingue por un badge, no por vivir en un gueto.
+   */
+  const contenidoPanel = useMemo(() => promos.map(fromPromotion), [promos]);
+
+  const shops = useMemo(
+    () => contenidoPanel.filter((p) => p.type === "wineShop"),
+    [contenidoPanel]
+  );
+
+  /**
+   * El evento que se lleva la tarjeta grande: el primero que la puede sostener
+   * (imagen Y fecha, ver `deservesHero`). Los promos ya vienen ordenados por
+   * prioridad desde el server, así que "el primero" es el que se pactó.
+   */
+  const heroEvent = useMemo(
+    () => contenidoPanel.find(deservesHero) || null,
+    [contenidoPanel]
+  );
+
+  /**
+   * El feed: la curaduría de siempre, más todo lo del panel que no se llevó una
+   * sección propia. Nada se pierde por no ser destacado — un evento sin imagen
+   * baja al feed, donde además se ve mejor que estirado en grande.
+   */
+  const feedGroups = useMemo(() => {
+    const resto = contenidoPanel.filter(
+      (p) => p.type !== "wineShop" && p.id !== heroEvent?.id
+    );
+    return mergeIntoGroups(visibleContent(new Date()), resto);
+  }, [contenidoPanel, heroEvent]);
 
   // Con una búsqueda activa, los resultados se quedan con la pantalla: mezclarlos
   // con el vino del día y los recomendados obliga a scrollear entre dos cosas que
@@ -128,16 +190,19 @@ export default function DiscoverPage() {
 
   const spotlight = featured[spotlightIdx] || null;
 
-  /**
-   * La fila de abajo, SIN el vino destacado.
+  /*
+   * Acá estaba `railWines`, la fila "Más para descubrir".
    *
-   * Eran dos recomendaciones para lo mismo: el destacado sale de `featured`, que
-   * es el mismo array que alimenta la fila, así que el vino de arriba volvía a
-   * aparecer unos píxeles más abajo —y con "Sorprendeme" cambiaba el de arriba
-   * pero no el duplicado—. Excluirlo es lo que ya se hacía con el contenido
-   * destacado de "Aprendé y explorá" (ver `visibleContent`), por la misma razón.
+   * Salía del MISMO array que el vino del día, así que la home recomendaba
+   * vinos dos veces: una arriba, elegida y con su motivo, y otra abajo, la
+   * misma bolsa desplegada en fila. Se le había sacado el duplicado exacto
+   * (el destacado se filtraba de la fila) y aun así seguían siendo dos
+   * bloques de recomendación separados por unos píxeles, compitiendo por lo
+   * mismo. Si todo está recomendado, nada lo está.
+   *
+   * Queda una sola, con más aire, y "Sorprendeme" para recorrer el resto del
+   * set — que es lo que la fila hacía de verdad, pero ocupando media pantalla.
    */
-  const railWines = spotlight ? featured.filter((w) => w.id !== spotlight.id) : featured;
 
   const surpriseMe = () => {
     if (featured.length < 2) return;
@@ -185,7 +250,7 @@ export default function DiscoverPage() {
         <p className="discover-hero__greeting">{greeting()}{name ? `, ${name}` : ""} 👋</p>
         {/* El título sale del estado real de la bodega: si no hay nada que
             contar cae a la pregunta neutra. Ver utils/momentCopy.js. */}
-        <h1 className="discover-hero__title">{homeTitle({ stats })}</h1>
+        <h1 className="discover-hero__title">{homeTitle({ stats, seed })}</h1>
 
         {/* Sin submit: busca sola mientras escribís. El botón de la derecha
             limpia, que es lo único que hace falta cuando el resultado ya está
@@ -341,6 +406,26 @@ export default function DiscoverPage() {
       {/* Vino del día: skeleton mientras carga, para que no aparezca de golpe. */}
       {!buscando && loading && <div className="spotlight spotlight--skeleton" aria-hidden="true" />}
 
+      {/* La recomendación es ahora la única de la pantalla, así que si falla hay
+          que decirlo acá: el aviso vivía en la fila de abajo, que ya no está. */}
+      {!buscando && !loading && loadFailed && (
+        <ErrorState
+          title="No se pudo traer la recomendación"
+          hint="Puede ser tu conexión. Probá de nuevo en un momento."
+          onRetry={loadFeatured}
+          compact
+        />
+      )}
+
+      {!buscando && !loading && !loadFailed && !spotlight && (
+        <EmptyState
+          icon="search"
+          title="No hay recomendaciones ahora"
+          hint="Volvé más tarde o buscá un vino que tengas en mente."
+          compact
+        />
+      )}
+
       {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
       {!buscando && !loading && spotlight && (
         <section className="spotlight" key={spotlight.id}>
@@ -362,14 +447,18 @@ export default function DiscoverPage() {
                   El motivo sale del momento cruzado con tu propia bodega (ver
                   utils/momentCopy.js), no de un modelo: es instantáneo, gratis
                   y siempre verificable. */}
+              {/* "Tu recomendación de hoy" era correcto y sonaba a sistema: lo
+                  dice una app, no alguien. "Hoy te recomiendo" pone a alguien
+                  del otro lado, que es lo que el motivo de abajo ya venía
+                  haciendo ("Hace frío y todavía no tenés Malbec"). */}
               <span className="spotlight__eyebrow">
                 <Icon name="sparkle" size={12} />
-                {surprised ? "Al azar" : "Tu recomendación de hoy"}
+                {surprised ? "Al azar" : "Hoy te recomiendo"}
               </span>
               <span className="spotlight__kicker">
                 {surprised
                   ? "Salgamos un rato de la rutina"
-                  : whyThisWine(spotlight, stats)}
+                  : whyThisWine(spotlight, stats, seed)}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
@@ -409,161 +498,24 @@ export default function DiscoverPage() {
           pantallas distintas apiladas en el mismo scroll. */}
       {!buscando && (
         <>
-        {/* ── Destacados ────────────────────────────────────────────────────
-            Va DESPUÉS del vino del día y antes de las recomendaciones: lo
-            primero que ve alguien que abre la app tiene que ser el producto,
-            no un aviso. Acá arriba se ve, y no se come la portada.
+          {/* ── 3. Dónde comprar ───────────────────────────────────────────
+              Va acá, pegada a la recomendación, porque contesta la pregunta que
+              deja abierta: "me gustó, ¿dónde lo consigo?". Reemplaza al carrusel
+              de publicidad — el mismo espacio comercial, pero como utilidad. Sin
+              vinotecas al aire, el componente devuelve null. */}
+          <WineShops shops={shops} />
 
-            Sin campañas vigentes el componente devuelve null y esta sección
-            desaparece entera —encabezado incluido—: un título "Destacados"
-            sobre un espacio vacío es peor que no tener la sección. */}
-        {promos.length > 0 && (
-          <section className="discover-section discover-section--promos">
-            <div className="discover-section__head">
-              <h2>Destacados</h2>
-              <span className="discover-section__hint">
-                {promos.length === 1 ? "Lo que está pasando" : "Eventos y novedades del vino"}
-              </span>
-            </div>
-            <PromoCarousel promos={promos} />
-          </section>
-        )}
+          {/* ── 4. Aprendé y explorá ───────────────────────────────────────
+              El feed mixto: la lección propia primero, después videos, cursos,
+              música y lo que se cargue del panel (notas, bodegas, eventos que no
+              se llevaron la tarjeta grande). Todos con la misma tarjeta. */}
+          <ExploreFeed groups={feedGroups} stats={stats} seed={seed} />
 
-        {/* ── Más para descubrir ────────────────────────────────────────────
-            Ya no es una segunda recomendación. Arriba está LA recomendación del
-            día —una, elegida, con su motivo y su "Sorprendeme"—; esto es el
-            catálogo para seguir mirando. Tener dos bloques que dicen "elegidos
-            para vos" en la misma pantalla le quita valor al primero: si todo
-            está elegido para vos, nada lo está. */}
-        <section className="discover-section">
-          <div className="discover-section__head">
-            <h2>Más para descubrir</h2>
-            <span className="discover-section__hint">Vinos argentinos para sumar a tu lista</span>
-          </div>
-
-          {loading ? (
-            <LoadingSkeleton type="list" count={3} />
-          ) : loadFailed ? (
-            <ErrorState
-              title="No se pudieron traer las recomendaciones"
-              hint="Puede ser tu conexión. Probá de nuevo en un momento."
-              onRetry={loadFeatured}
-              compact
-            />
-          ) : railWines.length === 0 ? (
-            <EmptyState
-              icon="search"
-              title="No hay recomendaciones ahora"
-              hint="Volvé más tarde o buscá un vino que tengas en mente."
-              compact
-            />
-          ) : (
-            <div className="discover-rail">
-              {railWines.map((wine) => (
-                <article key={wine.id} className="discover-wine">
-                  <button
-                    type="button"
-                    className="discover-wine__open"
-                    onClick={() => navigate("/descubrir/vino", { state: { wine } })}
-                    aria-label={`Ver detalle de ${wine.name}`}
-                  >
-                    <div className="discover-wine__art">
-                      <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} fit="contain" />
-                      {wine.type && wine.type !== "unknown" && (
-                        <span className="chip chip--type chip--overlay discover-wine__type">{WINE_TYPE_LABELS[wine.type]}</span>
-                      )}
-                    </div>
-                  </button>
-                  <div className="discover-wine__body">
-                    <button
-                      type="button"
-                      className="discover-wine__namebtn"
-                      onClick={() => navigate("/descubrir/vino", { state: { wine } })}
-                    >
-                      <p className="discover-wine__name" title={wine.name}>{wine.name}</p>
-                    </button>
-                    <p className="discover-wine__winery">{wine.winery}</p>
-                    {wine.varietal && <span className="chip chip--grape">{wine.varietal}</span>}
-                    {wine.region && (
-                      <p className="discover-wine__region">
-                        <Icon name="map-pin" size={12} /> {wine.region}
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      className={`discover-wine__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
-                      onClick={() => handleWant(wine)}
-                      disabled={addingId === wine.id || addedIds.has(wine.id)}
-                    >
-                      {addedIds.has(wine.id) ? (
-                        <><Icon name="check" size={15} /> Guardado</>
-                      ) : addingId === wine.id ? (
-                        "Guardando…"
-                      ) : (
-                        <><Icon name="heart" size={15} /> Quiero probar</>
-                      )}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── Aprendé y explorá ──────────────────────────────────────────────
-            Era la parte más pesada de la home y la única que te saca de la app:
-            título, bajada, un destacado grande, tres grupos y un pie. Quedaron
-            los tres grupos.
-
-            Qué se fue y por qué:
-            · El destacado repetía en grande un ítem que ya estaba en la lista
-              —de hecho había que excluirlo del listado para no verlo dos veces—.
-              Ahora vuelve a su grupo y la sección arranca 150px más arriba.
-            · La bajada ("Dónde seguir descubriendo: catas, cursos y gente que
-              sabe") decía lo mismo que el título con más palabras.
-            · El pie invitaba a "contarnos" algo sin ningún lugar donde hacerlo. */}
-        <section className="explore">
-          <header className="explore__head">
-            <h2 className="explore__title">Aprendé y explorá</h2>
-          </header>
-
-          {content.map((group) => (
-            <div key={group.id} className="explore__group">
-              <div className="explore__group-head">
-                <span className="explore__group-label" style={{ color: group.accent }}>
-                  {group.label}
-                </span>
-                {group.hint && <span className="explore__group-hint">{group.hint}</span>}
-              </div>
-
-              <div className="explore__items">
-                {group.items.map((item) => (
-                  <a
-                    key={item.id}
-                    className="explore__item"
-                    href={item.source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => tapHaptic()}
-                    style={{ "--accent-content": group.accent }}
-                  >
-                    {/* El ícono puede venir del ítem; si no, del grupo. */}
-                    <span className="explore__item-icon">
-                      <Icon name={item.icon || group.icon} size={17} />
-                    </span>
-                    <span className="explore__item-text">
-                      <span className="explore__item-title">{item.title}</span>
-                      <span className="explore__item-summary">{item.summary}</span>
-                      <span className="explore__item-meta">{itemSubtitle(item)}</span>
-                    </span>
-                    <Icon name="arrow-right" size={15} className="explore__item-arrow" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          ))}
-
-        </section>
+          {/* ── 5. Eventos destacados ──────────────────────────────────────
+              Última porque es lo menos urgente: una feria de octubre no compite
+              con "qué tomo hoy". Una sola tarjeta grande, y sólo si hay un
+              evento que la sostenga — si no, no existe la sección. */}
+          <FeaturedEvent event={heroEvent} />
         </>
       )}
     </div>

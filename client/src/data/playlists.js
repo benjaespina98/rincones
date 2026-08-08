@@ -88,3 +88,42 @@ export const playlistFor = (plan, wineType, hour = new Date().getHours()) => {
 };
 
 export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${playlist.id}`;
+
+/* ── Las dos de la home ─────────────────────────────────────────────────────
+ *
+ * En la ficha de un vino la playlist depende del PLAN que elegiste, que es el
+ * dato más fuerte que hay. En Descubrí no hay plan ni botella: lo único que se
+ * sabe es qué hora es y qué día. Alcanza — un martes a las cuatro de la tarde y
+ * un sábado a las once de la noche no piden lo mismo, y esa es justamente la
+ * diferencia que una lista fija no puede hacer.
+ *
+ * Son DOS y no seis: dos se miran, seis se scrollean. Y las mismas siete
+ * playlists oficiales verificadas de arriba, así que no hay ningún link nuevo
+ * que se pueda romper.
+ */
+export const suggestedPlaylists = (
+  hour = new Date().getHours(),
+  weekday = new Date().getDay()
+) => {
+  const finde = [5, 6, 0].includes(weekday);
+
+  // Madrugada: cualquiera que siga despierto no quiere Viva Latino.
+  if (hour < 7) return [PLAYLISTS.peacefulPiano, PLAYLISTS.jazzVibes];
+
+  if (hour < 12) return [PLAYLISTS.afternoonAcoustic, PLAYLISTS.chillHits];
+
+  // Mediodía y primera tarde: mesa, sobremesa, luz.
+  if (hour < 17) {
+    return finde
+      ? [PLAYLISTS.softRock, PLAYLISTS.afternoonAcoustic]
+      : [PLAYLISTS.afternoonAcoustic, PLAYLISTS.jazzVibes];
+  }
+
+  // Tardecita: la hora en que se descorcha sin ser todavía de noche.
+  if (hour < 20) return [PLAYLISTS.chillHits, PLAYLISTS.afternoonAcoustic];
+
+  // Noche. El finde levanta el volumen; un miércoles, no.
+  return finde
+    ? [PLAYLISTS.vivaLatino, PLAYLISTS.jazzClassics]
+    : [PLAYLISTS.jazzVibes, PLAYLISTS.peacefulPiano];
+};

@@ -3,12 +3,20 @@ import Icon from "./Icon";
 import Portal from "./Portal";
 import ConceptTerm from "./ConceptTerm";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
+import { planTitle, planHint } from "../utils/momentCopy";
 import { getWineRecipe } from "../services/wineSearchApi";
 import "../styles/components/SettingsSheet.css";
 import "../styles/components/WinePlan.css";
 
 /**
- * El plan de la noche: qué hacer con esta botella.
+ * El plan: qué hacer con esta botella.
+ *
+ * ── POR QUÉ EL TÍTULO NO DICE SIEMPRE "LA NOCHE" ────────────────────────────
+ * Se llamaba "Plan de la noche" a cualquier hora. La app se abre a las nueve de
+ * la mañana y a las tres de la tarde tanto como a las diez de la noche, y una
+ * copa a la tardecita es un plan igual de válido: el único que no se había
+ * enterado era el rótulo. Ahora sale del reloj (ver utils/momentCopy.js), como
+ * el saludo y el título de la home.
  *
  * ── QUÉ PROBLEMA RESUELVE ───────────────────────────────────────────────────
  * La app ya sabía la temperatura de servicio y el maridaje, pero los tenía
@@ -104,13 +112,18 @@ export default function WinePlan({ wine, info }) {
     }
   };
 
+  // Se calculan una vez por render y no cambian mientras la ficha está abierta:
+  // nadie tiene una ficha de vino abierta el tiempo suficiente como para cruzar
+  // una franja horaria, y si pasa, se acomoda solo en la próxima visita.
+  const titulo = planTitle();
+
   return (
-    <section className="wine-plan" aria-label="Plan de la noche">
+    <section className="wine-plan" aria-label={titulo}>
       <div className="wine-plan__head">
         <h3>
-          <Icon name="sparkles" size={15} /> Plan de la noche
+          <Icon name="sparkles" size={15} /> {titulo}
         </h3>
-        {!plan && <span className="wine-plan__hint">¿Cómo viene la noche?</span>}
+        {!plan && <span className="wine-plan__hint">{planHint()}</span>}
       </div>
 
       {/* La temperatura, siempre visible: es el dato que cambia cómo sabe el

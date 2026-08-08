@@ -152,3 +152,106 @@ export const conceptAnchor = (id, ctx = {}) => {
     return null;
   }
 };
+
+/* ── La lección de la home ──────────────────────────────────────────────────
+ *
+ * Estos conceptos ya existían colgados de los rótulos de la ficha, donde la
+ * pregunta aparece sola. Eso sigue igual: esto no es un glosario al que haya
+ * que ir, es UNA tarjeta en Descubrí que abre la misma hoja.
+ *
+ * Por qué se gana el lugar que ocupaba el directorio de links: es contenido
+ * propio (no depende de que YouTube no baje un video), está en castellano y en
+ * el tono de la app, no te saca de la aplicación, y —a diferencia de seis
+ * enlaces fijos— se elige según lo que tenés en la bodega. La regla es la misma
+ * que la del vino del día: si hay algo cierto que decirte, se dice; si no, cae
+ * a lo general. Nunca se afirma algo que las estadísticas no sostengan.
+ */
+
+const TIPOS_TINTOS = new Set(["red", "fortified"]);
+const TIPOS_FRESCOS = new Set(["white", "rosé", "sparkling"]);
+
+/** Lecciones que valen para cualquiera, en cualquier momento. */
+const LECCIONES_GENERALES = [
+  { id: "etiqueta", hook: "Bodega, línea, uva y origen: cuatro datos que todo el mundo mezcla" },
+  { id: "maridaje", hook: "Tres reglas para no errarle con la comida" },
+  { id: "temperatura", hook: "El error más común de todos, y el más fácil de arreglar" },
+  { id: "reserva", hook: "“Reserva” en Argentina no significa lo que parece" },
+  { id: "crianza", hook: "La vainilla y el tostado no vienen de la uva: los pone la madera" },
+  { id: "uvas", hook: "Las cinco uvas argentinas, en un renglón cada una" },
+  { id: "cuerpo", hook: "Qué quiere decir, en la boca, que un vino sea corpulento" },
+];
+
+const contar = (lista, prop, filtro) =>
+  lista.reduce((acc, x) => (filtro(x[prop]) ? acc + (x.count || 0) : acc), 0);
+
+/**
+ * Qué conviene explicarte hoy, según tu bodega.
+ *
+ * Devuelve `{ id, hook }`: el concepto y la línea que dice por qué te toca ese.
+ * `seed` sólo elige entre los candidatos que ya son verdad — igual que en
+ * momentCopy, lo que rota es cuál de las cosas ciertas se cuenta, no si es
+ * cierta.
+ */
+export const pickLesson = ({ stats, seed = 0 } = {}) => {
+  const total = stats?.totals?.total || 0;
+  const varietals = stats?.topVarietals || [];
+  const regions = stats?.topRegions || [];
+  const types = stats?.countsByType || [];
+
+  // Bodega vacía: no hay nada tuyo que mirar, y lo que hace falta es lo básico.
+  if (total === 0) {
+    const arranque = [
+      { id: "etiqueta", hook: "Antes de la primera botella: qué dice cada palabra del papel" },
+      { id: "uvas", hook: "Las cinco uvas argentinas, para saber por dónde empezar" },
+    ];
+    return arranque[Math.abs(seed) % arranque.length];
+  }
+
+  const tintos = contar(types, "type", (t) => TIPOS_TINTOS.has(t));
+  const frescos = contar(types, "type", (t) => TIPOS_FRESCOS.has(t));
+  const uvaTop = varietals[0];
+  const regionTop = regions[0];
+
+  // Candidatos anclados en datos verificables. Se juntan todos los que aplican
+  // y después se elige uno: así dos personas con bodegas distintas no leen lo
+  // mismo, y la misma persona no lee siempre lo mismo.
+  const propios = [];
+
+  if (tintos >= 2) {
+    propios.push(
+      { id: "taninos", hook: `Tenés ${tintos} tintos: esto es lo que les da el esqueleto` },
+      { id: "decantar", hook: "Tus tintos: cuándo airear sirve de verdad y cuándo es pose" }
+    );
+  }
+
+  if (frescos >= 2) {
+    propios.push({
+      id: "acidez",
+      hook: `Tenés ${frescos} blancos o espumantes: la acidez es lo que los mantiene vivos`,
+    });
+  }
+
+  if (regionTop?.count >= 2 && regionTop.region) {
+    propios.push({
+      id: "terroir",
+      hook: `Repetís ${regionTop.region}: qué le da esa zona a la uva`,
+    });
+  }
+
+  if (uvaTop?.count >= 3 && uvaTop.varietal) {
+    propios.push({
+      id: "uvas",
+      hook: `Tenés mano de ${uvaTop.varietal}: cómo son las otras uvas argentinas`,
+    });
+  }
+
+  if (total >= 3) {
+    propios.push({
+      id: "guarda",
+      hook: `Tenés ${total} botellas: cuándo conviene abrir cada una`,
+    });
+  }
+
+  const pool = propios.length > 0 ? propios : LECCIONES_GENERALES;
+  return pool[Math.abs(seed) % pool.length];
+};

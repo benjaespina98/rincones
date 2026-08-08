@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import ConfirmModal from "../components/ConfirmModal";
-import PromoCard from "../components/PromoCard";
+import ContentCard from "../components/ContentCard";
+import { deservesHero } from "../data/contentTypes";
 import PromoStats from "../components/PromoStats";
 import ImagePicker from "../components/ImagePicker";
 import { useToast } from "../context/ToastContext";
@@ -40,13 +41,44 @@ import "./styles/AdminPromotionsPage.css";
  * Cero clics para la pregunta más frecuente. Y desaparecen ocho controles.
  *
  * ── LO QUE NO SE AFLOJA ─────────────────────────────────────────────────────
- * Elegir "Publicidad" marca la tarjeta como paga y el carrusel le pone el cartel,
- * sin opción de sacarlo. El servidor lo fuerza igual: no puede depender de esta
- * pantalla.
+ * Marcar "Es espacio pago" le pone el cartel de PUBLICIDAD a la tarjeta, sin
+ * opción de sacarlo desde acá.
+ *
+ * Antes esa marca la forzaba el tipo: existía `kind: "ad"` y elegirlo implicaba
+ * el cartel. Se separó porque el tipo tenía que decir OTRA cosa —qué es el
+ * contenido, y por lo tanto en qué sección de Descubrí cae—: con el diseño
+ * viejo, una vinoteca que pagaba no podía declararse vinoteca. Ahora son dos
+ * preguntas y las dos se hacen explícitas al cargar.
  */
 
+/**
+ * Los tipos, con qué son y dónde caen. El orden es el de la barra de botones:
+ * primero los dos que tienen sección propia en la pantalla.
+ */
+const TIPOS = [
+  { id: "event", label: "Evento", hint: "Una feria, una cata" },
+  { id: "wineShop", label: "Vinoteca", hint: 'Va a "Dónde comprar"' },
+  { id: "winery", label: "Bodega", hint: "Para visitar" },
+  { id: "article", label: "Nota", hint: "Una lectura" },
+  { id: "course", label: "Curso", hint: "Formación" },
+  { id: "video", label: "Video", hint: "Cata o guía" },
+];
+
+/** Los tipos a los que un lugar les significa algo. Una nota no tiene ciudad. */
+const CON_LUGAR = new Set(["event", "wineShop", "winery"]);
+
+/** Un ejemplo real por tipo: dice más sobre qué se espera que cualquier ayuda. */
+const PLACEHOLDER_TITULO = {
+  event: "Fiesta Nacional de la Vendimia",
+  wineShop: "Vinoteca Wine Not",
+  winery: "Bodega Salentein",
+  article: "Cómo leer una etiqueta argentina",
+  course: "Introducción a la cata",
+  video: "Los cuatro pasos de una cata",
+};
+
 const VACIO = {
-  kind: "event",
+  type: "event",
   title: "",
   summary: "",
   image: "",
@@ -88,7 +120,7 @@ const MINIMO_PARA_BUSCAR = 8;
  * en los dos lados es la forma garantizada de que en algún momento se corran un día—.
  */
 const aPayload = (form) => ({
-  kind: form.kind,
+  type: form.type,
   title: form.title.trim(),
   summary: form.summary.trim(),
   image: form.image.trim(),
@@ -98,22 +130,24 @@ const aPayload = (form) => ({
   active: form.active,
   startsAt: form.startsAt || null,
   endsAt: form.endsAt || null,
-  // Los datos del evento no aplican a una publicidad: se mandan vacíos para que
-  // editar una campaña que cambió de tipo no arrastre datos que ya no significan
-  // nada.
-  eventAt: form.kind === "ad" ? null : form.eventAt || null,
-  sponsor:
-    form.kind === "ad"
-      ? { name: form.sponsorName.trim(), logo: form.sponsorLogo.trim() }
-      : { name: "", logo: "" },
-  place: form.kind === "ad" ? { city: "", venue: "" } : { city: form.city.trim(), venue: form.venue.trim() },
-  // Una publicidad siempre va marcada. El server lo fuerza igual.
-  sponsored: form.kind === "ad",
+  // Lo que no aplica al tipo elegido se manda vacío, para que cambiar de tipo no
+  // arrastre datos que ya no significan nada: una nota con "ciudad" cargada
+  // seguiría teniéndola escondida hasta que alguien la volviera a poner evento.
+  eventAt: form.type === "event" ? form.eventAt || null : null,
+  place: CON_LUGAR.has(form.type)
+    ? { city: form.city.trim(), venue: form.venue.trim() }
+    : { city: "", venue: "" },
+  // La marca del que publica va en CUALQUIER tipo: una vinoteca tiene logo tanto
+  // si paga como si la recomendamos, y el usuario tiene derecho a saber de quién
+  // es el mensaje en los dos casos.
+  sponsor: { name: form.sponsorName.trim(), logo: form.sponsorLogo.trim() },
+  // Independiente del tipo. Es la casilla, no una consecuencia de otra cosa.
+  sponsored: form.sponsored === true,
 });
 
 /** Del server al formulario. Las fechas vienen ya formateadas en `form`. */
 const aFormulario = (p) => ({
-  kind: p.kind || "event",
+  type: p.type || "event",
   title: p.title || "",
   summary: p.summary || "",
   image: p.image || "",
@@ -238,17 +272,17 @@ export default function AdminPromotionsPage() {
     if (!form) return null;
     return {
       _id: "preview",
-      kind: form.kind,
+      type: form.type,
       title: form.title,
       summary: form.summary,
       image: form.image,
       url: form.url,
       ctaLabel: form.ctaLabel,
       accent: form.accent,
-      sponsored: form.kind === "ad",
-      sponsor: form.kind === "ad" ? { name: form.sponsorName, logo: form.sponsorLogo } : {},
-      place: form.kind === "ad" ? {} : { city: form.city, venue: form.venue },
-      eventAt: form.kind === "ad" ? null : form.eventAt || null,
+      sponsored: form.sponsored === true,
+      sponsor: { name: form.sponsorName, logo: form.sponsorLogo },
+      place: CON_LUGAR.has(form.type) ? { city: form.city, venue: form.venue } : {},
+      eventAt: form.type === "event" ? form.eventAt || null : null,
     };
   }, [form]);
 
@@ -369,7 +403,24 @@ export default function AdminPromotionsPage() {
       return siguiente;
     });
 
-  const esAd = form?.kind === "ad";
+  const esPago = form?.sponsored === true;
+  const esEvento = form?.type === "event";
+  const llevaLugar = CON_LUGAR.has(form?.type);
+
+  /**
+   * Con qué forma se va a ver en la app. La MISMA regla que aplica Descubrí
+   * (ver DiscoverPage), no una aproximación: la vista previa tiene que mostrar
+   * la tarjeta de verdad, incluido su tamaño. Si acá se dibujara siempre en
+   * grande, alguien cargaría un evento sin imagen convencido de que va a
+   * ocupar media pantalla y en la app le saldría una fila.
+   */
+  const varianteDeLaPrevia = !previa
+    ? "row"
+    : deservesHero(previa)
+      ? "hero"
+      : previa.type === "wineShop"
+        ? "compact"
+        : "row";
 
   return (
     <div className="pr">
@@ -409,20 +460,18 @@ export default function AdminPromotionsPage() {
             <span className="pr__preview-label">
               <Icon name="eye" size={12} /> Así se va a ver
             </span>
-            <PromoCard promo={previa} interactive={false} preview />
+            <ContentCard item={previa} variant={varianteDeLaPrevia} interactive={false} preview />
           </div>
 
-          <div className="pr__kind" role="group" aria-label="Tipo de campaña">
-            {[
-              { id: "event", label: "Evento", hint: "Una feria, una cata" },
-              { id: "ad", label: "Publicidad", hint: "Espacio pago" },
-            ].map((k) => (
+          {/* QUÉ es. Decide en qué sección de Descubrí cae, no si se cobra. */}
+          <div className="pr__kind" role="group" aria-label="Tipo de contenido">
+            {TIPOS.map((k) => (
               <button
                 key={k.id}
                 type="button"
-                className={`pr__kind-btn ${form.kind === k.id ? "is-active" : ""}`}
-                aria-pressed={form.kind === k.id}
-                onClick={() => set("kind", k.id)}
+                className={`pr__kind-btn ${form.type === k.id ? "is-active" : ""}`}
+                aria-pressed={form.type === k.id}
+                onClick={() => set("type", k.id)}
               >
                 <strong>{k.label}</strong>
                 <small>{k.hint}</small>
@@ -430,7 +479,22 @@ export default function AdminPromotionsPage() {
             ))}
           </div>
 
-          {esAd && (
+          {/* SI SE COBRA. Aparte del tipo a propósito: cualquier contenido puede
+              ser pago, y antes esta pregunta venía pegada a elegir "Publicidad"
+              —lo que obligaba a una vinoteca paga a dejar de ser vinoteca—. */}
+          <label className="pr__check">
+            <input
+              type="checkbox"
+              checked={form.sponsored === true}
+              onChange={(e) => set("sponsored", e.target.checked)}
+            />
+            <span>
+              <strong>Es espacio pago</strong>
+              <small>Alguien paga por estar acá, sin importar de qué tipo sea</small>
+            </span>
+          </label>
+
+          {esPago && (
             <p className="pr__notice">
               <Icon name="info" size={13} />
               <span>
@@ -447,7 +511,7 @@ export default function AdminPromotionsPage() {
               maxLength={90}
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
-              placeholder={esAd ? "Nueva línea de Valle de Uco" : "Fiesta Nacional de la Vendimia"}
+              placeholder={PLACEHOLDER_TITULO[form.type] || "Fiesta Nacional de la Vendimia"}
               required
             />
           </label>
@@ -497,10 +561,11 @@ export default function AdminPromotionsPage() {
             </label>
           </div>
 
-          {/* Sólo para publicidades: un evento no tiene anunciante. */}
-          {esAd && (
-            <fieldset className="pr__fieldset">
-              <legend>El anunciante</legend>
+          {/* Va en cualquier tipo. Antes era exclusivo de las publicidades, y por
+              eso una vinoteca recomendada no podía mostrar su logo: para tenerlo
+              había que declararla espacio pago. */}
+          <fieldset className="pr__fieldset">
+            <legend>{esPago ? "El anunciante" : "Quién lo publica"}</legend>
               <div className="pr__row">
                 <label className="pr__field">
                   <span>Nombre</span>
@@ -522,22 +587,25 @@ export default function AdminPromotionsPage() {
                   hint="PNG con fondo transparente."
                 />
               </div>
-            </fieldset>
-          )}
+          </fieldset>
 
-          {/* Sólo para eventos: una publicidad no tiene fecha ni salón. */}
-          {!esAd && (
+          {/* Sólo para lo que ocurre en algún lado. Una nota o un curso online no
+              tienen ciudad, y la fecha es exclusiva del evento: una vinoteca
+              abre todos los días. */}
+          {llevaLugar && (
             <fieldset className="pr__fieldset">
-              <legend>Dónde y cuándo es</legend>
+              <legend>{esEvento ? "Dónde y cuándo es" : "Dónde queda"}</legend>
               <div className="pr__row">
-                <label className="pr__field">
-                  <span>Fecha del evento</span>
-                  <input
-                    type="date"
-                    value={form.eventAt}
-                    onChange={(e) => set("eventAt", e.target.value)}
-                  />
-                </label>
+                {esEvento && (
+                  <label className="pr__field">
+                    <span>Fecha del evento</span>
+                    <input
+                      type="date"
+                      value={form.eventAt}
+                      onChange={(e) => set("eventAt", e.target.value)}
+                    />
+                  </label>
+                )}
                 <label className="pr__field">
                   <span>Ciudad</span>
                   <input
@@ -686,7 +754,7 @@ export default function AdminPromotionsPage() {
                             quién es. Es la única falta que se avisa en la lista,
                             porque no rompe nada y por eso pasa desapercibida. */}
                         <span className="pr__item-meta">
-                          {p.kind === "ad" && !p.sponsor?.name ? (
+                          {p.sponsored && !p.sponsor?.name ? (
                             <span
                               className="pr__warn"
                               title="En la app sale sin nombre: sólo el cartel de publicidad"
@@ -769,12 +837,14 @@ export default function AdminPromotionsPage() {
                           <Icon name="pencil" size={16} />
                         </button>
 
-                        {/* El enlace del informe para el anunciante. Sólo para
-                            publicidades: un evento propio no le rinde cuentas a
-                            nadie. Se genera recién al pedirlo, así que una
-                            campaña que nunca se compartió no tiene ninguna
-                            puerta abierta. */}
-                        {p.kind === "ad" && (
+                        {/* El enlace del informe para el anunciante. Sólo para lo
+                            pago: un evento propio no le rinde cuentas a nadie.
+                            Ahora esto lo decide `sponsored` y no el tipo, que es
+                            lo correcto — una vinoteca que paga necesita su
+                            informe tanto como lo necesitaba una "publicidad".
+                            Se genera recién al pedirlo, así que una campaña que
+                            nunca se compartió no tiene ninguna puerta abierta. */}
+                        {p.sponsored && (
                           <button
                             type="button"
                             className={`pr__icon ${p.hasReport ? "is-on" : ""}`}
@@ -794,7 +864,7 @@ export default function AdminPromotionsPage() {
                         {/* Cortar el enlace sólo aparece si hay uno: un botón para
                             deshacer algo que no se hizo es una pregunta que el
                             usuario tiene que contestar cada vez que mira la fila. */}
-                        {p.kind === "ad" && p.hasReport && (
+                        {p.sponsored && p.hasReport && (
                           <button
                             type="button"
                             className="pr__icon pr__icon--danger"

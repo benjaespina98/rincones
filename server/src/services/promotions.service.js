@@ -46,7 +46,18 @@ const { construirRango } = require("../utils/dateRange");
  *    más importa.
  */
 
-/** Cuántas tarjetas se le mandan al carrusel. Más que esto nadie las ve. */
+/**
+ * Cuántas tarjetas se mandan a la portada, por grupo.
+ *
+ * Antes era un solo número contra una sola consulta, porque todo iba al mismo
+ * carrusel. Ahora Descubrí reparte el contenido en secciones —"Dónde comprar"
+ * arriba, "Eventos destacados" abajo, el resto al feed— y con un cupo único
+ * pasaba lo obvio: seis eventos vigentes se comían los seis lugares y la
+ * sección de vinotecas quedaba vacía aunque hubiera vinotecas al aire.
+ *
+ * Con un cupo por grupo, cada sección tiene el suyo garantizado.
+ */
+const MAX_TIENDAS = 3;
 const MAX_PUBLICAS = 6;
 
 /** Cuántas campañas trae una página del panel. */
@@ -99,18 +110,43 @@ const invalidar = () => {
  * funciona perfecto hasta el día que hay volumen y entonces falla en la pantalla
  * de entrada de la app.
  */
-const consultarAlAire = async (now) =>
-  Promotion.find({
-    active: true,
-    $and: [
-      { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
-      { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
-    ],
-  })
+/** La ventana de vigencia, que es igual para todos los grupos. */
+const vigentes = (now) => ({
+  active: true,
+  $and: [
+    { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+    { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
+  ],
+});
+
+const consultarGrupo = (now, porTipo, limite) =>
+  Promotion.find({ ...vigentes(now), ...porTipo })
     .select("-createdBy -impressions -clicks -reach -clickReach -reportToken -sortDate -updatedAt")
     .sort({ priority: -1, sortDate: 1, createdAt: -1 })
-    .limit(MAX_PUBLICAS)
+    .limit(limite)
     .lean();
+
+/**
+ * Lo que sale al aire, con el cupo de cada sección respetado.
+ *
+ * Son DOS consultas y no una porque las vinotecas tienen su propio lugar en la
+ * pantalla. Con una sola consulta y un cupo compartido, seis eventos vigentes
+ * dejaban la sección "Dónde comprar" vacía aunque hubiera vinotecas al aire —el
+ * cupo se lo llevaba quien tuviera más prioridad, sin mirar que competían por
+ * espacios distintos—.
+ *
+ * Las dos van en paralelo, las dos pegan en el índice de `type`, y el resultado
+ * se cachea junto: para todo lo de abajo (y en particular para el control de
+ * métricas, que valida contra "lo que se está mostrando") sigue siendo una sola
+ * lista.
+ */
+const consultarAlAire = async (now) => {
+  const [tiendas, resto] = await Promise.all([
+    consultarGrupo(now, { type: "wineShop" }, MAX_TIENDAS),
+    consultarGrupo(now, { type: { $ne: "wineShop" } }, MAX_PUBLICAS),
+  ]);
+  return [...tiendas, ...resto];
+};
 
 const listPublic = async (now = new Date()) => {
   const ahora = Date.now();
@@ -367,16 +403,26 @@ const paraPanel = (promo, ahora) => {
  * escribirla como consulta de Mongo la duplicaría (ver la regla de oro 2). El
  * resumen sí se cuenta sobre todas, con una agregación que no trae documentos.
  */
-const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "", kind = "" } = {}) => {
+const listAll = async ({
+  page = 1,
+  limit = POR_PAGINA,
+  state = "",
+  q = "",
+  type = "",
+  // Lo pago tiene alguien esperando un informe del otro lado, así que el panel
+  // necesita poder aislarlo sin importar de qué tipo sea. Antes esto salía
+  // gratis porque "publicidad" era un tipo; ahora que es un campo aparte, el
+  // filtro tiene que serlo también.
+  sponsored = "",
+} = {}) => {
   const ahora = new Date();
   const porPagina = Math.min(Math.max(Number(limit) || POR_PAGINA, 1), 100);
   const pagina = Math.max(Number(page) || 1, 1);
 
   const filtro = {};
-  // Publicidades y eventos comparten el espacio en la app —con su cartel cada uno—
-  // pero en el panel se administran distinto: lo pago tiene alguien esperando un
-  // informe del otro lado. Por eso acá sí se pueden separar.
-  if (kind === "ad" || kind === "event") filtro.kind = kind;
+  if (TIPOS.includes(type)) filtro.type = type;
+  if (sponsored === "true" || sponsored === true) filtro.sponsored = true;
+  else if (sponsored === "false" || sponsored === false) filtro.sponsored = false;
   const busqueda = String(q || "").trim();
   if (busqueda) {
     // `escapeRegExp`: el texto lo escribe una persona en un buscador, y un "(" suelto
@@ -412,7 +458,14 @@ const listAll = async ({ page = 1, limit = POR_PAGINA, state = "", q = "", kind 
     // El resumen respeta el filtro por tipo: los contadores SON los botones de
     // estado, así que si dicen otro número que el de la lista que se está viendo,
     // el panel se contradice solo.
-    summary: await resumenPorEstado(ahora, filtro.kind ? { kind: filtro.kind } : {}),
+    // El resumen respeta los mismos filtros de pertenencia que la lista (tipo y
+    // si es pago), pero NO el de estado: los contadores SON los botones de
+    // estado, y un contador filtrado por el estado que ya está elegido diría
+    // siempre "el resto: 0".
+    summary: await resumenPorEstado(ahora, {
+      ...(filtro.type ? { type: filtro.type } : {}),
+      ...(filtro.sponsored !== undefined ? { sponsored: filtro.sponsored } : {}),
+    }),
   };
 };
 
@@ -443,7 +496,10 @@ const resumenPorEstado = async (ahora = new Date(), base = {}) => {
   return { active, scheduled, paused, ended, total };
 };
 
-const CAMPOS_TEXTO = ["kind", "title", "summary", "ctaLabel"];
+const CAMPOS_TEXTO = ["type", "title", "summary", "ctaLabel"];
+
+/** Los tipos que acepta el panel. Espejo del enum del modelo. */
+const TIPOS = ["event", "wineShop", "winery", "article", "course", "video"];
 
 const aBooleano = (valor) => valor === true || valor === "true";
 
@@ -466,8 +522,8 @@ const saneado = (payload = {}) => {
     datos[campo] = typeof payload[campo] === "string" ? payload[campo].trim() : payload[campo];
   }
 
-  if (payload.kind !== undefined && !["ad", "event"].includes(datos.kind)) {
-    errores.push("El tipo tiene que ser publicidad o evento");
+  if (payload.type !== undefined && !TIPOS.includes(datos.type)) {
+    errores.push(`El tipo tiene que ser uno de: ${TIPOS.join(", ")}`);
   }
 
   if (payload.url !== undefined) {
@@ -589,7 +645,11 @@ const auditar = async (accion, promo, actor, antes = null) => {
 /** Lo que vale la pena guardar de una campaña en el log: lo que cambia su entrega. */
 const resumenAuditable = (p) => ({
   title: p.title,
-  kind: p.kind,
+  type: p.type,
+  // Entra al log porque cambia qué se le está cobrando a alguien: pasar algo de
+  // gratuito a pago (o al revés) es exactamente el cambio por el que después se
+  // pregunta.
+  sponsored: p.sponsored,
   active: p.active,
   priority: p.priority,
   startsAt: p.startsAt,
@@ -848,7 +908,8 @@ const reportByToken = async (token, { days = 30, from = "", to = "" } = {}) => {
       // el que estuvo al aire.
       startsAt: aFechaInput(promo.startsAt),
       endsAt: aFechaInput(promo.endsAt),
-      kind: promo.kind,
+      type: promo.type,
+      sponsored: Boolean(promo.sponsored),
     },
     range: informe.range,
     period: informe.period,
