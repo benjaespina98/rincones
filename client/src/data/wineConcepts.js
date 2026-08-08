@@ -23,7 +23,7 @@ const TIPOS_CON_TANINO = new Set(["red", "fortified"]);
 export const CONCEPTS = {
   taninos: {
     title: "Taninos",
-    body: "Son lo que te seca la lengua, como cuando dejás el saquito de té de más en la taza. Vienen de la piel y la semilla de la uva, y de la madera si el vino pasó por barrica. No son un defecto: son el esqueleto de un tinto, lo que le da agarre y lo que le permite aguantar años en la cava. Un vino muy tánico pide comida: la grasa y la proteína los ablandan en la boca.",
+    body: "Son lo que te seca la lengua, como cuando dejás el saquito de té de más en la taza. Vienen de la piel y la semilla de la uva, y de la madera si pasó por barrica — y los dos se sienten distinto: el de la uva envuelve y se queda, el de la madera raspa más adelante y a veces deja la boca áspera. Son el esqueleto de un tinto y lo que le permite aguantar años: con el tiempo se van puliendo, por eso un vino que hoy te parece duro puede estar perfecto en cinco. Un vino muy tánico pide comida —la grasa y la proteína los ablandan en la boca—, y por eso el mismo vino que solo te parece áspero, con un bife funciona.",
     anchor: ({ info }) => {
       const n = Number(info?.structure?.tannin);
       if (!Number.isFinite(n)) return null;
@@ -37,7 +37,7 @@ export const CONCEPTS = {
 
   acidez: {
     title: "Acidez",
-    body: "Es lo que te hace agua la boca, como una rodaja de limón. Suena a defecto y es lo contrario: es lo que mantiene al vino fresco y lo que limpia el paladar entre bocado y bocado. Por eso un vino con buena acidez salva un plato pesado —una provoleta, una salsa con crema— y uno sin acidez se vuelve pesado él mismo a la tercera copa.",
+    body: "Es lo que te hace agua la boca, como una rodaja de limón. Suena a defecto y es lo contrario: mantiene el vino fresco y limpia el paladar entre bocado y bocado. Por eso uno con buena acidez salva un plato pesado —una provoleta, una salsa con crema— y uno sin acidez se vuelve pesado él mismo a la tercera copa. Es además lo que decide si un vino puede guardarse: sin acidez no hay guarda que aguante, por más tanino y madera que tenga. Y es la razón por la que en Argentina se plantó cada vez más alto — la noche fría es lo que la conserva.",
     anchor: ({ info }) => {
       const n = Number(info?.structure?.acidity);
       if (!Number.isFinite(n)) return null;
@@ -48,7 +48,7 @@ export const CONCEPTS = {
 
   cuerpo: {
     title: "Cuerpo",
-    body: "Es cuánto pesa el vino en la boca, y se entiende mejor con leche: agua, leche descremada, leche entera. Un vino liviano pasa y se va; uno corpulento se queda y se siente denso. No es calidad —hay livianos excelentes y corpulentos mediocres—: es carácter, y decide con qué comida va. Liviano con pescado, corpulento con carne.",
+    body: "Es cuánto pesa el vino en la boca, y se entiende mejor con leche: agua, leche descremada, leche entera. Un vino liviano pasa y se va; uno corpulento se queda y se siente denso. Ojo con confundirlo con intensidad de sabor: un Pinot Noir puede ser liviano y tener muchísimo aroma. Lo que da cuerpo es sobre todo el alcohol —de ahí que los vinos de zonas cálidas se sientan más densos— y también el azúcar que quedó y el paso por madera. No es calidad: hay livianos excelentes y corpulentos mediocres. Lo que sí decide es con qué comida va, porque el plato y el vino tienen que pesar parecido.",
     anchor: ({ info }) => {
       const n = Number(info?.structure?.body);
       if (!Number.isFinite(n)) return null;
@@ -60,7 +60,7 @@ export const CONCEPTS = {
 
   guarda: {
     title: "Guarda",
-    body: "Un vino no mejora para siempre: sube, llega a una meseta y baja. En la subida los taninos se van puliendo y la fruta se vuelve más compleja; después de la meseta empieza a perder fruta y queda seco y sin gracia. La mayoría de los vinos argentinos que se compran en el súper están hechos para tomarse dentro de los tres años, no para guardar.",
+    body: "Un vino no mejora para siempre: sube, llega a una meseta y baja. En la subida los taninos se pulen y la fruta se vuelve más compleja; pasada la meseta pierde fruta y queda seco y sin gracia. La mayoría de lo que se compra en el súper está hecho para tomarse dentro de los tres años. Un Malbec de gama media aguanta cinco o seis; para hablar de diez o quince tenés que estar ante un vino con acidez y tanino de sobra, que son pocos y se notan al tomarlos jóvenes porque parecen cerrados. Y algo que pesa más que la añada: DÓNDE lo guardás. Un vino bueno en un placard que en verano llega a 30 grados envejece mal y rápido; uno modesto a 16 grados constantes te sorprende.",
     anchor: ({ guarda }) => {
       if (!guarda?.label) return null;
       if (guarda.status === "early") return `El tuyo entra en ventana en ${guarda.from}: si lo abrís hoy vas a encontrar más tanino y menos fruta de la que va a tener.`;
@@ -101,8 +101,8 @@ export const CONCEPTS = {
      etiqueta— y no por a quién le hablan. */
 
   etiqueta: {
-    title: "Cómo leer una etiqueta",
-    body: "En una etiqueta argentina conviven cuatro datos distintos y es fácil mezclarlos. La bodega es quién lo hace (Trapiche, Rutini). La línea es la gama dentro de esa bodega (Reserva, Broquel, Serie A). La uva es la variedad (Malbec, Bonarda). Y el origen dice de dónde salió esa uva (Valle de Uco, Mendoza). El error más común es creer que el vino \"se llama Malbec\": Malbec es la uva, y hay miles de Malbec distintos.",
+    title: "Qué te está diciendo la etiqueta",
+    body: "Bodega, línea, uva y origen: eso ya lo sabés. Lo que vale la pena mirar es la letra chica. El origen, cuanto más chico, más dice: \"Mendoza\" es media provincia y no compromete a nada; \"Gualtallary\" o \"Paraje Altamira\" son lugares con identidad y quien los imprime está apostando a que se note. Si aparece un viñedo o una parcela con nombre propio, el vino viene de ahí y no de un blend de compras. \"Vino de finca\" o \"single vineyard\" es lo mismo dicho en marketing. Ojo con dos cosas: el año es el de la COSECHA, no el del embotellado, y en un corte el orden de las uvas es el orden de proporción —un \"Malbec-Cabernet\" tiene más Malbec, y si no dice porcentajes es porque cambian todos los años.",
     anchor: () => null,
   },
 
@@ -126,13 +126,13 @@ export const CONCEPTS = {
 
   terroir: {
     title: "Terroir",
-    body: "Es una palabra que suena mística y no lo es: son el suelo, la altura y el clima donde creció la uva. En Mendoza la altura es la variable que más manda —a más metros, más amplitud térmica entre el día y la noche, y eso da uvas con más acidez y color—. Por eso \"Valle de Uco\" o \"Gualtallary\" dicen bastante más que \"Mendoza\" a secas: cuanto más chico es el lugar nombrado, más preciso es el dato.",
+    body: "Suena místico y es bastante concreto: suelo, altura y clima. En Mendoza la altura es la que más manda. Cada 100 metros que subís, la noche refresca más, la uva madura más lento y conserva acidez y color; por eso los vinos de altura son frescos aunque el día haya sido de 35 grados. El suelo hace el resto: en Gualtallary hay calcáreo y las raíces pelean, y eso da vinos más tensos y salinos; en Luján de Cuyo el suelo es más profundo y los Malbec salen más redondos y carnosos. Nada de esto es mejor ni peor, es otra cosa — y explica por qué dos Malbec de la misma bodega y el mismo año pueden no parecerse.",
     anchor: ({ wine }) => (wine?.region ? `El tuyo viene de ${wine.region}.` : null),
   },
 
   uvas: {
     title: "Las uvas argentinas",
-    body: "Malbec: fruta madura, taninos redondos, el que casi siempre funciona. Cabernet Sauvignon: más firme y herbal, con un dejo a pimiento verde. Bonarda: la segunda más plantada del país y la más subestimada; jugosa, liviana, ideal para pizza. Syrah: especiado, oscuro, muy de San Juan. Torrontés: el blanco argentino de verdad, floral en la nariz y seco en la boca, que sorprende a todo el mundo.",
+    body: "Malbec: en Francia daba vinos duros y rústicos; acá la altura le dio fruta y taninos redondos, y por eso es nuestro. No es una uva, son muchas — un Malbec de Uco a 1.200 metros y uno de Luján a 900 no se parecen en nada. Cabernet Sauvignon: más firme y herbal, ese dejo a pimiento verde que aparece cuando la uva no terminó de madurar (en su punto es grafito y tabaco). Bonarda: la segunda más plantada y la más subestimada, jugosa y sin pretensiones; si te cansaste de la madera, empezá por acá. Syrah: especiado y oscuro, y en San Juan da algo que no da en ningún otro lado. Torrontés: floral en la nariz y seco en la boca — engaña a todo el mundo, porque huele dulce y no lo es. Y Criolla y Cereza, que son la mitad del viñedo argentino y casi nunca ves en una etiqueta: van al vino de mesa.",
     anchor: ({ wine }) => (wine?.varietal ? `El tuyo es ${wine.varietal}.` : null),
   },
 };
