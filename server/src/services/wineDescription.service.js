@@ -28,7 +28,37 @@ const { isGeminiConfigured } = require("./gemini.service");
  * `poolKey` es la misma clave que usan las fotos, los precios y las reseñas: mete
  * la uva adentro del nombre sólo si no está ya, así las dos formas convergen.
  */
-const describeKey = (name, winery, varietal = "") => poolKey(name, winery, varietal);
+/**
+ * ── POR QUÉ LA CLAVE LLEVA VERSIÓN ──────────────────────────────────────────
+ * La ficha se cachea para siempre y entre todos los usuarios, que es justo lo
+ * que queremos: una botella se paga una sola vez. El costo es que cambiar el
+ * prompt no cambia nada de lo que ya está guardado — los vinos viejos siguen
+ * mostrando la descripción corta generada con las instrucciones anteriores,
+ * y el cambio sólo se ve en botellas que nadie consultó nunca.
+ *
+ * Subir esta versión es la forma de decir "estas fichas ya no sirven": las
+ * claves dejan de coincidir, se regeneran con el prompt nuevo y las viejas
+ * quedan huérfanas en la colección (ocupan lugar, no molestan, y se pueden
+ * borrar a mano por prefijo cuando sobren).
+ *
+ * NO la subas por retocar una coma: cada salto vuelve a pagar la generación de
+ * todo el catálogo consultado hasta hoy. Se sube cuando cambia QUÉ se pide.
+ *
+ * v2 — el resumen pasó de 2-3 oraciones a 4-6 (región, uva, madera y boca), el
+ * "cómo tomarlo" se extendió, y structure y aromas se volvieron obligatorios
+ * porque dejaron de estar plegados en la ficha.
+ *
+ * v3 — cambió el TONO, que en una ficha que se lee entera pesa tanto como el
+ * dato. Las de v2 arrancaban todas igual ("Este Malbec del Valle de Uco
+ * despliega…") y con cien vinos cargados la app se leía como un catálogo. Ahora
+ * la primera oración va directa y sin verbo de contraetiqueta ("Un Malbec con
+ * fruta madura, madera bien puesta y bastante cuerpo"), y el resto conserva el
+ * mismo detalle. La información no cambió; cambió quién parece estar hablando.
+ */
+const DESCRIBE_VERSION = "v3";
+
+const describeKey = (name, winery, varietal = "") =>
+  `${DESCRIBE_VERSION}:${poolKey(name, winery, varietal)}`;
 
 /**
  * Genera (o reusa) la ficha del vino y la guarda en el documento.

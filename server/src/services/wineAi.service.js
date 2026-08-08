@@ -181,7 +181,12 @@ const DESCRIBE_SCHEMA = {
      */
     funFact: { type: "string" },
   },
-  required: ["summary", "known"],
+  // `structure` y `aromas` pasaron a obligatorios: dejaron de ser detalle
+  // plegado y ahora se ven apenas se abre la ficha. Cuando el modelo los
+  // omitía, la ficha caía a las pastillas de `profile` —las mismas palabras
+  // sin el número, sin barras y sin nada que comparar contra otra botella—.
+  // Pedirlos en el schema es lo que hace que vengan siempre.
+  required: ["summary", "known", "structure", "aromas"],
 };
 
 const buildDescribePrompt = (wine) => {
@@ -194,19 +199,53 @@ const buildDescribePrompt = (wine) => {
     wine.vintage && `Añada: ${wine.vintage}`,
   ].filter(Boolean).join("\n");
 
-  return `Sos sommelier argentino, de los que explican bien. Describí este vino para una app de bodega personal:
+  return `Alguien que sabe mucho de vino le está contando a un amigo cómo es esta
+botella. No es una contraetiqueta ni una nota de cata: es una charla, con la
+precisión de quien sabe y el tono de quien no necesita demostrarlo.
 
 ${parts}
 
+CÓMO HABLAR (vale para todos los campos):
+- Español rioplatense, de vos. Informal pero cuidado: ni "che, un vinazo" ni
+  "este ejemplar despliega una notable expresión".
+- PROHIBIDO arrancar con "Este [vino] es/presenta/despliega/ofrece/se caracteriza
+  por". Es la fórmula de catálogo y hace que las cien fichas de la app se lean
+  iguales. Empezá por lo concreto: la fruta, la zona, la madera, lo que sea que
+  defina a este vino.
+- Prohibidas también: "notable", "elegante expresión", "complejidad aromática",
+  "en boca se presenta", "un vino que invita a", "amplio abanico", "exquisito",
+  "excelente", "de gran calidad". No dicen nada y podrían estar hablando de
+  cualquier botella.
+- Frases cortas antes que subordinadas largas. Se lee en un celular.
+
 Devolvé:
-- summary: 2-3 oraciones sobre el estilo y a qué apunta, con precisión de sommelier:
-  nombrá lo que se percibe (la fruta, la madera, el final) en vez de calificarlo.
-  Nada de "excelente", "exquisito" ni "de gran calidad" — no dicen nada y podrían
-  estar hablando de cualquier botella. Que suene a alguien que lo tomó, no a una
-  contraetiqueta.
-- body: una frase sobre CÓMO tomarlo: si conviene decantarlo y cuánto, si gana con el
-  aire, en qué copa o para qué momento va. NO repitas cuerpo, taninos ni acidez: eso
-  ya va en structure y la app lo muestra en barras justo al lado.
+- summary: 4 a 6 oraciones (unas 90-140 palabras) sobre este vino.
+  Es el texto principal de la ficha y lo único que mucha gente va a leer.
+
+  LA PRIMERA ORACIÓN es la más importante y va sola: en menos de quince palabras,
+  qué es este vino. Directa, sin verbo de catálogo. Así:
+    · "Un Malbec con fruta madura, madera bien puesta y bastante cuerpo."
+    · "Torrontés de Cafayate, floral en la nariz y seco en la boca."
+    · "Un tinto de guarda, todavía cerrado."
+  Y NO así:
+    · "Este Malbec del Valle de Uco despliega una fruta roja madura…"
+
+  Después sí, con el detalle, en el orden que mejor fluya:
+    · de dónde viene y qué le da esa zona (altura, suelo, amplitud térmica, clima) —
+      concreto sobre ESA región, no "terroir único";
+    · qué hace la uva en este estilo;
+    · si lleva madera, cuánta se nota y qué aporta (o decí que no tiene y se nota en
+      la fruta más directa);
+    · qué se percibe al tomarlo: la fruta, las especias, el final.
+  Nombrá lo que se percibe en vez de calificarlo. Nada de "excelente", "exquisito",
+  "de gran calidad" ni "equilibrado" a secas — no dicen nada y podrían estar hablando
+  de cualquier botella. Que suene a alguien que lo tomó y sabe de dónde sale, no a una
+  contraetiqueta. Si no conocés la botella puntual, hablá del estilo con la misma
+  profundidad: la región y la uva alcanzan para llenar seis oraciones ciertas.
+- body: 2 o 3 oraciones sobre CÓMO tomarlo: si conviene decantarlo y cuánto, si gana
+  con el aire, en qué copa, a qué temperatura se arruina, cuánto aguanta abierto, para
+  qué momento va. NO repitas cuerpo, taninos ni acidez: eso ya va en structure y la app
+  lo muestra en barras justo arriba.
 - profile: 3 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Frutado"). Solo el atributo, sin explicación.
 - structure: la estructura en números del 1 al 5, para poder compararla con otros vinos:
   body 1=muy liviano 5=muy corpulento · acidity 1=baja 5=muy fresca ·
