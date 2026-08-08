@@ -232,6 +232,36 @@ npm run dev
 
 ## Variables de entorno
 
+### Las bases de datos
+
+El cluster tiene dos bases del proyecto, y `MONGODB_DB_NAME` es lo único que
+decide en cuál se escribe:
+
+| Base | Para qué |
+|---|---|
+| `rincones` | **Producción.** Datos reales. Sólo la usa el deploy |
+| `test` | Desarrollo y pruebas locales. Es la que trae `.env.example` |
+
+`admin` y `local` son internas de MongoDB, no del proyecto.
+
+Dos cosas que conviene tener presentes:
+
+- **`test` no es descartable.** El nombre engaña: es también la base por
+  defecto de Mongoose, así que un `MONGODB_DB_NAME` perdido en un deploy
+  mandaría producción ahí. Por eso `config/db.js` se niega a conectar sin la
+  variable en vez de adivinar.
+- **Los scripts de migración no eligen base por su cuenta**: usan el `.env` del
+  directorio desde el que corren. Para tocar producción hay que decirlo
+  explícitamente:
+
+  ```bash
+  MONGODB_DB_NAME=rincones node scripts/<script>.js --dry   # ver qué haría
+  MONGODB_DB_NAME=rincones node scripts/<script>.js         # aplicar
+  ```
+
+  Corré siempre el `--dry` primero: los scripts imprimen qué documentos van a
+  tocar y cuáles tuvieron que inferir.
+
 ### Backend (`server/.env`)
 
 | Variable | Obligatoria | Para qué |
@@ -240,7 +270,7 @@ npm run dev
 | `JWT_SECRET` | **Sí** | Firma de los tokens de sesión |
 | `FRONTEND_URL` | **Sí** | Origen del cliente (CORS y enlaces de los mails) |
 | `PORT` | No | Puerto del servidor (4000 por defecto) |
-| `MONGODB_DB_NAME` | No | Nombre de la base |
+| `MONGODB_DB_NAME` | **Sí** | Nombre de la base: `rincones` en producción, `test` en desarrollo |
 | `CORS_ALLOWED_ORIGINS` | No | Orígenes permitidos, separados por coma |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | No | Cuenta de administrador inicial |
 | `GEMINI_API_KEY` | No | Reconocimiento de etiquetas y fichas con IA |
