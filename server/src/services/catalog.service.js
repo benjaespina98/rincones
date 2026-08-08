@@ -249,11 +249,13 @@ const searchWithAiCached = async (query) => {
 
 // --- API pública del servicio ---
 
-// Orden de confianza. El catálogo va primero no porque esté verificado contra
-// una fuente oficial —no lo está, ver argentineWines.js— sino porque es estable
-// y auditable: siempre devuelve lo mismo y se puede leer y corregir. Después lo
-// que cargó gente real, después el modelo (que puede alucinar y cambia entre
-// llamadas), y al final OFF, que en Argentina trae datos sucios.
+// Orden de confianza. El catálogo va primero por dos razones que se suman:
+// una parte está verificada contra los sitios oficiales de las bodegas (ver
+// argentineWines.js, donde cada bloque dice si pasó por eso y contra qué), y
+// todo él es estable y auditable — siempre devuelve lo mismo, se puede leer
+// entero, corregir y revisar en el historial. Después lo que cargó gente real,
+// después el modelo (que puede alucinar y cambia entre llamadas), y al final
+// OFF, que en Argentina trae datos sucios.
 const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
 
 // Clave canónica que reconcilia las distintas fuentes. Vive en wineIdentity.js
