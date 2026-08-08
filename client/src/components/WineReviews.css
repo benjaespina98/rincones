@@ -46,112 +46,12 @@
   line-height: 1.5;
 }
 
-.wine-reviews__cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: var(--control-md);
-  border-radius: var(--radius-md);
-  border: 1px dashed var(--line-accent);
-  background: var(--glass);
-  color: var(--accent-soft);
-  font-size: var(--text-base);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
+/* `.wine-reviews__cta` (el botón "escribí la primera") se fue con el formulario:
+   invitar a opinar es trabajo de WineOpinion, que está justo arriba en la ficha. */
 
-.wine-reviews__cta:hover {
-  background: var(--surface);
-}
-
-/* ── Formulario ── */
-.review-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line-accent);
-  background: var(--glass);
-  animation: rincon-enter-up 220ms var(--ease-out) both;
-}
-
-/* Que quede claro que esto SÍ se publica: el resto de la app es privado.
-   Ojo: NO usar flex acá — cada palabra dentro se volvería un item y el texto
-   se parte en columnas. Va como párrafo con el ícono en línea. */
-.review-form__notice {
-  margin: 0;
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  color: var(--gold-soft);
-}
-
-.review-form__notice .icon {
-  vertical-align: -2px;
-  margin-right: 5px;
-}
-
-.review-form__notice strong { color: var(--text); }
-
-.review-form__stars {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.review-form__text {
-  width: 100%;
-  padding: 11px 13px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-  color: var(--text);
-  font-family: var(--font-family-base);
-  font-size: var(--text-md);
-  line-height: 1.5;
-  resize: vertical;
-}
-
-.review-form__text:focus {
-  outline: none;
-  border-color: var(--accent-light);
-  box-shadow: var(--focus-ring);
-}
-
-.review-form__counter {
-  align-self: flex-end;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-}
-
-.review-form__actions {
-  display: flex;
-  gap: 9px;
-}
-
-.review-form__cancel,
-.review-form__save {
-  flex: 1;
-  min-height: var(--control-md);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: 700;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.review-form__cancel {
-  background: var(--surface-2);
-  border-color: var(--line);
-  color: var(--text-secondary);
-}
-
-.review-form__save {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
-  color: #fff;
-  box-shadow: var(--shadow-accent);
-}
+/* Acá vivían las trece reglas de `.review-form*`. El formulario de reseña ya no
+   se dibuja dentro de esta sección: escribir una opinión pasó a `WineOpinion`,
+   que tiene su propio CSS. Ninguno de estos selectores alcanzaba a nada. */
 
 /* ── Lista de reseñas ── */
 .review-list {
@@ -173,10 +73,8 @@
   background: var(--surface);
 }
 
-.review-card--mine {
-  border-color: var(--line-accent);
-  background: rgba(126, 89, 201, 0.1);
-}
+/* `.review-card--mine` marcaba la reseña propia dentro de la lista. Ya no hace
+   falta: la tuya no se mezcla más acá, tiene su lugar en WineOpinion. */
 
 .review-card__head {
   display: flex;
@@ -232,24 +130,9 @@
   white-space: pre-wrap;
 }
 
-.review-card__actions {
-  display: flex;
-  gap: 14px;
-  margin-top: 2px;
-}
-
-.review-card__link {
-  border: 0;
-  background: none;
-  padding: 2px 0;
-  color: var(--accent-soft);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.review-card__link--danger { color: var(--danger-text); }
+/* `.review-card__actions` y sus enlaces (editar / borrar) tampoco se usan: esta
+   lista muestra las reseñas de los DEMÁS, y sobre esas no hay nada que hacer.
+   Editar y borrar la propia vive en WineOpinion. */
 
 /* Abrir y cerrar las reseñas. Mismo aspecto que el toggle de "Sobre este vino":
    son la misma clase de control —material de consulta que se despliega— y verse

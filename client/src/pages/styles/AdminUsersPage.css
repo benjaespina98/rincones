@@ -1,54 +1,11 @@
-.admin-users-page {
-  padding: 0.2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  color: #f0ebff;
-}
+/* ══ Panel de usuarios y reseñas ═══════════════════════════════════════════
+   Este archivo tenía DOS diseños encima: la tabla original (`.users-table` con
+   sus celdas, su contenedor con scroll y su paginación) y la lista de tarjetas
+   que la reemplazó (`.admin-user*`, `.admin-review*`). La tabla no se dibuja en
+   ningún lado desde entonces, pero su CSS —unas veinte reglas— siguió acá.
 
-.admin-users-page--embedded {
-  padding: 0;
-  max-width: none;
-  margin: 0;
-}
-
-.admin-users-page--embedded .admin-header {
-  display: none;
-}
-
-.admin-header {
-  margin-bottom: 2rem;
-}
-
-.admin-header h1 {
-  font-size: 1.8rem;
-  margin: 0 0 0.5rem 0;
-  color: #f6f3ff;
-}
-
-.user-count {
-  margin: 0;
-  color: #bcaedf;
-  font-size: var(--text-lg);
-}
-
-.error-banner {
-  background-color: rgba(184, 54, 94, 0.2);
-  border-left: 4px solid #ff85aa;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
-  color: #ffd6e1;
-  font-weight: 500;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  gap: 1rem;
-}
+   Quedó sólo lo que se usa. El diseño viejo está en el historial de git.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 .spinner {
   width: 40px;
@@ -66,127 +23,12 @@
   font-size: var(--text-xl);
 }
 
-.table-container {
-  overflow-x: auto;
-  margin-bottom: 2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(167, 140, 255, 0.22);
-}
+/* Acá vivía la tabla: `.table-container`, `.users-table` con sus thead/th/td,
+   y las seis clases de celda (`.email-cell`, `.name-cell`, `.role-cell`,
+   `.stats-cell`, `.date-cell`, `.actions-cell`) más `.role-badge` y
+   `.role-select`. Todo eso lo reemplazó la lista de tarjetas `.admin-user*`,
+   que es lo que se ve hoy y lo que sí entra en un celular. */
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: rgba(23, 21, 46, 0.9);
-}
-
-.users-table thead {
-  background: rgba(101, 73, 189, 0.26);
-  border-bottom: 1px solid rgba(177, 150, 255, 0.2);
-}
-
-.users-table th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #e9e2ff;
-  font-size: var(--text-lg);
-}
-
-.users-table tbody tr {
-  border-bottom: 1px solid rgba(169, 143, 255, 0.14);
-  transition: background-color 0.2s;
-}
-
-.users-table tbody tr:hover {
-  background-color: rgba(108, 84, 186, 0.18);
-}
-
-.users-table td {
-  padding: 0.75rem 1rem;
-  font-size: var(--text-lg);
-}
-
-.email-cell {
-  font-family: "Courier New", monospace;
-  font-size: var(--text-base);
-  color: #d2c6f5;
-}
-
-.email-cell code {
-  background: rgba(124, 103, 199, 0.2);
-  padding: 0.25rem 0.5rem;
-  border-radius: 3px;
-  display: inline-block;
-}
-
-.name-cell {
-  font-weight: 500;
-  color: #f7f4ff;
-  min-width: 150px;
-}
-
-.role-cell {
-  min-width: 120px;
-}
-
-.role-badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: var(--text-base);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.role-badge.admin {
-  background-color: rgba(255, 205, 103, 0.18);
-  color: #ffe3a1;
-  border: 1px solid rgba(255, 203, 108, 0.4);
-}
-
-.role-badge.user {
-  background-color: rgba(114, 179, 255, 0.18);
-  color: #d9eeff;
-  border: 1px solid rgba(129, 191, 255, 0.32);
-}
-
-.role-select {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid rgba(174, 146, 255, 0.28);
-  border-radius: 4px;
-  font-size: var(--text-md);
-  cursor: pointer;
-  background: rgba(25, 23, 53, 0.95);
-  color: #f3eeff;
-}
-
-.role-select:focus {
-  outline: none;
-  border-color: #b99bff;
-  box-shadow: var(--focus-ring);
-}
-
-.role-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.stats-cell {
-  text-align: center;
-  color: #bcaedf;
-}
-
-.date-cell {
-  color: #a799ce;
-  font-size: var(--text-md);
-  min-width: 100px;
-}
-
-.actions-cell {
-  text-align: right;
-}
-
-.btn-edit,
 .btn-cancel {
   padding: 0.4rem 0.8rem;
   border: none;
@@ -198,17 +40,7 @@
   white-space: nowrap;
 }
 
-.btn-edit {
-  background-color: #7d58e6;
-  color: #fff;
-}
-
-.btn-edit:hover:not(:disabled) {
-  background-color: #6845ca;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
+/* `.btn-edit` era el par de `.btn-cancel` en la tabla vieja. Se fue con ella. */
 .btn-cancel {
   background-color: rgba(255, 255, 255, 0.13);
   color: #ece8ff;
@@ -218,7 +50,6 @@
   background-color: rgba(255, 255, 255, 0.18);
 }
 
-.btn-edit:disabled,
 .btn-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -235,64 +66,15 @@
   flex-wrap: wrap;
 }
 
-.pagination-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(171, 144, 255, 0.3);
-  border-radius: 4px;
-  background: rgba(24, 22, 48, 0.95);
-  color: #eee8ff;
-  cursor: pointer;
-  font-size: var(--text-lg);
-  transition: all 0.2s;
-}
+/* `.pagination-btn` y `.page-info` eran los controles de página de la tabla.
+   El contenedor `.pagination` sí sigue vivo: lo reusa la lista de tarjetas. */
 
-.pagination-btn:hover:not(:disabled) {
-  background: rgba(124, 92, 214, 0.35);
-  border-color: rgba(191, 170, 255, 0.55);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: var(--text-lg);
-  color: #cfbfed;
-  font-weight: 500;
-}
-
-/* Responsive */
+/* Responsive.
+   Las reglas de la tabla (`.table-container`, `.users-table`, `.email-cell`,
+   `.role-badge`, `.btn-edit`) también se fueron de acá: apuntaban a lo mismo
+   que ya no existe, y una media query es el lugar donde el CSS muerto pasa más
+   desapercibido — no se lee salvo que alguien abra el archivo en el ancho justo. */
 @media (max-width: 768px) {
-  .admin-users-page {
-    padding: 0.75rem;
-  }
-
-  .admin-header h1 {
-    font-size: var(--text-3xl);
-  }
-
-  .table-container {
-    margin-bottom: 1rem;
-    border-radius: 0;
-  }
-
-  .users-table th,
-  .users-table td {
-    padding: 0.5rem 0.75rem;
-    font-size: var(--text-base);
-  }
-
-  .email-cell code {
-    font-size: var(--text-xs);
-  }
-
-  .role-badge {
-    padding: 0.25rem 0.5rem;
-    font-size: var(--text-xs);
-  }
-
-  .btn-edit,
   .btn-cancel {
     padding: 0.35rem 0.6rem;
     font-size: var(--text-sm);
@@ -303,26 +85,6 @@
     gap: 0.5rem;
   }
 
-  .pagination-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: var(--text-base);
-  }
-
-  .page-info {
-    font-size: var(--text-base);
-  }
-
-  /* Hide columns on very small screens */
-  @media (max-width: 480px) {
-    .date-cell {
-      display: none;
-    }
-
-    .users-table th:nth-child(5),
-    .users-table td:nth-child(5) {
-      display: none;
-    }
-  }
 }
 
 /* ══ Panel de usuarios y reseñas (rediseño) ══════════════════════════════ */
