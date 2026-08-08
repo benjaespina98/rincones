@@ -130,15 +130,17 @@ test("la caché de la portada se cae en cuanto se toca una campaña", async () =
   limpio();
 
   try {
+    // Una llamada a listPublic hace DOS consultas: las vinotecas y el resto,
+    // porque ocupan secciones distintas de la pantalla y tienen cupos distintos.
     await promotions.listPublic();
     await promotions.listPublic();
-    assert.equal(consultas, 1, "la segunda visita se sirve de la caché");
+    assert.equal(consultas, 2, "la segunda visita se sirve de la caché");
 
     // Crear, pausar o editar cualquier campaña tiene que reflejarse YA: si no, el
     // administrador toca el interruptor y no ve nada durante segundos.
     await promotions.create(ADMIN, { title: "Nueva" });
     await promotions.listPublic();
-    assert.equal(consultas, 2, "después de un cambio se vuelve a consultar");
+    assert.equal(consultas, 4, "después de un cambio se vuelve a consultar");
   } finally {
     restore(Promotion, "find", originalFind);
     restore(Promotion.prototype, "save", originalSave);
@@ -146,41 +148,64 @@ test("la caché de la portada se cae en cuanto se toca una campaña", async () =
   }
 });
 
-test("una publicidad siempre queda marcada como publicidad", async () => {
+test("el tipo y el cobro son independientes: cualquier contenido puede ser pago", async () => {
   const originalSave = Promotion.prototype.save;
   Promotion.prototype.save = async function save() {
-    // La marca la fuerza el hook pre("validate") del modelo. Se corre a mano para
-    // probar la regla sin necesitar Mongo levantado.
+    // Se valida a mano para probar las reglas del modelo sin Mongo levantado.
     await this.validate();
     return this;
   };
 
   try {
-    // Aunque el payload diga explícitamente que NO es publicidad.
-    const promo = await promotions.create(ADMIN, {
-      kind: "ad",
+    /**
+     * Ésta es la razón de ser del cambio. Antes existía `kind: "ad"`, que era a
+     * la vez el tipo y la marca de pago: una vinoteca que pagaba no podía
+     * declararse vinoteca, y por lo tanto la pantalla no tenía cómo mandarla a
+     * "Dónde comprar". Ahora las dos cosas conviven.
+     */
+    const tiendaPaga = await promotions.create(ADMIN, {
+      type: "wineShop",
       title: "Vinos Ejemplo",
-      sponsored: false,
+      sponsored: true,
     });
+    assert.equal(tiendaPaga.type, "wineShop");
+    assert.equal(tiendaPaga.sponsored, true);
 
-    assert.equal(promo.kind, "ad");
-    assert.equal(
-      promo.sponsored,
-      true,
-      "que una publicidad se muestre sin cartel no puede depender de una casilla"
-    );
+    // La misma sección admite una recomendada, sin cartel y sin ser otra cosa.
+    const tiendaCurada = await promotions.create(ADMIN, {
+      type: "wineShop",
+      title: "Vinoteca del barrio",
+    });
+    assert.equal(tiendaCurada.type, "wineShop");
+    assert.equal(tiendaCurada.sponsored, false, "no se marca solo");
 
-    // Un evento común no se marca solo.
-    const evento = await promotions.create(ADMIN, { kind: "event", title: "Vendimia" });
-    assert.equal(evento.sponsored, false);
-
-    // Pero un evento auspiciado sí se puede marcar a mano: sigue siendo pago.
+    // Y un evento auspiciado sigue siendo un evento.
     const auspiciado = await promotions.create(ADMIN, {
-      kind: "event",
+      type: "event",
       title: "Cata con marca",
       sponsored: true,
     });
+    assert.equal(auspiciado.type, "event");
     assert.equal(auspiciado.sponsored, true);
+  } finally {
+    restore(Promotion.prototype, "save", originalSave);
+    limpio();
+  }
+});
+
+test("un tipo inventado no se guarda", async () => {
+  const originalSave = Promotion.prototype.save;
+  Promotion.prototype.save = async function save() {
+    await this.validate();
+    return this;
+  };
+
+  try {
+    await assert.rejects(
+      () => promotions.create(ADMIN, { type: "banner", title: "Cualquier cosa" }),
+      /tipo tiene que ser/i,
+      "el enum se valida antes de llegar a la base"
+    );
   } finally {
     restore(Promotion.prototype, "save", originalSave);
     limpio();
@@ -505,7 +530,7 @@ test("una imagen subida se guarda como URL, no dentro de la campaña", async () 
   }
 });
 
-test("el panel puede pedir sólo las publicidades", async () => {
+test("el panel puede pedir por tipo y por si es pago", async () => {
   const originalFind = Promotion.find;
   const originalCount = Promotion.countDocuments;
 
@@ -518,18 +543,40 @@ test("el panel puede pedir sólo las publicidades", async () => {
   limpio();
 
   try {
-    await promotions.listAll({ kind: "ad" });
-    assert.equal(capturado.filtro.kind, "ad");
+    await promotions.listAll({ type: "wineShop" });
+    assert.equal(capturado.filtro.type, "wineShop");
     // Los contadores del resumen SON los botones de estado: si contaran sobre todo
-    // mientras la lista muestra sólo publicidades, el panel se contradice solo.
+    // mientras la lista muestra sólo vinotecas, el panel se contradice solo.
     assert.ok(
-      filtrosContados.every((f) => f.kind === "ad"),
+      filtrosContados.every((f) => f.type === "wineShop"),
       "el resumen respeta el filtro por tipo"
     );
 
-    // Un valor que no es ninguno de los dos no filtra nada (no inventa un tipo).
-    await promotions.listAll({ kind: "cualquier-cosa" });
-    assert.equal(capturado.filtro.kind, undefined);
+    // Un tipo que no existe no filtra nada (no inventa un tipo).
+    await promotions.listAll({ type: "cualquier-cosa" });
+    assert.equal(capturado.filtro.type, undefined);
+
+    /**
+     * Lo pago se filtra aparte del tipo, que es todo el punto de haberlos
+     * separado: "mostrame las vinotecas que están pagando" es la pregunta que
+     * se hace quien tiene que facturar, y antes era imposible —una vinoteca
+     * paga era "ad" y dejaba de ser vinoteca—.
+     */
+    filtrosContados.length = 0;
+    await promotions.listAll({ type: "wineShop", sponsored: "true" });
+    assert.equal(capturado.filtro.type, "wineShop");
+    assert.equal(capturado.filtro.sponsored, true);
+    assert.ok(
+      filtrosContados.every((f) => f.sponsored === true),
+      "el resumen también respeta el filtro de pago"
+    );
+
+    // "false" es un filtro real (lo gratuito), no la ausencia de filtro.
+    await promotions.listAll({ sponsored: "false" });
+    assert.equal(capturado.filtro.sponsored, false);
+
+    await promotions.listAll({});
+    assert.equal(capturado.filtro.sponsored, undefined, "sin filtro, entran los dos");
   } finally {
     restore(Promotion, "find", originalFind);
     restore(Promotion, "countDocuments", originalCount);

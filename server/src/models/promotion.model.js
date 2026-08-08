@@ -7,12 +7,27 @@ const {
 } = require("../utils/promotionState");
 
 /**
- * Una campaña del espacio destacado de Descubrí: una publicidad paga o un evento
- * real.
+ * Un contenido publicado desde el panel: un evento, una vinoteca, una bodega.
+ * Pago o no.
+ *
+ * ── DE "PUBLICIDAD O EVENTO" A "QUÉ ES + SI ES PAGO" ────────────────────────
+ * Antes había `kind: "ad" | "event"`, y "ad" forzaba `sponsored`. Eso mezclaba
+ * dos preguntas independientes en un solo campo: QUÉ ES esto (un evento, una
+ * tienda) y SI ALGUIEN PAGÓ para que esté acá. Con ese diseño, una publicidad no
+ * podía ser nada en particular —era "ad" y punto—, así que no había forma de
+ * mandarla a la sección que le corresponde en la pantalla; y un evento
+ * auspiciado tenía que elegir entre declararse pago o declararse evento.
+ *
+ * Ahora son dos campos:
+ *   · `type`     — qué es. Decide en qué sección de Descubrí aparece y con qué
+ *                  ícono, rótulo y forma de tarjeta.
+ *   · `sponsored` — si es espacio pago. Independiente del tipo: CUALQUIER
+ *                  contenido puede ser patrocinado sin que exista un tipo
+ *                  "publicidad" aparte.
  *
  * ── POR QUÉ NO ES OTRO ÍTEM DE discoverContent.js ───────────────────────────
  * El contenido de "Aprendé y explorá" es curaduría: está ahí porque vale la
- * pena. Una publicidad está ahí porque alguien pagó. Son dos cosas distintas y
+ * pena. Algo patrocinado está ahí porque alguien pagó. Son dos cosas distintas y
  * mezclarlas es lo que hace que una app se sienta poco confiable —el usuario deja
  * de saber si una recomendación es una recomendación—. Por eso viven separados,
  * y por eso `sponsored` obliga a mostrar el cartel de "Publicidad": no es un
@@ -38,12 +53,23 @@ const {
  */
 const promotionSchema = new mongoose.Schema(
   {
-    // "ad" es espacio pago; "event" es un evento real (propio o de un tercero).
-    // Cambia el cartel y cómo se ordena: un evento con fecha próxima gana
-    // relevancia sola, una publicidad vale por lo que se pactó.
-    kind: {
+    /**
+     * QUÉ es este contenido. Decide en qué sección de Descubrí cae:
+     *
+     *   wineShop  → "Dónde comprar" (vinotecas y tiendas)
+     *   event     → "Eventos destacados" si hay imagen y fecha; si no, al feed
+     *   winery    → bodegas para conocer, en el feed
+     *   article   → notas y lecturas, en el feed
+     *   course    → cursos y certificaciones, en el feed
+     *   video     → catas y guías en video, en el feed
+     *
+     * NO existe un tipo "publicidad": eso es `sponsored`, que es ortogonal. Una
+     * vinoteca paga y una vinoteca recomendada son las dos `wineShop` y van a la
+     * misma sección; lo único que cambia es el badge.
+     */
+    type: {
       type: String,
-      enum: ["ad", "event"],
+      enum: ["event", "wineShop", "winery", "article", "course", "video"],
       default: "event",
       required: true,
     },
@@ -103,9 +129,15 @@ const promotionSchema = new mongoose.Schema(
       },
     },
     /**
-     * Si esto es espacio pago. Lo fuerza el hook de abajo cuando `kind` es "ad":
-     * que una publicidad se muestre sin cartel no puede depender de que alguien
-     * se acuerde de tildar una casilla.
+     * Si esto es espacio pago. Ortogonal a `type`: cualquier contenido puede
+     * serlo.
+     *
+     * Antes lo forzaba un hook cuando `kind` era "ad", porque el tipo y el
+     * cobro eran el mismo campo. Ahora que son dos, esto se marca a mano — y por
+     * eso la responsabilidad se mueve a donde se carga: el panel lo pide
+     * explícitamente y la tarjeta muestra el cartel sin excepción cuando está
+     * en true (ver PromoCard). Marcarlo mal es un error de carga, no un agujero
+     * del modelo.
      */
     sponsored: {
       type: Boolean,
@@ -217,6 +249,13 @@ const promotionSchema = new mongoose.Schema(
 promotionSchema.index({ active: 1, startsAt: 1, endsAt: 1, priority: -1, sortDate: 1 });
 // El panel lista por prioridad y por lo más nuevo.
 promotionSchema.index({ priority: -1, createdAt: -1 });
+/**
+ * La portada ya no hace UNA consulta: hace una por grupo, porque las vinotecas y
+ * los eventos ocupan secciones distintas con cupos distintos. Con el índice
+ * anterior, pedir "las 3 vinotecas al aire" obligaba a escanear todo lo vigente
+ * y descartar. Con `type` adelante, cada grupo toca sólo sus filas.
+ */
+promotionSchema.index({ type: 1, active: 1, startsAt: 1, endsAt: 1, priority: -1, sortDate: 1 });
 
 promotionSchema.pre("save", function () {
   this.updatedAt = new Date();
@@ -235,9 +274,10 @@ promotionSchema.pre("save", function () {
 const SIN_FECHA_DE_EVENTO = new Date("3000-01-01T00:00:00.000Z");
 
 promotionSchema.pre("validate", function () {
-  // Una publicidad se declara publicidad. No es opcional y no depende de que
-  // alguien tilde una casilla en el panel.
-  if (this.kind === "ad") this.sponsored = true;
+  // Acá estaba `if (this.kind === "ad") this.sponsored = true`. Se fue con
+  // `kind`: ahora el tipo dice qué es y `sponsored` dice si se pagó, y forzar
+  // uno desde el otro es justamente lo que impedía tener una vinoteca paga y
+  // una vinoteca recomendada en la misma sección.
 
   this.sortDate = this.eventAt || SIN_FECHA_DE_EVENTO;
 

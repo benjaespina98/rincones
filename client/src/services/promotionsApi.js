@@ -112,8 +112,19 @@ export const initPromoTracking = () => {
  * mismo código que decide si la campaña se muestra, así que el panel no puede
  * decir una cosa distinta de lo que hace la app.
  */
-export const getAllPromotions = async ({ page = 1, state = "", q = "", kind = "", limit = 25 } = {}) => {
-  const { data } = await api.get("/promotions/all", { params: { page, state, q, kind, limit } });
+export const getAllPromotions = async ({
+  page = 1,
+  state = "",
+  q = "",
+  type = "",
+  // "" (sin filtro), "true" (sólo lo pago) o "false" (sólo lo gratuito). Es un
+  // filtro aparte del tipo desde que dejaron de ser el mismo campo.
+  sponsored = "",
+  limit = 25,
+} = {}) => {
+  const { data } = await api.get("/promotions/all", {
+    params: { page, state, q, type, sponsored, limit },
+  });
   return {
     items: Array.isArray(data?.items) ? data.items : [],
     page: data?.page || 1,
