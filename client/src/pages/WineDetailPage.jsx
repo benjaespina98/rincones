@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
+import OpenBottleSheet from "../components/OpenBottleSheet";
+import CollapsibleSection from "../components/CollapsibleSection";
 import Icon from "../components/Icon";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
@@ -77,9 +79,22 @@ export default function WineDetailPage() {
   const [moments, setMoments] = useState([]);
   const [momentsLoading, setMomentsLoading] = useState(true);
   const [momentsFailed, setMomentsFailed] = useState(false);
-  const [showMomentForm, setShowMomentForm] = useState(false);
+  /**
+   * El formulario de momentos arranca abierto si venís de abrir una botella.
+   *
+   * Es la continuación del "Contá el momento" del aviso: llegás con la copa
+   * servida y el formulario ya esperándote, en vez de aterrizar en la ficha y
+   * tener que bajar a buscarlo. Se lee del state de navegación por el mismo
+   * motivo que `recienAgregado`.
+   */
+  const [showMomentForm, setShowMomentForm] = useState(
+    Boolean(location.state?.abrirMomento)
+  );
   const [momentDraft, setMomentDraft] = useState(EMPTY_MOMENT);
   const [savingMoment, setSavingMoment] = useState(false);
+  // ¿Está abierta la hoja de "abrí una botella"?
+  const [abriendo, setAbriendo] = useState(false);
+  const momentsRef = useRef(null);
 
   // Ficha generada por IA (descripción, aromas, maridaje) — estilo Vivino.
   const [aiInfo, setAiInfo] = useState(null);
@@ -131,12 +146,26 @@ export default function WineDetailPage() {
 
   // Se borra del historial apenas se leyó (ver `recienAgregado`).
   useEffect(() => {
-    if (location.state?.recienAgregado) {
+    if (location.state?.recienAgregado || location.state?.abrirMomento) {
       navigate(location.pathname, { replace: true, state: {} });
     }
     // Sólo al montar: después el state ya está limpio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Si el formulario de momentos se abre, se lo lleva a la vista.
+   *
+   * Es lo que hace que "Contá el momento" del aviso signifique algo: sin esto,
+   * abrir el formulario dejaba a la persona arriba de la ficha con el campo
+   * cinco secciones más abajo, y el botón que acaba de tocar parecía no haber
+   * hecho nada. Vale para las dos entradas —el aviso y la navegación desde Mi
+   * Bodega— porque las dos terminan encendiendo el mismo estado.
+   */
+  useEffect(() => {
+    if (!showMomentForm) return;
+    momentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showMomentForm]);
 
   // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.
   const wineName = wine?.name;
@@ -242,34 +271,46 @@ export default function WineDetailPage() {
   };
 
   /**
-   * Abrir una botella: la descuenta y deja el vino probado, en un solo paso.
-   * Con deshacer al lado, igual que en la lista: cuesta una botella y se
-   * dispara con un toque.
+   * Abrir botellas: las descuenta y deja el vino probado, en un solo paso.
+   *
+   * Cuántas y qué implica se eligen y se leen antes, en `OpenBottleSheet`. Acá
+   * quedan las dos salidas de después: contar el momento —que es la única vez
+   * que hay algo que contar, y hasta ahora el recorrido terminaba en un aviso— y
+   * deshacer, porque cuesta botellas de tu cava y se dispara con un toque.
    */
-  const handleOpenBottle = async () => {
+  const handleOpenBottle = async (cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
-    const quedan = Math.max(0, Number(wine.quantity) - 1);
+    const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
+    const quedan = Math.max(0, Number(wine.quantity) - n);
     setPending(true);
     try {
-      const updated = await openBottle(id);
+      const updated = await openBottle(id, n);
       setWine(updated);
 
+      const abiertas = n === 1 ? "Botella abierta" : `${n} botellas abiertas`;
       const mensaje =
         quedan === 0
           ? `Se terminó tu ${wineDisplayName(wine)}`
-          : `Botella abierta · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
+          : `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
 
-      const toastId = addToast(mensaje, "success", 8000, {
-        label: "Deshacer",
-        onClick: async () => {
+      const toastId = addToast(mensaje, "success", 9000, {
+        label: "Contá el momento",
+        onClick: () => {
           removeToast(toastId);
-          try {
-            setWine(await undoOpenBottle(id, eraProbado));
-            showSuccess("Botella devuelta a tu bodega");
-          } catch {
-            showError("No se pudo deshacer");
-          }
+          setShowMomentForm(true);
+        },
+        secondary: {
+          label: "Deshacer",
+          onClick: async () => {
+            removeToast(toastId);
+            try {
+              setWine(await undoOpenBottle(id, eraProbado, n));
+              showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
+            } catch {
+              showError("No se pudo deshacer");
+            }
+          },
         },
       });
     } catch {
@@ -514,9 +555,24 @@ export default function WineDetailPage() {
                 una botella había que bajar 2364px, casi tres pantallas, pasando
                 por la descripción de IA, el precio y tres bloques de datos. */}
             <div className="wine-detail-actions">
-              <div className="wine-qty-controls" role="group" aria-label="Botellas en tu bodega">
-                <span className="wine-qty-controls__label" aria-hidden="true">Botellas</span>
-                <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella">
+              {/* Abrir es LA acción y va primera: es lo que se hace con un vino
+                  que tenés en casa. El ajuste de stock queda debajo, con su
+                  aclaración — mismo orden y mismas palabras que en Mi Bodega. */}
+              {Number(wine.quantity) > 0 && (
+                <button
+                  type="button"
+                  className="wine-detail-open"
+                  disabled={pending}
+                  onClick={() => setAbriendo(true)}
+                >
+                  <Icon name="bottle" size={17} />
+                  Abrí una botella
+                </button>
+              )}
+
+              <div className="wine-qty-controls" role="group" aria-label="Ajustar tu stock">
+                <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
+                <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
                   <Icon name="minus" size={16} />
                 </button>
                 {/* Ver BodyPage: el `key` va en el span interno para que la
@@ -524,24 +580,14 @@ export default function WineDetailPage() {
                 <span className="wine-qty" aria-live="polite">
                   <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
                 </span>
-                <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella">
+                <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
                   <Icon name="plus" size={16} />
                 </button>
               </div>
 
-              {/* Abrir es la acción; el "−" de al lado es para corregir el número
-                  (la regalaste, la contaste mal) y por eso no toca tu historial. */}
-              {Number(wine.quantity) > 0 && (
-                <button
-                  type="button"
-                  className="wine-detail-open"
-                  disabled={pending}
-                  onClick={handleOpenBottle}
-                >
-                  <Icon name="bottle" size={17} />
-                  Abrí una botella
-                </button>
-              )}
+              <p className="wine-detail-actions__note">
+                El más y el menos corrigen tu stock. No marcan el vino como tomado.
+              </p>
 
               {/* Los mismos chips que en la bodega: mismo texto, mismo color,
                   mismo comportamiento. La misma acción con dos caras obliga a
@@ -584,6 +630,21 @@ export default function WineDetailPage() {
                 es parte de decidirlo. Por lo mismo vive también en la ficha de
                 los vinos del catálogo, que ni siquiera tenés. */}
             <WinePlan wine={wine} info={aiInfo} />
+
+            {/* ── EL PERFIL, ANTES QUE TODO LO DEMÁS ──────────────────────────
+                Subió cinco lugares (venía después de tu puntuación, tus notas y
+                tus datos de compra). Las barras de cuerpo, acidez y tanino y los
+                aromas son lo que contesta "¿cómo es este vino?", que es la
+                pregunta de los primeros cinco segundos; y son lo único de la
+                ficha que se compara entre dos botellas. Estaban debajo de tres
+                bloques que se leen una vez y no cambian nunca. */}
+            <WineAbout
+              loading={aiLoading}
+              failed={aiFailed}
+              info={aiInfo}
+              onRetry={() => loadDescription(true)}
+              wine={wine}
+            />
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
@@ -632,21 +693,32 @@ export default function WineDetailPage() {
               </div>
             )}
 
-            {/* De acá para abajo, lo que no es tuyo: lo que la app sabe del vino
-                y lo que opinan otros. Material de consulta, después de todo lo
-                que se hace y se escribe. */}
-            <WineAbout
-              loading={aiLoading}
-              failed={aiFailed}
-              info={aiInfo}
-              onRetry={() => loadDescription(true)}
-              wine={wine}
-            />
+            {/* De acá para abajo, lo que no es tuyo. Material de consulta: se
+                mira cuando se busca, no cuando se abre la ficha.
 
-            {/* Opiniones de otros (el promedio y las reseñas ajenas). */}
+                Las opiniones NO se envuelven en una sección plegable, aunque la
+                lista sea larga: `WineReviews` ya se pliega solo y deja el
+                promedio a la vista. Meterlo adentro de otro plegable sería
+                obligar a dos toques para llegar a lo mismo. */}
             <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
-            {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
+            {/* El precio SÍ se pliega, y el resumen viaja en el encabezado. Es
+                el caso exacto para el que sirve plegar: un bloque de dos partes
+                —el promedio comunitario y el link a MercadoLibre— del que casi
+                siempre alcanza con el número. Quien lo necesita entero lo abre;
+                el resto se ahorra media pantalla al final de cada ficha. */}
+            <CollapsibleSection
+              id="wine-price"
+              title="Precio"
+              icon="tag"
+              hint={
+                priceLoading
+                  ? "Buscando…"
+                  : communityPrice
+                    ? `~$${communityPrice.avg.toLocaleString("es-AR")}`
+                    : "Sin datos todavía"
+              }
+            >
             <div className="wine-price">
               <div className="wine-price__row">
                 <div className="wine-price__info">
@@ -672,6 +744,7 @@ export default function WineDetailPage() {
                 Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
               </a>
             </div>
+            </CollapsibleSection>
           </>
         ) : (
           <div className="scan-edit-grid">
@@ -838,7 +911,7 @@ export default function WineDetailPage() {
         )}
 
 
-        <section className="wine-moments">
+        <section className="wine-moments" ref={momentsRef}>
           <div className="wine-moments__header">
             {/* "Privado" dicho con todas las letras, y no por prolijidad: en la
                 misma pantalla, tu opinión SÍ se publica. Sin el cartel, alguien
@@ -1065,13 +1138,37 @@ export default function WineDetailPage() {
       <ConfirmModal
         isOpen={showDeleteConfirm}
         title="¿Eliminar vino?"
-        message={`Se quitará "${wineDisplayName(wine)}" de tu bodega.`}
+        /* Qué se va y qué se queda. Con los momentos contados, porque no es lo
+           mismo borrar una botella que cargaste ayer que una sobre la que
+           escribiste cuatro noches — y esa diferencia la sabe la app, no la
+           persona que está por tocar Eliminar. */
+        message={
+          moments.length > 0
+            ? `Se quita "${wineDisplayName(wine)}" de tu bodega. ${
+                moments.length === 1
+                  ? "El momento que escribiste queda"
+                  : `Los ${moments.length} momentos que escribiste quedan`
+              } en tu diario, y el vino sigue existiendo en el catálogo de Rincones.`
+            : `Se quita "${wineDisplayName(wine)}" de tu bodega. El vino sigue existiendo en el catálogo de Rincones.`
+        }
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {abriendo && (
+        <OpenBottleSheet
+          wine={wine}
+          saving={pending}
+          onCancel={() => setAbriendo(false)}
+          onConfirm={(cantidad) => {
+            setAbriendo(false);
+            handleOpenBottle(cantidad);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,86 @@
+/* Sección plegable de la ficha del vino.
+   Misma caja que el resto de los bloques de la ficha (fondo elevado, borde
+   tenue, mismo radio): plegarse es una propiedad de la sección, no un tipo de
+   sección distinto, así que no puede verse como otra cosa. */
+.collapsible {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.collapsible__head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 52px: el encabezado ES el control que abre, así que tiene que medir como un
+     control y no como un título. */
+  min-height: 52px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.collapsible__head:hover {
+  background: var(--surface-hover);
+}
+
+.collapsible__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.collapsible__title .icon {
+  color: var(--accent-soft);
+}
+
+/* Qué hay adentro, con la sección cerrada. Empuja al chevron contra el borde y
+   se recorta antes de romper el renglón en 360px. */
+.collapsible__hint {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.collapsible__caret {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.collapsible.is-open .collapsible__caret {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible__caret {
+    transition: none;
+  }
+}
+
+.collapsible__panel {
+  padding: 0 14px 14px;
+}
+
+/* Los bloques que van adentro ya traen su propia caja (WineReviews, el precio):
+   adentro de la sección sobra, porque la caja ya la puso la sección. */
+.collapsible__panel > .wine-reviews,
+.collapsible__panel > .wine-price {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
