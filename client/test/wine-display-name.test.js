@@ -62,7 +62,20 @@ describe("composeDisplayName / composeSearchName", () => {
       .toBe("Angélica Zapata");
   });
 
-  it("sin línea ni nombre propio queda la bodega, no un vacío", () => {
-    expect(composeDisplayName({ winery: "Bodega Norton" })).toBe("Bodega Norton");
+  /**
+   * Sin línea ni nombre propio el nombre queda VACÍO, y eso es lo correcto.
+   *
+   * El fallback a la bodega —que este mismo test defendía— era lo que hacía que
+   * una etiqueta leída como bodega "Pispi" terminara guardada con nombre "Pispi"
+   * y bodega "Pispi", y de ahí pasara al catálogo público. Un vino del que sólo
+   * sabemos quién lo hace no tiene nombre; el vacío es el que después hace que
+   * la revisión lo pida.
+   */
+  it("sin línea ni nombre propio NO se usa la bodega como nombre", () => {
+    expect(composeDisplayName({ winery: "Bodega Norton" })).toBe("");
+  });
+
+  it("pero la búsqueda sí puede caer a la bodega", () => {
+    expect(composeSearchName({ winery: "Bodega Norton" })).toBe("Bodega Norton");
   });
 });

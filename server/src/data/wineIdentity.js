@@ -46,20 +46,37 @@ Ejemplos:
  * vino) y forma parte de la identidad para deduplicar y para las claves de los
  * pools compartidos. Para eso están `composeSearchName` y `poolKey`.
  *
+ * ── POR QUÉ NO CAE A LA BODEGA ──────────────────────────────────────────────
+ * Antes, sin nombre ni línea, devolvía la bodega. Parecía una degradación
+ * amable —"mejor eso que una tarjeta sin nombre"— y era el bug de identidad más
+ * caro que tuvimos: cuando la visión leía "Pispi" como bodega (el nombre de
+ * fantasía suele ser lo más grande de la etiqueta, y la bodega —Mosquita
+ * Muerta— va chica abajo), este fallback lo copiaba también al nombre. El vino
+ * quedaba guardado como `{ name: "Pispi", winery: "Pispi" }` y de ahí pasaba al
+ * catálogo público, donde ya no era el error de una persona.
+ *
+ * Un vino del que sólo sabemos la bodega NO tiene nombre, y decirlo vacío es lo
+ * único cierto: quien decide qué hacer con eso es la pantalla de revisión, que
+ * ahora lo pide. Colapsar dos campos distintos en uno no es una degradación
+ * amable, es inventar un dato.
+ *
  * Debe producir EXACTAMENTE lo mismo que compone argentineWines.js.
  */
-const composeDisplayName = ({ name, line, varietal, winery } = {}) => {
-  const head = String(name || "").trim() || String(line || "").trim();
-  return head || String(winery || "").trim();
-};
+const composeDisplayName = ({ name, line } = {}) =>
+  String(name || "").trim() || String(line || "").trim();
 
 /**
  * El nombre como se BUSCA, que sí incluye la uva: nadie escribe "Saint
  * Felicien" a secas cuando está buscando el Malbec. Es lo que se le manda a las
  * fuentes externas y al catálogo, no lo que se muestra en pantalla.
+ *
+ * Acá la bodega SÍ es un respaldo válido, y es la diferencia con el nombre
+ * visible: "Salentein" es una búsqueda perfectamente sensata —te trae lo que esa
+ * bodega hace— mientras que "Salentein" como NOMBRE de una botella es un dato
+ * falso. Buscar de más no le miente a nadie; nombrar de más, sí.
  */
 const composeSearchName = ({ name, line, varietal, winery } = {}) => {
-  const head = composeDisplayName({ name, line, winery });
+  const head = composeDisplayName({ name, line }) || String(winery || "").trim();
   const grape = String(varietal || "").trim();
   if (!grape) return head;
   if (fold(head).includes(fold(grape))) return head;

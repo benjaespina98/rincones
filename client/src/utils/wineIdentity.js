@@ -9,11 +9,15 @@
  * El nombre visible NO lleva la uva: el vino se llama "Saint Felicien", que sea
  * Malbec ya lo dice su propio chip. La uva sigue siendo campo propio y sigue
  * entrando en la búsqueda; ver `wineSearchName`.
+ *
+ * Tampoco cae a la bodega. Sin nombre ni línea el vino NO tiene nombre, y eso
+ * se devuelve vacío a propósito: el fallback a `winery` era lo que hacía que una
+ * etiqueta leída como bodega "Pispi" terminara guardada con nombre "Pispi" y
+ * bodega "Pispi" —dos campos distintos colapsados en uno— y de ahí pasara al
+ * catálogo público. Ver el comentario largo en el archivo del servidor.
  */
-export const composeDisplayName = ({ name, line, winery } = {}) => {
-  const head = String(name || "").trim() || String(line || "").trim();
-  return head || String(winery || "").trim();
-};
+export const composeDisplayName = ({ name, line } = {}) =>
+  String(name || "").trim() || String(line || "").trim();
 
 /**
  * El nombre de un vino GUARDADO, listo para mostrar.
@@ -46,9 +50,15 @@ export const wineDisplayName = (wine = {}) => {
   return tn.slice(0, -tu.length).join(" ").trim() || nombre;
 };
 
-/** El nombre como se busca, que sí incluye la uva ("Saint Felicien Malbec"). */
+/**
+ * El nombre como se busca, que sí incluye la uva ("Saint Felicien Malbec").
+ *
+ * Acá la bodega sí es un respaldo válido: buscar "Salentein" trae lo que esa
+ * bodega hace, y eso no le miente a nadie. Nombrar una botella "Salentein"
+ * cuando no sabemos cómo se llama, sí.
+ */
 export const composeSearchName = ({ name, line, varietal, winery } = {}) => {
-  const head = composeDisplayName({ name, line, winery });
+  const head = composeDisplayName({ name, line }) || String(winery || "").trim();
   const grape = String(varietal || "").trim();
   if (!grape) return head;
   if (head.toLowerCase().includes(grape.toLowerCase())) return head;
