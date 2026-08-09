@@ -84,19 +84,22 @@ export const useWineCollection = () => {
   }, []);
 
   /**
-   * Abrir una botella: descuenta una y deja el vino como probado, de una.
+   * Abrir botellas: descuenta las que digas y deja el vino como probado, de una.
    * "Probado" es un hecho de tu historial y no se toca solo; esto es lo que lo
    * enciende, porque abrir una botella sí es tomártela.
+   *
+   * Abrir tres de una cuenta como UN consumo, no como tres: es una noche en la
+   * que tomaste ese vino, y el contador del perfil cuenta ocasiones.
    */
-  const openBottle = useCallback(async (id) => {
-    const updated = await openBottleApi(id);
+  const openBottle = useCallback(async (id, cantidad = 1) => {
+    const updated = await openBottleApi(id, cantidad);
     setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
     return updated;
   }, []);
 
-  /** Deshacer una botella abierta: vuelve a su lote y el historial queda como estaba. */
-  const undoOpenBottle = useCallback(async (id, wasTasted) => {
-    const updated = await undoOpenBottleApi(id, wasTasted);
+  /** Deshacer botellas abiertas: vuelven a su lote y el historial queda como estaba. */
+  const undoOpenBottle = useCallback(async (id, wasTasted, cantidad = 1) => {
+    const updated = await undoOpenBottleApi(id, wasTasted, cantidad);
     setWines((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
     return updated;
   }, []);

@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
+import OpenBottleSheet from "../components/OpenBottleSheet";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import StarRating from "../components/StarRating";
@@ -131,6 +132,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [enLote, setEnLote] = useState(false);
   const [confirmarLote, setConfirmarLote] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  // El vino cuya hoja de "abrí una botella" está abierta, o null.
+  const [abriendo, setAbriendo] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -706,42 +709,61 @@ export default function BodyPage({ initialFilter = "instock" }) {
     });
 
   /**
-   * Abrir una botella: descuenta una y deja el vino como probado.
+   * Abrir botellas: descuenta las que elijas y deja el vino como probado.
    *
    * Es la acción de la fila porque es lo que uno hace de verdad con un vino que
    * tiene en casa. "Probado" es un hecho aparte del stock y por eso conviven sin
    * pisarse: podés haberlo tomado y que igual te queden dos botellas, y podés
    * reponerlo sin dejar de haberlo tomado.
    *
-   * Siempre con deshacer: cuesta una botella de tu cava y se dispara con un
-   * toque, así que tocarlo por error no puede ser definitivo. El aviso dice
-   * cuántas quedan (para no tener que ir a contarlas) y trae la salida al lado.
+   * La cantidad y las tres consecuencias se eligen y se leen antes, en
+   * `OpenBottleSheet`. Acá queda lo que pasa DESPUÉS, que son las dos salidas
+   * que la acción tiene que ofrecer:
+   *
+   *   Deshacer      — cuesta botellas de tu cava y se dispara con un toque.
+   *   Contá el momento — abrir una botella es el único instante en que hay algo
+   *                   para contar, y hasta ahora el recorrido moría en un aviso.
+   *                   El diario es el diferencial del producto y su puerta de
+   *                   entrada estaba en otra pantalla, más abajo, sin conexión
+   *                   con el momento en que uno acaba de servir la copa.
    */
-  const handleOpenBottle = (wine) => {
+  const handleOpenBottle = (wine, cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
-    const quedan = Math.max(0, Number(wine.quantity) - 1);
+    const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
+    const quedan = Math.max(0, Number(wine.quantity) - n);
 
     withPendingAction(wine._id, async () => {
-      await openBottle(wine._id);
+      await openBottle(wine._id, n);
       // Abrir una botella es el uso real de la bodega: es lo que distingue una
       // colección que se vive de una lista que se cargó una vez y quedó ahí.
-      trackEvent("bottle_opened", { emptied: quedan === 0 });
+      trackEvent("bottle_opened", { emptied: quedan === 0, cantidad: n });
+
+      const abiertas = n === 1 ? "Botella abierta" : `${n} botellas abiertas`;
       const mensaje =
         quedan === 0
           ? `Se terminó tu ${wineDisplayName(wine)}`
-          : `Botella abierta · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
+          : `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
 
-      const toastId = addToast(mensaje, "success", 8000, {
-        label: "Deshacer",
-        onClick: async () => {
+      const toastId = addToast(mensaje, "success", 9000, {
+        label: "Contá el momento",
+        onClick: () => {
           removeToast(toastId);
-          try {
-            await undoOpenBottle(wine._id, eraProbado);
-            showSuccess("Botella devuelta a tu bodega");
-          } catch {
-            showError("No se pudo deshacer");
-          }
+          // A la ficha, con el formulario de momentos ya abierto: el momento
+          // pertenece al vino y ahí es donde vive su historia.
+          navigate(`/vino/${wine._id}`, { state: { abrirMomento: true } });
+        },
+        secondary: {
+          label: "Deshacer",
+          onClick: async () => {
+            removeToast(toastId);
+            try {
+              await undoOpenBottle(wine._id, eraProbado, n);
+              showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
+            } catch {
+              showError("No se pudo deshacer");
+            }
+          },
         },
       });
     });
@@ -1173,14 +1195,19 @@ export default function BodyPage({ initialFilter = "instock" }) {
                 {expanded && !esGrilla && (
                   <div className="wine-row__expand">
                     <div className="wine-row__controls">
-                      {/* El stepper dice qué cuenta ("Botellas"): "− ×2 +" a
-                          secas obliga a acordarse de qué número es ése, y ahora
-                          convive con un botón que también mueve el stock. Es
-                          para corregir o registrar una compra; tomarte una tiene
-                          su propio botón al lado. */}
-                      <div className="wine-qty-controls" role="group" aria-label={`Botellas de ${wineDisplayName(wine)}`}>
-                        <span className="wine-qty-controls__label" aria-hidden="true">Botellas</span>
-                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, -1)} disabled={isPending || Number(wine.quantity) <= 0} aria-label={`Quitar una botella de ${wineDisplayName(wine)}`} title="Quitar una botella (sin marcarla como tomada)">
+                      {/* ── AJUSTAR STOCK, que NO es tomarse una ──────────────
+                          El rótulo dice "Ajustá tu stock" y no "Botellas": el
+                          número solo obligaba a acordarse de qué contaba, y
+                          convive con un botón que también mueve el stock pero
+                          significa otra cosa.
+
+                          La aclaración de que restar acá no marca el vino como
+                          tomado vivía en un `title=`, que en un teléfono no
+                          existe. Ahora está escrita debajo, una sola vez, en vez
+                          de repetirse en el aria-label de cada botón. */}
+                      <div className="wine-qty-controls" role="group" aria-label={`Ajustar stock de ${wineDisplayName(wine)}`}>
+                        <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
+                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, -1)} disabled={isPending || Number(wine.quantity) <= 0} aria-label={`Quitar una botella del stock de ${wineDisplayName(wine)}, sin marcarla como tomada`}>
                           <Icon name="minus" size={15} />
                         </button>
                         {/* El número va en un span interno con `key`: al cambiar,
@@ -1191,7 +1218,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         <span className="wine-qty" aria-live="polite">
                           <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
                         </span>
-                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, 1)} disabled={isPending} aria-label={`Sumar una botella de ${wineDisplayName(wine)}`} title="Sumá botellas si compraste más">
+                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, 1)} disabled={isPending} aria-label={`Sumar una botella al stock de ${wineDisplayName(wine)}`}>
                           <Icon name="plus" size={15} />
                         </button>
                       </div>
@@ -1201,11 +1228,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           deja marcado como probado. Sin stock ya no hay nada que
                           abrir, así que ahí el botón vuelve a ser el de marcar
                           probado —para un vino que tomaste en otro lado o para
-                          corregir el dato—, que nunca toca el stock. */}
+                          corregir el dato—, que nunca toca el stock.
+
+                          Abre la hoja en vez de descontar de una: es donde se
+                          elige cuántas y donde se leen las tres consecuencias. */}
                       {Number(wine.quantity) > 0 ? (
                         <button
                           className="wine-action-btn wine-action-btn--open"
-                          onClick={() => handleOpenBottle(wine)}
+                          onClick={() => setAbriendo(wine)}
                           type="button"
                           disabled={isPending}
                         >
@@ -1224,6 +1254,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         </button>
                       )}
                     </div>
+
+                    {/* Qué significa el stepper de arriba, dicho una sola vez y
+                        en pantalla. Es la línea que separa las dos acciones que
+                        mueven el mismo número: acá corregís lo que tenés (se
+                        rompió, la regalaste, contaste mal), al lado registrás
+                        que te la tomaste. */}
+                    <p className="wine-row__controls-note">
+                      El más y el menos corrigen tu stock. No marcan el vino como tomado.
+                    </p>
 
                     {/* Las dos cosas juntas, que es de donde salía la confusión:
                         haberlo tomado y que te queden botellas no se contradicen. */}
@@ -1400,7 +1439,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
         // Sin deshacer, a diferencia del borrado de a uno: recuperar una tanda
         // entera es otra operación, y prometerlo sin tenerlo sería peor. Por eso
         // acá el aviso es explícito.
-        message="Se van de tu bodega con sus notas y momentos. Esto no se puede deshacer."
+        // Ya no dice "con sus notas y momentos", porque no es cierto: los
+        // momentos son tu diario y se conservan, con el nombre del vino guardado
+        // adentro de cada uno. Lo que se va es el vino de la bodega.
+        message="Se van de tu bodega. Los momentos que hayas escrito quedan en tu diario. Esto no se puede deshacer."
         confirmText={enLote ? "Eliminando…" : "Eliminar"}
         cancelText="Cancelar"
         isDangerous
@@ -1411,13 +1453,29 @@ export default function BodyPage({ initialFilter = "instock" }) {
       <ConfirmModal
         isOpen={showDeleteConfirm !== null}
         title="¿Eliminar vino?"
-        message={`Se quitará "${wines.find((wine) => wine._id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Podrás deshacer por unos segundos.`}
+        // Qué se va y qué se queda, en ese orden. La versión anterior sólo decía
+        // lo primero, y la duda que dejaba —"¿pierdo lo que escribí?"— es
+        // justamente la que frena a alguien en una acción que es reversible.
+        message={`Se quita "${wines.find((wine) => wine._id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Los momentos que hayas escrito quedan en tu diario, y el vino sigue existiendo en el catálogo de Rincones. Podés deshacer por unos segundos.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous
         onConfirm={() => handleDeleteWine(showDeleteConfirm)}
         onCancel={() => setShowDeleteConfirm(null)}
       />
+
+      {abriendo && (
+        <OpenBottleSheet
+          wine={abriendo}
+          saving={pendingActionId === abriendo._id}
+          onCancel={() => setAbriendo(null)}
+          onConfirm={(cantidad) => {
+            const wine = abriendo;
+            setAbriendo(null);
+            handleOpenBottle(wine, cantidad);
+          }}
+        />
+      )}
     </div>
   );
 }

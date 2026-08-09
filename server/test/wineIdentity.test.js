@@ -37,9 +37,32 @@ test("el nombre visible no lleva la uva", () => {
     "Angélica Zapata"
   );
 
-  // Sin línea ni nombre propio, la bodega es lo único que queda: preferible a
-  // una tarjeta sin nombre.
-  assert.equal(composeDisplayName({ winery: "Bodega X" }), "Bodega X");
+  /**
+   * Sin línea ni nombre propio, el nombre queda VACÍO. No cae a la bodega.
+   *
+   * El fallback existía y parecía inofensivo ("mejor la bodega que nada"), y era
+   * el bug de identidad más caro que tuvimos. Cuando la visión leía el nombre de
+   * fantasía como si fuera la bodega —pasa seguido: en la etiqueta el nombre es
+   * lo más grande y la bodega va chica abajo— este fallback lo copiaba también
+   * al nombre. El vino quedaba `{ name: "Pispi", winery: "Pispi" }` y desde ahí
+   * entraba al catálogo público, donde ya no era el error de una sola persona.
+   *
+   * Vacío es lo único cierto: un vino del que sólo sabemos la bodega no tiene
+   * nombre, y quien decide qué hacer con eso es la pantalla de revisión.
+   */
+  assert.equal(composeDisplayName({ winery: "Bodega X" }), "");
+  assert.equal(composeDisplayName({ winery: "Mosquita Muerta", name: "", line: "" }), "");
+});
+
+test("la BÚSQUEDA sí puede caer a la bodega, y no es una contradicción", () => {
+  // Buscar "Salentein" trae lo que esa bodega hace y no le miente a nadie.
+  // Llamar "Salentein" a una botella cuyo nombre no leímos, sí. Son dos usos
+  // distintos del mismo dato y por eso son dos funciones.
+  assert.equal(composeSearchName({ winery: "Bodegas Salentein" }), "Bodegas Salentein");
+  assert.equal(
+    composeSearchName({ winery: "Bodegas Salentein", varietal: "Malbec" }),
+    "Bodegas Salentein Malbec"
+  );
 });
 
 test("el nombre de búsqueda SÍ lleva la uva", () => {

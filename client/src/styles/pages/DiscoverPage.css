@@ -2,13 +2,16 @@
    padding horizontal de 14px contra los 16px del resto: el contenido se corría
    2px al costado cada vez que cambiabas de tab. Es el mismo salto que el resto
    de la app ya había resuelto con --page-pad-x, y esta pantalla había quedado
-   afuera. El fondo (120px) pasa al token, que además contempla el safe-area de
-   los teléfonos con notch. */
+   afuera.
+
+   El fondo NO se declara acá: lo pone `.app-content` una sola vez (ver la nota
+   de --page-pad-bottom en index.css). Declararlo en los dos lados era lo que
+   dejaba 230px de vacío al final de Descubrí. */
 .discover-page {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 8px var(--page-pad-x) var(--page-pad-bottom);
+  padding: 8px var(--page-pad-x) 0;
 }
 
 /* ── Hero + búsqueda ── */
@@ -117,14 +120,47 @@
   animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-/* Placeholder del vino del día mientras carga. Reserva el alto exacto de la
-   tarjeta ya armada para que la home no salte cuando llegan los datos:
-   botella (156) + padding (20×2) + acciones (40) + gaps (14×2). */
+/* Placeholder del vino del día mientras carga.
+   Reserva el alto exacto de la tarjeta armada —botella (156) + padding (20×2) +
+   acciones (40) + gaps (14×2)— así la home no salta cuando llegan los datos. Y
+   dibuja SU FORMA: la silueta de la botella y los renglones del texto. Antes era
+   un rectángulo vacío del alto correcto, que resolvía el salto pero se leía como
+   un error, no como una espera. Las piezas usan la clase `.skeleton` compartida
+   (LoadingSkeleton.css) para que el brillo sea el mismo de toda la app. */
 .spotlight--skeleton {
   min-height: 264px;
   animation: none;
   background: var(--elevated);
   border-color: var(--line);
+}
+
+.spotlight--skeleton .spotlight__art {
+  border-radius: var(--radius-lg);
+}
+
+.spotlight--skeleton .sk-line {
+  display: block;
+  height: 11px;
+  border-radius: var(--radius-sm);
+}
+
+.spotlight--skeleton .sk-line--eyebrow { width: 42%; }
+.spotlight--skeleton .sk-line--kicker  { width: 78%; margin-top: 6px; }
+/* El nombre del vino: más alto, porque en la tarjeta real es el texto grande. */
+.spotlight--skeleton .sk-line--title   { width: 66%; height: 19px; margin-top: 8px; }
+.spotlight--skeleton .sk-line--meta    { width: 52%; margin-top: 6px; }
+
+.spotlight--skeleton .sk-chip {
+  display: inline-block;
+  width: 62px;
+  height: 22px;
+  border-radius: var(--radius-full);
+}
+
+.spotlight--skeleton .sk-btn {
+  flex: 1;
+  height: 40px;
+  border-radius: var(--radius-full);
 }
 
 /* La zona foto+texto es un botón que abre la ficha del vino. */
@@ -541,6 +577,7 @@
   color: var(--text);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -646,6 +683,7 @@
   color: var(--text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

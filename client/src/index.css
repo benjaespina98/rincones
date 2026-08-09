@@ -473,9 +473,31 @@ img {
    El padding horizontal iba de 12 a 16px según la pantalla, así que el
    contenido se corría al cambiar de tab; y el espacio inferior era de 32px en
    tres pantallas (contra 110-132 en el resto), con lo que la última fila podía
-   quedar debajo de la barra de navegación. */
+   quedar debajo de la barra de navegación.
+
+   ── EL ESPACIO INFERIOR TIENE UN SOLO DUEÑO ────────────────────────────────
+   Lo aplica `.app-content` (App.css) y NADIE MÁS. Antes lo declaraban los dos:
+   `.app-content` ponía 118px y encima Descubrí y Mi Bodega sumaban otros 112 con
+   este token, así que las dos pantallas más usadas terminaban con 230px + dos
+   safe-areas de vacío bajo el último elemento — para despejar una barra que mide
+   68. El final de la página no se veía intencional porque no lo decidió nadie:
+   era la suma de dos reglas que hacían el mismo trabajo sin saber una de la otra.
+
+   El valor es la barra (68px) + un respiro (24px) + el safe-area del teléfono.
+   Si mañana cambia la altura de la barra, se cambia acá y en ningún otro lado.
+   Una pantalla que necesite MÁS aire abajo lo pide con margin en su último
+   bloque, no volviendo a declarar el despeje de la navegación. */
 :root {
   --page-pad-x: 16px;
   --page-gap: 18px;
-  --page-pad-bottom: calc(112px + env(safe-area-inset-bottom));
+  --nav-height: 68px;
+  --page-pad-bottom: calc(var(--nav-height) + 24px + env(safe-area-inset-bottom));
+}
+
+/* En desktop la barra inferior se convierte en sidebar: no hay nada abajo que
+   despejar, así que el token vuelve a ser un margen normal de cierre. */
+@media (min-width: 1024px) {
+  :root {
+    --page-pad-bottom: 56px;
+  }
 }

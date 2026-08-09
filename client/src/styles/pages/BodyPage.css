@@ -1,9 +1,12 @@
 /* Body Page - Mi Bodega */
+/* El espacio de abajo lo pone `.app-content`, no esta hoja: declararlo en los
+   dos lados sumaba dos despejes de la barra de navegación uno arriba del otro.
+   Ver la nota de --page-pad-bottom en index.css. */
 .body-page {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 18px var(--page-pad-x) var(--page-pad-bottom);
+  padding: 18px var(--page-pad-x) 0;
   background: transparent;
 }
 
@@ -283,6 +286,7 @@
   color: var(--text);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   /* Un nombre sin espacios más largo que la fila (una URL pegada, por ejemplo)
@@ -457,6 +461,16 @@
    que saca la duda de "dice probado pero me quedan dos".
    Va en voz baja a propósito: es un pie de fila que confirma, no una etiqueta
    más que compita con el nombre del vino. */
+/* Qué hace el +/− y qué no. Va pegada al stepper —antes de la línea de estado—
+   porque es su explicación, no un dato del vino. Tenue: se lee la primera vez y
+   después deja de mirarse, que es lo que corresponde a una aclaración. */
+.wine-row__controls-note {
+  margin: 2px 0 0;
+  font-size: var(--text-2xs);
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
 .wine-row__state-line {
   margin: -4px 0 0;
   font-size: var(--text-2xs);
@@ -796,6 +810,7 @@
 .wines-list--grid .wine-row__winery {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

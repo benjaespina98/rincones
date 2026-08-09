@@ -93,6 +93,49 @@ const wineSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    /**
+     * De dónde salieron los datos de identidad de este vino, y cuánto valen.
+     *
+     * Existe por una razón concreta: la decisión de publicar un vino en el
+     * catálogo compartido se tomaba a ciegas. La confianza por campo que devuelve
+     * el lector de etiquetas se usaba sólo para pintar la pantalla de revisión y
+     * moría en el navegador, así que en el momento de escribir en la base pública
+     * no había forma de distinguir un dato tipeado por una persona de una
+     * adivinanza de un modelo chico sobre una foto con brillo.
+     *
+     * Guardarlo tiene además un uso que no es del alta: cuando aparezca un vino
+     * mal cargado, esto dice cómo entró. Sin eso, cada error es un misterio
+     * nuevo.
+     *
+     * Aditivo: los vinos cargados antes no lo tienen y siguen funcionando —todo
+     * lector trata la ausencia como "no sabemos", que es la verdad—.
+     */
+    identification: {
+      // "trusted" | "unverified" | "doubtful". Lo calcula el servidor, nunca el
+      // cliente: ver `evaluarIdentificacion` en services/wines.service.js.
+      verdict: { type: String, enum: ["trusted", "unverified", "doubtful"] },
+      // Cómo entró: "scan" (foto), "manual" (tipeado), "ocr" (Tesseract).
+      source: { type: String, enum: ["scan", "manual", "ocr", ""] },
+      // Qué no cerraba entre los campos al momento de guardar (códigos de
+      // data/wineValidation.js). Vacío es lo normal.
+      issues: [String],
+      // Qué campos tocó la persona en la revisión: la señal más fuerte que hay.
+      editedFields: [String],
+      // Lo que dijo el modelo, campo por campo (0-100).
+      confidence: {
+        winery: { type: Number },
+        line: { type: Number },
+        name: { type: Number },
+        varietal: { type: Number },
+        vintage: { type: Number },
+        region: { type: Number },
+        type: { type: Number },
+      },
+      // Si el catálogo completó huecos, de qué fuente salieron.
+      matchedFrom: { type: String, trim: true },
+      capturedAt: { type: Date },
+    },
     favorite: {
       type: Boolean,
       default: false,
@@ -351,6 +394,29 @@ wineSchema.statics.getUserStats = async function (userId) {
           { $match: { rating: { $gt: 0 } } },
           { $group: { _id: null, avgRating: { $avg: "$rating" } } },
         ],
+        /**
+         * Tres datos que no salían de ningún lado y que el contenido educativo
+         * necesita para poder hablar de TU bodega en vez de en general: qué
+         * añadas tenés, cuántos cortes y qué tan lejos está tu botella más cara
+         * de la más barata.
+         *
+         * Van acá y no en una consulta nueva: es la misma agregación que ya
+         * corre, en el mismo `$facet`, y la alternativa era que Descubrí pidiera
+         * la bodega entera —doscientos vinos completos— para calcular tres
+         * números en el navegador.
+         */
+        vintages: [
+          { $match: { vintage: { $gt: 0 } } },
+          { $group: { _id: null, min: { $min: "$vintage" }, max: { $max: "$vintage" }, count: { $sum: 1 } } },
+        ],
+        blends: [
+          { $match: { varietal: { $regex: /blend|corte/i } } },
+          { $group: { _id: null, count: { $sum: 1 } } },
+        ],
+        prices: [
+          { $match: { "purchase.price": { $gt: 0 } } },
+          { $group: { _id: null, min: { $min: "$purchase.price" }, max: { $max: "$purchase.price" }, count: { $sum: 1 } } },
+        ],
         totals: [
           {
             $group: {
@@ -371,12 +437,26 @@ wineSchema.statics.getUserStats = async function (userId) {
 
   const out = agg && agg[0] ? agg[0] : {};
 
+  const primero = (clave) => (out[clave] && out[clave][0]) || null;
+  const vintages = primero("vintages");
+  const prices = primero("prices");
+
   return {
     countsByType: (out.countsByType || []).map((r) => ({ type: r._id || 'unknown', count: r.count })),
     topVarietals: (out.topVarietals || []).map((r) => ({ varietal: r._id, count: r.count })),
     topRegions: (out.topRegions || []).map((r) => ({ region: r._id, count: r.count })),
     avgRating: out.avgRating && out.avgRating[0] ? Number((out.avgRating[0].avgRating || 0).toFixed(2)) : 0,
     totals: out.totals && out.totals[0] ? out.totals[0] : { total: 0, stock: 0, consumed: 0 },
+    // Los tres de arriba, ya en la forma que consume el contenido educativo.
+    // Siempre presentes y en cero cuando no hay datos: quien los lee no tiene
+    // que preguntar si existen, sólo si alcanzan.
+    vintages: vintages
+      ? { min: vintages.min, max: vintages.max, count: vintages.count }
+      : { min: 0, max: 0, count: 0 },
+    blends: primero("blends")?.count || 0,
+    prices: prices
+      ? { min: prices.min, max: prices.max, count: prices.count }
+      : { min: 0, max: 0, count: 0 },
   };
 };
 

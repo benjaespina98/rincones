@@ -37,6 +37,32 @@
   color: var(--text-secondary);
 }
 
+/* Los tres consejos de encuadre. Van antes de la foto y no después del error:
+   una foto mal sacada ya gastó una llamada al modelo. Tenues y en una línea cada
+   uno — se leen la primera vez y después se saltean solos. */
+.label-scanner__tips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+.label-scanner__tips li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.label-scanner__tips .icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent-soft);
+}
+
 .label-scanner__frame-corner {
   position: absolute;
   width: 26px;
@@ -141,19 +167,35 @@
   100% { top: 94%; opacity: 0.2; }
 }
 
+/* La pastilla dejó de ser una cápsula redonda de una línea: ahora lleva también
+   la promesa de la revisión, que son dos renglones. */
 .label-scanner__scan-text {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  max-width: min(320px, 88%);
   margin-bottom: 14px;
-  padding: 8px 14px;
-  border-radius: var(--radius-full);
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
   background: rgba(12, 15, 25, 0.8);
   border: 1px solid var(--line-accent);
   color: #fff;
   font-size: var(--text-base);
   font-weight: 600;
+  text-align: left;
+}
+
+/* "Vas a poder revisar…": la parte que tranquiliza, en segundo plano respecto
+   del estado. No es una advertencia ni un consejo, es una garantía. */
+.label-scanner__scan-text em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .label-scanner__spinner {

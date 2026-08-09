@@ -53,10 +53,14 @@ export default function DailyLesson({ stats, seed = 0 }) {
             <Icon name="graduation" size={18} />
           </span>
           <span className="lesson-card__heads">
-            {/* "Para aprender hoy" sonaba a tarea escolar. Lo que la tarjeta
-                hace de verdad es explicar una palabra que ya viste en la app y
-                no sabías bien qué era. */}
-            <span className="lesson-card__eyebrow">Para entender mejor</span>
+            {/* El rótulo pasó por tres versiones y las dos primeras fallaban por
+                el mismo lado. "Para aprender hoy" sonaba a tarea escolar. "Para
+                entender mejor" era peor de lo que parecía: da por sentado que no
+                entendías, y el contenido dejó de ser el de un principiante — hoy
+                explica qué significa "Reserva" en Argentina o por qué dos Malbec
+                cuestan diez veces distinto. Prometer novedad en vez de remedio es
+                lo que corresponde a lo que hay adentro. */}
+            <span className="lesson-card__eyebrow">Algo que quizá no sabías</span>
             <span className="lesson-card__title">{concepto.title}</span>
           </span>
         </span>

@@ -122,6 +122,14 @@
   color: var(--text-muted);
 }
 
+/* "Ya no está en tu bodega": un dato del vino, no del recuerdo. Va tenue y sin
+   color de alerta — el momento no perdió nada, sólo dejó de tener adónde ir. */
+.diary-entry__gone {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .diary-entry__meta {
   display: flex;
   flex-wrap: wrap;
@@ -144,6 +152,7 @@
      del vino, a un toque. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

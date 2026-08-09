@@ -74,6 +74,21 @@ const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"
 let renovacionEnCurso = null;
 
 /**
+ * El refresh tiene su propio timeout, más largo que los 12s del resto.
+ *
+ * No es un número al azar: renovar la sesión puede caer justo en un arranque en
+ * frío del server (levantar el proceso + conectar a Mongo), y ahí 12 segundos se
+ * pasan. Cuando eso ocurría, axios abortaba pero el server había rotado igual:
+ * el token viejo quedaba consumido, el nuevo nunca llegaba y la sesión moría.
+ * O sea que el timeout corto no protegía de nada y además rompía sesiones.
+ *
+ * El server ahora sobrevive a esa carrera (ver `rotateRefreshToken`), así que
+ * esto es el cinturón además del airbag: la mayoría de las veces ya no hace
+ * falta llegar a reintentar.
+ */
+const REFRESH_TIMEOUT_MS = 25000;
+
+/**
  * ¿Este 401 merece que se intente renovar la sesión?
  *
  * Está afuera del interceptor para poder testearla: la regla es corta y su error
@@ -95,7 +110,7 @@ export const debeRenovarSesion = ({ status, url = "", yaReintentado = false }) =
 const renovarSesion = async () => {
   if (!renovacionEnCurso) {
     renovacionEnCurso = api
-      .post("/auth/refresh")
+      .post("/auth/refresh", null, { timeout: REFRESH_TIMEOUT_MS })
       .then((res) => {
         const token = res?.data?.data?.token;
         if (token) setAuthToken(token);

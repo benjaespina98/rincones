@@ -3,6 +3,12 @@ import Icon from "./Icon";
 import ConceptTerm from "./ConceptTerm";
 import { WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineReference";
 import { composeDisplayName, guessWineType, confidenceLevel } from "../utils/wineIdentity";
+import {
+  checkCoherence,
+  identificationVerdict,
+  FIELDS_FOR_ISSUE,
+  ISSUE_COPY,
+} from "../utils/wineValidation";
 import "./ScanReview.css";
 
 /**
@@ -21,10 +27,22 @@ import "./ScanReview.css";
 const FIELD_LABELS = {
   winery: "Bodega",
   line: "Línea",
+  properName: "Nombre propio",
   varietal: "Uva",
   vintage: "Cosecha",
   region: "Región",
 };
+
+/**
+ * El nombre propio, que hasta ahora no se podía editar.
+ *
+ * No estaba en la lista de campos y no hacía falta, porque el nombre visible
+ * caía a la bodega cuando no había otra cosa: siempre había ALGO escrito. Ese
+ * fallback era el bug —guardaba la bodega como nombre del vino— y al sacarlo
+ * apareció un caso que antes no existía: una lectura sin línea ni nombre propio
+ * deja al vino literalmente sin nombre, y hay que poder escribirlo.
+ */
+const EDITABLE_FIELDS = ["winery", "line", "properName", "varietal", "vintage", "region"];
 
 /**
  * Qué concepto explica cada rótulo.
@@ -72,7 +90,9 @@ export default function ScanReview({
   // etiqueta porque compraste una caja no tiene sentido.
   const [cantidad, setCantidad] = useState(1);
 
-  const conf = reading?.confidence || {};
+  // Estable entre renders: es dependencia de los useMemo del veredicto, y un
+  // objeto nuevo en cada render los haría recalcular siempre.
+  const conf = useMemo(() => reading?.confidence || {}, [reading]);
   const isManual = reading?.source === "manual";
   const levelOf = (field) => (touched.has(field) ? "trusted" : confidenceLevel(conf[field]));
 
@@ -82,12 +102,7 @@ export default function ScanReview({
   };
 
   const title = useMemo(
-    () => composeDisplayName({
-      name: values.properName,
-      line: values.line,
-      varietal: values.varietal,
-      winery: values.winery,
-    }),
+    () => composeDisplayName({ name: values.properName, line: values.line }),
     [values]
   );
 
@@ -95,16 +110,90 @@ export default function ScanReview({
   const derivedType =
     values.type !== "unknown" ? values.type : guessWineType(`${values.varietal} ${title}`);
 
-  // Campos a mostrar como input: los dudosos y los vacíos. El resto va en chips.
-  const editableFields = ["winery", "line", "varietal", "vintage", "region"];
-  const needsReview = editableFields.filter((f) => levelOf(f) !== "trusted");
-  const trusted = editableFields.filter((f) => levelOf(f) === "trusted" && values[f]);
-  const visible = showAll ? editableFields : needsReview;
+  /**
+   * ── QUÉ TAN BIEN SALIÓ ESTA LECTURA ───────────────────────────────────────
+   *
+   * Se recalcula en cada tecla sobre lo que hay AHORA, no sobre lo que llegó del
+   * servidor: el problema puede aparecer al editar (escribís la bodega y queda
+   * igual al nombre) y sobre todo puede DESAPARECER, que es lo que permite que
+   * el aviso se vaya solo apenas lo arreglás, sin un botón de "revalidar".
+   *
+   * Los `serverIssues` sólo suman al arranque: el servidor conoce el vocabulario
+   * completo de uvas del catálogo y el cliente no (ver utils/wineValidation.js),
+   * así que su opinión sobre un varietal raro es mejor que la nuestra hasta que
+   * la persona toque el campo.
+   */
+  const issues = useMemo(() => {
+    const propios = checkCoherence({ ...values, type: derivedType });
+    const delServidor = (reading?.serverIssues || []).filter(
+      // Los del servidor valen mientras no se haya tocado el campo que arreglan.
+      (code) => !(FIELDS_FOR_ISSUE[code] || []).some((f) => touched.has(f))
+    );
+    return [...new Set([...propios, ...delServidor])];
+  }, [values, derivedType, reading, touched]);
+
+  const verdict = useMemo(
+    () =>
+      identificationVerdict({
+        values,
+        confidence: conf,
+        editedFields: [...touched],
+        source: reading?.source,
+        issues,
+      }),
+    [values, conf, touched, reading, issues]
+  );
+
+  /**
+   * Los campos que hay que mostrar sí o sí porque algo no cierra con ellos.
+   *
+   * Es lo que evita el "arreglalo pero no te digo dónde": si el nombre quedó
+   * igual a la bodega, se abren los tres campos que pueden resolverlo y el aviso
+   * aparece arriba de ellos.
+   */
+  const forcedFields = useMemo(() => {
+    const set = new Set();
+    for (const code of issues) {
+      for (const f of FIELDS_FOR_ISSUE[code] || []) set.add(f);
+    }
+    return set;
+  }, [issues]);
+
+  // Campos a mostrar como input: los dudosos, los vacíos y los que arreglan un
+  // problema. El resto va en chips.
+  const needsReview = EDITABLE_FIELDS.filter(
+    (f) => levelOf(f) !== "trusted" || forcedFields.has(f)
+  );
+  const trusted = EDITABLE_FIELDS.filter(
+    (f) => levelOf(f) === "trusted" && values[f] && !forcedFields.has(f)
+  );
+  const visible = showAll ? EDITABLE_FIELDS : needsReview;
+
+  /**
+   * Con una identificación dudosa no se guarda hasta tocar algo.
+   *
+   * `bloqueado` es deliberadamente flojo: alcanza con que la persona haya editado
+   * uno de los campos señalados y que el problema ya no exista. No pedimos que
+   * complete la ficha entera ni que confirme campo por campo — eso convertiría
+   * cada escaneo en un formulario, que es justo lo que no queremos. Un vino bien
+   * leído sigue siendo un toque; sólo el que salió mal pide una corrección, y
+   * pide la mínima.
+   */
+  const bloqueado = verdict === "doubtful";
 
   const submit = (e) => {
     e.preventDefault();
-    if (saving) return;
-    onConfirm?.({ ...values, type: derivedType, name: title, quantity: cantidad });
+    if (saving || bloqueado) return;
+    onConfirm?.({
+      ...values,
+      type: derivedType,
+      name: title,
+      quantity: cantidad,
+      // La evidencia con la que el servidor decide si esto puede publicarse.
+      identSource: isManual ? "manual" : reading?.source === "ocr" ? "ocr" : "scan",
+      identConfidence: conf,
+      identEditedFields: [...touched],
+    });
   };
 
   return (
@@ -124,10 +213,28 @@ export default function ScanReview({
         </div>
       </header>
 
-      {matchedFrom && (
+      {matchedFrom && issues.length === 0 && (
         <p className="scan-review__matched">
           <Icon name="sparkles" size={13} /> Completamos algunos datos desde el catálogo
         </p>
+      )}
+
+      {/* Lo que no cierra. Va arriba de los campos que lo arreglan —que ya están
+          abiertos por `forcedFields`— y desaparece solo apenas se corrige.
+          Se cuenta como una observación sobre lo que LEÍMOS: la que se equivocó
+          fue la app, no la persona que sacó la foto. */}
+      {issues.length > 0 && (
+        <div className={`scan-review__issues ${bloqueado ? "is-blocking" : ""}`} role="status">
+          <p className="scan-review__issues-head">
+            <Icon name="alert-triangle" size={14} />
+            {bloqueado ? "Esto no lo pudimos leer bien" : "Revisá esto antes de guardar"}
+          </p>
+          <ul>
+            {issues.map((code) => (
+              <li key={code}>{ISSUE_COPY[code] || "Hay un dato que no cierra."}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {trusted.length > 0 && !showAll && (
@@ -147,10 +254,10 @@ export default function ScanReview({
 
       {visible.length > 0 && (
         <div className="scan-review__fields">
-          {!showAll && needsReview.length > 0 && (
+          {!showAll && needsReview.length > 0 && issues.length === 0 && (
             <p className="scan-review__hint">
               {isManual
-                ? "Con la bodega y la uva alcanza. El resto lo completás cuando quieras."
+                ? "Con el nombre y la bodega alcanza. El resto lo completás cuando quieras."
                 : "Revisá estos datos: no los pudimos leer con seguridad."}
             </p>
           )}
@@ -245,10 +352,29 @@ export default function ScanReview({
       </div>
 
       <div className="scan-review__actions">
-        <button type="submit" className="scan-review__save" disabled={saving}>
+        <button
+          type="submit"
+          className="scan-review__save"
+          disabled={saving || bloqueado}
+          title={bloqueado ? "Completá o corregí lo que marcamos arriba" : undefined}
+        >
           {saving ? "Guardando…" : <><Icon name="check" size={17} /> {cantidad === 1 ? "Agregar a mi bodega" : `Agregar ${cantidad} botellas`}</>}
         </button>
-        <button type="button" className="scan-review__wish" onClick={() => onWish?.({ ...values, type: derivedType, name: title })} disabled={saving}>
+        {/* Por qué no se puede guardar, dicho al lado del botón que no anda.
+            Sin esto, un botón deshabilitado es un callejón sin salida. */}
+        {bloqueado && !saving && (
+          <p className="scan-review__blocked-hint">
+            Corregí lo de arriba y ya lo agregamos.
+          </p>
+        )}
+        {/* Guardarlo en la lista es privado: no toca el catálogo público, así que
+            no lo frena el veredicto. Lo único que necesita es un nombre. */}
+        <button
+          type="button"
+          className="scan-review__wish"
+          onClick={() => onWish?.({ ...values, type: derivedType, name: title })}
+          disabled={saving || !title}
+        >
           <Icon name="heart" size={16} /> Solo guardarlo
         </button>
         <div className="scan-review__minor">

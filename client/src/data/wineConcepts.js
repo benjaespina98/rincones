@@ -102,8 +102,50 @@ export const CONCEPTS = {
 
   etiqueta: {
     title: "Qué te está diciendo la etiqueta",
-    body: "Bodega, línea, uva y origen: eso ya lo sabés. Lo que vale la pena mirar es la letra chica. El origen, cuanto más chico, más dice: \"Mendoza\" es media provincia y no compromete a nada; \"Gualtallary\" o \"Paraje Altamira\" son lugares con identidad y quien los imprime está apostando a que se note. Si aparece un viñedo o una parcela con nombre propio, el vino viene de ahí y no de un blend de compras. \"Vino de finca\" o \"single vineyard\" es lo mismo dicho en marketing. Ojo con dos cosas: el año es el de la COSECHA, no el del embotellado, y en un corte el orden de las uvas es el orden de proporción —un \"Malbec-Cabernet\" tiene más Malbec, y si no dice porcentajes es porque cambian todos los años.",
-    anchor: () => null,
+    // Quedó sólo con el ORIGEN. Antes metía además la añada y el corte apretados
+    // en las dos últimas oraciones: tres ideas que no tienen nada que ver entre
+    // sí compartiendo párrafo, y las dos que iban al final leídas como una
+    // aclaración menor cuando cada una da para su propia tarjeta. Ahora las
+    // tienen (`anada` y `corte`).
+    body: "Lo que más dice de una etiqueta es lo más chico que esté impreso: el origen. Cuanto más específico, más se compromete quien lo escribió. \"Mendoza\" es media provincia y no significa casi nada — pueden ser uvas compradas a treinta productores distintos. \"Valle de Uco\" ya es una zona con carácter. \"Gualtallary\" o \"Paraje Altamira\" son lugares concretos, y una bodega que los imprime está apostando a que vos notes la diferencia. Si aparece el nombre de un viñedo o de una parcela, el vino salió de ahí y de ningún otro lado; \"single vineyard\" y \"vino de finca\" son la misma idea dicha en marketing. La regla es simple y no falla: cuanto más grande el lugar que nombra la etiqueta, menos sabe la bodega de dónde vino esa uva.",
+    anchor: ({ wine }) =>
+      wine?.region
+        ? `El tuyo dice ${wine.region}. Fijate si en la botella hay algo más chico impreso abajo.`
+        : null,
+  },
+
+  anada: {
+    title: "Cómo leer una añada",
+    body: "El año de la etiqueta es el de la COSECHA, no el del embotellado, y no es un dato de archivo: es el clima de ese verano. En Mendoza un año fresco da vinos más tensos, con menos alcohol y más acidez; uno caluroso, más maduros y más dulces de fruta. Por eso el mismo vino de dos años seguidos puede no parecerse. 2016 fue el año del Niño y llovió como nunca — muchos tintos salieron livianos y hay quien los adora justamente por eso. Dos advertencias prácticas. Una: \"añada vieja\" no es sinónimo de mejor, es sinónimo de más vieja, y la mayoría de los vinos no está hecha para esperar. Dos: en un blanco joven o un espumante sin añada, el año importa poco y la frescura importa todo — ahí conviene el más nuevo que encuentres.",
+    anchor: ({ wine }) => {
+      const año = Number(wine?.vintage);
+      if (!Number.isFinite(año)) return "El tuyo no tiene cosecha cargada; si la etiqueta la dice, vale la pena anotarla.";
+      const edad = new Date().getFullYear() - año;
+      if (edad <= 2) return `El tuyo es ${año}: joven, con la fruta en su punto más directo.`;
+      if (edad <= 6) return `El tuyo es ${año}, así que tiene ${edad} años: la fruta empieza a dar paso a otra cosa.`;
+      return `El tuyo es ${año} — ${edad} años. Si no era un vino de guarda, no lo esperes más.`;
+    },
+  },
+
+  corte: {
+    title: "Qué es un corte",
+    body: "Un corte (o blend) es un vino hecho con más de una uva, y no es una versión rebajada de nada: los vinos más caros del mundo, en Burdeos, son cortes. La idea es que cada uva aporte lo que a la otra le falta — el Malbec pone fruta y carnosidad, el Cabernet Sauvignon estructura y ese dejo herbal, el Petit Verdot color y tanino. Un dato para leer la etiqueta: el orden en que aparecen las uvas es el orden de proporción, así que un \"Malbec-Cabernet\" tiene más Malbec que Cabernet. Si no dice porcentajes es casi siempre porque cambian todos los años, según cómo vino cada cosecha. Y ojo con el vocabulario argentino: acá muchas bodegas llaman \"Gran Corte\" a su vino más caro, que suele ser un corte, pero la palabra no está regulada y no garantiza nada por sí sola.",
+    anchor: ({ wine }) => {
+      const uva = String(wine?.varietal || "").toLowerCase();
+      if (!uva) return null;
+      return /blend|corte/.test(uva)
+        ? "El tuyo es un corte: fijate en la contraetiqueta si dice de qué uvas y en qué proporción."
+        : `El tuyo es ${wine.varietal}, o sea de una sola uva: lo que tomás viene todo de ahí.`;
+    },
+  },
+
+  precio: {
+    title: "Por qué dos Malbec cuestan tan distinto",
+    body: "Casi nada de la diferencia está en la uva: está en el rendimiento y en el tiempo. Una viña cargada da doce mil kilos por hectárea y una podada para concentrar da cuatro mil, así que la segunda reparte los mismos costos de todo el año entre un tercio de las botellas. Después está la madera: una barrica nueva de roble francés cuesta como mil dólares y rinde unas trescientas botellas, o sea que sólo el envase de crianza puede poner varios dólares en cada una. Sumá los años que el vino pasa en bodega sin venderse —guardar plata quieta también cuesta— y el viñedo: una hectárea en Gualtallary vale muchísimo más que una en el este de Mendoza. Lo que casi nunca justifica el precio es el peso de la botella ni lo lindo del papel, que es donde algunas bodegas ponen la diferencia cuando no está adentro.",
+    anchor: ({ wine }) =>
+      wine?.purchase?.price > 0
+        ? `Pagaste $${Number(wine.purchase.price).toLocaleString("es-AR")} por éste.`
+        : null,
   },
 
   reserva: {
@@ -172,13 +214,16 @@ const TIPOS_FRESCOS = new Set(["white", "rosé", "sparkling"]);
 
 /** Lecciones que valen para cualquiera, en cualquier momento. */
 const LECCIONES_GENERALES = [
-  { id: "etiqueta", hook: "Bodega, línea, uva y origen: cuatro datos que todo el mundo mezcla" },
+  { id: "etiqueta", hook: "Cuanto más chico el lugar que dice la etiqueta, más dice" },
   { id: "maridaje", hook: "Tres reglas para no errarle con la comida" },
   { id: "temperatura", hook: "El error más común de todos, y el más fácil de arreglar" },
   { id: "reserva", hook: "“Reserva” en Argentina no significa lo que parece" },
   { id: "crianza", hook: "La vainilla y el tostado no vienen de la uva: los pone la madera" },
   { id: "uvas", hook: "Las cinco uvas argentinas, en un renglón cada una" },
   { id: "cuerpo", hook: "Qué quiere decir, en la boca, que un vino sea corpulento" },
+  { id: "anada", hook: "El año de la etiqueta no es una fecha: es un clima" },
+  { id: "corte", hook: "Un corte no es un vino rebajado (los de Burdeos lo son)" },
+  { id: "precio", hook: "Por qué dos Malbec pueden costar diez veces distinto" },
 ];
 
 const contar = (lista, prop, filtro) =>
@@ -235,6 +280,45 @@ export const pickLesson = ({ stats, seed = 0 } = {}) => {
     propios.push({
       id: "terroir",
       hook: `Repetís ${regionTop.region}: qué le da esa zona a la uva`,
+    });
+  }
+
+  /**
+   * Los tres conceptos nuevos, anclados en datos que antes no existían.
+   *
+   * `vintages`, `blends` y `prices` los calcula la misma agregación que ya
+   * devolvía uvas, regiones y tipos (ver `getUserStats` en wine.model.js): no
+   * cuestan una consulta extra ni obligan a Descubrí a traerse la bodega entera
+   * para contar tres cosas. Si no hay datos suficientes, el candidato no se
+   * propone y quedan los generales — nunca se afirma algo que la bodega no
+   * sostenga.
+   */
+  const añadas = stats?.vintages;
+  if (añadas?.count >= 2 && añadas.max > añadas.min) {
+    propios.push({
+      id: "anada",
+      hook: `Tenés botellas de ${añadas.min} y de ${añadas.max}: qué cambia entre una añada y otra`,
+    });
+  }
+
+  const cortes = Number(stats?.blends) || 0;
+  if (cortes >= 1) {
+    propios.push({
+      id: "corte",
+      hook:
+        cortes === 1
+          ? "Tenés un corte en la bodega: qué significa eso en la botella"
+          : `Tenés ${cortes} cortes: qué aporta cada uva a la mezcla`,
+    });
+  }
+
+  const precios = stats?.prices;
+  // Sólo si la diferencia es de verdad grande: con dos botellas parecidas la
+  // pregunta "por qué cuestan distinto" no se le ocurre a nadie.
+  if (precios?.count >= 2 && precios.max >= precios.min * 3) {
+    propios.push({
+      id: "precio",
+      hook: "Entre tu botella más cara y la más barata hay una diferencia grande: en qué se va esa plata",
     });
   }
 

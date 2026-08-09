@@ -670,9 +670,10 @@
 
 /* "Abrí una botella" encabeza la caja de acciones: es lo que uno viene a hacer
    con un vino que tiene en casa. Ocupa su propia fila para no competir por
-   ancho con el stepper y los íconos. */
+   ancho con el stepper y los íconos.
+   Ya no necesita `order: -1`: ahora también va primero en el DOM, así el orden
+   de lectura con teclado y lector de pantalla coincide con el visual. */
 .wine-detail-open {
-  order: -1;
   flex: 1 0 100%;
   display: inline-flex;
   align-items: center;
@@ -701,6 +702,18 @@
 .wine-detail-actions .wine-qty-controls {
   flex: 1;
   justify-content: center;
+}
+
+/* Qué hace el +/− y qué no. Mismo texto que en Mi Bodega: la aclaración vivía
+   en un `title=`, que en un teléfono no existe. Ocupa su propia fila completa
+   para quedar debajo del stepper que explica. */
+.wine-detail-actions__note {
+  flex: 1 0 100%;
+  margin: -2px 0 0;
+  text-align: center;
+  font-size: var(--text-2xs);
+  line-height: 1.35;
+  color: var(--text-muted);
 }
 
 /* Los dos chips de estado comparten renglón y se estiran a la mitad cada uno:

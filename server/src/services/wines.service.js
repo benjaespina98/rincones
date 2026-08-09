@@ -10,7 +10,50 @@ const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
 const { identityKey } = require("../data/wineIdentity");
+const { canonicalVarietal, checkCoherence, identificationVerdict } = require("../data/wineValidation");
 const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
+
+/**
+ * Qué tan buena es esta identificación y qué se puede hacer con ella.
+ *
+ * El cliente manda `identification: { source, confidence, editedFields }` con lo
+ * que el lector de etiquetas creyó leer y con lo que la persona tocó en la
+ * revisión. Hasta ahora eso moría en el navegador: el servidor decidía si
+ * publicar un vino en el catálogo compartido sin saber si venía de una foto
+ * nítida o de una adivinanza.
+ *
+ * El veredicto se calcula ACÁ y no se acepta del cliente, aunque el cliente ya
+ * lo haya calculado para decidir qué mostrar: lo que llega por la red es
+ * evidencia, no conclusión. Un payload armado a mano no puede autodeclararse
+ * confiable y entrar al catálogo público.
+ */
+const evaluarIdentificacion = (payload, valores) => {
+  const ident = payload?.identification || {};
+  const confidence = ident.confidence && typeof ident.confidence === "object" ? ident.confidence : {};
+  const editedFields = Array.isArray(ident.editedFields)
+    ? ident.editedFields.map((f) => String(f)).slice(0, 12)
+    : [];
+  const source = ["scan", "manual", "ocr"].includes(ident.source) ? ident.source : "";
+
+  const issues = checkCoherence(valores);
+  const verdict = identificationVerdict({
+    values: valores,
+    confidence,
+    editedFields,
+    source,
+    issues,
+  });
+
+  return {
+    verdict,
+    issues,
+    source,
+    editedFields,
+    confidence,
+    matchedFrom: String(ident.matchedFrom || "").slice(0, 40),
+    capturedAt: new Date(),
+  };
+};
 
 const logChange = async (actorUser, action, entityId, before, after) => {
   try {
@@ -190,6 +233,21 @@ async function createWine(userId, payload) {
   const providedImage = rawProvided ? await imageStorage.store(rawProvided) : "";
   const resolvedImage = providedImage || (await wineImages.getImage(name, winery, varietal));
 
+  // La uva pasa por el vocabulario también acá. El escaneo ya la corrige al
+  // leerla, pero por este camino entra además la carga a mano y la edición, que
+  // son justo donde alguien escribe "Cabernet Sauvingon" a las once de la noche.
+  const uva = canonicalVarietal(varietal);
+
+  const identificacion = evaluarIdentificacion(payload, {
+    name: String(name || "").trim(),
+    line: line?.trim() || "",
+    winery: winery?.trim() || "",
+    varietal: uva.value,
+    vintage: vintage || "",
+    region: region?.trim() || "",
+    type: type || "unknown",
+  });
+
   const wine = new Wine({
     userId,
     name: String(name || "").trim(),
@@ -197,8 +255,9 @@ async function createWine(userId, payload) {
     line: line?.trim() || "",
     vintage: vintage ? parseInt(vintage) : null,
     region: region?.trim() || "",
-    varietal: varietal?.trim() || "",
+    varietal: uva.value,
     notes: notes?.trim() || "",
+    identification: identificacion,
     image: resolvedImage,
     imageSource: providedImage ? undefined : (resolvedImage ? "community" : undefined),
     rawText: rawText || "",
@@ -245,15 +304,27 @@ async function createWine(userId, payload) {
 
   // La identidad del vino alimenta el catálogo comunitario (búsqueda de todos),
   // salvo que ya esté en el catálogo curado: ahí evitamos el gemelo duplicado.
+  //
+  // El veredicto decide qué pasa: una lectura confiable publica en el acto, una
+  // dudosa no toca el catálogo, y lo del medio queda anotado esperando que otra
+  // persona llegue a lo mismo por su cuenta. El vino entra a TU bodega en los
+  // tres casos — lo que se demora es hacerlo público, no tenerlo.
   if (!isCuratedWine(savedWine)) {
-    await communityWines.contribute({
-      name: savedWine.name,
-      winery: savedWine.winery,
-      region: savedWine.region,
-      varietal: savedWine.varietal,
-      type: savedWine.type,
-      image: resolvedImage,
-    });
+    await communityWines.contribute(
+      {
+        name: savedWine.name,
+        winery: savedWine.winery,
+        region: savedWine.region,
+        varietal: savedWine.varietal,
+        type: savedWine.type,
+        image: resolvedImage,
+      },
+      {
+        userId,
+        verdict: identificacion.verdict,
+        origin: identificacion.source === "manual" ? "manual" : "scan",
+      }
+    );
   }
 
   // Ficha IA en segundo plano: el alta es el camino crítico en mobile y no debe
@@ -282,6 +353,18 @@ async function updateWine(userId, id, payload) {
   if (!wine) return null;
 
   const beforeSnapshot = { name: wine.name, winery: wine.winery };
+
+  // La identidad ANTES de tocar nada. Es lo que hace falta para poder retirar la
+  // contribución vieja del catálogo público si esta edición resulta ser una
+  // corrección de identidad; ver más abajo.
+  const identidadPrevia = {
+    name: wine.name,
+    winery: wine.winery,
+    varietal: wine.varietal,
+    region: wine.region,
+    type: wine.type,
+  };
+  const eraConfiable = wine.identification?.verdict === "trusted";
 
   const {
     name,
@@ -314,7 +397,10 @@ async function updateWine(userId, id, payload) {
   if (line !== undefined) wine.line = String(line).trim();
   if (vintage !== undefined) wine.vintage = vintage ? parseInt(vintage) : null;
   if (region !== undefined) wine.region = String(region).trim();
-  if (varietal !== undefined) wine.varietal = String(varietal).trim();
+  // Mismo vocabulario que en el alta: "Cabernet Sauvingon" escrito a mano se
+  // arregla solo, y una uva que no reconocemos se guarda igual pero después
+  // frena la publicación.
+  if (varietal !== undefined) wine.varietal = canonicalVarietal(varietal).value;
   if (notes !== undefined) wine.notes = String(notes).trim();
   if (type !== undefined) wine.type = type;
   if (rating !== undefined) wine.rating = parseInt(rating);
@@ -399,8 +485,75 @@ async function updateWine(userId, id, payload) {
     wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity });
   }
 
+  /**
+   * ── LA CORRECCIÓN SE PROPAGA ──────────────────────────────────────────────
+   *
+   * Si esta edición cambió la IDENTIDAD del vino (nombre, bodega o uva), lo que
+   * acaba de pasar es que una persona miró la botella y dijo que lo que teníamos
+   * estaba mal. Es la mejor información que vamos a recibir sobre ese vino, y
+   * hasta ahora se perdía entera: `updateWine` re-aportaba la foto al banco
+   * compartido pero nunca la identidad, así que el catálogo público sólo
+   * aprendía del error original y jamás de su corrección. Una fila equivocada se
+   * quedaba publicada para siempre, sostenida por una carga que su propio autor
+   * ya había desmentido.
+   *
+   * Son dos movimientos y hacen falta los dos: sacar a esta persona de la
+   * identidad vieja (que puede quedarse sin nadie y desaparecer) y sumarla a la
+   * nueva. La nueva entra como confiable porque alguien la escribió a mano
+   * teniendo la botella delante, que es la señal más fuerte que maneja el
+   * sistema.
+   */
+  const cambioIdentidad =
+    identidadPrevia.name !== wine.name ||
+    identidadPrevia.winery !== wine.winery ||
+    identidadPrevia.varietal !== wine.varietal;
+
+  if (cambioIdentidad) {
+    wine.identification = {
+      ...(wine.identification?.toObject?.() || wine.identification || {}),
+      verdict: "trusted",
+      source: "manual",
+      issues: checkCoherence({
+        name: wine.name,
+        line: wine.line,
+        winery: wine.winery,
+        varietal: wine.varietal,
+        vintage: wine.vintage,
+        region: wine.region,
+        type: wine.type,
+      }),
+      capturedAt: new Date(),
+    };
+  }
+
   wine.updatedAt = new Date();
   const updatedWine = await wine.save();
+
+  if (cambioIdentidad) {
+    if (!isCuratedWine(identidadPrevia)) {
+      await communityWines.retract(identidadPrevia, { userId, wasTrusted: eraConfiable });
+    }
+    if (!isCuratedWine(updatedWine)) {
+      await communityWines.contribute(
+        {
+          name: updatedWine.name,
+          winery: updatedWine.winery,
+          region: updatedWine.region,
+          varietal: updatedWine.varietal,
+          type: updatedWine.type,
+          image: updatedWine.image,
+        },
+        // Una corrección a mano vale como lectura confiable, salvo que lo que
+        // quedó siga sin cerrar (sin nombre, nombre igual a la bodega): ahí no
+        // corrigió, movió el problema.
+        {
+          userId,
+          verdict: updatedWine.identification?.issues?.length ? "unverified" : "trusted",
+          origin: "manual",
+        }
+      );
+    }
+  }
 
   // La foto nueva alimenta el banco compartido, igual que en el alta: es el
   // camino por el que el banco se llena con el uso, porque editar es cuando la
@@ -579,12 +732,20 @@ async function getAllMoments(userId, { limit = 100 } = {}) {
     .lean();
   const byId = new Map(wines.map((w) => [String(w._id), w]));
 
-  return moments.map((m) => ({
-    ...m,
-    // El vino puede haber sido eliminado de la bodega: el momento sigue siendo
-    // tuyo y se muestra igual, sin link.
-    wine: byId.get(String(m.wineId)) || null,
-  }));
+  return moments.map((m) => {
+    const actual = byId.get(String(m.wineId)) || null;
+    // El vino puede haber sido eliminado de la bodega. El momento sigue siendo
+    // tuyo y ahora además se sigue LEYENDO: cae al snapshot que se guardó cuando
+    // lo escribiste. `enBodega` es lo que le dice a la pantalla si puede linkear
+    // a la ficha o si el vino ya no está.
+    const snapshot = m.wineSnapshot;
+    const respaldo =
+      snapshot?.name || snapshot?.winery
+        ? { ...snapshot, _id: null }
+        : null;
+
+    return { ...m, wine: actual || respaldo, enBodega: Boolean(actual) };
+  });
 }
 
 async function addMoment(userId, id, body) {
@@ -603,6 +764,15 @@ async function addMoment(userId, id, body) {
   const moment = await WineMoment.create({
     userId,
     wineId: wine._id,
+    // Qué vino era, escrito acá y ahora. Ver el comentario del modelo: es lo que
+    // hace que borrar el vino de la bodega no deje el recuerdo sin nombre.
+    wineSnapshot: {
+      name: wine.name || "",
+      winery: wine.winery || "",
+      varietal: wine.varietal || "",
+      type: wine.type || "",
+      image: wine.image || "",
+    },
     consumedAt: body.consumedAt ? new Date(body.consumedAt) : new Date(),
     occasion: String(body.occasion || "").trim(),
     companions: String(body.companions || "").trim(),
@@ -840,9 +1010,54 @@ async function getCellarReady(userId) {
     .map((w) => ({ ...w.toObject(), cellarStatus: getCellarStatus(w) }));
 }
 
+/**
+ * Cuántos momentos tiene este vino. Lo pide la ficha ANTES de borrar, para poder
+ * decir qué se va y qué se queda en vez de preguntar "¿estás seguro?" a secas.
+ */
+async function countMoments(userId, id) {
+  return WineMoment.countDocuments({ userId, wineId: id });
+}
+
 async function deleteWine(userId, id) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
+
+  /**
+   * Los momentos NO se borran: son tu diario, no un detalle del inventario.
+   *
+   * Lo que sí hay que hacer es dejarlos legibles antes de perder el vino. Los
+   * momentos escritos desde que existe `wineSnapshot` ya lo traen; los
+   * anteriores no, y son justamente los que quedarían sin nombre. Se completan
+   * acá, que es el último instante en que todavía sabemos qué vino era.
+   */
+  await WineMoment.updateMany(
+    {
+      userId,
+      wineId: wine._id,
+      $or: [{ "wineSnapshot.name": { $in: [null, ""] } }, { wineSnapshot: { $exists: false } }],
+    },
+    {
+      $set: {
+        wineSnapshot: {
+          name: wine.name || "",
+          winery: wine.winery || "",
+          varietal: wine.varietal || "",
+          type: wine.type || "",
+          image: wine.image || "",
+        },
+      },
+    }
+  ).catch(() => {});
+
+  /**
+   * El catálogo público NO se toca acá, y es una decisión, no un olvido.
+   *
+   * Borrar un vino de tu bodega significa "ya no lo tengo", no "esto que cargué
+   * estaba mal". Son dos cosas distintas y sólo la segunda desmiente un dato: por
+   * eso `updateWine` sí retira la contribución vieja cuando corregís la identidad,
+   * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
+   * hayas terminado.
+   */
 
   const user = await User.findById(userId);
   user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - 1);
@@ -948,6 +1163,7 @@ module.exports = {
   getAllMoments,
   addMoment,
   deleteWine,
+  countMoments,
   bulkAction,
   suggestWines,
   getCellarReady,
