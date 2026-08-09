@@ -96,7 +96,9 @@ export const CONTENT_TYPES = {
   // No viene del panel: es contenido propio de la app (data/wineConcepts.js) y
   // no navega a ningún lado, abre una hoja. Ver DailyLesson.
   lesson: {
-    label: "Para entender mejor",
+    // Mismo rótulo que muestra la tarjeta (ver DailyLesson): el tipo de
+    // contenido tiene que llamarse igual en los dos lados.
+    label: "Algo que quizá no sabías",
     icon: "graduation",
     accent: "#a782ef",
     cta: "Leer",
