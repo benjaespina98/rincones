@@ -21,10 +21,54 @@ export const searchWines = async (query) => {
 
 /**
  * Vinos destacados para la home Descubrí (catálogo curado, sin gastar cuota IA).
+ *
+ * ── POR QUÉ SE CACHEA ──────────────────────────────────────────────────────
+ * Lo que devuelve el server es determinístico por día: sale del catálogo curado
+ * barajado con una semilla que es la fecha (ver `getFeatured` en
+ * catalog.service.js). O sea que dos llamadas el mismo día devuelven exactamente
+ * lo mismo, y la estábamos haciendo en cada montaje de Descubrí — cada vez que
+ * volvés a la home desde otra pestaña.
+ *
+ * Eso importaba más de lo que parece: el resto de la pantalla es data local y se
+ * pinta en el primer frame, así que esta era la ÚNICA pieza que esperaba a la
+ * red, y encima pasa por `authenticate`, con lo que en un arranque en frío podía
+ * encadenarse detrás de una renovación de sesión. La tarjeta principal de la
+ * home llegaba última por pedir algo que ya sabíamos.
+ *
+ * `sessionStorage` y no `localStorage`: es una optimización de la sesión de uso,
+ * no un dato que valga la pena persistir entre días. La clave lleva la fecha, así
+ * que a la medianoche deja de servir sola y no hay que invalidarla a mano.
  */
+const FEATURED_KEY = "rincones_featured";
+
+const hoyEnArgentina = () =>
+  new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 export const getFeaturedWines = async () => {
+  const clave = `${FEATURED_KEY}_${hoyEnArgentina()}`;
+
+  try {
+    const guardado = sessionStorage.getItem(clave);
+    if (guardado) {
+      const parsed = JSON.parse(guardado);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    // sessionStorage no disponible o JSON corrupto: se pide por red, como antes.
+  }
+
   const { data } = await api.get("/catalog/featured");
-  return Array.isArray(data?.data) ? data.data : [];
+  const results = Array.isArray(data?.data) ? data.data : [];
+
+  try {
+    // Sólo se guarda si hay algo: cachear una lista vacía dejaría la home sin
+    // recomendación hasta la medianoche por un fallo puntual del server.
+    if (results.length > 0) sessionStorage.setItem(clave, JSON.stringify(results));
+  } catch {
+    // Cuota llena o modo privado: el caché es una mejora, no un requisito.
+  }
+
+  return results;
 };
 
 /**

@@ -182,9 +182,12 @@
     font-size: var(--text-3xl);
   }
 
+  /* El padding inferior no se toca acá: en desktop el token --page-pad-bottom
+     ya vale 56px (index.css), porque la barra se convierte en sidebar y no hay
+     nada abajo que despejar. Repetirlo era la tercera declaración del mismo
+     espacio. */
   .app-content--with-topbar {
     margin-left: 240px;
-    padding-bottom: 56px;
   }
 
   /* Cap and center page content so it doesn't stretch edge-to-edge */

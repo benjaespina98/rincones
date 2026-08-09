@@ -176,6 +176,13 @@ const pairing = async (req, res, next) => {
 const featured = async (req, res, next) => {
   try {
     const data = await wineImages.enrichWithImages(catalogService.getFeatured(8));
+    // La selección es determinística por día (semilla = la fecha), así que el
+    // navegador puede quedarse con la respuesta un rato sin desincronizarse de
+    // nada. `private` porque va detrás de sesión y no puede cachearla un proxy
+    // compartido. Diez minutos: suficiente para que ir y volver de otra pestaña
+    // no cueste una petición, y corto frente a las fotos comunitarias, que sí
+    // pueden cambiar durante el día.
+    res.set("Cache-Control", "private, max-age=600");
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);

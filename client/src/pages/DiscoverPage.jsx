@@ -403,8 +403,33 @@ export default function DiscoverPage() {
         </section>
       )}
 
-      {/* Vino del día: skeleton mientras carga, para que no aparezca de golpe. */}
-      {!buscando && loading && <div className="spotlight spotlight--skeleton" aria-hidden="true" />}
+      {/* Vino del día: mientras carga, la misma tarjeta dibujada en gris.
+          Era un div vacío con el alto reservado — o sea, un hueco. Reservar el
+          espacio evitaba el salto pero no decía nada: un rectángulo en blanco en
+          medio de una pantalla donde todo lo demás ya está pintado se lee como
+          "acá falló algo", no como "esto viene en camino". Con la silueta de la
+          botella y los renglones del texto, la espera se entiende sola. */}
+      {!buscando && loading && (
+        <div className="spotlight spotlight--skeleton" role="status" aria-label="Cargando la recomendación">
+          <div className="spotlight__open">
+            <div className="spotlight__art skeleton" />
+            <div className="spotlight__body">
+              <span className="skeleton sk-line sk-line--eyebrow" />
+              <span className="skeleton sk-line sk-line--kicker" />
+              <span className="skeleton sk-line sk-line--title" />
+              <span className="skeleton sk-line sk-line--meta" />
+              <span className="spotlight__tags">
+                <span className="skeleton sk-chip" />
+                <span className="skeleton sk-chip" />
+              </span>
+            </div>
+          </div>
+          <div className="spotlight__actions">
+            <span className="skeleton sk-btn" />
+            <span className="skeleton sk-btn" />
+          </div>
+        </div>
+      )}
 
       {/* La recomendación es ahora la única de la pantalla, así que si falla hay
           que decirlo acá: el aviso vivía en la fila de abajo, que ya no está. */}
