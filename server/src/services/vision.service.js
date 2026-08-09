@@ -4,6 +4,7 @@
 
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
 const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
+const { canonicalVarietal, checkCoherence } = require("../data/wineValidation");
 
 const TIMEOUT_MS = 12000;
 // Tope total de la llamada. El cliente aborta a los 30s: el server tiene que
@@ -153,24 +154,46 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
     schema: RESPONSE_SCHEMA,
     timeoutMs: TIMEOUT_MS,
     budgetMs: BUDGET_MS,
+    // Leer una etiqueta es lo más exigente que le pedimos al modelo y el error
+    // más caro: acá manda la calidad, no la latencia. Ver gemini.service.js.
+    task: "vision",
   });
+
+  // La uva pasa por dos filtros: el de forma (sinónimos, capitalización) y el de
+  // vocabulario, que es el que corrige "Blen" → "Blend". Ese caso llegó a
+  // producción: una letra que se perdió entre el relieve de la etiqueta y el
+  // modelo, guardada tal cual y mostrada en la ficha y en la búsqueda.
+  const uva = canonicalVarietal(normalizeVarietal(parsed.varietal));
 
   const values = {
     winery: String(parsed.winery || "").trim(),
     line: String(parsed.line || "").trim(),
     name: String(parsed.name || "").trim(),
-    varietal: normalizeVarietal(parsed.varietal),
+    varietal: uva.value,
     vintage: normalizeVintage(parsed.vintage),
     region: String(parsed.region || "").trim(),
     type: String(parsed.type || "unknown").trim() || "unknown",
   };
+
+  const confidence = clampConfidence(parsed.confidence, values);
+
+  // Una uva que no reconocimos no puede seguir declarándose leída con seguridad:
+  // el modelo cree que la leyó bien, y el que sabe que no es este módulo. Bajarla
+  // al tramo de "verificá" es lo que hace que la revisión la muestre editable en
+  // vez de esconderla en un chip.
+  if (!uva.known) confidence.varietal = Math.min(confidence.varietal, 45);
+
+  const issues = checkCoherence(values);
 
   return {
     ...values,
     // Nombre visible, compuesto con la MISMA regla que el catálogo curado.
     displayName: composeDisplayName(values),
     isWineLabel: parsed.isWineLabel !== false,
-    confidence: clampConfidence(parsed.confidence, values),
+    confidence,
+    // Qué no cierra en esta lectura. Viaja al cliente para que la revisión sepa
+    // qué campos abrir sin tener que recalcularlo con medio vocabulario.
+    issues,
   };
 };
 

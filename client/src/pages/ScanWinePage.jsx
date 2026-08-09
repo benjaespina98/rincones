@@ -24,6 +24,22 @@ const toWinePayload = (draft) => ({
   // selector "¿Cuántas botellas?" —presets de media docena y caja incluidos—
   // no servía para nada: comprabas doce, cargabas una.
   quantity: Math.max(1, Number.parseInt(draft.quantity, 10) || 1),
+
+  /**
+   * De dónde salieron estos datos.
+   *
+   * Es EVIDENCIA, no una conclusión: el servidor recalcula el veredicto por su
+   * cuenta y no acepta el que calculó la pantalla (ver `evaluarIdentificacion`
+   * en el servicio). Mandarlo igual es lo que le permite distinguir un campo que
+   * la persona escribió de uno que el modelo adivinó — que es exactamente lo que
+   * le faltaba saber para decidir si este vino puede entrar al catálogo público.
+   */
+  identification: {
+    source: draft.identSource || "scan",
+    confidence: draft.identConfidence || {},
+    editedFields: draft.identEditedFields || [],
+    matchedFrom: draft.identMatchedFrom || "",
+  },
 });
 
 export default function ScanWinePage() {
@@ -81,6 +97,11 @@ export default function ScanWinePage() {
       type: payload.type || "unknown",
     };
     const confidence = { ...(payload.confidence || {}) };
+    // Lo que el servidor ya detectó que no cierra en esta lectura. La revisión
+    // vuelve a calcularlo sobre lo que la persona vaya editando, pero arrancar
+    // con esto evita que el cliente tenga que conocer todo el vocabulario de
+    // uvas del catálogo para llegar a la misma conclusión.
+    const issuesDelServidor = Array.isArray(payload.issues) ? payload.issues : [];
 
     let matchedFrom = null;
     if (values.winery || values.line || values.properName) {
@@ -110,6 +131,7 @@ export default function ScanWinePage() {
       values,
       confidence,
       matchedFrom,
+      serverIssues: issuesDelServidor,
     });
   };
 
@@ -122,16 +144,23 @@ export default function ScanWinePage() {
       values: { winery: "", line: "", properName: "", varietal: "", vintage: "", region: "", type: "unknown" },
       confidence: {},
       matchedFrom: null,
+      serverIssues: [],
     });
 
   const handleConfirmReview = async (draft) => {
+    // El nombre ya no cae a la bodega, así que acá el vacío es real y hay que
+    // pedirlo: sin línea ni nombre propio no sabemos cómo se llama la botella.
     if (!draft.name?.trim()) {
-      showError("Escribí al menos la bodega o la línea del vino");
+      showError("Escribí la línea o el nombre del vino");
       return;
     }
     try {
       setSaving(true);
-      await saveWine({ ...draft, image: review?.photo || "" });
+      await saveWine({
+        ...draft,
+        image: review?.photo || "",
+        identMatchedFrom: review?.matchedFrom || "",
+      });
       setReview(null);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
@@ -142,7 +171,7 @@ export default function ScanWinePage() {
 
   const handleWishReview = async (draft) => {
     if (!draft.name?.trim()) {
-      showError("Escribí al menos la bodega o la línea del vino");
+      showError("Escribí la línea o el nombre del vino");
       return;
     }
     try {

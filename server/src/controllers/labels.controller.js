@@ -29,6 +29,10 @@ const analyzeLabel = async (req, res, next) => {
             displayName: v.displayName || "",
             isWineLabel: v.isWineLabel,
             confidence: v.confidence,
+            // Lo que no cierra entre los campos leídos (uva desconocida, tipo que
+            // contradice a la uva, nombre igual a la bodega). La revisión lo usa
+            // para decidir qué abrir; ver data/wineValidation.js.
+            issues: v.issues || [],
             source: "gemini",
             rawText: "",
             // Compat: el cliente viejo leía estas dos claves.
@@ -67,6 +71,10 @@ const analyzeLabel = async (req, res, next) => {
           name: ocrName ? ocrConf : 0,
           vintage: result.estimatedVintage ? ocrConf : 0,
         },
+        // El OCR no separa bodega de nombre ni lee la uva: no tiene campos
+        // suficientes para que se contradigan entre sí. Los problemas que
+        // importan acá los detecta la revisión sobre lo que quede al final.
+        issues: [],
         source: "ocr",
         rawText: result.rawText || "",
         estimatedName: ocrName,
