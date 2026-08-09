@@ -12,7 +12,13 @@
 // `verified` no se toca: sigue pidiendo dos personas y sigue siendo lo único que
 // rankea por encima del modelo.
 //
-// ── SON DOS PASOS, Y EL PRIMERO ES EL QUE IMPORTA ───────────────────────────
+// ── SON TRES PASOS ──────────────────────────────────────────────────────────
+// 0. ARREGLAR las claves que quedaron viejas y fusionar lo que duplicaron. La
+//    clave incluye el varietal pero los campos se completaban después sin
+//    recalcularla, así que una fila creada sin uva quedaba con una clave que no
+//    describía sus propios datos — y la carga siguiente del mismo vino creaba
+//    una segunda fila. Va primero porque los otros dos pasos comparan claves.
+//
 // 1. APORTAR lo que está en las bodegas y nunca llegó al catálogo. La versión
 //    anterior de este script sólo recalculaba filas existentes, y por eso no
 //    servía para nada en la práctica: un vino rechazado por la regla vieja no
@@ -39,13 +45,113 @@ const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
 const Wine = require("../src/models/wine.model");
 const CommunityWine = require("../src/models/communityWine.model");
+const WineImage = require("../src/models/wineImage.model");
 const communityWines = require("../src/services/communityWines.service");
 const wineImages = require("../src/services/wineImages.service");
 const { isCuratedWine } = require("../src/services/catalog.service");
+const { canonicalVarietal } = require("../src/data/wineValidation");
 
 dotenv.config();
 
 const LOTE = 500; // filas por bulkWrite
+
+/**
+ * Paso 0: arreglar las claves que quedaron viejas, y fusionar lo que duplicaron.
+ *
+ * La clave incluye el varietal, pero los campos se completaban DESPUÉS sin
+ * recalcularla (ya está arreglado en el servicio). Las filas que nacieron sin
+ * uva quedaron con una clave que no describe sus propios datos, y la carga
+ * siguiente del mismo vino —que sí calculaba la clave con la uva— creaba una
+ * segunda fila. De ahí salen los duplicados publicados: "Familia Benito" y
+ * "Familia Benito Sauvignon Blanc" son la misma botella.
+ *
+ * De paso pasa el varietal por el vocabulario: hay filas con "Blen", el "Blend"
+ * al que el modelo le comió la última letra, guardadas antes de que existiera
+ * esa corrección.
+ */
+const arreglarClaves = async (dry) => {
+  const filas = await CommunityWine.find({}).lean();
+  const porClave = new Map(filas.map((f) => [f.key, f]));
+
+  const renombres = [];
+  const fusiones = [];
+
+  for (const fila of filas) {
+    const uva = canonicalVarietal(fila.varietal || "");
+    const keyCorrecta = communityWines.wineKey(fila.name, fila.winery, uva.value);
+    const cambiaUva = uva.value !== String(fila.varietal || "").trim();
+
+    if (!keyCorrecta || (keyCorrecta === fila.key && !cambiaUva)) continue;
+
+    const hermana = keyCorrecta !== fila.key ? porClave.get(keyCorrecta) : null;
+    if (hermana) fusiones.push({ vieja: fila, sobrevive: hermana });
+    else renombres.push({ fila, keyCorrecta, varietal: uva.value, cambiaUva });
+  }
+
+  console.log(`  claves a corregir: ${renombres.length}`);
+  for (const r of renombres) {
+    console.log(
+      `  ~ ${r.fila.name} — ${r.fila.winery}\n      "${r.fila.key}" → "${r.keyCorrecta}"` +
+        (r.cambiaUva ? `  [uva "${r.fila.varietal}" → "${r.varietal}"]` : "")
+    );
+  }
+  console.log(`  duplicados a fusionar: ${fusiones.length}`);
+  for (const f of fusiones) {
+    console.log(`  ⇒ "${f.vieja.name}" se funde en "${f.sobrevive.name}" (${f.sobrevive.winery})`);
+  }
+
+  if (dry) return;
+
+  // Las fotos del pool se mudan con la fila: guardan nombre y bodega pero no la
+  // uva, así que su clave sufrió exactamente la misma deriva. Sin esto, la foto
+  // queda guardada bajo una clave que ya nadie consulta.
+  for (const { fila, keyCorrecta, varietal, cambiaUva } of renombres) {
+    await CommunityWine.updateOne(
+      { _id: fila._id },
+      { $set: cambiaUva ? { key: keyCorrecta, varietal } : { key: keyCorrecta } }
+    );
+
+    if (keyCorrecta === fila.key) continue;
+
+    // El destino puede estar ocupado: la foto buena ya llegó por el camino
+    // nuevo (el alta la aporta con la clave correcta) y la vieja es el resto de
+    // la deriva. `key` es único, así que mudarla encima explota — hay que
+    // elegir, y gana la que ya está bien.
+    const ocupada = await WineImage.findOne({ key: keyCorrecta }).select("_id").lean();
+    if (ocupada) await WineImage.deleteOne({ key: fila.key });
+    else await WineImage.updateOne({ key: fila.key }, { $set: { key: keyCorrecta } });
+  }
+
+  for (const { vieja, sobrevive } of fusiones) {
+    const contribuyentes = new Set(
+      [...(sobrevive.contributors || []), ...(vieja.contributors || [])].map(String)
+    );
+    await CommunityWine.updateOne(
+      { _id: sobrevive._id },
+      {
+        $set: {
+          count: (sobrevive.count || 0) + (vieja.count || 0),
+          trustedCount: (sobrevive.trustedCount || 0) + (vieja.trustedCount || 0),
+          contributors: [...contribuyentes],
+          sameNameOk: Boolean(sobrevive.sameNameOk || vieja.sameNameOk),
+          // Lo que a la sobreviviente le falte y la otra tenga, no se tira.
+          image: sobrevive.image || vieja.image || "",
+          region: sobrevive.region || vieja.region || "",
+          type:
+            sobrevive.type && sobrevive.type !== "unknown"
+              ? sobrevive.type
+              : vieja.type || "unknown",
+        },
+      }
+    );
+    await CommunityWine.deleteOne({ _id: vieja._id });
+    // La foto de la fila que se va también: si la sobreviviente no tenía una
+    // guardada en el pool, la de la otra pasa a ser suya.
+    const yaHay = await WineImage.findOne({ key: sobrevive.key }).select("_id").lean();
+    if (yaHay) await WineImage.deleteOne({ key: vieja.key });
+    else await WineImage.updateOne({ key: vieja.key }, { $set: { key: sobrevive.key } });
+  }
+};
 
 /**
  * Paso 1: cada vino de cada bodega aporta su identidad al catálogo.
@@ -182,6 +288,9 @@ const recalcularPublicadas = async (dry) => {
 const run = async () => {
   const dry = process.argv.includes("--dry");
   await connectToDatabase();
+
+  console.log("\n── 0. Claves viejas y duplicados ──");
+  await arreglarClaves(dry);
 
   console.log("\n── 1. Lo que está en las bodegas y no en el catálogo ──");
   await aportarBodegas(dry);

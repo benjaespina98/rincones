@@ -32,33 +32,45 @@ const u2 = new mongoose.Types.ObjectId();
  *               viviendo toda la exigencia.
  */
 
-/** Base en memoria con la misma superficie que usa el servicio. */
+/**
+ * Base en memoria con la misma superficie que usa el servicio.
+ *
+ * Indexada por `_id` y NO por `key`, igual que Mongo. La diferencia importa: el
+ * servicio corrige la clave de una fila que nació con la vieja, y con un mapa
+ * por clave eso dejaba la entrada anterior colgada y simulaba un duplicado que
+ * en la base real no existe. El fake tiene que poder equivocarse en lo mismo que
+ * se equivoca Mongo, no en otras cosas.
+ */
 const fakeDb = () => {
-  const filas = new Map();
+  const filas = new Map(); // _id → documento
   const originales = {
     findOne: CommunityWine.findOne,
     deleteOne: CommunityWine.deleteOne,
   };
 
-  CommunityWine.findOne = async (q) => filas.get(q.key) || null;
+  CommunityWine.findOne = async (q) => {
+    for (const doc of filas.values()) if (doc.key === q.key) return doc;
+    return null;
+  };
   CommunityWine.deleteOne = async (q) => {
-    for (const [k, v] of filas) if (v._id === q._id) filas.delete(k);
+    filas.delete(q._id);
     return { deletedCount: 1 };
   };
 
   // `new CommunityWine({...})` construye un documento real de mongoose (aplica
   // defaults y enums, que es justo lo que queremos verificar); sólo se
   // intercepta el guardado.
+  let siguiente = 1;
   const originalSave = CommunityWine.prototype.save;
   CommunityWine.prototype.save = async function save() {
-    if (!this._id) this._id = `id-${filas.size + 1}`;
-    filas.set(this.key, this);
+    if (!this._id) this._id = `id-${siguiente++}`;
+    filas.set(this._id, this);
     return this;
   };
 
   return {
     filas,
-    get: (key) => filas.get(key),
+    get: (key) => [...filas.values()].find((d) => d.key === key),
     restore: () => {
       CommunityWine.findOne = originales.findOne;
       CommunityWine.deleteOne = originales.deleteOne;
@@ -252,6 +264,77 @@ test("la confirmación sólo suma: una carga posterior sin ella no la desmiente"
     const fila = soloFila(db);
     assert.equal(fila.sameNameOk, true, "que el segundo no lo repita no lo vuelve falso");
     assert.equal(fila.published, true);
+  } finally {
+    db.restore();
+  }
+});
+
+/**
+ * ── LA CLAVE NO PUEDE QUEDARSE VIEJA ────────────────────────────────────────
+ * La clave incluye el varietal, pero los campos se completan después. Una fila
+ * creada por una lectura que no leyó la uva nacía con la clave sin ella, y al
+ * completarse `varietal` la clave no se recalculaba: quedaba describiendo algo
+ * que la fila ya no era. La carga siguiente del MISMO vino calculaba la clave
+ * con la uva, no encontraba nada, y creaba una segunda fila.
+ *
+ * Ese es el origen de los duplicados publicados en la búsqueda, y de que el pool
+ * de fotos se partiera en dos mitades que no se ven entre sí.
+ */
+test("una carga que trae la uva adopta la fila que se creó sin ella, en vez de duplicarla", async () => {
+  const db = fakeDb();
+  try {
+    // Primera lectura: no se leyó la uva.
+    await communityWines.contribute(
+      { name: "Familia Benito", winery: "Finca Bodega Familia Benito", type: "white" },
+      { userId: u1, verdict: "unverified" }
+    );
+    const primera = soloFila(db);
+    assert.equal(primera.key, "familia benito|finca bodega familia benito");
+
+    // Segunda: la misma botella, ahora sí con la uva.
+    await communityWines.contribute(
+      {
+        name: "Familia Benito",
+        winery: "Finca Bodega Familia Benito",
+        varietal: "Sauvignon Blanc",
+        type: "white",
+      },
+      { userId: u2, verdict: "trusted" }
+    );
+
+    assert.equal(db.filas.size, 1, "es la misma botella: no puede haber dos filas");
+    const fila = soloFila(db);
+    assert.equal(
+      fila.key,
+      "familia benito sauvignon blanc|finca bodega familia benito",
+      "la clave se corrige al adoptarla"
+    );
+    assert.equal(fila.varietal, "Sauvignon Blanc");
+    assert.equal(fila.contributors.length, 2, "las dos contribuciones se conservan");
+    assert.equal(fila.verified, true);
+  } finally {
+    db.restore();
+  }
+});
+
+test("una uva distinta NO adopta la fila: es otro vino de la misma línea", async () => {
+  const db = fakeDb();
+  try {
+    await communityWines.contribute(
+      { name: "Saint Felicien", winery: "Catena Zapata", varietal: "Malbec", type: "red" },
+      { userId: u1, verdict: "trusted" }
+    );
+    await communityWines.contribute(
+      {
+        name: "Saint Felicien",
+        winery: "Catena Zapata",
+        varietal: "Cabernet Sauvignon",
+        type: "red",
+      },
+      { userId: u2, verdict: "trusted" }
+    );
+
+    assert.equal(db.filas.size, 2, "el Malbec y el Cabernet son botellas distintas");
   } finally {
     db.restore();
   }

@@ -101,6 +101,41 @@ const aplicarUmbrales = (doc) => {
 };
 
 /**
+ * La misma fila, guardada con la clave de antes de que supiéramos la uva.
+ *
+ * ── EL BUG QUE ARREGLA ──────────────────────────────────────────────────────
+ * La clave incluye el varietal, pero los campos se completan DESPUÉS: una fila
+ * creada por una lectura que no leyó la uva nace con la clave sin ella, y cuando
+ * más tarde otra carga completa `varietal`, la clave no se recalcula. La fila
+ * queda descrita por una clave que ya no coincide con sus propios datos.
+ *
+ * A partir de ahí, la carga siguiente del MISMO vino calcula la clave con la uva,
+ * no encuentra nada, y crea una segunda fila. Eso es lo que dejó duplicados
+ * publicados en la búsqueda —"Familia Benito" y "Familia Benito Sauvignon Blanc"
+ * son la misma botella— y partió el pool de fotos en dos mitades que no se ven.
+ *
+ * Buscarla por la clave vieja es lo que permite ADOPTARLA en vez de duplicarla.
+ * Sólo si la uva no contradice: una fila que ya dice "Malbec" no es la hermana
+ * de una carga que dice "Cabernet", es otro vino de la misma línea.
+ */
+const filaHermana = async (wine, keyActual) => {
+  const uva = String(wine.varietal || "").trim();
+  if (!uva) return null;
+
+  const keyVieja = wineKey(wine.name, wine.winery, "");
+  if (!keyVieja || keyVieja === keyActual) return null;
+
+  const vieja = await CommunityWine.findOne({ key: keyVieja });
+  if (!vieja) return null;
+  if (vieja.varietal && fold(vieja.varietal) !== fold(uva)) return null;
+
+  // Adoptarla es arreglarle la clave: de acá en adelante se la encuentra por
+  // donde corresponde y deja de poder duplicarse.
+  vieja.key = keyActual;
+  return vieja;
+};
+
+/**
  * Suma un vino al catálogo comunitario. Best-effort, nunca lanza.
  * No pisa datos existentes salvo para completar huecos (ej: imagen que faltaba).
  *
@@ -134,7 +169,7 @@ const contribute = async (
     if (!String(wine.winery || "").trim()) return;
 
     const confiable = verdict === "trusted";
-    const existing = await CommunityWine.findOne({ key });
+    const existing = (await CommunityWine.findOne({ key })) || (await filaHermana(wine, key));
 
     if (!existing) {
       const doc = new CommunityWine({
