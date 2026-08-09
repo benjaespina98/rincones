@@ -175,11 +175,28 @@ const checkCoherence = (values = {}) => {
   //    porque el nombre caía a la bodega; ahora que no cae, es visible.
   if (!nombre) issues.push("sin-nombre");
 
-  // 2. El nombre ES la bodega. Es el error "Pispi": dos campos distintos con el
-  //    mismo contenido significa que uno de los dos está mal, y no sabemos cuál.
-  //    Se salta cuando el vino de verdad se llama como su bodega (existe: "Clos
-  //    de los Siete", "Cheval des Andes") y eso lo confirma el catálogo curado.
-  else if (bodega && fold(nombre) === fold(bodega) && !nombreIgualALaBodegaEsLegitimo(nombre)) {
+  // 2. El nombre ES la bodega. Es el error "Pispi": el nombre de fantasía suele
+  //    ser lo más grande de la etiqueta y la bodega va chica abajo, así que el
+  //    modelo lee el mismo texto para los dos campos. Cuando pasa sabemos que uno
+  //    de los dos está mal, pero no cuál.
+  //
+  //    Salvo que no esté mal: hay MUCHOS vinos que se llaman como su bodega
+  //    —Norton, El Enemigo, Achaval Ferrer, Durigutti, Chandon— y el catálogo
+  //    curado tiene 25 filas así. Dos salidas, en ese orden:
+  //
+  //      a) el catálogo curado lo confirma → no es un problema, nunca lo fue.
+  //      b) la persona lo confirmó en la revisión (`sameNameConfirmed`) → tampoco.
+  //         Es la salida que faltaba: un vino chico que se llama como su bodega y
+  //         todavía no está en el catálogo era un callejón sin salida, porque
+  //         ningún dato que la persona escribiera podía hacer desaparecer el aviso.
+  //         Vale por la misma razón que un campo tipeado vale 100: nadie confirma
+  //         por accidente que su vino se llama igual que la bodega.
+  else if (
+    bodega &&
+    fold(nombre) === fold(bodega) &&
+    !values.sameNameConfirmed &&
+    !nombreIgualALaBodegaEsLegitimo(nombre)
+  ) {
     issues.push("nombre-es-bodega");
   }
 
@@ -294,4 +311,8 @@ module.exports = {
   grapeColor,
   checkCoherence,
   identificationVerdict,
+  // La usa el catálogo comunitario para decidir si una fila con nombre = bodega
+  // puede publicarse. Se exporta en vez de duplicar la lista: la fuente de verdad
+  // es el catálogo curado, y así sigue siendo una sola.
+  nombreIgualALaBodegaEsLegitimo,
 };

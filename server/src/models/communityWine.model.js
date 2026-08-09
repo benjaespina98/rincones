@@ -15,19 +15,27 @@ const mongoose = require("mongoose");
 // había forma de distinguirlo de un dato bueno, ni de corregirlo, ni de saber de
 // dónde había salido.
 //
-// Ahora una fila tiene procedencia y dos umbrales:
+// Ahora una fila tiene procedencia y dos estados, que dicen cosas distintas:
 //
-//   published — ¿se puede buscar? Sí cuando alguien la cargó con una
-//               identificación confiable, o cuando DOS personas distintas
-//               cargaron lo mismo por su cuenta.
-//   verified  — ¿es tan buena como el catálogo curado? Sí cuando hay dos
-//               contribuciones independientes y al menos una es confiable.
+//   published — ¿existe para los demás? Sí apenas la identidad alcanza para
+//               nombrar una botella: hay nombre, hay bodega, y no son la misma
+//               palabra (ver `identidadCompleta` en el servicio). NO mira con
+//               cuánta confianza se leyó la etiqueta.
+//   verified  — ¿tiene autoridad? Sí cuando hay dos contribuciones de personas
+//               DISTINTAS y al menos una es confiable.
 //
-// La diferencia entre los dos umbrales es la que pedía el producto: velocidad
-// cuando la lectura es buena, y confirmación cuando no lo es. Una fila creada y
-// no publicada no le cuesta nada a nadie —no aparece en ninguna búsqueda— y es
-// justo lo que permite que la segunda coincidencia la promueva en vez de nacer
-// de cero.
+// ── POR QUÉ PUBLICAR NO ESPERA UNA SEGUNDA PERSONA ──────────────────────────
+// La primera versión de esto pedía dos personas para publicar. Era una defensa
+// bien pensada en el lugar equivocado: bloqueaba la EXISTENCIA en vez de la
+// AUTORIDAD. Con un solo usuario la segunda persona no llega nunca, así que en
+// la práctica ningún vino cargado por alguien aparecía jamás en la búsqueda —ni
+// con su foto, que es lo que vuelve útil al resultado—. El vino quedaba en una
+// fila real, invisible, esperando a nadie.
+//
+// La protección que importaba era la otra, y sigue intacta: `verified` es lo
+// único que rankea por encima de lo que devuelve el modelo (SOURCE_RANK en
+// catalog.service.js). Una lectura floja ahora aparece, pero abajo. Un dato malo
+// no puede tapar uno bueno, que es lo que había que impedir.
 const communityWineSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, unique: true, index: true },
@@ -66,6 +74,20 @@ const communityWineSchema = new mongoose.Schema(
 
     // ¿Confirmada de forma independiente?
     verified: { type: Boolean, default: false },
+
+    /**
+     * Alguien confirmó a mano que este vino se llama igual que su bodega.
+     *
+     * Existe porque "nombre = bodega" es a la vez el error de lectura más común
+     * —el nombre de fantasía va grande y la bodega chica, y el modelo copia el
+     * mismo texto a los dos campos— y una situación perfectamente normal: Norton,
+     * El Enemigo, Durigutti. El catálogo curado resuelve los que ya conocemos;
+     * esto resuelve los que no, sin dejar a nadie sin salida.
+     *
+     * Se pega a la FILA y no a la contribución porque es una afirmación sobre el
+     * vino, no sobre quién lo cargó: una vez que se sabe, se sabe.
+     */
+    sameNameOk: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

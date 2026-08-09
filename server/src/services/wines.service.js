@@ -35,9 +35,16 @@ const evaluarIdentificacion = (payload, valores) => {
     : [];
   const source = ["scan", "manual", "ocr"].includes(ident.source) ? ident.source : "";
 
-  const issues = checkCoherence(valores);
+  // "Sí, este vino se llama igual que su bodega." Es una afirmación de la persona
+  // —como escribir un campo— y por eso se acepta del cliente: nadie confirma eso
+  // por accidente, y sin ella un vino como "Durigutti" que todavía no esté en el
+  // catálogo curado no tiene ninguna forma de dejar de estar marcado como error.
+  const sameNameConfirmed = ident.sameNameConfirmed === true;
+  const conContexto = { ...valores, sameNameConfirmed };
+
+  const issues = checkCoherence(conContexto);
   const verdict = identificationVerdict({
-    values: valores,
+    values: conContexto,
     confidence,
     editedFields,
     source,
@@ -50,6 +57,7 @@ const evaluarIdentificacion = (payload, valores) => {
     source,
     editedFields,
     confidence,
+    sameNameConfirmed,
     matchedFrom: String(ident.matchedFrom || "").slice(0, 40),
     capturedAt: new Date(),
   };
@@ -323,6 +331,7 @@ async function createWine(userId, payload) {
         userId,
         verdict: identificacion.verdict,
         origin: identificacion.source === "manual" ? "manual" : "scan",
+        sameNameConfirmed: identificacion.sameNameConfirmed,
       }
     );
   }
@@ -509,8 +518,13 @@ async function updateWine(userId, id, payload) {
     identidadPrevia.varietal !== wine.varietal;
 
   if (cambioIdentidad) {
+    const identPrevia = wine.identification?.toObject?.() || wine.identification || {};
+    // La confirmación de "se llama igual que la bodega" sobrevive a la edición:
+    // ya la respondió una vez y volver a marcarle el mismo aviso sería pedirle
+    // que confirme dos veces lo mismo.
+    const sameNameConfirmed = identPrevia.sameNameConfirmed === true;
     wine.identification = {
-      ...(wine.identification?.toObject?.() || wine.identification || {}),
+      ...identPrevia,
       verdict: "trusted",
       source: "manual",
       issues: checkCoherence({
@@ -521,6 +535,7 @@ async function updateWine(userId, id, payload) {
         vintage: wine.vintage,
         region: wine.region,
         type: wine.type,
+        sameNameConfirmed,
       }),
       capturedAt: new Date(),
     };
@@ -550,6 +565,7 @@ async function updateWine(userId, id, payload) {
           userId,
           verdict: updatedWine.identification?.issues?.length ? "unverified" : "trusted",
           origin: "manual",
+          sameNameConfirmed: updatedWine.identification?.sameNameConfirmed === true,
         }
       );
     }

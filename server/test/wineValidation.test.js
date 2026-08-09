@@ -171,6 +171,39 @@ test("el nombre igual a la bodega bloquea, con cualquier confianza", () => {
   assert.equal(verdict, "doubtful");
 });
 
+test("…salvo que la persona confirme que se llama igual que la bodega", () => {
+  // Norton, El Enemigo, Achaval Ferrer, Durigutti: el catálogo curado tiene 25
+  // filas donde el nombre coincide con la bodega, y los que todavía no están en
+  // él necesitaban una salida. Sin esto el aviso no se iba escribiera lo que
+  // escribiera la persona, y el vino no se podía guardar.
+  const valores = {
+    name: "Pispi",
+    line: "",
+    winery: "Pispi",
+    varietal: "Blend",
+    type: "red",
+    sameNameConfirmed: true,
+  };
+  assert.deepEqual(checkCoherence(valores), [], "confirmado, no queda nada que marcar");
+  const verdict = identificationVerdict({
+    values: valores,
+    confidence: { name: 99, line: 0, winery: 99, varietal: 90, vintage: 0, region: 0, type: 80 },
+    source: "scan",
+  });
+  assert.equal(verdict, "trusted");
+});
+
+test("el que se llama igual y ESTÁ en el catálogo curado no necesita confirmación", () => {
+  const issues = checkCoherence({
+    name: "Norton",
+    line: "",
+    winery: "Norton",
+    varietal: "Malbec",
+    type: "red",
+  });
+  assert.deepEqual(issues, [], "a estos no hay nada que preguntarles");
+});
+
 test("un campo que editó la persona vale más que cualquier lectura", () => {
   // Nadie tipea el nombre de una bodega por accidente. Es la señal más fuerte
   // que tenemos y es lo que permite que corregir un escaneo flojo lo habilite.

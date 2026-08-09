@@ -173,9 +173,43 @@ const pairing = async (req, res, next) => {
 };
 
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
+const DESTACADOS = 8;
+
+/**
+ * Cuántos candidatos se piden antes de quedarse con `DESTACADOS`.
+ *
+ * La foto no se sabe hasta después de consultar el pool compartido, así que la
+ * única forma de priorizar a los que la tienen es traer de más y recortar
+ * después. Cuatro veces: hoy hay pocas fotos y con un margen chico el orden no
+ * cambiaría nada; a medida que el pool se llene, va a alcanzar de sobra.
+ */
+const CANDIDATOS = DESTACADOS * 4;
+
 const featured = async (req, res, next) => {
   try {
-    const data = await wineImages.enrichWithImages(catalogService.getFeatured(8));
+    /**
+     * Primero los que tienen foto.
+     *
+     * La tarjeta grande de Descubrí es casi toda imagen: sin foto muestra la
+     * botella genérica, que es la misma para todos los vinos y no dice nada de
+     * ese vino en particular. Un vino con etiqueta de verdad se reconoce de un
+     * vistazo, y es la diferencia entre una recomendación y un renglón.
+     *
+     * Es un ORDEN, no un filtro: si no hay ocho con foto —hoy no los hay— se
+     * completan con el resto en vez de devolver menos. Y el orden es estable
+     * dentro de cada grupo, así que la rotación diaria del catálogo se mantiene.
+     */
+    const candidatos = await wineImages.enrichWithImages(catalogService.getFeatured(CANDIDATOS));
+    const data = candidatos
+      .map((wine, i) => ({ wine, i }))
+      .sort((a, b) => {
+        const fotoA = Boolean(a.wine.image);
+        const fotoB = Boolean(b.wine.image);
+        if (fotoA !== fotoB) return fotoA ? -1 : 1;
+        return a.i - b.i;
+      })
+      .slice(0, DESTACADOS)
+      .map(({ wine }) => wine);
     // La selección es determinística por día (semilla = la fecha), así que el
     // navegador puede quedarse con la respuesta un rato sin desincronizarse de
     // nada. `private` porque va detrás de sesión y no puede cachearla un proxy
