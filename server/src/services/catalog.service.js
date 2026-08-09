@@ -256,7 +256,25 @@ const searchWithAiCached = async (query) => {
 // entero, corregir y revisar en el historial. Después lo que cargó gente real,
 // después el modelo (que puede alucinar y cambia entre llamadas), y al final
 // OFF, que en Argentina trae datos sucios.
-const SOURCE_RANK = { "catalogo-ar": 0, comunidad: 1, gemini: 2, openfoodfacts: 3 };
+//
+// ── LO COMUNITARIO SE PARTIÓ EN DOS ─────────────────────────────────────────
+// Estaba todo junto en el puesto 1, arriba del modelo. Eso valía para un vino
+// que dos personas cargaron igual; no valía para uno que cargó una sola persona
+// desde una foto que quizá se leyó mal. Como el ranking no los distinguía, el
+// segundo caso heredaba la autoridad del primero y se mostraba por encima de
+// Gemini, que al menos sabe cuándo no sabe.
+//
+// Ahora una fila comunitaria sube al puesto 1 recién cuando la confirmó una
+// segunda persona de forma independiente; hasta entonces va DEBAJO del modelo.
+// Sigue apareciendo —es un vino real que alguien tiene en su casa— pero no
+// desplaza a una fuente que no depende de una sola lectura.
+const SOURCE_RANK = {
+  "catalogo-ar": 0,
+  "comunidad-verificada": 1,
+  gemini: 2,
+  comunidad: 3,
+  openfoodfacts: 4,
+};
 
 // Clave canónica que reconcilia las distintas fuentes. Vive en wineIdentity.js
 // para que la compartan la visión, la búsqueda IA y el catálogo curado.

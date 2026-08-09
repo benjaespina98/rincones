@@ -136,9 +136,13 @@ const cellarReady = async (req, res) => {
 
 const remove = async (req, res) => {
   try {
+    // Cuántos momentos quedan en el diario después de borrar el vino. Se cuenta
+    // ANTES porque después el vino ya no está, y es lo que le permite a la ficha
+    // decir qué se conservó en vez de dejar una duda.
+    const momentos = await winesService.countMoments(req.user.id, req.params.id);
     const ok = await winesService.deleteWine(req.user.id, req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Vino no encontrado" });
-    return res.json({ success: true, message: "Vino eliminado" });
+    return res.json({ success: true, message: "Vino eliminado", moments: momentos });
   } catch (error) {
     return fail(res, error, req);
   }

@@ -14,6 +14,32 @@ const wineMomentSchema = new mongoose.Schema(
       required: [true, "El wineId es obligatorio"],
       index: true,
     },
+
+    /**
+     * Qué vino era, copiado al momento de escribirlo.
+     *
+     * ── POR QUÉ SE DUPLICA ─────────────────────────────────────────────────
+     * El momento apuntaba al vino sólo por id, así que borrar el vino de Mi
+     * Bodega dejaba el recuerdo sin nombre: el diario mostraba la fecha, con
+     * quién estabas y qué comiste, pero no QUÉ TOMASTE. La entrada seguía
+     * existiendo y era ilegible, que es la peor de las dos opciones — o se
+     * conserva entero o no se conserva.
+     *
+     * Es una copia deliberada y no una desnormalización por rendimiento: un
+     * momento es un hecho del pasado y tiene que quedar escrito como fue. Si
+     * después renombrás el vino, el momento viejo conserva el nombre que tenía
+     * esa noche, que además es lo correcto.
+     *
+     * El `wineId` se queda igual: mientras el vino exista, la ficha manda (foto
+     * actualizada, datos corregidos) y esto es sólo el respaldo.
+     */
+    wineSnapshot: {
+      name: { type: String, trim: true, default: "" },
+      winery: { type: String, trim: true, default: "" },
+      varietal: { type: String, trim: true, default: "" },
+      type: { type: String, trim: true, default: "" },
+      image: { type: String, default: "" },
+    },
     consumedAt: {
       type: Date,
       default: Date.now,

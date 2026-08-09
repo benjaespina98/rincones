@@ -81,13 +81,20 @@ export default function MomentsDiary() {
           <ul className="diary__list">
             {visibles.map((m) => (
               <li key={m._id} className="diary-entry">
-                {/* El vino puede haber sido eliminado de la bodega: el momento
-                    sigue siendo tuyo, sólo que ya no lleva a ninguna ficha. */}
+                {/* El vino puede haber sido eliminado de la bodega. El momento
+                    sigue siendo tuyo Y sigue diciendo qué tomaste: el nombre
+                    viene del snapshot que se guardó al escribirlo (ver
+                    wineMoment.model.js). Lo único que se pierde es el link a la
+                    ficha, porque esa ficha ya no existe.
+
+                    Antes decía "Un vino que ya no tenés", que es la respuesta
+                    equivocada a la única pregunta que un diario tiene que poder
+                    contestar. */}
                 <button
                   type="button"
                   className="diary-entry__main"
-                  onClick={() => m.wine && navigate(`/vino/${m.wine._id}`)}
-                  disabled={!m.wine}
+                  onClick={() => m.enBodega && m.wine?._id && navigate(`/vino/${m.wine._id}`)}
+                  disabled={!m.enBodega || !m.wine?._id}
                 >
                   <span className="diary-entry__thumb">
                     <WinePhoto
@@ -100,9 +107,18 @@ export default function MomentsDiary() {
 
                   <span className="diary-entry__body">
                     <span className="diary-entry__top">
-                      <strong>{m.wine?.name || "Un vino que ya no tenés"}</strong>
+                      <strong>{m.wine?.name || "Vino sin nombre"}</strong>
                       <span className="diary-entry__date">{fecha(m.consumedAt)}</span>
                     </span>
+
+                    {/* Que ya no esté en tu bodega es un dato del vino, no del
+                        recuerdo: se dice en chico y al costado, sin teñir la
+                        entrada de "esto está roto". */}
+                    {!m.enBodega && (
+                      <span className="diary-entry__gone">
+                        {m.wine?.winery ? `${m.wine.winery} · ` : ""}ya no está en tu bodega
+                      </span>
+                    )}
 
                     {!!m.rating && <StarRating value={m.rating} size="sm" />}
 
