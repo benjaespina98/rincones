@@ -40,14 +40,27 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
     >
       <div className="toast__icon" aria-hidden="true"><Icon name={TYPE_ICONS[type] || "info"} size={18} /></div>
       <div className="toast__message">{message}</div>
+      {/* Dos acciones como mucho, y la segunda visualmente por debajo.
+          Abrir una botella dejó dos salidas que valen la pena a la vez —contar
+          el momento y deshacer— y con una sola había que elegir cuál perder.
+          Más de dos convierte el aviso en un menú, así que el componente no
+          acepta más: `action` es la que se propone y `action.secondary` la que
+          repara. */}
       {action?.label && typeof action?.onClick === "function" && (
-        <button
-          className="toast__action"
-          onClick={action.onClick}
-          type="button"
-        >
-          {action.label}
-        </button>
+        <div className="toast__actions">
+          <button className="toast__action" onClick={action.onClick} type="button">
+            {action.label}
+          </button>
+          {action.secondary?.label && typeof action.secondary?.onClick === "function" && (
+            <button
+              className="toast__action toast__action--secondary"
+              onClick={action.secondary.onClick}
+              type="button"
+            >
+              {action.secondary.label}
+            </button>
+          )}
+        </div>
       )}
       <button
         className="toast__close"

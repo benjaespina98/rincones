@@ -31,18 +31,29 @@ export const adjustWineStock = async (id, delta, extra = {}) => {
 };
 
 /**
- * Abrir una botella: la descuenta del stock y deja el vino marcado como
- * probado, en una sola operación. Descontar con "−" a secas NO marca probado:
- * también se saca una botella para regalarla o para corregir un número.
+ * Abrir botellas: las descuenta del stock y deja el vino marcado como probado,
+ * en una sola operación. Descontar con "−" a secas NO marca probado: también se
+ * saca una botella para regalarla o para corregir un número.
+ *
+ * `cantidad` existe porque abrir tres botellas en un asado es normal y hasta
+ * ahora había que tocar el botón tres veces, con sus tres avisos y sus tres
+ * "Deshacer" —de los cuales sólo el último servía—. El servidor ya aceptaba
+ * cualquier delta; lo único que faltaba era pedírselo.
  */
-export const openBottle = async (id) => adjustWineStock(id, -1, { markTasted: true });
+export const openBottle = async (id, cantidad = 1) => {
+  const n = Math.max(1, Number.parseInt(cantidad, 10) || 1);
+  return adjustWineStock(id, -n, { markTasted: true });
+};
 
 /**
  * Deshacer lo anterior. `wasTasted` es cómo estaba el vino ANTES de abrir: si ya
- * lo habías probado, deshacer no puede borrarte ese dato.
+ * lo habías probado, deshacer no puede borrarte ese dato. `cantidad` tiene que
+ * ser la misma que se abrió, para devolver exactamente lo que salió.
  */
-export const undoOpenBottle = async (id, wasTasted) =>
-  adjustWineStock(id, 1, { undoOpen: true, wasTasted: wasTasted === true });
+export const undoOpenBottle = async (id, wasTasted, cantidad = 1) => {
+  const n = Math.max(1, Number.parseInt(cantidad, 10) || 1);
+  return adjustWineStock(id, n, { undoOpen: true, wasTasted: wasTasted === true });
+};
 
 export const getWineStats = async () => {
   const { data } = await api.get("/wines/stats/summary");

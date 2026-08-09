@@ -96,6 +96,14 @@
   line-height: 1.4;
 }
 
+/* Las dos acciones se apilan: en 360px, una al lado de la otra dejaría el
+   mensaje en dos renglones y las pastillas partidas al medio. */
+.toast__actions {
+  display: grid;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
 .toast__action {
   border: 1px solid rgba(181, 153, 255, 0.45);
   background: rgba(132, 99, 245, 0.16);
@@ -104,6 +112,20 @@
   padding: 0.28rem 0.6rem;
   font-size: var(--text-sm);
   font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* La segunda repara algo (deshacer): no compite con la que propone seguir. */
+.toast__action--secondary {
+  border-color: transparent;
+  background: none;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.toast__action--secondary:hover {
+  color: #f2edff;
 }
 
 .toast__close {
