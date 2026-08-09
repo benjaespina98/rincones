@@ -55,23 +55,67 @@ const issueRefreshToken = async (userId, userAgent = "") => {
 };
 
 /**
- * Canjea un refresh por uno nuevo (rotación).
+ * Canjea un refresh por uno nuevo (rotación), con ventana de gracia.
  *
- * Se borra el viejo en la MISMA operación que lo busca: si dos pestañas
- * refrescan a la vez, sólo una encuentra el documento y la otra recibe 401 en
- * lugar de que las dos obtengan sesiones válidas del mismo token.
+ * ── EL PROBLEMA QUE RESUELVE ────────────────────────────────────────────────
+ * Antes esto era un `findOneAndDelete`: el token viejo desaparecía en la misma
+ * operación que lo encontraba. Seguro, y con un modo de falla que en un teléfono
+ * ocurre seguido: si la respuesta no llegaba —red que se corta, pestaña que se
+ * cierra, arranque en frío que se pasa del timeout del cliente— el token viejo
+ * ya no existía y el nuevo se había perdido en el camino. La sesión moría sin
+ * que nadie hiciera nada mal. Es el "a veces me manda al login".
  *
- * Rotar además convierte el robo en algo detectable: un token usado dos veces ya
- * no existe la segunda vez.
+ * ── CÓMO SE DISTINGUE UNA RESPUESTA PERDIDA DE UN ROBO ──────────────────────
+ * Por el ESTADO DEL REEMPLAZO, no por el tiempo. Una ventana temporal no alcanza
+ * porque el reintento puede tardar minutos (el usuario deja el teléfono y vuelve
+ * después), y una ventana lo bastante larga para cubrir eso deja de detectar
+ * nada. El estado del reemplazo, en cambio, contesta la pregunta exacta:
+ *
+ *   ¿el sucesor de este token llegó a usarse alguna vez?
+ *     NO  → nadie recibió el sucesor. Es el dueño reintentando algo que se
+ *           perdió: se descarta ese sucesor huérfano y se emite uno nuevo.
+ *     SÍ  → el dueño sí recibió el sucesor y siguió con él. Que ahora aparezca
+ *           alguien con el token ANTERIOR significa que lo tenía copiado:
+ *           se cierran todas las sesiones del usuario.
+ *
+ * Devuelve `{ reused: true }` en ese último caso para que el controlador pueda
+ * responder distinto de un "no existe".
  */
 const rotateRefreshToken = async (token, userAgent = "") => {
   if (!token) return null;
 
-  const existente = await RefreshToken.findOneAndDelete({ tokenHash: hashToken(token) });
+  const existente = await RefreshToken.findOne({ tokenHash: hashToken(token) });
   if (!existente) return null;
-  if (existente.expiresAt.getTime() < Date.now()) return null;
+  if (existente.expiresAt.getTime() < Date.now()) {
+    await RefreshToken.deleteOne({ _id: existente._id });
+    return null;
+  }
+
+  if (existente.usedAt) {
+    const sucesor = existente.replacedByHash
+      ? await RefreshToken.findOne({ tokenHash: existente.replacedByHash })
+      : null;
+
+    // El sucesor ya circuló (o ya fue rotado él mismo): esto es un reuso real.
+    if (!sucesor || sucesor.usedAt) {
+      await revokeAllForUser(existente.userId);
+      return { reused: true, userId: existente.userId };
+    }
+
+    // El sucesor existe y nunca se usó: nadie lo recibió. Se descarta y se emite
+    // uno nuevo, que es lo que el dueño está pidiendo.
+    await RefreshToken.deleteOne({ _id: sucesor._id });
+  }
 
   const nuevo = await issueRefreshToken(existente.userId, userAgent);
+
+  // El viejo queda marcado y encadenado a su reemplazo. No se borra: es lo que
+  // permite reconocer el reintento legítimo la próxima vez. Se lo lleva el TTL
+  // de `expiresAt` como a cualquier otro.
+  existente.usedAt = new Date();
+  existente.replacedByHash = hashToken(nuevo.token);
+  await existente.save();
+
   return { userId: existente.userId, ...nuevo };
 };
 

@@ -166,8 +166,17 @@ const refresh = async (req, res, next) => {
     const rotado = await sessions.rotateRefreshToken(actual, req.get("user-agent"));
 
     if (!rotado) {
-      // Sesión desconocida, vencida o ya usada (rotación). Limpiamos las cookies
-      // para que el cliente no siga reintentando con algo que no sirve.
+      // Sesión desconocida o vencida. Limpiamos las cookies para que el cliente
+      // no siga reintentando con algo que no sirve.
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Sesión expirada" });
+    }
+
+    if (rotado.reused) {
+      // Alguien usó un token que su dueño ya había cambiado. `rotateRefreshToken`
+      // ya cerró todas las sesiones del usuario; acá sólo queda no darle nada a
+      // quien lo presentó. No se distingue en el mensaje a propósito: si es un
+      // atacante, no le decimos que lo detectamos.
       clearAuthCookies(res);
       return res.status(401).json({ message: "Sesión expirada" });
     }
