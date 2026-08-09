@@ -5,7 +5,7 @@ import { WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineRefe
 import { composeDisplayName, guessWineType, confidenceLevel } from "../utils/wineIdentity";
 import {
   checkCoherence,
-  identificationVerdict,
+  BLOCKING_ISSUES,
   FIELDS_FOR_ISSUE,
   ISSUE_COPY,
 } from "../utils/wineValidation";
@@ -26,34 +26,42 @@ import "./ScanReview.css";
 
 const FIELD_LABELS = {
   winery: "Bodega",
-  line: "Línea",
-  properName: "Nombre propio",
+  name: "Nombre del vino",
   varietal: "Uva",
   vintage: "Cosecha",
   region: "Región",
 };
 
 /**
- * El nombre propio, que hasta ahora no se podía editar.
+ * ── POR QUÉ EL NOMBRE ES UN SOLO CAMPO ──────────────────────────────────────
+ * Adentro el nombre son dos: la LÍNEA ("Reserva", "Saint Felicien") y el NOMBRE
+ * PROPIO ("Angélica Zapata", "Nicasia"). La distinción es real y la necesita la
+ * deduplicación —ver identityKey en utils/wineIdentity.js—, pero es NUESTRA, no
+ * de quien tiene la botella en la mano. Preguntarle en cuál de los dos va
+ * "Pispi" es pedirle que entienda nuestro modelo de datos para poder guardar un
+ * vino.
  *
- * No estaba en la lista de campos y no hacía falta, porque el nombre visible
- * caía a la bodega cuando no había otra cosa: siempre había ALGO escrito. Ese
- * fallback era el bug —guardaba la bodega como nombre del vino— y al sacarlo
- * apareció un caso que antes no existía: una lectura sin línea ni nombre propio
- * deja al vino literalmente sin nombre, y hay que poder escribirlo.
+ * Así que la pantalla muestra uno solo —"Nombre del vino", lo que dice grande en
+ * la etiqueta— y lo escribe en el campo del que salió: en el nombre propio si la
+ * lectura trajo uno, y en la línea en cualquier otro caso. Nada se pierde: los
+ * dos campos siguen viajando separados al servidor.
  */
-const EDITABLE_FIELDS = ["winery", "line", "properName", "varietal", "vintage", "region"];
+const NAME_FIELD = "name";
+const NAME_PARTS = ["line", "properName"];
+
+const EDITABLE_FIELDS = ["winery", NAME_FIELD, "varietal", "vintage", "region"];
 
 /**
  * Qué concepto explica cada rótulo.
  *
  * Es el único momento del recorrido en que la persona tiene una etiqueta
- * adelante y está tratando de descifrarla: acá "Línea" y "Región" son preguntas
- * de verdad, y en cualquier otra pantalla serían un glosario que nadie abre.
+ * adelante y está tratando de descifrarla: acá "Región" y qué significa
+ * "Reserva" en el nombre son preguntas de verdad, y en cualquier otra pantalla
+ * serían un glosario que nadie abre.
  */
 const FIELD_CONCEPTS = {
   winery: "etiqueta",
-  line: "reserva",
+  [NAME_FIELD]: "reserva",
   region: "terroir",
   varietal: "uvas",
 };
@@ -86,6 +94,16 @@ export default function ScanReview({
   // Al editar un campo, deja de estar en duda: es dato del usuario.
   const [touched, setTouched] = useState(() => new Set());
   const [showAll, setShowAll] = useState(false);
+  /**
+   * "Sí, este vino se llama igual que su bodega."
+   *
+   * Norton, El Enemigo, Achaval Ferrer, Durigutti, Chandon: el catálogo curado
+   * tiene 25 filas donde el nombre y la bodega coinciden. Sin esta respuesta, un
+   * vino así que todavía no esté en el catálogo quedaba en un callejón sin
+   * salida —el aviso no se iba escribiera lo que escribiera, y el botón de
+   * guardar seguía apagado—. Un toque, y sigue.
+   */
+  const [sameNameOk, setSameNameOk] = useState(false);
   // Cuántas botellas entran a la cava. Obligar a escanear doce veces la misma
   // etiqueta porque compraste una caja no tiene sentido.
   const [cantidad, setCantidad] = useState(1);
@@ -94,17 +112,44 @@ export default function ScanReview({
   // objeto nuevo en cada render los haría recalcular siempre.
   const conf = useMemo(() => reading?.confidence || {}, [reading]);
   const isManual = reading?.source === "manual";
-  const levelOf = (field) => (touched.has(field) ? "trusted" : confidenceLevel(conf[field]));
-
-  const setField = (field, value) => {
-    setValues((v) => ({ ...v, [field]: value }));
-    setTouched((t) => new Set(t).add(field));
-  };
 
   const title = useMemo(
     () => composeDisplayName({ name: values.properName, line: values.line }),
     [values]
   );
+
+  /**
+   * A cuál de los dos campos internos escribe el campo único de nombre.
+   *
+   * Al que trajo el dato, para no partir en dos la identidad de un vino que la
+   * lectura ya había resuelto bien: si el modelo entendió que "Angélica Zapata"
+   * es un nombre propio, editarlo lo sigue siendo. Cuando no hay nada, va a la
+   * línea, que es el caso mayoritario ("Reserva", "Saint Felicien", "Pispi") y
+   * el que `identityKey` prefiere para deduplicar.
+   */
+  const nameTarget = reading?.values?.properName ? "properName" : "line";
+
+  const valueOf = (field) => (field === NAME_FIELD ? title : values[field]);
+
+  // El nombre vale lo mejor de sus dos mitades: cualquiera de las dos alcanza
+  // para nombrar la botella, así que la peor no puede arrastrar a la otra.
+  const levelOf = (field) => {
+    if (field === NAME_FIELD) {
+      if (NAME_PARTS.some((p) => touched.has(p))) return "trusted";
+      const niveles = ["trusted", "review", "low"];
+      const mejor = Math.min(
+        ...["name", "line"].map((k) => niveles.indexOf(confidenceLevel(conf[k])))
+      );
+      return niveles[mejor] || "low";
+    }
+    return touched.has(field) ? "trusted" : confidenceLevel(conf[field]);
+  };
+
+  const setField = (field, value) => {
+    const destino = field === NAME_FIELD ? nameTarget : field;
+    setValues((v) => ({ ...v, [destino]: value }));
+    setTouched((t) => new Set(t).add(destino));
+  };
 
   // El tipo se deriva de la uva: no tiene sentido preguntarlo aparte.
   const derivedType =
@@ -124,37 +169,34 @@ export default function ScanReview({
    * la persona toque el campo.
    */
   const issues = useMemo(() => {
-    const propios = checkCoherence({ ...values, type: derivedType });
+    const propios = checkCoherence({ ...values, type: derivedType, sameNameConfirmed: sameNameOk });
     const delServidor = (reading?.serverIssues || []).filter(
       // Los del servidor valen mientras no se haya tocado el campo que arreglan.
       (code) => !(FIELDS_FOR_ISSUE[code] || []).some((f) => touched.has(f))
     );
-    return [...new Set([...propios, ...delServidor])];
-  }, [values, derivedType, reading, touched]);
-
-  const verdict = useMemo(
-    () =>
-      identificationVerdict({
-        values,
-        confidence: conf,
-        editedFields: [...touched],
-        source: reading?.source,
-        issues,
-      }),
-    [values, conf, touched, reading, issues]
-  );
+    // Confirmado que se llama igual que la bodega, el aviso del servidor sobre
+    // eso tampoco corre: la persona ya respondió esa pregunta.
+    const vivos = sameNameOk
+      ? [...propios, ...delServidor].filter((c) => c !== "nombre-es-bodega")
+      : [...propios, ...delServidor];
+    return [...new Set(vivos)];
+  }, [values, derivedType, reading, touched, sameNameOk]);
 
   /**
    * Los campos que hay que mostrar sí o sí porque algo no cierra con ellos.
    *
    * Es lo que evita el "arreglalo pero no te digo dónde": si el nombre quedó
-   * igual a la bodega, se abren los tres campos que pueden resolverlo y el aviso
-   * aparece arriba de ellos.
+   * igual a la bodega, se abren los campos que pueden resolverlo y el aviso
+   * aparece arriba de ellos. `FIELDS_FOR_ISSUE` habla de las dos mitades del
+   * nombre porque es vocabulario compartido con el servidor; acá se traducen al
+   * único campo que la pantalla muestra.
    */
   const forcedFields = useMemo(() => {
     const set = new Set();
     for (const code of issues) {
-      for (const f of FIELDS_FOR_ISSUE[code] || []) set.add(f);
+      for (const f of FIELDS_FOR_ISSUE[code] || []) {
+        set.add(NAME_PARTS.includes(f) ? NAME_FIELD : f);
+      }
     }
     return set;
   }, [issues]);
@@ -165,9 +207,14 @@ export default function ScanReview({
     (f) => levelOf(f) !== "trusted" || forcedFields.has(f)
   );
   const trusted = EDITABLE_FIELDS.filter(
-    (f) => levelOf(f) === "trusted" && values[f] && !forcedFields.has(f)
+    (f) => levelOf(f) === "trusted" && valueOf(f) && !forcedFields.has(f)
   );
   const visible = showAll ? EDITABLE_FIELDS : needsReview;
+
+  // ¿Este vino se llama igual que su bodega? Es la pregunta que habilita la
+  // confirmación, y se hace sola apenas los dos textos coinciden.
+  const nombreIgualABodega =
+    Boolean(title) && title.trim().toLowerCase() === String(values.winery || "").trim().toLowerCase();
 
   /**
    * Con una identificación dudosa no se guarda hasta tocar algo.
@@ -178,8 +225,18 @@ export default function ScanReview({
    * cada escaneo en un formulario, que es justo lo que no queremos. Un vino bien
    * leído sigue siendo un toque; sólo el que salió mal pide una corrección, y
    * pide la mínima.
+   *
+   * ── POR QUÉ YA NO FRENA UNA LECTURA FLOJA ───────────────────────────────────
+   * Antes esto era `verdict === "doubtful"`, que además de los problemas reales
+   * incluía "el modelo leyó el nombre con menos de 50". Eso frenaba el guardado de
+   * un vino que no tenía NADA mal: sólo se había leído con poca luz. Y era doble
+   * castigo, porque la confianza baja ya no cambia nada — el catálogo público
+   * ahora admite por identidad, no por confianza (ver communityWines.service.js).
+   *
+   * Quedan los dos casos en que de verdad no hay vino que guardar: sin nombre, y
+   * nombre igual a la bodega sin confirmar. Los dos se resuelven en un toque.
    */
-  const bloqueado = verdict === "doubtful";
+  const bloqueado = issues.some((code) => BLOCKING_ISSUES.has(code));
 
   const submit = (e) => {
     e.preventDefault();
@@ -193,6 +250,7 @@ export default function ScanReview({
       identSource: isManual ? "manual" : reading?.source === "ocr" ? "ocr" : "scan",
       identConfidence: conf,
       identEditedFields: [...touched],
+      identSameNameConfirmed: sameNameOk,
     });
   };
 
@@ -234,14 +292,39 @@ export default function ScanReview({
               <li key={code}>{ISSUE_COPY[code] || "Hay un dato que no cierra."}</li>
             ))}
           </ul>
+          {/* La salida del callejón. Sin esto, un vino que se llama como su
+              bodega —Norton, El Enemigo, Durigutti— no se podía guardar por más
+              que la persona escribiera bien los dos campos: eran correctos y el
+              aviso no se iba. Un toque y sigue. */}
+          {issues.includes("nombre-es-bodega") && (
+            <button
+              type="button"
+              className="scan-review__confirm-same"
+              onClick={() => setSameNameOk(true)}
+              disabled={saving}
+            >
+              <Icon name="check" size={14} /> Está bien, se llama igual que la bodega
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Confirmado. Se deja dicho para que no parezca que el aviso desapareció
+          solo, y se puede volver atrás si fue un toque sin querer. */}
+      {sameNameOk && nombreIgualABodega && (
+        <p className="scan-review__confirmed" role="status">
+          <Icon name="check" size={13} /> Anotado: este vino se llama igual que su bodega.{" "}
+          <button type="button" className="scan-review__link" onClick={() => setSameNameOk(false)}>
+            Deshacer
+          </button>
+        </p>
       )}
 
       {trusted.length > 0 && !showAll && (
         <div className="scan-review__chips">
           {trusted.map((f) => (
             <span key={f} className="scan-review__chip">
-              <em>{FIELD_LABELS[f]}</em> {values[f]}
+              <em>{FIELD_LABELS[f]}</em> {valueOf(f)}
             </span>
           ))}
           {derivedType !== "unknown" && (
@@ -276,7 +359,7 @@ export default function ScanReview({
                   ) : (
                     FIELD_LABELS[field]
                   )}
-                  {!isManual && level === "low" && !values[field] && <em> · no lo leímos</em>}
+                  {!isManual && level === "low" && !valueOf(field) && <em> · no lo leímos</em>}
                   {!isManual && level === "review" && <em> · verificá</em>}
                 </span>
                 <input
@@ -284,9 +367,11 @@ export default function ScanReview({
                   inputMode={field === "vintage" ? "numeric" : undefined}
                   min={field === "vintage" ? 1900 : undefined}
                   max={field === "vintage" ? new Date().getFullYear() : undefined}
-                  value={values[field]}
+                  value={valueOf(field)}
                   onChange={(e) => setField(field, e.target.value)}
-                  placeholder={FIELD_LABELS[field]}
+                  placeholder={
+                    field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]
+                  }
                   list={dl?.id}
                   disabled={saving}
                   autoComplete="off"

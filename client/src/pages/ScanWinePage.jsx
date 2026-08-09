@@ -39,6 +39,11 @@ const toWinePayload = (draft) => ({
     confidence: draft.identConfidence || {},
     editedFields: draft.identEditedFields || [],
     matchedFrom: draft.identMatchedFrom || "",
+    // La única de estas que es una AFIRMACIÓN de la persona y no una medición:
+    // "sí, este vino se llama igual que su bodega". Vale por lo mismo que vale un
+    // campo tipeado, y sin ella un Norton o un Durigutti que todavía no esté en
+    // el catálogo curado no podría publicarse nunca.
+    sameNameConfirmed: draft.identSameNameConfirmed === true,
   },
 });
 

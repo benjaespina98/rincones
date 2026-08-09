@@ -68,7 +68,15 @@ export const checkCoherence = (values = {}) => {
   const varietal = String(values.varietal || "").trim();
 
   if (!nombre) issues.push("sin-nombre");
-  else if (bodega && fold(nombre) === fold(bodega)) issues.push("nombre-es-bodega");
+  // `sameNameConfirmed` es la respuesta de la persona a este mismo aviso. Hay
+  // muchos vinos que se llaman como su bodega —Norton, El Enemigo, Durigutti— y
+  // sin una salida el aviso era un callejón: ningún dato que escribiera podía
+  // hacerlo desaparecer. Acá el cliente no consulta el catálogo curado (el
+  // servidor sí lo hace, y esa asimetría es la de siempre: preguntar de más es
+  // barato).
+  else if (bodega && fold(nombre) === fold(bodega) && !values.sameNameConfirmed) {
+    issues.push("nombre-es-bodega");
+  }
 
   if (varietal && !isKnownVarietal(varietal)) issues.push("varietal-desconocido");
 
@@ -142,7 +150,8 @@ export const FIELDS_FOR_ISSUE = {
  */
 export const ISSUE_COPY = {
   "sin-nombre": "No pudimos leer cómo se llama este vino. Escribí la línea o el nombre.",
-  "nombre-es-bodega": "El nombre y la bodega nos quedaron iguales. Fijate cuál es cuál en la etiqueta.",
+  "nombre-es-bodega":
+    "El nombre y la bodega nos quedaron iguales. Fijate cuál es cuál en la etiqueta, o confirmá que se llaman igual.",
   "varietal-desconocido": "Esa uva no nos suena. Revisá cómo está escrita.",
   "tipo-incoherente": "La uva y el tipo no coinciden. Revisá cuál de los dos leímos mal.",
   "cosecha-implausible": "Ese año no puede ser. Revisá la cosecha.",

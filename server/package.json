@@ -12,6 +12,7 @@
     "migrate:lots": "node scripts/migrateLots.js",
     "migrate:names": "node scripts/migrateWineNames.js",
     "migrate:promos": "node scripts/migratePromotions.js",
+    "migrate:catalogo": "node scripts/migrateCommunityCatalog.js",
     "mail:test": "node scripts/testEmail.js"
   },
   "keywords": [],

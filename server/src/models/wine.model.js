@@ -132,6 +132,11 @@ const wineSchema = new mongoose.Schema(
         region: { type: Number },
         type: { type: Number },
       },
+      // La persona confirmó que el vino se llama igual que su bodega (Norton,
+      // El Enemigo, Durigutti). Se guarda porque hay que poder volver a
+      // aportarlo al catálogo comunitario cuando el vino se edita, sin volver a
+      // preguntar lo mismo.
+      sameNameConfirmed: { type: Boolean, default: false },
       // Si el catálogo completó huecos, de qué fuente salieron.
       matchedFrom: { type: String, trim: true },
       capturedAt: { type: Date },
