@@ -91,7 +91,10 @@ export const homeTitle = ({ stats, seed = 0 } = {}) => {
   const top = stats?.topVarietals?.[0];
   const franja = dayPart();
 
-  if (stock === 0) return "Tu bodega está vacía por ahora";
+  // "vacía" describe cero vinos cargados (el caso de arriba). Acá hay al menos
+  // uno: se probó y no quedó stock, que es distinto y el texto tiene que
+  // notarlo — si no, suena a que la carga se perdió.
+  if (stock === 0) return "Ya no te queda nada en stock";
 
   if (isHot() && esHoraDeVino()) {
     return pick(

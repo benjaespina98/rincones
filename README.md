@@ -24,6 +24,9 @@ etiquetas y la generación de fichas.
 - [API REST](#api-rest)
 - [Testing](#testing)
 - [Despliegue](#despliegue)
+- [Backups](#backups)
+- [Monitoreo de errores](#monitoreo-de-errores)
+- [Dominio propio](#dominio-propio)
 
 ---
 
@@ -111,8 +114,8 @@ referencias de compra en MercadoLibre.
 
 ### Testing
 
-- **Node Test Runner** (`node --test`) en el backend — 111 tests
-- **Vitest** + **Testing Library** en el frontend — 43 tests
+- **Node Test Runner** (`node --test`) en el backend — 191 tests
+- **Vitest** + **Testing Library** en el frontend — 69 tests
 
 ---
 
@@ -277,16 +280,21 @@ Dos cosas que conviene tener presentes:
 | `CLOUDINARY_URL` | No | Almacenamiento de imágenes |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | No | Envío de mails |
 | `ANALYTICS_SALT` | No | Sal del hash de visitantes |
+| `COOKIE_DOMAIN` / `COOKIE_SAMESITE` | No | Sólo con frontend y backend en subdominios de un dominio propio |
+| `SENTRY_DSN` / `SENTRY_RELEASE` | No | Monitoreo de errores (ver [Monitoreo de errores](#monitoreo-de-errores)) |
 
 Las variables opcionales **degradan con elegancia**: sin Gemini el escaneo cae al
-OCR local, sin Cloudinary las imágenes se guardan en base, y sin SMTP el enlace de
-recuperación queda en el log del servidor.
+OCR local, sin Cloudinary las imágenes se guardan en base, sin SMTP el enlace de
+recuperación queda en el log del servidor, y sin Sentry el monitoreo simplemente
+no hace nada.
 
 ### Frontend (`client/.env`)
 
 | Variable | Para qué |
 |---|---|
 | `VITE_API_URL` | URL base de la API |
+| `VITE_SITE_URL` | Dominio público (Open Graph, canonical) — ver [Dominio propio](#dominio-propio) |
+| `VITE_SENTRY_DSN` / `VITE_SENTRY_RELEASE` | Monitoreo de errores del cliente |
 
 ---
 
@@ -379,8 +387,8 @@ públicas.
 ## Testing
 
 ```bash
-npm test -w server   # 111 tests
-npm test -w client   # 43 tests
+npm test -w server   # 191 tests
+npm test -w client   # 69 tests
 ```
 
 Los tests cubren las reglas que no se ven leyendo el código y que, si se rompen,
@@ -403,6 +411,75 @@ Frontend y backend se despliegan como **dos proyectos separados en Vercel**.
 3. **Frontend**: desplegar `client` con `VITE_API_URL` apuntando al dominio del
    backend. Las rutas de React Router las resuelve
    [`client/vercel.json`](client/vercel.json).
+
+---
+
+## Backups
+
+**Estado real, sin asumir nada:** el código nunca creó un backup por su cuenta
+—no hay forma de saberlo sin entrar a Atlas— así que antes de tener usuarios de
+verdad hace falta **VERIFICACIÓN MANUAL**:
+
+1. Entrar a [cloud.mongodb.com](https://cloud.mongodb.com) → el proyecto → el
+   cluster → pestaña **Backup**.
+2. Confirmar si **Cloud Backup** está activado y, si lo está, la retención
+   configurada (por defecto suele ser corta).
+3. Si el cluster es **M0 (free tier)**, Atlas **no ofrece Cloud Backup en
+   absoluto** — es una limitación del plan, no un toggle apagado. En M2/M5 sí
+   existe pero con retención acotada. Sólo M10 en adelante tiene el backup
+   continuo completo.
+
+Si el cluster es M0 (lo más probable para un proyecto que arranca), la única
+red de contención hoy es el simulacro de abajo, corrido a mano y a intervalos
+—no hay nada automático corriendo solo—.
+
+### Simulacro de backup y restore
+
+```bash
+npm run backup:drill -w server -- --source=rincones --dry   # ver qué haría
+npm run backup:drill -w server -- --source=rincones          # volcar + restaurar + verificar
+npm run backup:drill -w server -- --source=rincones --cleanup # ídem, y vacía la base de prueba al final
+```
+
+Ver [`server/scripts/backupRestoreDrill.js`](server/scripts/backupRestoreDrill.js).
+Nunca escribe en `--source`: sólo lee, vuelca cada colección a JSON en
+`server/scripts/backups/` (gitignorado — son datos reales de usuarios) y
+restaura ese volcado en una base sandbox aparte (`<source>__restore_drill`)
+para comparar documento por documento. El volcado que queda en disco **es**
+el backup manual; movelo fuera del repo si lo vas a conservar.
+
+---
+
+## Monitoreo de errores
+
+Apagado por defecto. Con `SENTRY_DSN` (backend) y/o `VITE_SENTRY_DSN`
+(frontend) puestas, cada error 500 y cada excepción no controlada se reporta a
+[Sentry](https://sentry.io) (plan gratuito: 5.000 eventos/mes sin tarjeta).
+Sin las variables, no se instala ni se manda nada — ni siquiera se descarga el
+paquete del lado del cliente (`client/src/services/errorMonitoring.js` importa
+Sentry de forma diferida, sólo si hay DSN).
+
+Antes de que algo llegue a Sentry se filtran el header `Authorization`,
+cualquier cookie y los campos de contraseña/token que pudieran venir en el
+body de una request fallida (ver `server/src/config/sentry.js` y
+`client/src/services/errorMonitoring.js`).
+
+---
+
+## Dominio propio
+
+Preparado para un dominio propio sin asumir cuál va a ser. Al tenerlo:
+
+| Dónde | Qué cambiar |
+|---|---|
+| `CORS_ALLOWED_ORIGINS` (env del backend) | Agregar el dominio del frontend |
+| `VITE_SITE_URL` (env del frontend, en Vercel) | El dominio público — sin esto, Open Graph y el `canonical` de `index.html` siguen apuntando a `rincones.vercel.app` |
+| `client/vercel.json` → `rewrites` | El destino de `/api/:path*` está fijo al dominio actual del backend; Vercel no interpola variables de entorno ahí, así que es edición manual |
+| `COOKIE_DOMAIN` (env del backend, opcional) | Sólo si frontend y backend van a vivir en subdominios del mismo dominio propio (`app.` / `api.`) |
+| `FRONTEND_URL` (env del backend) | Se usa en los enlaces de los mails de recuperación de contraseña |
+
+Nada de esto rompe el estado actual: todas son variables opcionales o con
+default al dominio de Vercel de hoy.
 
 ---
 

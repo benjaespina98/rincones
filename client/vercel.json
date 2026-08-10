@@ -17,7 +17,7 @@
       ]
     },
     {
-      "source": "/(favicon.svg|manifest.webmanifest|icon-maskable.svg)",
+      "source": "/(favicon.svg|manifest.webmanifest|icon-maskable.svg|icon-192.png|icon-512.png|icon-maskable-192.png|icon-maskable-512.png|apple-touch-icon.png)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]

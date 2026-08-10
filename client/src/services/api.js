@@ -1,4 +1,5 @@
 import axios from "axios";
+import { captureError } from "./errorMonitoring";
 
 const devApiUrl = "http://localhost:4000/api";
 
@@ -131,6 +132,14 @@ api.interceptors.response.use(
     const url = original?.url || "";
     const isMeCheck = url.includes("/auth/me");
     const isAuthCall = url.includes("/auth/");
+
+    // Sólo 5xx: un 401 acá es la expiración normal de la sesión (ver arriba) y
+    // un 4xx es una respuesta esperada (validación, permisos). Reportar esos
+    // sería ruido, no una falla real. Nunca se manda el body de la request: sólo
+    // a dónde y qué método, que alcanza para reconocer el endpoint que falló.
+    if (status >= 500) {
+      captureError(error, { url, method: original?.method, status });
+    }
 
     // `_reintentado` evita el bucle: si la llamada ya se rehizo con un token
     // nuevo y vuelve a dar 401, el problema no es la expiración.

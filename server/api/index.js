@@ -5,6 +5,9 @@ dotenv.config({
   path: path.resolve(__dirname, "../.env"),
 });
 
+const { initSentry, captureException, flush } = require("../src/config/sentry");
+initSentry();
+
 const app = require("../src/app");
 const connectToDatabase = require("../src/config/db");
 const { applyCorsHeaders } = require("../src/config/cors");
@@ -36,9 +39,16 @@ module.exports = async (req, res) => {
     // a mano: sin ellas, una caída de la base le llega al navegador disfrazada de
     // error de CORS y el mensaje real queda oculto justo cuando más falta hace.
     applyCorsHeaders(req, res);
+    // El detalle (host de Mongo, motivo de la caída) queda en el log del
+    // servidor, no en la respuesta: es la misma regla que aplica errorHandler.js
+    // en el resto de la app, y este era el único lugar que todavía la rompía.
+    console.error("[error]", req.method, req.url, "— no se pudo conectar a la base:", error.message);
+    captureException(error, { method: req.method, url: req.url, phase: "db-connect" });
+    // Este es justo el archivo que corre COMO función serverless: si algo
+    // congela el proceso apenas sale la respuesta, es acá.
+    await flush(2000);
     return res.status(500).json({
       message: "Error al conectar con la base de datos",
-      details: error.message,
     });
   }
 };
