@@ -304,6 +304,11 @@ wineSchema.index({ userId: 1, name: 1 });
 wineSchema.index({ userId: 1, favorite: 1, tasted: 1 });
 wineSchema.index({ userId: 1, status: 1, quantity: 1 });
 wineSchema.index({ userId: 1, "purchase.purchasedAt": -1 });
+// Para `findSameWine`: al cargar un vino hay que saber si ya lo tenés, y la
+// cosecha es el único criterio de identidad que es un campo guardado (los otros
+// tres los calcula `identityKey`). Filtrar por acá evita traer la colección
+// entera en cada alta, que es el camino crítico del escaneo.
+wineSchema.index({ userId: 1, vintage: 1 });
 
 // Keep `updatedAt` fresh
 wineSchema.pre("save", function () {
@@ -348,24 +353,20 @@ wineSchema.pre("validate", function () {
   this.quantity = availableFromLots(this.lots);
 });
 
-// Instance helper: add a consumption "moment" to a wine
-wineSchema.methods.addMoment = async function (momentData) {
-  this.moments = this.moments || [];
-  const moment = Object.assign({}, momentData, { date: momentData.date || new Date() });
-  this.moments.push(moment);
-
-  if (typeof moment.rating === "number") {
-    this.rating = moment.rating; // keep latest rating; can be changed to average later
-  }
-
-  this.lastConsumedAt = moment.date || new Date();
-  this.consumptionCount = (this.consumptionCount || 0) + 1;
-  this.status = "tasted";
-  this.tasted = true;
-
-  await this.save();
-  return this;
-};
+/**
+ * Acá vivía `wineSchema.methods.addMoment`, que escribía en el array `moments`
+ * de arriba. Estaba MUERTO y era peligroso justamente por eso.
+ *
+ * Los momentos viven en su propia colección (`models/wineMoment.model.js`) y los
+ * escribe `addMoment` en `services/wines.service.js`. Eran dos funciones con el
+ * mismo nombre guardando en lugares distintos: nada llamaba a ésta, pero
+ * cualquiera que hiciera `wine.addMoment(...)` —que es lo que uno escribiría al
+ * ver el método en el modelo— habría guardado el momento donde ningún lector lo
+ * busca. El diario del usuario se habría perdido en silencio.
+ *
+ * Se verificó contra la base antes de sacarlo: cero vinos con momentos en el
+ * array embebido.
+ */
 
 // Static: aggregate useful stats for a user (used by profile endpoint)
 wineSchema.statics.getUserStats = async function (userId) {

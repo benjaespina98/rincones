@@ -24,7 +24,14 @@ router.get("/featured", authenticate, catalogController.featured);
 router.get("/price", authenticate, catalogController.price);
 
 // POST /api/catalog/match - completa datos de un escaneo desde el catálogo.
-router.post("/match", authenticate, aiLimiter, catalogController.match);
+//
+// SIN `aiLimiter` a propósito: desde que `findMatch` mira sólo el catálogo curado
+// y el comunitario, esto no toca Gemini ni sale a internet — es memoria y una
+// consulta indexada. Contarlo contra la cuota de IA cobraba dos llamadas por
+// escaneo (ésta y la de la etiqueta) sobre un presupuesto de 60 por hora, así que
+// escanear una compra entera se quedaba sin margen a la mitad. El límite general
+// de la app sigue aplicando.
+router.post("/match", authenticate, catalogController.match);
 
 // Reseñas públicas de vinos (comunidad).
 // "/reviews/mine" va antes que "/reviews" por claridad; son rutas distintas y

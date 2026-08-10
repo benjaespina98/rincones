@@ -1,7 +1,7 @@
 // Identidad de un vino: bodega + línea + varietal + nombre propio.
 //
 // POR QUÉ EXISTE ESTE ARCHIVO
-// El catálogo (argentineWines.js) siempre tuvo los campos SEPARADOS: sus filas
+// El catálogo () siempre tuvo los campos SEPARADOS: sus filas
 // son [bodega, línea, varietal, región, tipo]. Pero los dos lugares donde Gemini
 // devuelve vinos (visión de etiqueta y búsqueda por texto) tenían instrucciones
 // CONTRADICTORIAS para el campo `name`: uno pedía "sin la bodega" y el otro daba
@@ -13,6 +13,9 @@
 // no pueden volver a divergir.
 
 const { fold } = require("./argentineWines");
+// El vocabulario de uvas vive entero en data/grapes.js. Acá sólo se usa la
+// operación que corresponde a una clave: llevar la uva a su forma canónica.
+const { canonicalGrape } = require("./grapes");
 
 // Fragmento de prompt compartido. Se inyecta literal en visión y en búsqueda.
 const FIELD_CONVENTION = `Separá la etiqueta en estos campos, que son EXCLUYENTES entre sí
@@ -84,6 +87,68 @@ const composeSearchName = ({ name, line, varietal, winery } = {}) => {
 };
 
 /**
+ * ── LA MISMA BOTELLA, ESCRITA DE DOS MANERAS ────────────────────────────────
+ *
+ * Todo lo de abajo existe por un caso concreto: el mismo Pispi de Mosquita
+ * Muerta, escaneado dos veces, terminó como DOS filas del catálogo público, cada
+ * una con su foto. No fue un error de lectura —las dos lecturas eran correctas—:
+ * fue que la etiqueta se puede transcribir de más de una forma y la clave tomaba
+ * los campos crudos.
+ *
+ *   escaneo 1 → winery "Mosquita Muerta Wines", varietal "Blend"
+ *   escaneo 2 → winery "Mosquita Muerta",       varietal "Blend de tintas"
+ *
+ * Ninguna de las dos está mal. La bodega se firma con y sin "Wines" según dónde
+ * mires la etiqueta, y un corte de tintas es un blend lo escriba como lo escriba
+ * quien lo lea. Pero como la clave era `nombre+uva|bodega` con los strings tal
+ * cual venían, esas dos lecturas producían claves distintas, y con eso:
+ *
+ *   - dos filas en el catálogo comunitario, las dos publicadas;
+ *   - el pool de fotos partido, cada mitad con una foto de la misma botella;
+ *   - el precio y las reseñas repartidos entre dos vinos que son uno;
+ *   - y `isCuratedWine` diciendo que no, cuando el vino SÍ está en el catálogo
+ *     curado ("Mosquita Muerta Wines / Pispi / Blend"), así que la fila
+ *     comunitaria nunca se frenó.
+ *
+ * La normalización vive acá y sólo toca las CLAVES. Lo que se muestra sigue
+ * siendo lo que dice la etiqueta: si tu botella dice "Blend de tintas", tu ficha
+ * dice "Blend de tintas". Lo que se unifica es la identidad con la que ese vino
+ * se cruza contra los demás.
+ */
+
+/**
+ * La bodega, sin lo que no la identifica.
+ *
+ * "Mosquita Muerta" y "Mosquita Muerta Wines" son la misma bodega; "Norton" y
+ * "Bodega Norton" también. Cuál de las dos formas queda depende de dónde mire la
+ * etiqueta quien la lea, así que ninguna puede ser LA clave.
+ *
+ * Se sacan sólo los tokens societarios —los que acompañan a cualquier bodega y
+ * por eso no distinguen a ninguna—. El resto del nombre no se toca: "Finca" y
+ * "Familia" se quedan, porque ahí sí son parte del nombre propio ("Finca Las
+ * Moras" no es "Las Moras" para nadie).
+ *
+ * De paso arregla un bug que estaba a la vista en `identityKey`: la bodega se
+ * truncaba al primer token, así que las 24 bodegas del catálogo que empiezan con
+ * "Bodega" —Norton, Chacra, Colomé, Garzón…— compartían el token "bodega" entre
+ * sí y ninguna coincidía con la lectura que dijera sólo "Norton".
+ */
+const WINERY_PREFIX = /^(bodegas?\s+y\s+vinedos|bodegas?|vinedos|vinas?)\s+/;
+const WINERY_SUFFIX =
+  /\s+(wines?|winery|wine\s+estate|vineyards?|vinedos|estate|s\.?\s?a\.?|s\.?r\.?l\.?|e\s+hijos|y\s+cia)$/;
+
+const canonicalWinery = (winery = "") => {
+  const base = fold(winery);
+  if (!base) return "";
+  let out = base.replace(WINERY_PREFIX, "").replace(WINERY_SUFFIX, "").trim();
+  // Si limpiar la deja irreconocible, la bodega ERA ese token: "Bodega Chandon"
+  // pierde el prefijo y queda "chandon", pero una llamada "Bodegas" a secas no
+  // puede quedar en la nada.
+  if (out.length < 3) return base;
+  return out;
+};
+
+/**
  * Clave de los pools compartidos entre usuarios (fotos, precios, catálogo
  * comunitario): nombre + uva + bodega.
  *
@@ -94,11 +159,15 @@ const composeSearchName = ({ name, line, varietal, winery } = {}) => {
  * Se agrega sólo si el nombre no la trae ya. Eso hace que la clave sea la MISMA
  * que generaban los nombres viejos —que incluían la uva—, así que sacarla del
  * nombre visible no parte los pools en dos ni deja huérfano lo ya aportado.
+ *
+ * Los dos campos pasan por su forma canónica (ver arriba): es lo que hace que
+ * "Pispi / Mosquita Muerta Wines / Blend" y "PISPI / Mosquita Muerta / Blend de
+ * tintas" sean una sola botella y no dos.
  */
 const poolKey = (name, winery, varietal = "") => {
-  const core = fold(composeSearchName({ name, varietal }));
+  const core = fold(composeSearchName({ name, varietal: canonicalGrape(varietal) }));
   if (core.length < 3) return null;
-  return `${core}|${fold(winery)}`;
+  return `${core}|${canonicalWinery(winery)}`;
 };
 
 /**
@@ -110,25 +179,39 @@ const poolKey = (name, winery, varietal = "") => {
  * ya guardados y mejora a medida que `line` se propaga.
  */
 const identityKey = (wine = {}) => {
-  const varietal = fold(wine.varietal || "");
+  // Dos formas de la uva, para dos usos distintos. La CRUDA es la que hay que
+  // sacar del nombre —si la etiqueta se guardó como "Pispi Blend de tintas", lo
+  // que sobra del nombre es ese texto y no el canónico—; la CANÓNICA es la que
+  // entra en la clave, para que "Blend" y "Blend de tintas" no sean dos vinos.
+  const varietalRaw = fold(wine.varietal || "");
+  const varietal = fold(canonicalGrape(wine.varietal || ""));
   const explicit = fold(wine.line || "") || fold(wine.name === wine.line ? "" : wine.properName || "");
 
   let core = explicit;
   if (!core) {
     core = fold(wine.name || "");
-    if (varietal && core.includes(varietal)) {
-      core = core.replace(varietal, " ").replace(/\s+/g, " ").trim();
+    for (const uva of [varietalRaw, varietal]) {
+      if (uva && core.includes(uva)) {
+        core = core.replace(uva, " ").replace(/\s+/g, " ").trim();
+      }
     }
   }
 
   // La bodega se trunca al primer token a propósito: las fuentes externas dicen
-  // "Catena" donde el catálogo dice "Catena Zapata".
-  const wineryToken = fold(wine.winery || "").split(/\s+/)[0] || "";
+  // "Catena" donde el catálogo dice "Catena Zapata". Se trunca sobre la forma
+  // canónica, no sobre el texto crudo: si no, "Bodega Norton" aporta el token
+  // "bodega", que no identifica a ninguna bodega en particular y no coincide con
+  // la lectura que dijo sólo "Norton".
+  const wineryToken = canonicalWinery(wine.winery || "").split(/\s+/)[0] || "";
   return { core, varietal, wineryToken };
 };
 
 module.exports = {
   FIELD_CONVENTION,
+  // Se re-exporta por comodidad de quien ya trabaja con identidades; la fuente
+  // es data/grapes.js.
+  canonicalGrape,
+  canonicalWinery,
   composeDisplayName,
   composeSearchName,
   identityKey,

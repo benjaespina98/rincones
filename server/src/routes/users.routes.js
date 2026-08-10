@@ -214,8 +214,21 @@ router.get("/:id/wine-stats", authenticate, async (req, res) => {
   try {
     const targetUserId = req.params.id;
 
-    // Permisos: el usuario debe pedir sus propias stats o ser admin
-    if (req.user.id !== targetUserId && !req.user.isAdmin) {
+    /**
+     * Sólo tus propias estadísticas.
+     *
+     * Acá había además un `|| req.user.isAdmin`, y era código muerto: el
+     * middleware pone `id`, `email` y `role` en `req.user` — nunca `isAdmin`—,
+     * así que la condición era siempre falsa y ningún admin pasó jamás por ese
+     * camino. Fallaba cerrado, que es el lado bueno para equivocarse, pero la
+     * línea decía que existía un permiso que no existía.
+     *
+     * No se "arregla" apuntando a `role`: el rol del token es el que tenías al
+     * iniciar sesión, y por eso las rutas de admin usan `requireAdmin`, que lo
+     * verifica contra la base. Esta ruta no lo necesita — su único llamador es
+     * el dueño de las stats— así que la regla queda dicha en una sola línea.
+     */
+    if (req.user.id !== targetUserId) {
       return res.status(403).json({ success: false, error: "No autorizado" });
     }
 

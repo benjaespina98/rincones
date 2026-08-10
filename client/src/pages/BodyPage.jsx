@@ -64,7 +64,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     deleteWine,
     toggleFavorite,
     updateWineTasted,
-    adjustStock,
     openBottle,
     undoOpenBottle,
     bulkAction,
@@ -769,14 +768,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     });
   };
 
-  const handleAdjustQuantity = (wine, delta) => {
-    if (delta < 0 && Number(wine.quantity) <= 0) return;
-    withPendingAction(wine._id, async () => {
-      await adjustStock(wine._id, delta);
-      if (delta > 0) showSuccess(`Stock actualizado: ${wineDisplayName(wine)}`);
-    });
-  };
-
   const restoreDeletedWine = async (wineToRestore, toastId) => {
     if (!wineToRestore) return;
 
@@ -1195,33 +1186,26 @@ export default function BodyPage({ initialFilter = "instock" }) {
                 {expanded && !esGrilla && (
                   <div className="wine-row__expand">
                     <div className="wine-row__controls">
-                      {/* ── AJUSTAR STOCK, que NO es tomarse una ──────────────
-                          El rótulo dice "Ajustá tu stock" y no "Botellas": el
-                          número solo obligaba a acordarse de qué contaba, y
-                          convive con un botón que también mueve el stock pero
-                          significa otra cosa.
+                      {/* ── EL STOCK SE AJUSTA EN LA FICHA, Y SÓLO AHÍ ────────
+                          Acá vivía un stepper igual al de la ficha del vino. Era
+                          la misma acción dibujada dos veces, y la duplicación no
+                          salía gratis: cada lugar necesitaba su propio rótulo y
+                          su propia aclaración de que restar no es tomarse una,
+                          así que la fila desplegada dedicaba tres renglones a
+                          explicar un control que se usa de vez en cuando.
 
-                          La aclaración de que restar acá no marca el vino como
-                          tomado vivía en un `title=`, que en un teléfono no
-                          existe. Ahora está escrita debajo, una sola vez, en vez
-                          de repetirse en el aria-label de cada botón. */}
-                      <div className="wine-qty-controls" role="group" aria-label={`Ajustar stock de ${wineDisplayName(wine)}`}>
-                        <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
-                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, -1)} disabled={isPending || Number(wine.quantity) <= 0} aria-label={`Quitar una botella del stock de ${wineDisplayName(wine)}, sin marcarla como tomada`}>
-                          <Icon name="minus" size={15} />
-                        </button>
-                        {/* El número va en un span interno con `key`: al cambiar,
-                            React lo remonta y la animación de rebote se vuelve a
-                            reproducir. La región viva es la de afuera y no se
-                            desmonta nunca, así el lector de pantalla sigue
-                            anunciando el cambio. */}
-                        <span className="wine-qty" aria-live="polite">
-                          <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
-                        </span>
-                        <button type="button" className="qty-btn" onClick={() => handleAdjustQuantity(wine, 1)} disabled={isPending} aria-label={`Sumar una botella al stock de ${wineDisplayName(wine)}`}>
-                          <Icon name="plus" size={15} />
-                        </button>
-                      </div>
+                          De los dos lugares se fue ÉSTE y no el de la ficha, que
+                          es lo contrario de lo que uno diría. La razón es que en
+                          vista GRILLA la tarjeta no se despliega: tocarla abre la
+                          ficha (decisión deliberada — expandir una celda
+                          descoloca a toda la cuadrícula). O sea que la fila
+                          desplegada no existe en grilla, y dejar el stock sólo
+                          acá habría dejado media app sin poder ajustarlo. La
+                          ficha, en cambio, se alcanza desde las dos vistas.
+
+                          Lo que se hace seguido —abrir una botella— se queda:
+                          ésa es la acción de la lista. Corregir el inventario es
+                          otra cosa y tiene su pantalla. */}
 
                       {/* Mientras haya botellas, la acción es abrir una: es lo
                           que se hace con un vino que tenés en casa, y de paso lo
@@ -1254,15 +1238,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         </button>
                       )}
                     </div>
-
-                    {/* Qué significa el stepper de arriba, dicho una sola vez y
-                        en pantalla. Es la línea que separa las dos acciones que
-                        mueven el mismo número: acá corregís lo que tenés (se
-                        rompió, la regalaste, contaste mal), al lado registrás
-                        que te la tomaste. */}
-                    <p className="wine-row__controls-note">
-                      El más y el menos corrigen tu stock. No marcan el vino como tomado.
-                    </p>
 
                     {/* Las dos cosas juntas, que es de donde salía la confusión:
                         haberlo tomado y que te queden botellas no se contradicen. */}

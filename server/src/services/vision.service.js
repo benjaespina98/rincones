@@ -5,6 +5,7 @@
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
 const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
 const { canonicalVarietal, checkCoherence } = require("../data/wineValidation");
+const { expandAbbreviation } = require("../data/grapes");
 
 const TIMEOUT_MS = 12000;
 // Tope total de la llamada. El cliente aborta a los 30s: el server tiene que
@@ -14,33 +15,22 @@ const BUDGET_MS = 22000;
 
 const isVisionConfigured = isGeminiConfigured;
 
-// Sinónimos/abreviaturas comunes de uvas → nombre canónico bien escrito.
-const VARIETAL_SYNONYMS = {
-  "cab sauv": "Cabernet Sauvignon",
-  "cab. sauv.": "Cabernet Sauvignon",
-  "cabernet sauv": "Cabernet Sauvignon",
-  "cab franc": "Cabernet Franc",
-  "cab. franc": "Cabernet Franc",
-  "sauv blanc": "Sauvignon Blanc",
-  "sauv. blanc": "Sauvignon Blanc",
-  cs: "Cabernet Sauvignon",
-  pv: "Petit Verdot",
-  corte: "Blend",
-  "gran corte": "Blend",
-};
-
-// Normaliza el varietal leído: aplica sinónimos y capitaliza prolijo.
-const normalizeVarietal = (raw = "") => {
-  const v = String(raw).trim();
-  if (!v) return "";
-  const low = v.toLowerCase().replace(/\s+/g, " ");
-  if (VARIETAL_SYNONYMS[low]) return VARIETAL_SYNONYMS[low];
-  return v
-    .split(/\s+/)
-    .map((w) => (w.length <= 2 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()))
-    .join(" ");
-};
-
+/**
+ * La tabla de abreviaturas vivía acá y ahora está en data/grapes.js, con el
+ * resto del vocabulario de uvas.
+ *
+ * Incluía además `corte: "Blend"` y `"gran corte": "Blend"`, que eran de otra
+ * naturaleza: no expandían una abreviatura, TRADUCÍAN una palabra por otra. La
+ * diferencia importa porque esto corre al LEER y lo que sale se guarda: una
+ * etiqueta que dice "Corte" quedaba guardada como "Blend", y la ficha mostraba
+ * una palabra que no está impresa en la botella. El catálogo curado tiene un
+ * vino cuyo varietal ES "Corte" (Luigi Bosca De Sangre), así que ni siquiera era
+ * una forma no canónica: era el dato correcto, reescrito.
+ *
+ * Unificar "Corte" con "Blend" sigue pasando, pero donde corresponde: en la
+ * CLAVE, vía `canonicalGrape`. Ahí los dos se cruzan contra la misma fila sin
+ * que nadie pierda lo que decía su etiqueta.
+ */
 // Deja sólo un año de cosecha plausible (1900..año actual+1) o vacío.
 const normalizeVintage = (raw = "") => {
   const m = String(raw).match(/\b(19|20)\d{2}\b/);
@@ -163,7 +153,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   // vocabulario, que es el que corrige "Blen" → "Blend". Ese caso llegó a
   // producción: una letra que se perdió entre el relieve de la etiqueta y el
   // modelo, guardada tal cual y mostrada en la ficha y en la búsqueda.
-  const uva = canonicalVarietal(normalizeVarietal(parsed.varietal));
+  const uva = canonicalVarietal(expandAbbreviation(parsed.varietal));
 
   const values = {
     winery: String(parsed.winery || "").trim(),

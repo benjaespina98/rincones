@@ -9,7 +9,7 @@
 // extra (con imagen y código de barras) y se ordena por debajo.
 
 const { CATALOG, fold } = require("../data/argentineWines");
-const { identityKey, composeSearchName } = require("../data/wineIdentity");
+const { identityKey, composeSearchName, canonicalGrape } = require("../data/wineIdentity");
 const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
 const communityWines = require("./communityWines.service");
 const CatalogSearch = require("../models/catalogSearch.model");
@@ -358,15 +358,27 @@ const withReviews = async (results) => {
  *   3. Gemini, sólo si lo anterior no alcanzó (cacheado en Mongo).
  *   4. Open Food Facts, best-effort, por imágenes y código de barras.
  */
+/**
+ * Sólo lo que sabemos sin salir a preguntar: catálogo curado + comunitario.
+ *
+ * Los dos son instantáneos (uno es un array en memoria, el otro una consulta
+ * indexada) y los dos son datos que ya verificamos o que cargó una persona. Se
+ * separó en su propia función porque hay un caso —enriquecer un escaneo— donde
+ * NO hay que consultar nada más, y mezclarlo con el resto salía caro. Ver
+ * `findMatch`.
+ */
+const buscarLocal = async (q) =>
+  Promise.all([
+    Promise.resolve(searchCatalog(q)),
+    communityWines.search(q).catch(() => []),
+  ]);
+
 const searchWines = async (query) => {
   const q = String(query || "").trim();
   if (q.length < 2) return { results: [], degraded: false };
 
   // Catálogo curado (sync) + comunitario (DB) en paralelo: ambos rápidos.
-  const [local, community] = await Promise.all([
-    Promise.resolve(searchCatalog(q)),
-    communityWines.search(q).catch(() => []),
-  ]);
+  const [local, community] = await buscarLocal(q);
 
   // Si entre lo curado y lo comunitario ya hay suficiente, cortamos acá y no
   // gastamos cuota de IA ni esperamos a fuentes externas.
@@ -431,27 +443,72 @@ const MATCH_THRESHOLD = 0.72;
  * si Gemini leía bien el nombre pero el primer resultado era otra botella de la
  * misma bodega, el vino quedaba con la región/uva/cosecha equivocadas y el
  * usuario no se enteraba. Acá preferimos no devolver nada antes que mentir.
+ *
+ * ── POR QUÉ SÓLO MIRA LO LOCAL ──────────────────────────────────────────────
+ * Antes llamaba a `searchWines`, o sea la cadena entera: catálogo, comunidad,
+ * Gemini y Open Food Facts. Y esto corre en el CAMINO CRÍTICO del escaneo —
+ * entre que sacás la foto y que aparece la pantalla de revisión —, así que en el
+ * peor caso la espera era: Gemini Vision leyendo la etiqueta, después OTRA
+ * llamada a Gemini buscando lo que Gemini acababa de leer, y encima OFF con sus
+ * 6 segundos de timeout. Tres viajes para completar unos huecos.
+ *
+ * Las dos fuentes remotas además no servían para esto:
+ *
+ *   Gemini — es circular. El modelo ya leyó la etiqueta; volver a preguntarle no
+ *            aporta un dato verificado, aporta una segunda opinión del mismo
+ *            que puede alucinar, y la escribimos con confianza 75 en el vino.
+ *   OFF    — su `region` es EL PAÍS (`countries.split(",")[0]`, ver
+ *            `normalizeOff`). Enriquecer desde ahí escribía "Argentina" en el
+ *            campo región de tu vino, donde va "Luján de Cuyo, Mendoza" — y de
+ *            ahí pasaba al catálogo comunitario. Y su `varietal` viene siempre
+ *            vacío, así que ni siquiera aportaba la uva.
+ *
+ * Queda lo que de verdad puede completar huecos con algo cierto: el catálogo
+ * curado y lo que cargó gente real. Los dos son locales, así que la revisión
+ * ahora aparece apenas termina de leerse la etiqueta.
  */
 const findMatch = async ({ winery, line, name, varietal, vintage } = {}) => {
   // Para BUSCAR sí queremos la uva: "Saint Felicien" a secas trae las cuatro
   // uvas de la línea y el match tendría que desempatar a ciegas.
-  const query = composeSearchName({ name, line, varietal, winery }) || name || "";
+  //
+  // Va la uva CANÓNICA y no la leída, por lo mismo que el veto de más abajo:
+  // buscar "Pispi Blend de tintas" exige que todos esos términos estén en el
+  // índice, y el catálogo curado dice "Blend" — así que la fila correcta ni
+  // siquiera entraba a la lista de candidatos.
+  const query =
+    composeSearchName({ name, line, varietal: canonicalGrape(varietal || ""), winery }) ||
+    name ||
+    "";
   if (String(query).trim().length < 2) return null;
 
-  const { results } = await searchWines(query);
+  const [local, community] = await buscarLocal(query);
+  const results = dedupeAndRank([local, community]);
   if (!results?.length) return null;
+
+  /**
+   * La uva se compara en su forma canónica, no como la leyó el modelo.
+   *
+   * Es el caso Pispi otra vez, por otra puerta. La etiqueta se leyó como "Blend
+   * de tintas", que es correcto, y el catálogo curado lo tiene como "Blend": el
+   * veto de abajo los veía distintos y DESCARTABA la fila curada. El match caía
+   * entonces en la fila comunitaria, que existe pero tiene datos peores —región
+   * "Mendoza Argentina" en vez de "Valle de Uco, Mendoza"—, y esa región se
+   * escribía en el vino del usuario con confianza 75.
+   *
+   * O sea que una lectura MÁS detallada de la etiqueta daba un resultado PEOR.
+   */
+  const uvaLeida = fold(canonicalGrape(varietal || ""));
 
   let best = null;
   for (const cand of results) {
+    const uvaCand = fold(canonicalGrape(cand.varietal || ""));
     // Vetos duros: mejor no enriquecer que enriquecer mal.
-    if (varietal && cand.varietal && fold(varietal) !== fold(cand.varietal)) continue;
+    if (uvaLeida && uvaCand && uvaLeida !== uvaCand) continue;
     if (winery && cand.winery && tokenOverlap(winery, cand.winery) === 0) continue;
 
     const wineryScore = winery && cand.winery ? tokenOverlap(winery, cand.winery) : 0.5;
     const coreScore = tokenOverlap(line || name || query, cand.line || cand.name || "");
-    const varietalScore = varietal && cand.varietal
-      ? (fold(varietal) === fold(cand.varietal) ? 1 : 0)
-      : 0.5;
+    const varietalScore = uvaLeida && uvaCand ? (uvaLeida === uvaCand ? 1 : 0) : 0.5;
 
     const score = 0.45 * wineryScore + 0.35 * coreScore + 0.2 * varietalScore;
     if (!best || score > best.score) best = { score, wine: cand };

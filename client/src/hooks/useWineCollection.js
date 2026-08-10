@@ -45,10 +45,32 @@ export const useWineCollection = () => {
     loadWines();
   }, [loadWines]);
 
+  /**
+   * Agrega un vino a la colección… o actualiza el que ya estaba.
+   *
+   * El server distingue los dos casos y lo dice en `merged`: cargar un vino que
+   * ya tenías es una REPOSICIÓN —le suma botellas a la fila existente— y no un
+   * vino nuevo. Acá se ignoraba ese dato y se hacía `[nuevo, ...prev]` siempre,
+   * así que una reposición metía en la lista un segundo objeto con el MISMO
+   * `_id`: el vino aparecía dos veces y React se quedaba con dos hijos de la
+   * misma key.
+   *
+   * No se notaba de milagro —quien lo llamaba desde el escaneo tenía su propia
+   * copia del estado, que se descartaba al navegar— pero era una fila duplicada
+   * esperando a que alguien compartiera esta lista.
+   */
   const addWine = useCallback(async (wineData) => {
-    const newWine = await createWineApi(wineData);
-    setWines((prev) => [newWine, ...prev]);
-    return newWine;
+    const { wine } = await createWineApi(wineData);
+    setWines((prev) => {
+      // Se busca por `_id` y no se confía en `merged` a secas: el server puede
+      // haber reconocido un vino que esta lista no tiene cargado (se filtró, o
+      // se agregó desde otra pantalla). Reemplazar lo que está y agregar lo que
+      // no cubre los dos casos sin poder duplicar en ninguno.
+      const estaba = prev.some((w) => w._id === wine._id);
+      if (estaba) return prev.map((w) => (w._id === wine._id ? wine : w));
+      return [wine, ...prev];
+    });
+    return wine;
   }, []);
 
   const deleteWine = useCallback(async (id) => {
