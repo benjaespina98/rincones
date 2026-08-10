@@ -27,35 +27,10 @@ const { composeDisplayName } = require("./wineIdentity");
 // acá además de en el cliente porque acá es donde deciden algo irreversible.
 const CONFIDENCE = { TRUSTED: 80, REVIEW: 50 };
 
-// Uvas de referencia, con el color que implican. Se usa para dos cosas: saber si
-// un varietal leído existe, y detectar un tipo que lo contradiga.
-const GRAPE_COLOR = {
-  malbec: "red",
-  "cabernet sauvignon": "red",
-  "cabernet franc": "red",
-  merlot: "red",
-  syrah: "red",
-  "pinot noir": "red",
-  bonarda: "red",
-  tempranillo: "red",
-  "petit verdot": "red",
-  tannat: "red",
-  sangiovese: "red",
-  "petit syrah": "red",
-  criolla: "red",
-  chardonnay: "white",
-  "sauvignon blanc": "white",
-  "torrontes": "white",
-  semillon: "white",
-  viognier: "white",
-  "chenin blanc": "white",
-  gewurztraminer: "white",
-  "pinot grigio": "white",
-  riesling: "white",
-  albarino: "white",
-  moscato: "white",
-  "pedro gimenez": "white",
-};
+// Las uvas de referencia y sus colores viven en data/grapes.js, junto con el
+// resto del vocabulario. Acá se usan para dos cosas: saber si un varietal leído
+// existe, y detectar un tipo que lo contradiga.
+const { GRAPE_COLOR, GRAPE_ALIASES, BLEND_STYLES, grapeColor } = require("./grapes");
 
 /**
  * El vocabulario de uvas aceptadas.
@@ -69,9 +44,14 @@ const GRAPE_COLOR = {
  */
 const buildVocabulary = () => {
   const set = new Set(Object.keys(GRAPE_COLOR));
-  for (const nombre of ["blend", "corte", "gran corte", "blend blanco", "white blend"]) {
-    set.add(nombre);
-  }
+  // Todas las formas de nombrar un corte que la app reconoce. Antes esta lista
+  // estaba escrita a mano acá y ya había divergido de la de verdad: incluía
+  // "gran corte" (que no existe en ningún lado) y le faltaban "blend de tintas",
+  // "mezcla" y compañía, que sí se usan. Sale de data/grapes.js para que sumar
+  // un sinónimo lo sume en los tres lugares a la vez.
+  for (const alias of GRAPE_ALIASES.keys()) set.add(alias);
+  // Y los cortes con nombre propio, que son uva válida sin ser sinónimo de nada.
+  for (const estilo of BLEND_STYLES) set.add(estilo);
   for (const fila of CATALOG) {
     const v = fold(fila.varietal || "");
     if (v) set.add(v);
@@ -153,7 +133,8 @@ const canonicalVarietal = (raw = "") => {
 };
 
 /** El color que implica una uva, o "" si no lo sabemos o es un corte. */
-const grapeColor = (varietal = "") => GRAPE_COLOR[fold(varietal)] || "";
+// `grapeColor` se importa de data/grapes.js y se re-exporta al final para no
+// romper a quien ya lo pedía desde acá.
 
 /**
  * Qué está mal en esta lectura.

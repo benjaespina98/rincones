@@ -47,11 +47,25 @@ test("una uva que no reconocemos NO se borra: se marca", () => {
   assert.equal(uva.known, false);
 });
 
-test("los cortes del catálogo curado cuentan como uva válida", () => {
-  // El vocabulario se arma sumando los varietales del catálogo, así que nombres
-  // de corte que ninguna lista canónica de uvas incluiría siguen siendo válidos.
-  assert.equal(canonicalVarietal("Gran Corte").known, true);
-  assert.equal(canonicalVarietal("Blend").known, true);
+test("los cortes cuentan como uva válida, vengan de donde vengan", () => {
+  // El vocabulario se arma de tres fuentes (ver `buildVocabulary`): las uvas de
+  // referencia, los varietales del catálogo curado y las formas de nombrar un
+  // corte declaradas en data/grapes.js. Un nombre de corte no está en ninguna
+  // lista canónica de uvas y sin embargo es un dato correcto de una etiqueta.
+  assert.equal(canonicalVarietal("Blend").known, true, "sinónimo genérico");
+  assert.equal(canonicalVarietal("Blend de tintas").known, true, "otra forma del genérico");
+  assert.equal(canonicalVarietal("Gran Blend").known, true, "corte con nombre propio, del catálogo");
+  assert.equal(canonicalVarietal("Gran Corte").known, true, "corte con nombre propio, sin fila propia");
+});
+
+test("un corte con nombre propio NO se confunde con el genérico", () => {
+  // Reconocerlo como uva válida es una cosa; tratarlo como si fuera "Blend" es
+  // otra, y sería un error: son botellas distintas y compartirían foto y precio.
+  const { canonicalGrape } = require("../src/data/grapes");
+
+  assert.equal(canonicalGrape("Blend de tintas"), "Blend", "esto sí es el genérico");
+  assert.equal(canonicalGrape("Gran Corte"), "Gran Corte", "esto no");
+  assert.equal(canonicalGrape("Gran Blend"), "Gran Blend");
 });
 
 // ── Coherencia entre campos ─────────────────────────────────────────────────

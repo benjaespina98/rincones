@@ -1,6 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  canonicalGrape,
+  canonicalWinery,
   composeDisplayName,
   composeSearchName,
   identityKey,
@@ -115,6 +117,132 @@ test("la deduplicación sigue reconociendo el mismo vino con nombre viejo o nuev
   });
 
   assert.deepEqual(guardadoViejo, escaneadoHoy);
+});
+
+/**
+ * ── EL PISPI DUPLICADO ──────────────────────────────────────────────────────
+ * El mismo vino, escaneado dos veces, salió como dos tarjetas en la búsqueda.
+ * Las dos lecturas eran correctas: la etiqueta admite las dos transcripciones.
+ * Lo que estaba mal era que la clave usaba los strings crudos.
+ */
+test("la misma botella escrita de dos maneras es UNA sola clave", () => {
+  const escaneo1 = poolKey("Pispi", "Mosquita Muerta Wines", "Blend");
+  const escaneo2 = poolKey("PISPI", "Mosquita Muerta", "Blend de tintas");
+
+  assert.equal(escaneo1, escaneo2, "el mismo vino no puede ocupar dos filas del catálogo");
+});
+
+test("y también deduplica en la búsqueda, contra el catálogo curado", () => {
+  // La fila del catálogo curado ("Mosquita Muerta Wines / Pispi / Blend") y la
+  // lectura suelta tienen que colapsar: si no, la comunitaria aparece al lado de
+  // la curada y el usuario ve el vino dos veces.
+  const curado = identityKey({
+    winery: "Mosquita Muerta Wines",
+    line: "Pispi",
+    varietal: "Blend",
+    name: "Pispi",
+  });
+  const leido = identityKey({
+    winery: "Mosquita Muerta",
+    name: "PISPI",
+    varietal: "Blend de tintas",
+  });
+
+  assert.deepEqual(curado, leido);
+});
+
+test("los cortes CON APELLIDO no colapsan en el genérico", () => {
+  // Es el riesgo de normalizar uvas: "Gran Blend" es el corte alto de Rutini
+  // Apartado y "Blend de Blancs" es un corte de blancos. Fundirlos con el
+  // "Blend" de entrada haría que compartan foto, precio y reseñas.
+  assert.equal(canonicalGrape("Gran Blend"), "Gran Blend");
+  assert.equal(canonicalGrape("Blend de Blancs"), "Blend de Blancs");
+  assert.equal(canonicalGrape("Barrel Blend"), "Barrel Blend");
+
+  assert.notEqual(
+    poolKey("Apartado", "Rutini Wines", "Gran Blend"),
+    poolKey("Apartado", "Rutini Wines", "Blend")
+  );
+
+  // Un corte de tintas y uno de blancos tampoco son la misma botella.
+  assert.notEqual(canonicalGrape("Blend de tintas"), canonicalGrape("Blend blanco"));
+});
+
+test("la uva que no está en la tabla vuelve intacta", () => {
+  // Unificar sinónimos conocidos no es adivinar: una uva que no listamos se
+  // respeta tal cual, que es lo único cierto sobre ella.
+  assert.equal(canonicalGrape("Malbec"), "Malbec");
+  assert.equal(canonicalGrape("Petit Verdot"), "Petit Verdot");
+  assert.equal(canonicalGrape(""), "");
+});
+
+test("la bodega pierde lo societario y conserva el nombre propio", () => {
+  assert.equal(canonicalWinery("Mosquita Muerta Wines"), "mosquita muerta");
+  assert.equal(canonicalWinery("Mosquita Muerta"), "mosquita muerta");
+  assert.equal(canonicalWinery("Bodega Norton"), "norton");
+  assert.equal(canonicalWinery("Bodegas Salentein"), "salentein");
+  assert.equal(canonicalWinery("Pulenta Estate"), "pulenta");
+
+  // "Finca" y "Familia" NO son ruido: son parte del nombre. "Las Moras" a secas
+  // no es como se llama esa bodega para nadie.
+  assert.equal(canonicalWinery("Finca Las Moras"), "finca las moras");
+
+  // Y limpiar no puede dejarla en la nada.
+  assert.equal(canonicalWinery("Bodegas"), "bodegas");
+});
+
+test("dos bodegas distintas siguen siendo distintas", () => {
+  // La normalización agrupa variantes de la MISMA bodega. Si además fundiera
+  // bodegas diferentes, el arreglo sería peor que el problema.
+  assert.notEqual(canonicalWinery("Susana Balbo Wines"), canonicalWinery("Bodegas Balbo"));
+  assert.notEqual(canonicalWinery("Bodega Callia"), canonicalWinery("Bodega Chacra"));
+});
+
+test("normalizar la bodega no parte lo que ya estaba bien", () => {
+  // Los pools viejos se guardaron con la bodega tal cual. Las que no tienen
+  // ruido societario —la mayoría— tienen que producir exactamente la misma
+  // clave que antes, o el cambio dejaría huérfanas sus fotos y sus precios.
+  assert.equal(
+    poolKey("Saint Felicien", "Catena Zapata", "Malbec"),
+    "saint felicien malbec|catena zapata"
+  );
+});
+
+/**
+ * La red de seguridad de toda la normalización: NINGÚN par de vinos del catálogo
+ * curado puede compartir clave.
+ *
+ * Normalizar bodega y uva es agrupar variantes de la misma botella, y el riesgo
+ * simétrico es agrupar botellas distintas. Este test lo verifica sobre los 410
+ * vinos reales en vez de sobre ejemplos elegidos a mano, así que cubre casos que
+ * nadie pensó — como que Luigi Bosca De Sangre existe en "Corte" y en "White
+ * Blend" a la vez, o que el catálogo escribe el corte de blancos de dos maneras
+ * ("Blend Blanco" y "White Blend").
+ *
+ * Si alguien agrega un sinónimo de más a la tabla, esto se pone rojo acá y no en
+ * la app con dos vinos compartiendo foto.
+ */
+test("ningún par de vinos del catálogo curado colapsa en la misma clave", () => {
+  const { CATALOG } = require("../src/data/argentineWines");
+
+  const agrupar = (clave) => {
+    const mapa = new Map();
+    for (const w of CATALOG) {
+      const k = clave(w);
+      if (!mapa.has(k)) mapa.set(k, []);
+      mapa.get(k).push(`${w.winery} / ${w.line} / ${w.varietal}`);
+    }
+    return [...mapa].filter(([, vinos]) => vinos.length > 1);
+  };
+
+  const porIdentidad = agrupar((w) => {
+    const { core, varietal, wineryToken } = identityKey(w);
+    return `${core}|${varietal}|${wineryToken}`;
+  });
+  assert.deepEqual(porIdentidad, [], "dos vinos distintos se deduplicarían entre sí");
+
+  const porPool = agrupar((w) => poolKey(w.name, w.winery, w.varietal));
+  assert.deepEqual(porPool, [], "dos vinos distintos compartirían foto y precio");
 });
 
 test("el catálogo curado muestra la línea y busca con la uva", () => {
