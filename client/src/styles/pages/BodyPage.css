@@ -461,15 +461,10 @@
    que saca la duda de "dice probado pero me quedan dos".
    Va en voz baja a propósito: es un pie de fila que confirma, no una etiqueta
    más que compita con el nombre del vino. */
-/* Qué hace el +/− y qué no. Va pegada al stepper —antes de la línea de estado—
-   porque es su explicación, no un dato del vino. Tenue: se lee la primera vez y
-   después deja de mirarse, que es lo que corresponde a una aclaración. */
-.wine-row__controls-note {
-  margin: 2px 0 0;
-  font-size: var(--text-2xs);
-  line-height: 1.35;
-  color: var(--text-muted);
-}
+/* Acá vivía `.wine-row__controls-note`, la aclaración de qué hace el +/− y qué
+   no. Se fue con el stepper: ajustar stock ahora pasa sólo en la ficha, que es
+   la pantalla que se alcanza desde las dos vistas (en grilla la tarjeta no se
+   despliega). La aclaración sigue existiendo allá, una sola vez. */
 
 .wine-row__state-line {
   margin: -4px 0 0;
