@@ -70,6 +70,9 @@ web_modules/
 .env.*
 !.env.example
 
+# Volcados de scripts/backupRestoreDrill.js: son datos reales de usuarios, nunca al repo.
+server/scripts/backups/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

@@ -247,10 +247,15 @@ export default function DiscoverPage() {
   return (
     <div className="discover-page">
       <header className="discover-hero">
-        <p className="discover-hero__greeting">{greeting()}{name ? `, ${name}` : ""} 👋</p>
-        {/* El título sale del estado real de la bodega: si no hay nada que
+        {/* El saludo es el h1: es lo primero y lo más grande que se lee al
+            abrir la app, así que la semántica tiene que acompañar eso. */}
+        <h1 className="discover-hero__greeting">
+          {greeting()}{name ? `, ${name}` : ""}{" "}
+          <span className="discover-hero__greeting-wave" aria-hidden="true">👋</span>
+        </h1>
+        {/* La frase sale del estado real de la bodega: si no hay nada que
             contar cae a la pregunta neutra. Ver utils/momentCopy.js. */}
-        <h1 className="discover-hero__title">{homeTitle({ stats, seed })}</h1>
+        <p className="discover-hero__title">{homeTitle({ stats, seed })}</p>
 
         {/* Sin submit: busca sola mientras escribís. El botón de la derecha
             limpia, que es lo único que hace falta cuando el resultado ya está

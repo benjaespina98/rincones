@@ -47,4 +47,10 @@ const changeLogSchema = new mongoose.Schema(
   }
 );
 
+// El panel lo lee siempre por fecha: el listado ordena por `createdAt` y el
+// resumen cuenta `createdAt >= desde`. Hoy la colección es chica y no se nota,
+// pero sin este índice esas dos consultas van a recorrer la tabla entera a
+// medida que crezca el historial de auditoría.
+changeLogSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("ChangeLog", changeLogSchema);

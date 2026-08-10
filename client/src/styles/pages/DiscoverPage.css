@@ -14,26 +14,68 @@
   padding: 8px var(--page-pad-x) 0;
 }
 
-/* ── Hero + búsqueda ── */
+/* ── Hero + búsqueda ──
+   Es lo primero que se ve al abrir la app, así que tiene que ganarle al resto
+   de la pantalla de un vistazo: el saludo pasa a ser el protagonista tipográfico
+   (antes iba más chico que el buscador de abajo) y detrás queda un resplandor
+   del acento, apenas insinuado, para que el bloque respire sin sumar una
+   tarjeta ni un borde más. */
 .discover-hero {
+  position: relative;
   display: grid;
-  gap: 12px;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.discover-hero::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  left: -60px;
+  width: 280px;
+  height: 220px;
+  background: radial-gradient(closest-side, var(--accent-muted), transparent 70%);
+  filter: blur(4px);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .discover-hero__greeting {
   margin: 0;
-  font-size: var(--text-md);
-  color: var(--text-secondary);
+  font-size: clamp(1.5rem, 6.5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.discover-hero__greeting-wave {
+  display: inline-block;
+  transform-origin: 70% 70%;
+  animation: hero-wave 1.6s var(--ease-spring) 200ms 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover-hero__greeting-wave {
+    animation: none;
+  }
+}
+
+@keyframes hero-wave {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-8deg); }
+  45% { transform: rotate(14deg); }
+  60% { transform: rotate(-4deg); }
 }
 
 .discover-hero__title {
   margin: 0;
-  font-family: var(--font-family-serif);
-  font-size: clamp(1.5rem, 5.5vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  line-height: 1.1;
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
 .discover-search {

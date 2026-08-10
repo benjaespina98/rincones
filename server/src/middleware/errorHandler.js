@@ -1,4 +1,5 @@
 const multer = require("multer");
+const { captureException, flush } = require("../config/sentry");
 
 /**
  * Manejador de errores final.
@@ -9,7 +10,7 @@ const multer = require("multer");
  * nombres de colecciones, rutas del servidor, hosts. Nada de eso le sirve a
  * quien usa la app, y sí le sirve a quien la quiera atacar.
  */
-const errorHandler = (err, req, res, next) => {
+const errorHandler = async (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
@@ -60,6 +61,12 @@ const errorHandler = (err, req, res, next) => {
 
   // El detalle real queda en el servidor, que es donde sirve.
   console.error("[error]", req.method, req.originalUrl, "—", err.stack || err.message);
+  captureException(err, { method: req.method, url: req.originalUrl });
+  // En serverless la función puede congelarse apenas sale la respuesta de
+  // abajo, antes de que el evento termine de mandarse. Esperar acá (sin
+  // Sentry, no hace nada) es lo que evita perderlo justo en el caso que más
+  // importa: un 500 en producción.
+  await flush(2000);
 
   return res.status(500).json({
     success: false,

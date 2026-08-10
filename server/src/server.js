@@ -24,6 +24,12 @@ dotenv.config({
   path: path.resolve(__dirname, "../.env"),
 });
 
+// Después del .env (necesita SENTRY_DSN) y antes que todo lo demás: si algo
+// explota al cargar la app, este es el único momento en que Sentry ya está
+// listo para verlo.
+const { initSentry, captureException, flush } = require("./config/sentry");
+initSentry();
+
 const app = require("./app");
 const connectToDatabase = require("./config/db");
 const validateEnvironment = require("./config/env");
@@ -39,7 +45,15 @@ const startServer = async () => {
       console.log(`Servidor iniciado en http://localhost:${PORT}`);
     });
   } catch (error) {
+    // No sólo el arranque local: si algo llega a fallar acá, es antes de que
+    // haya un solo request atendido, así que sin esto el fallo quedaba sólo en
+    // la consola de quien tuviera la terminal abierta en ese momento.
     console.error("Error al iniciar el servidor:", error.message);
+    captureException(error, { origin: "server-startup" });
+    // El proceso está a punto de terminar (`process.exit` de la línea de
+    // abajo): sin esperar el flush, el evento puede quedar a mitad de camino y
+    // perderse con el proceso, igual que en serverless.
+    await flush(3000);
     process.exit(1);
   }
 };

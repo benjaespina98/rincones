@@ -6,6 +6,11 @@ import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { initErrorMonitoring } from "./services/errorMonitoring";
+
+// Sin VITE_SENTRY_DSN no hace nada (ver services/errorMonitoring.js): no
+// bloquea el render, así que va suelta y no adentro del árbol de componentes.
+initErrorMonitoring();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
