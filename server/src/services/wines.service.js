@@ -166,8 +166,39 @@ async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
   if (!target.core) return null;
 
   const year = vintage ? parseInt(vintage) : null;
-  const candidatos = await Wine.find({ userId }).select("name winery line varietal vintage quantity");
 
+  /**
+   * La cosecha se filtra en la BASE, no en memoria.
+   *
+   * Antes esto bajaba la colección entera del usuario y descartaba en JS. Con
+   * una bodega chica no se nota; con cientos de vinos es traer todo en cada
+   * alta —que es el camino crítico del escaneo— para quedarse con una fila.
+   *
+   * La cosecha es el único de los cuatro criterios que se compara por igualdad
+   * exacta contra un campo guardado, así que es el único que Mongo puede
+   * resolver por índice. Los otros tres salen de `identityKey`, que es una
+   * función y no un campo: no hay nada contra qué indexarlos.
+   *
+   * ── POR QUÉ NO SE GUARDA LA CLAVE EN EL DOCUMENTO ───────────────────────────
+   * Sería lo más rápido y es exactamente el error que ya cometimos: el catálogo
+   * comunitario guardaba su clave y se quedaba vieja cuando los campos se
+   * completaban después, y el mismo vino terminaba en dos filas. Una clave
+   * persistida es un dato duplicado que hay que mantener sincronizado en TODO
+   * camino de escritura, incluidos los updates atómicos que no pasan por los
+   * hooks del modelo. Preferimos recalcularla siempre y acotar la consulta.
+   *
+   * Un vino SIN cosecha matchea sólo con otro sin cosecha: un 2019 y un 2021 de
+   * la misma etiqueta son botellas distintas para quien colecciona.
+   */
+  // `vintage: null` en Mongo matchea tanto el guardado como null como el campo
+  // ausente, que son los dos estados de un vino sin cosecha.
+  const candidatos = await Wine.find({ userId, vintage: year })
+    .select("name winery line varietal vintage quantity");
+
+  // La cosecha se vuelve a verificar acá aunque la consulta ya la filtró. Son
+  // dos líneas y hacen que la función sea correcta por sí sola: si mañana la
+  // consulta se afloja para reusarla en otro lado, la regla no se pierde en el
+  // camino.
   return (
     candidatos.find((w) => {
       const k = identityKey(w);
@@ -213,7 +244,35 @@ async function createWine(userId, payload) {
   // fila sigue ahí con quantity 0 y vuelve a stock sin perder lo vivido.
   const yaLoTengo = await findSameWine(userId, { name, winery, line, varietal, vintage });
   if (yaLoTengo) {
-    const suman = Math.max(1, parseQuantity(quantity, 1));
+    /**
+     * Cargar con CERO botellas un vino que ya tenías es "me tomé uno afuera".
+     *
+     * El `Math.max(1, …)` que había acá lo hacía imposible: cualquier alta sumaba
+     * al menos una botella, así que registrar que tomaste el mismo vino en un
+     * restaurante te dejaba una botella de más en la cava. La única salida era
+     * cargarlo y después restarla a mano, que es pedirle al usuario que arregle
+     * lo que la app acaba de romper.
+     *
+     * Sin botellas no hay lote ni reposición: sólo queda escrito que lo tomaste,
+     * y cuándo. El stock no se toca en ningún sentido — ni sube ni baja —, que es
+     * exactamente lo que pasó en la realidad.
+     */
+    const suman = parseQuantity(quantity, 1);
+    if (suman === 0) {
+      const full = await Wine.findOneAndUpdate(
+        { _id: yaLoTengo._id, userId },
+        {
+          $set: {
+            tasted: true,
+            status: toWineStatus({ tasted: true, quantity: yaLoTengo.quantity }),
+            lastConsumedAt: new Date(),
+          },
+          $inc: { consumptionCount: 1 },
+        },
+        { returnDocument: "after" }
+      );
+      return { wine: full, merged: true, added: 0 };
+    }
     // Las botellas que entran hoy son un LOTE nuevo, con la fecha de hoy: es la
     // diferencia entre "tengo 8 desde 2019" y "3 de 2019 y 5 de este mes", que
     // es lo que uno realmente tiene. `createdAt` se respeta a propósito —la

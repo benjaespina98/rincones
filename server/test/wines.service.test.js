@@ -108,6 +108,64 @@ test("wines service returns moments for an existing wine", async () => {
   }
 });
 
+/**
+ * El vino que tomaste afuera: entra al historial sin inventar una compra.
+ *
+ * Antes el alta forzaba un mínimo de una botella (`Math.max(1, …)`), así que
+ * registrar que tomaste un vino en un restaurante te dejaba una botella de más
+ * en la cava y había que restarla a mano después. Cero es una cantidad válida, y
+ * sobre un vino que ya tenías significa "me tomé uno, pero no de los míos".
+ */
+test("cargar con CERO botellas no toca el stock: sólo deja escrito que lo tomaste", async () => {
+  const originalFind = Wine.find;
+  const originalFindOneAndUpdate = Wine.findOneAndUpdate;
+  const originalUserFindById = User.findById;
+
+  // Tenés 2 botellas guardadas y nunca lo habías marcado como probado.
+  const existente = {
+    _id: "w9",
+    name: "Pispi",
+    winery: "Mosquita Muerta Wines",
+    varietal: "Blend",
+    vintage: 2023,
+    quantity: 2,
+    tasted: false,
+    status: "stock",
+  };
+
+  let update = null;
+  Wine.find = () => ({ select: async () => [existente] });
+  Wine.findOneAndUpdate = async (_filtro, cambio) => {
+    update = cambio;
+    return { ...existente, tasted: true, status: "tasted" };
+  };
+  User.findById = async () => ({ stats: {}, save: async () => {} });
+
+  try {
+    const { wine, merged, added } = await winesService.createWine("user-1", {
+      name: "Pispi",
+      winery: "Mosquita Muerta Wines",
+      varietal: "Blend",
+      vintage: "2023",
+      quantity: 0,
+    });
+
+    assert.equal(merged, true);
+    assert.equal(added, 0, "no entró ninguna botella");
+    assert.equal(wine.tasted, true, "queda registrado que lo tomaste");
+
+    // Lo que importa es lo que NO está: ni lote nuevo, ni suma de stock.
+    const json = JSON.stringify(update);
+    assert.ok(!json.includes("$concatArrays"), "no se abre un lote de compra");
+    assert.ok(!json.includes("quantity"), "el stock no se toca en ningún sentido");
+    assert.ok(json.includes("lastConsumedAt"), "sí queda la fecha en que lo tomaste");
+  } finally {
+    restore(Wine, "find", originalFind);
+    restore(Wine, "findOneAndUpdate", originalFindOneAndUpdate);
+    restore(User, "findById", originalUserFindById);
+  }
+});
+
 test("volver a cargar un vino que ya tenías suma stock en vez de duplicarlo", async () => {
   const originalFind = Wine.find;
   const originalFindOneAndUpdate = Wine.findOneAndUpdate;

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import { useToast } from "../context/ToastContext";
-import { useWineCollection } from "../hooks/useWineCollection";
+import { createWine } from "../services/wineApi";
 import { createWish } from "../services/wishApi";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
@@ -23,7 +23,16 @@ const toWinePayload = (draft) => ({
   // Las botellas que elegiste en la revisión. Estaba fijo en 1, así que el
   // selector "¿Cuántas botellas?" —presets de media docena y caja incluidos—
   // no servía para nada: comprabas doce, cargabas una.
-  quantity: Math.max(1, Number.parseInt(draft.quantity, 10) || 1),
+  //
+  // El piso es 0 y no 1: cero es el vino que tomaste afuera y no te llevaste.
+  // Ver el comentario largo en ScanReview, donde se elige.
+  quantity: Math.max(0, Number.parseInt(draft.quantity, 10) || 0),
+
+  // Sin botellas, el vino entra ya probado. Es la única lectura posible de "lo
+  // tomé afuera": si no lo tenés y lo estás cargando igual, es porque lo tomaste.
+  // `tasted` es un eje independiente del stock, así que esto no fuerza nada raro
+  // — sólo dice lo que pasó.
+  tasted: Math.max(0, Number.parseInt(draft.quantity, 10) || 0) === 0,
 
   /**
    * De dónde salieron estos datos.
@@ -50,7 +59,19 @@ const toWinePayload = (draft) => ({
 export default function ScanWinePage() {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { addWine } = useWineCollection();
+
+  /**
+   * El alta va DIRECTO a la API, sin pasar por `useWineCollection`.
+   *
+   * Antes esta pantalla montaba el hook entero sólo para quedarse con `addWine`,
+   * y el hook trae TODA tu colección al montar. O sea que abrir el escáner
+   * disparaba una descarga completa de la bodega que después se tiraba a la
+   * basura: esta pantalla no muestra ninguna lista, y al guardar navega a la
+   * ficha del vino, así que ese estado moría sin que nadie lo hubiera leído.
+   *
+   * Es el camino crítico en un teléfono —sacar la foto y guardar— y era donde
+   * menos podía permitirse una consulta de más.
+   */
 
   const [showScanner, setShowScanner] = useState(false);
   // Lectura pendiente de revisión. SIEMPRE pasamos por acá tras una foto: es lo
@@ -70,9 +91,17 @@ export default function ScanWinePage() {
   // Guarda el vino escaneado en la bodega y lleva directo a su ficha, que es
   // donde el usuario ve la descripción y puede editar/agregar momentos.
   const saveWine = async (draft) => {
-    const created = await addWine(toWinePayload(draft));
+    const payload = toWinePayload(draft);
+    const { wine: created } = await createWine(payload);
     successHaptic();
-    showSuccess(`"${created.name}" agregado a tu bodega`);
+    // Con cero botellas el vino NO entró a tu bodega, entró a tu historial. El
+    // aviso tiene que decir lo que pasó: "agregado a tu bodega" mandaría a
+    // buscarlo a "En stock", que es el único lugar donde no está.
+    showSuccess(
+      payload.quantity === 0
+        ? `"${created.name}" guardado como probado`
+        : `"${created.name}" agregado a tu bodega`
+    );
     // El evento que más dice del producto: cargar un vino es la acción por la que
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
     // que permite saber si el lector de etiquetas vale lo que cuesta.

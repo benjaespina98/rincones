@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Icon from "./Icon";
 import ConceptTerm from "./ConceptTerm";
 import { WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineReference";
@@ -238,9 +238,29 @@ export default function ScanReview({
    */
   const bloqueado = issues.some((code) => BLOCKING_ISSUES.has(code));
 
+  /**
+   * Un candado que cierra en el mismo tick, no en el próximo render.
+   *
+   * `saving` llega por prop y lo enciende el padre DESPUÉS de este handler, así
+   * que entre el primer toque y el re-render que deshabilita el botón hay una
+   * ventana real. En un teléfono un doble toque llega a los 100-300ms y no
+   * entraría, pero un "ghost click" del navegador o un dispositivo trabado sí:
+   * el alta se manda dos veces y —como el server reconoce el vino— la segunda
+   * no crea una fila duplicada pero SUMA una botella que nadie compró.
+   *
+   * Un ref se actualiza al instante y no depende de que React haya pintado.
+   */
+  const enviando = useRef(false);
+
   const submit = (e) => {
     e.preventDefault();
-    if (saving || bloqueado) return;
+    if (saving || bloqueado || enviando.current) return;
+    enviando.current = true;
+    // Se libera al toque siguiente: si el guardado falla, el usuario tiene que
+    // poder reintentar sin salir y volver a entrar a la revisión.
+    setTimeout(() => {
+      enviando.current = false;
+    }, 1500);
     onConfirm?.({
       ...values,
       type: derivedType,
@@ -397,15 +417,30 @@ export default function ScanReview({
       </button>
 
       {/* Cuántas botellas. Los atajos cubren los casos reales —media docena,
-          una caja— sin obligar a tocar doce veces el más. */}
+          una caja— sin obligar a tocar doce veces el más.
+
+          ── EL CERO ES UNA OPCIÓN, Y HACÍA FALTA ──────────────────────────────
+          El mínimo era 1, así que un vino que tomaste afuera —en un restaurante,
+          en casa de alguien— sólo se podía registrar declarando una botella que
+          nunca tuviste. Y esa botella no era un número inocente: abría un LOTE
+          con su fecha de compra, entraba a tus gastos y dejaba el vino contado
+          como parte de tu cava. Para que el historial dijera la verdad había que
+          mentirle al inventario.
+
+          El modelo ya sabía distinguirlos: "probado" y "stock" son dos ejes
+          independientes, y las cuatro combinaciones son normales (ver
+          utils/cellarViews.js). Lo único que faltaba era dejar de forzar el
+          mínimo acá. Con 0 botellas el vino entra a tu colección, queda probado,
+          aparece en "Probados" y en tus estadísticas de lo que tomaste — y no
+          aparece en "En stock" ni inventa una compra. */}
       <div className="scan-qty">
         <span className="scan-qty__label">¿Cuántas botellas?</span>
         <div className="scan-qty__row">
           <div className="scan-qty__stepper">
             <button
               type="button"
-              onClick={() => setCantidad((n) => Math.max(1, n - 1))}
-              disabled={saving || cantidad <= 1}
+              onClick={() => setCantidad((n) => Math.max(0, n - 1))}
+              disabled={saving || cantidad <= 0}
               aria-label="Una botella menos"
             >
               <Icon name="minus" size={16} />
@@ -434,6 +469,20 @@ export default function ScanReview({
             ))}
           </div>
         </div>
+
+        {/* El atajo, para no tener que descubrir que el stepper baja hasta cero.
+            Dice el caso —"lo tomé, no me lo llevé"— y no el número, porque nadie
+            piensa "cero botellas": piensa "éste lo tomé afuera". */}
+        <button
+          type="button"
+          className={`scan-qty__afuera ${cantidad === 0 ? "is-active" : ""}`}
+          onClick={() => setCantidad((n) => (n === 0 ? 1 : 0))}
+          disabled={saving}
+          aria-pressed={cantidad === 0}
+        >
+          <Icon name={cantidad === 0 ? "check" : "circle"} size={14} />
+          Lo tomé afuera, no me quedó ninguna
+        </button>
       </div>
 
       <div className="scan-review__actions">
@@ -443,7 +492,18 @@ export default function ScanReview({
           disabled={saving || bloqueado}
           title={bloqueado ? "Completá o corregí lo que marcamos arriba" : undefined}
         >
-          {saving ? "Guardando…" : <><Icon name="check" size={17} /> {cantidad === 1 ? "Agregar a mi bodega" : `Agregar ${cantidad} botellas`}</>}
+          {saving ? (
+            "Guardando…"
+          ) : (
+            <>
+              <Icon name="check" size={17} />{" "}
+              {cantidad === 0
+                ? "Guardarlo como probado"
+                : cantidad === 1
+                  ? "Agregar a mi bodega"
+                  : `Agregar ${cantidad} botellas`}
+            </>
+          )}
         </button>
         {/* Por qué no se puede guardar, dicho al lado del botón que no anda.
             Sin esto, un botón deshabilitado es un callejón sin salida. */}
