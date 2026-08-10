@@ -10,9 +10,19 @@ export const getWineById = async (id) => {
   return data.data;
 };
 
+/**
+ * Crea un vino, o SUMA botellas a uno que ya tenías.
+ *
+ * Devuelve `{ wine, merged, added }` y no el vino pelado, porque `merged` es la
+ * diferencia entre dos cosas que no se pueden tratar igual: si el server
+ * reconoció el vino, no nació una fila nueva —le sumó botellas a la que ya
+ * estaba— y quien tenga la lista en memoria tiene que REEMPLAZAR esa fila, no
+ * agregar otra. Descartando el flag, la única salida era agregar siempre, y eso
+ * mete el mismo `_id` dos veces en la lista.
+ */
 export const createWine = async (payload) => {
   const { data } = await api.post("/wines", payload);
-  return data.data;
+  return { wine: data.data, merged: data.merged === true, added: data.added ?? 0 };
 };
 
 export const updateWine = async (id, payload) => {
