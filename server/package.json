@@ -14,7 +14,8 @@
     "migrate:promos": "node scripts/migratePromotions.js",
     "migrate:catalogo": "node scripts/migrateCommunityCatalog.js",
     "mail:test": "node scripts/testEmail.js",
-    "backup:drill": "node scripts/backupRestoreDrill.js"
+    "backup:drill": "node scripts/backupRestoreDrill.js",
+    "import:images": "node scripts/importWineImages.js"
   },
   "keywords": [],
   "author": "",

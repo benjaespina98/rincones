@@ -447,13 +447,29 @@ export default function DiscoverPage() {
         />
       )}
 
+      {/* Sin destacados: "volvé más tarde" es un callejón sin salida para
+          quien todavía no cargó ni un vino —no hay nada a lo que volver—, así
+          que a esa persona se le ofrece el paso que sí tiene sentido: cargar
+          el primero. Con bodega no vacía, el catálogo global sencillamente no
+          tuvo qué mostrar hoy, y ahí sí vale esperar. */}
       {!buscando && !loading && !loadFailed && !spotlight && (
-        <EmptyState
-          icon="search"
-          title="No hay recomendaciones ahora"
-          hint="Volvé más tarde o buscá un vino que tengas en mente."
-          compact
-        />
+        stats?.totals?.total === 0 ? (
+          <EmptyState
+            icon="bottle"
+            title="Empecemos por tu primer vino"
+            hint="Sacale una foto a la etiqueta y te empezamos a recomendar en base a lo que tomás."
+            actionLabel="Escanear mi primer vino"
+            onAction={() => navigate("/agregar")}
+            compact
+          />
+        ) : (
+          <EmptyState
+            icon="search"
+            title="No hay recomendaciones ahora"
+            hint="Volvé más tarde o buscá un vino que tengas en mente."
+            compact
+          />
+        )
       )}
 
       {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
