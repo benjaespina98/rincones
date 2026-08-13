@@ -83,6 +83,14 @@ export const greeting = () => {
  * que contar usa la pregunta genérica.
  */
 export const homeTitle = ({ stats, seed = 0 } = {}) => {
+  // `stats` es null mientras useWineStats todavía no respondió (o si la
+  // consulta falla). `?? 0` lo confundía con "bodega en cero" y por un
+  // instante —a veces más, si el pedido falla en silencio— la home le decía
+  // "Empecemos tu bodega" a alguien con vinos cargados. Sin dato todavía, no
+  // se afirma nada: cae a la pregunta neutra, igual que cuando no hay nada
+  // más específico para decir.
+  if (!stats) return "¿Qué vino descubrimos hoy?";
+
   const total = stats?.totals?.total || 0;
   const stock = stats?.totals?.stock || 0;
 

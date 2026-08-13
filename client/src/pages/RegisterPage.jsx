@@ -59,7 +59,11 @@ const RegisterPage = () => {
       await registerRequest(email, password, firstName, birthDate);
       await login(email, password);
       showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
-      navigate("/");
+      // A Bodega, no a Descubrí: recién nacida, la bodega está vacía y ahí
+      // vive el cartel con el botón directo a escanear el primer vino. Mandar
+      // a un usuario nuevo al feed de recomendaciones lo deja sin ningún
+      // camino evidente hacia esa primera foto.
+      navigate("/bodega");
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo crear la cuenta.";
       setError(msg);
