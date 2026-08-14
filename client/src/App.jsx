@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
+import AdminRoute from "./components/AdminRoute";
 import AppGate from "./components/AppGate";
 import AppLayout from "./components/AppLayout";
 import PageviewTracker from "./components/PageviewTracker";
@@ -29,6 +30,13 @@ const WineDetailPage = lazy(() => import("./pages/WineDetailPage"));
 const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
 const GuardadosPage = lazy(() => import("./pages/GuardadosPage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
+const AdminLayout = lazy(() => import("./pages/AdminLayout"));
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
+const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
+const AdminReviewsPage = lazy(() => import("./pages/AdminReviewsPage"));
+const AdminMetricsPage = lazy(() => import("./pages/AdminMetricsPage"));
+const AdminCampaignsPage = lazy(() => import("./pages/AdminCampaignsPage"));
+const AdminActivityPage = lazy(() => import("./pages/AdminActivityPage"));
 
 // Mismo lenguaje que el arranque: al saltar entre secciones lazy se ve la
 // marca, no un spinner suelto sin contexto.
@@ -61,6 +69,21 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<AdminLoginPage />} />
+        {/* Panel de admin: rutas de verdad bajo /admin/panel, cada sección con
+            su propia URL (deep-link, botón atrás) en vez de pestañas armadas
+            con estado local. `AdminRoute` exige sesión + rol admin, igual que
+            `PrivateRoute` exige sesión para el resto de la app. */}
+        <Route
+          path="/admin/panel"
+          element={<AdminRoute><AdminLayout /></AdminRoute>}
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="metricas" element={<AdminMetricsPage />} />
+          <Route path="campanas" element={<AdminCampaignsPage />} />
+          <Route path="usuarios" element={<AdminUsersPage />} />
+          <Route path="resenas" element={<AdminReviewsPage />} />
+          <Route path="actividad" element={<AdminActivityPage />} />
+        </Route>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         {/* Se abre desde el link del mail: puede caer en un navegador sin

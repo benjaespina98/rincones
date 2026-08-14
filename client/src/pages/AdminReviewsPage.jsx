@@ -6,7 +6,13 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import Icon from "../components/Icon";
-import "./styles/AdminUsersPage.css";
+import "./styles/AdminReviewsPage.css";
+
+const RATING_FILTERS = [
+  { value: "", label: "Todas" },
+  { value: "2", label: "1-2 ★" },
+  { value: "3", label: "3 ★ o menos" },
+];
 
 /**
  * Moderación de reseñas.
@@ -15,7 +21,7 @@ import "./styles/AdminUsersPage.css";
  * lo único que puede necesitar moderación. Cada borrado queda registrado en el
  * log de cambios con quién lo hizo.
  */
-const AdminReviewsPage = ({ embedded = false }) => {
+const AdminReviewsPage = () => {
   const { showSuccess, showError } = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +29,10 @@ const AdminReviewsPage = ({ embedded = false }) => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 0 });
   const [query, setQuery] = useState("");
+  // Puntaje máximo a mostrar: "1-2 ★" busca lo que de verdad hay que revisar
+  // primero, en vez de hacer scrollear todo en orden cronológico para
+  // encontrarlo.
+  const [maxRating, setMaxRating] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -30,7 +40,7 @@ const AdminReviewsPage = ({ embedded = false }) => {
     try {
       setLoading(true);
       setError("");
-      const data = await getReviews({ page, limit: 20, q: query });
+      const data = await getReviews({ page, limit: 20, q: query, maxRating });
       setReviews(data.data);
       setPagination(data.pagination);
     } catch (err) {
@@ -38,7 +48,7 @@ const AdminReviewsPage = ({ embedded = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [page, query]);
+  }, [page, query, maxRating]);
 
   useEffect(() => {
     const t = setTimeout(load, query ? 350 : 0);
@@ -65,12 +75,10 @@ const AdminReviewsPage = ({ embedded = false }) => {
     d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
   return (
-    <div className={`admin-users ${embedded ? "admin-users--embedded" : ""}`}>
-      {!embedded && (
-        <header className="admin-users__header">
-          <h1>Reseñas</h1>
-        </header>
-      )}
+    <div className="admin-users">
+      <header className="admin-reviews__header">
+        <h1>Reseñas</h1>
+      </header>
 
       <div className="admin-users__toolbar">
         <div className="admin-users__search">
@@ -83,6 +91,19 @@ const AdminReviewsPage = ({ embedded = false }) => {
             aria-label="Buscar reseñas"
           />
         </div>
+        <div className="admin-reviews__rating-filter" role="group" aria-label="Filtrar por puntaje">
+          {RATING_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={`admin-chip ${maxRating === f.value ? "is-active" : ""}`}
+              aria-pressed={maxRating === f.value}
+              onClick={() => { setMaxRating(f.value); setPage(1); }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading && <p className="admin-users__loading">Cargando reseñas…</p>}
@@ -94,11 +115,13 @@ const AdminReviewsPage = ({ embedded = false }) => {
       {!loading && !error && reviews.length === 0 && (
         <EmptyState
           icon="chat"
-          title={query ? "Sin resultados" : "Todavía no hay reseñas"}
+          title={query || maxRating ? "Sin resultados" : "Todavía no hay reseñas"}
           hint={
             query
               ? `Ninguna reseña coincide con “${query}”.`
-              : "Cuando los usuarios reseñen vinos, vas a poder moderarlas acá."
+              : maxRating
+                ? "No hay reseñas con este puntaje."
+                : "Cuando los usuarios reseñen vinos, vas a poder moderarlas acá."
           }
           compact
         />

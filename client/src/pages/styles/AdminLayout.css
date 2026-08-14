@@ -1,0 +1,476 @@
+/* ══ El armazón del panel ══════════════════════════════════════════════════
+   Sidebar fija de escritorio (el patrón de cualquier panel de admin serio:
+   Stripe, Vercel, el propio GitHub) + tira horizontal en celular, donde una
+   sidebar angosta no entra ni tiene sentido. Antes esto era una sola pantalla
+   con `activeTab` en memoria: sin URLs por sección, sin volver atrás.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.admin-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(143, 103, 255, 0.16), transparent 32%),
+    radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.14), transparent 38%),
+    var(--bg);
+  color: var(--text);
+}
+
+/* Franja de advertencia: marca todo el panel como zona de permisos elevados
+   ("no estás en tu cuenta común") sin gastar un renglón de texto por página. */
+.admin-shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: var(--z-nav);
+  background: linear-gradient(90deg, var(--gold), var(--accent-light), var(--gold));
+}
+
+/* ── Sidebar (escritorio) ── */
+.admin-sidebar {
+  display: none;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 236px;
+  padding: 1.1rem 0.9rem;
+  gap: 1.4rem;
+  border-right: 1px solid var(--line);
+  background: var(--bg-deep);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-sidebar__brand {
+  display: flex;
+}
+
+.admin-sidebar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  background: rgba(242, 183, 55, 0.14);
+  border: 1px solid rgba(242, 183, 55, 0.4);
+  color: var(--gold-soft);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.admin-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-sidebar__link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.admin-sidebar__link.is-active {
+  color: #f8f6ff;
+  background: linear-gradient(135deg, rgba(124, 88, 236, 0.32), rgba(74, 53, 156, 0.4));
+}
+
+.admin-sidebar__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-sidebar__who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.admin-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Barra móvil (mismo contenido, pensado para el ancho sin sidebar) ── */
+.admin-mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 0.7rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(242, 183, 55, 0.28);
+  background: linear-gradient(145deg, rgba(25, 21, 52, 0.95), rgba(13, 14, 31, 0.9));
+}
+
+.admin-bar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(242, 183, 55, 0.14);
+  border: 1px solid rgba(242, 183, 55, 0.4);
+  color: var(--gold-soft);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* El email se recorta con puntos suspensivos y no se parte al medio: partido
+   ("logo@e2e.loca / l") se lee como un error de la app. */
+.admin-bar__who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.admin-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.admin-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-bar__btn:hover {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.admin-bar__btn--out:hover {
+  border-color: rgba(198, 70, 95, 0.5);
+  color: #ff8fa3;
+}
+
+@media (max-width: 560px) {
+  .admin-mobile-bar {
+    flex-wrap: wrap;
+  }
+
+  .admin-mobile-bar .admin-bar__who {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .admin-mobile-bar .admin-bar__actions {
+    margin-left: auto;
+  }
+
+  .admin-bar__btn span {
+    display: none;
+  }
+
+  .admin-bar__btn {
+    padding: 0 13px;
+  }
+}
+
+/* ── Tira de pestañas horizontal (celular / tablet chica) ── */
+.admin-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+
+.admin-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  justify-content: center;
+  padding: 0 15px;
+  min-height: 44px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-nav-tab.active {
+  color: #f8f6ff;
+  border-color: rgba(212, 187, 255, 0.9);
+  background: linear-gradient(135deg, rgba(124, 88, 236, 0.35), rgba(74, 53, 156, 0.45));
+}
+
+.admin-content {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(0.8rem, 2vw, 1.6rem);
+}
+
+.admin-panel-surface {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: clamp(0.85rem, 2vw, 1.2rem);
+}
+
+/* De tablet ancha para arriba: entra la sidebar, se esconde la tira. */
+@media (min-width: 900px) {
+  .admin-sidebar {
+    display: flex;
+  }
+
+  .admin-mobile-bar,
+  .admin-nav-tabs {
+    display: none;
+  }
+}
+
+/* ── Piezas compartidas por las páginas del panel (Resumen, Actividad) ── */
+
+.admin-section-head {
+  margin-bottom: 0.9rem;
+}
+
+.admin-section-head h1,
+.admin-section-head h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.admin-section-head p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+}
+
+.admin-metric-card,
+.admin-wide-card,
+.admin-log-item {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  padding: 0.85rem;
+}
+
+.admin-metric-card span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.admin-metric-card strong {
+  display: block;
+  margin: 0.3rem 0;
+  font-size: 1.65rem;
+  color: var(--text);
+}
+
+.admin-metric-card small {
+  color: var(--text-subtle);
+}
+
+.admin-wide-card h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.admin-chip-row {
+  margin-top: 0.65rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-chip {
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  font-size: var(--text-xs);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+  color: var(--text);
+  cursor: default;
+}
+
+button.admin-chip {
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+button.admin-chip.is-active {
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  border-color: var(--line-accent);
+}
+
+.admin-empty-state {
+  margin: 0;
+  color: var(--text-secondary);
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--glass);
+}
+
+.admin-log-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.admin-log-item__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-log-item__head small {
+  color: var(--text-muted);
+}
+
+.admin-log-item__title {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+.admin-log-item__meta {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  margin-top: 0.22rem;
+}
+
+.admin-log-item__summary {
+  margin: 0.42rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.admin-log-badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.24rem 0.62rem;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-log-badge--create {
+  background: var(--success-soft);
+  border: 1px solid rgba(80, 230, 160, 0.42);
+  color: var(--success-text);
+}
+
+.admin-log-badge--update {
+  background: rgba(78, 145, 255, 0.18);
+  border: 1px solid rgba(118, 168, 255, 0.4);
+  color: #c9ddff;
+}
+
+.admin-log-badge--delete {
+  background: var(--danger-soft);
+  border: 1px solid rgba(255, 126, 161, 0.42);
+  color: var(--danger-text);
+}
+
+/* Distingue "actividad de contenido" (un vino, una reseña) de "acción
+   administrativa contra otra cuenta" (cambiar un rol, borrar un usuario) —
+   antes eran filas visualmente idénticas aunque su gravedad no lo es. */
+.admin-log-item--admin {
+  border-color: rgba(242, 183, 55, 0.35);
+  background: linear-gradient(145deg, rgba(45, 35, 12, 0.4), var(--elevated));
+}
+
+.admin-log-item__admin-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(242, 183, 55, 0.14);
+  border: 1px solid rgba(242, 183, 55, 0.4);
+  color: var(--gold-soft);
+}
+
+.admin-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.8rem;
+}
+
+.admin-log-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+@media (min-width: 900px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .admin-wide-card {
+    grid-column: span 2;
+  }
+}

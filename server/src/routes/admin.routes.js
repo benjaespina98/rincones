@@ -11,6 +11,9 @@ router.get("/summary", authenticate, requireAdmin, adminController.getSummary);
 // Usuarios y roles
 router.get("/users", authenticate, requireAdmin, adminController.getUsers);
 router.put("/users/:userId/role", authenticate, requireAdmin, adminController.updateUserRole);
+// Antes de la ruta con :userId, o Express la matchea a esta y "bulk" viaja
+// como si fuera un userId.
+router.delete("/users/bulk", authenticate, requireAdmin, adminController.bulkDeleteUsers);
 router.delete("/users/:userId", authenticate, requireAdmin, adminController.deleteUser);
 
 // Moderación de reseñas (lo único público que escriben los usuarios)

@@ -11,13 +11,13 @@ export const getAdminSummary = async (hours = 24) => {
   return data.data;
 };
 
-export const getChangeLogs = async (limit = 40) => {
-  const { data } = await api.get("/admin/logs", { params: { limit } });
-  return data.data;
+export const getChangeLogs = async ({ page = 1, limit = 30, entityType = "", action = "" } = {}) => {
+  const { data } = await api.get("/admin/logs", { params: { page, limit, entityType, action } });
+  return data;
 };
 
-export const getUsers = async ({ page = 1, limit = 20, q = "", role = "" } = {}) => {
-  const { data } = await api.get("/admin/users", { params: { page, limit, q, role } });
+export const getUsers = async ({ page = 1, limit = 20, q = "", role = "", sort = "", dir = "" } = {}) => {
+  const { data } = await api.get("/admin/users", { params: { page, limit, q, role, sort, dir } });
   return data;
 };
 
@@ -32,10 +32,16 @@ export const deleteUser = async (userId) => {
   return data;
 };
 
+/** Elimina varias cuentas de una — pensado para limpiar cuentas de prueba en lote. */
+export const bulkDeleteUsers = async (ids) => {
+  const { data } = await api.delete("/admin/users/bulk", { data: { ids } });
+  return data;
+};
+
 // --- Moderación de reseñas ---
 
-export const getReviews = async ({ page = 1, limit = 20, q = "" } = {}) => {
-  const { data } = await api.get("/admin/reviews", { params: { page, limit, q } });
+export const getReviews = async ({ page = 1, limit = 20, q = "", maxRating = "" } = {}) => {
+  const { data } = await api.get("/admin/reviews", { params: { page, limit, q, maxRating } });
   return data;
 };
 

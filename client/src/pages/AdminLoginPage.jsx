@@ -1,40 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import Icon from "../components/Icon";
-import { getChangeLogs, getAdminSummary } from "../services/adminApi";
-import AdminUsersPage from "./AdminUsersPage";
-import AdminReviewsPage from "./AdminReviewsPage";
-import AdminAnalyticsPage from "./AdminAnalyticsPage";
-import AdminPromotionsPage from "./AdminPromotionsPage";
 import "./styles/AdminLoginPage.css";
 
-const ACTION_LABELS = {
-  create: "Creado",
-  update: "Actualizado",
-  delete: "Eliminado",
-};
-
-const buildLogSummary = (log) => {
-  const wineName = log.after?.name || log.before?.name || "un vino";
-
-  if (log.action === "create") {
-    return `Se agregó "${wineName}" a la bodega.`;
-  }
-
-  if (log.action === "delete") {
-    return `Se eliminó "${wineName}" de la bodega.`;
-  }
-
-  if (log.action === "update") {
-    return `Se actualizó "${wineName}".`;
-  }
-
-  return "";
-};
-
+/**
+ * Sólo el acceso. El panel en sí (Resumen, Usuarios, Reseñas…) vive ahora en
+ * rutas propias bajo `/admin/panel/*`, protegidas por `AdminRoute` — esta
+ * pantalla ya no decide qué mostrar según el rol, sólo inicia sesión y manda
+ * para allá. Mismo login que el resto de la app (`/api/auth/login`): lo que
+ * distingue "admin" es el rol de la cuenta, no un flujo de acceso aparte.
+ */
 const AdminLoginPage = () => {
-  const { login, isAdmin, user, logout } = useAuth();
+  const { login, isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,55 +19,14 @@ const AdminLoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingDashboard, setLoadingDashboard] = useState(false);
-  const [logs, setLogs] = useState([]);
-  const [resumen, setResumen] = useState(null);
-  const [activeTab, setActiveTab] = useState("resumen");
 
-  const nextPath = location.state?.from || "/admin";
+  const nextPath = location.state?.from || "/admin/panel";
 
+  // Ya con sesión de admin abierta (volvió a /admin a mano, o recargó acá):
+  // directo al panel, sin mostrarle el formulario de nuevo.
   useEffect(() => {
-    if (!isAdmin) {
-      return;
-    }
-
-    const loadDashboardData = async () => {
-      try {
-        setLoadingDashboard(true);
-        const [logsData, resumenData] = await Promise.all([
-          getChangeLogs(30),
-          getAdminSummary(24),
-        ]);
-
-        setLogs(logsData);
-        setResumen(resumenData);
-      } catch {
-        setLogs([]);
-        setResumen(null);
-      } finally {
-        setLoadingDashboard(false);
-      }
-    };
-
-    loadDashboardData();
-  }, [isAdmin]);
-
-  /**
-   * Los números del Resumen salen del server contados uno por uno.
-   *
-   * Antes se deducían de los últimos 60 movimientos que ya se pedían para la
-   * lista de actividad: "Eventos 24h" no podía pasar de 60 aunque hubiera 300, y
-   * "Creaciones / Actualizaciones / Eliminaciones" eran los tipos de esos 60 sin
-   * decir de qué período. El número no fallaba: se congelaba, que es peor,
-   * porque se sigue mirando como si fuera cierto.
-   */
-  const metrics = resumen || {
-    users: 0,
-    admins: 0,
-    wines: 0,
-    reviews: 0,
-    activity: { total: 0, create: 0, update: 0, delete: 0 },
-  };
+    if (user && isAdmin) navigate(nextPath, { replace: true });
+  }, [user, isAdmin, navigate, nextPath]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -107,226 +43,6 @@ const AdminLoginPage = () => {
       setLoading(false);
     }
   };
-
-  if (isAdmin) {
-    return (
-      <div className="admin-shell">
-        {/* ── El encabezado, en una barra ──────────────────────────────────────
-            Ocupaba 630px de una pantalla de 740: el título, un párrafo, tres
-            chips explicando qué puede hacer un admin y siete pestañas en cuatro
-            filas. El 85% de la pantalla era encabezado.
-
-            Lo que se fue es texto que se lee UNA vez: el párrafo de "estás
-            editando datos de todos los usuarios" y los tres chips de permisos.
-            Quien entra acá es el dueño de la app y ya sabe dónde está; el aviso
-            de que esto es modo administrador queda en la chapa dorada, que es lo
-            que cumple esa función sin ocupar cuatro renglones. */}
-        <header className="admin-bar">
-          <span className="admin-bar__badge" title="Estás operando sobre los datos de todos los usuarios">
-            <Icon name="lock" size={12} /> Admin
-          </span>
-
-          <span className="admin-bar__who" title={user?.email}>{user?.email}</span>
-
-          <div className="admin-bar__actions">
-            <button className="admin-bar__btn" type="button" onClick={() => navigate("/")}>
-              <Icon name="arrow-left" size={15} />
-              <span>Ir a la app</span>
-            </button>
-            <button className="admin-bar__btn admin-bar__btn--out" type="button" onClick={logout}>
-              <Icon name="log-out" size={15} />
-              <span>Salir</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Una sola fila que se desliza, en vez de cuatro apiladas. Es el patrón
-            de pestañas de cualquier app con más de cuatro secciones: se ve dónde
-            estás y que hay más al costado, sin gastar media pantalla. */}
-        <nav className="admin-nav-tabs" aria-label="Secciones del panel">
-          {[
-            { id: "resumen", label: "Resumen", icon: "home" },
-            /* Métricas va segunda: es la pregunta que uno se hace al abrir el
-               panel ("¿cuánta gente está usando esto?"), antes de administrar
-               nada. */
-            { id: "metricas", label: "Métricas", icon: "star" },
-            { id: "destacados", label: "Campañas", icon: "sparkle" },
-            { id: "roles", label: "Usuarios", icon: "user" },
-            { id: "resenas", label: "Reseñas", icon: "chat" },
-            { id: "actividad", label: "Actividad", icon: "calendar" },
-            /* "Vista app" se fue: hacía lo mismo que "Ir a la app" de la barra.
-               Dos controles con el mismo efecto obligan a preguntarse en qué se
-               diferencian, y la respuesta era "en nada". */
-          ].map((t) => (
-            <button
-              key={t.id}
-              className={`admin-nav-tab ${activeTab === t.id ? "active" : ""}`}
-              /* La tira se desliza, así que la pestaña elegida puede quedar
-                 cortada contra el borde. Se centra sola.
-
-                 Se mueve `scrollLeft` de la tira y no `scrollIntoView`: éste
-                 arrastra también el scroll de la página, así que al elegir una
-                 pestaña la vista saltaba de lugar sin que nadie se lo pidiera. */
-              ref={(el) => {
-                if (!el || activeTab !== t.id) return;
-                const tira = el.parentElement;
-                if (!tira || tira.scrollWidth <= tira.clientWidth) return;
-                // Se mide con posiciones reales y no con `offsetLeft`: éste se
-                // cuenta desde el ancestro POSICIONADO más cercano, que acá no es
-                // la tira, así que el número salía corrido y no centraba nada.
-                const desfase =
-                  el.getBoundingClientRect().left - tira.getBoundingClientRect().left;
-                const centrado =
-                  tira.scrollLeft + desfase - (tira.clientWidth - el.clientWidth) / 2;
-                tira.scrollTo({ left: Math.max(centrado, 0), behavior: "smooth" });
-              }}
-              onClick={() => setActiveTab(t.id)}
-              aria-current={activeTab === t.id ? "page" : undefined}
-              type="button"
-            >
-              <Icon name={t.icon} size={16} /> {t.label}
-            </button>
-          ))}
-        </nav>
-
-        <section className="admin-panel-surface">
-          {activeTab === "resumen" && (
-            <div className="admin-dashboard-grid">
-              <article className="admin-metric-card">
-                <span>Usuarios</span>
-                <strong>{metrics.users}</strong>
-                <small>Cuentas registradas</small>
-              </article>
-
-              {/* Dos números que el panel no tenía y son la salud del producto:
-                  cuánto cargó la gente y cuánto escribió. */}
-              <article className="admin-metric-card">
-                <span>Vinos</span>
-                <strong>{metrics.wines}</strong>
-                <small>Cargados por los usuarios</small>
-              </article>
-
-              <article className="admin-metric-card">
-                <span>Reseñas</span>
-                <strong>{metrics.reviews}</strong>
-                <small>Publicadas en la comunidad</small>
-              </article>
-
-              <article className="admin-metric-card">
-                <span>Movimientos</span>
-                <strong>{metrics.activity.total}</strong>
-                <small>En las últimas 24 horas</small>
-              </article>
-
-              <article className="admin-metric-card">
-                <span>Administradores</span>
-                <strong>{metrics.admins}</strong>
-                <small>Con acceso a este panel</small>
-              </article>
-
-              {/* El desglose de lo mismo que dice la tarjeta de arriba, y del
-                  mismo período: el título lo dice, porque un número sin período
-                  se lee como "desde siempre". */}
-              <article className="admin-wide-card">
-                <h2>Qué pasó en las últimas 24 horas</h2>
-                <div className="admin-chip-row">
-                  <span className="admin-chip">Se creó: {metrics.activity.create}</span>
-                  <span className="admin-chip">Se editó: {metrics.activity.update}</span>
-                  <span className="admin-chip">Se eliminó: {metrics.activity.delete}</span>
-                </div>
-              </article>
-
-              {/* Acá había una tarjeta de "Acciones rápidas" con tres botones
-                  que llevaban a Usuarios, Reseñas y Vista app: las MISMAS
-                  pestañas que están arriba, a dos centímetros. Un atajo hacia
-                  algo que ya está a un toque no es un atajo, es una copia del
-                  menú que hay que mantener sincronizada con él. */}
-            </div>
-          )}
-
-          {activeTab === "metricas" && (
-            <section>
-              <div className="admin-section-head">
-                <h2>Métricas de uso</h2>
-                <p>Cuánta gente entra a Rincones y qué mira. Sin cookies ni datos personales.</p>
-              </div>
-              <AdminAnalyticsPage />
-            </section>
-          )}
-
-          {activeTab === "destacados" && (
-            <section>
-              <div className="admin-section-head">
-                {/* Una línea. El encabezado no es el lugar para enumerar lo que hace
-                    la pantalla: eso se ve en la pantalla, y en un celular esas tres
-                    oraciones eran cinco renglones que había que saltear cada vez. */}
-                <h2>Campañas de Descubrí</h2>
-                <p>Publicidades y eventos del espacio destacado.</p>
-              </div>
-              <AdminPromotionsPage />
-            </section>
-          )}
-
-          {activeTab === "roles" && (
-            <section>
-              <div className="admin-section-head">
-                <h2>Usuarios y roles</h2>
-                <p>Buscá una cuenta, cambiale el rol o eliminala junto con todo su contenido.</p>
-              </div>
-              <AdminUsersPage embedded />
-            </section>
-          )}
-
-          {activeTab === "resenas" && (
-            <section>
-              <div className="admin-section-head">
-                <h2>Moderación de reseñas</h2>
-                <p>Las reseñas son lo único público que escriben los usuarios. Cada baja queda registrada.</p>
-              </div>
-              <AdminReviewsPage embedded />
-            </section>
-          )}
-
-          {activeTab === "actividad" && (
-            <section>
-              <div className="admin-section-head">
-                <h2>Registro de actividad</h2>
-                {/* Dice CUÁNTOS muestra. El Resumen puede decir "340 movimientos"
-                    y acá verse treinta: son dos cosas distintas —un total y un
-                    detalle reciente— y sin aclararlo parece que falta data. */}
-                <p>Los últimos 30 movimientos en las bodegas de los usuarios.</p>
-              </div>
-
-              {loadingDashboard ? (
-                <p className="admin-empty-state">Cargando actividad...</p>
-              ) : !logs.length ? (
-                <p className="admin-empty-state">No hay movimientos registrados todavía.</p>
-              ) : (
-                <div className="admin-log-list">
-                  {logs.map((log) => (
-                    <article key={log._id} className="admin-log-item">
-                      <div className="admin-log-item__head">
-                        <span className={`admin-log-badge admin-log-badge--${log.action}`}>
-                          {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
-                        </span>
-                        <small>{new Date(log.createdAt).toLocaleString("es-AR")}</small>
-                      </div>
-                      <strong className="admin-log-item__title">
-                        {log.after?.name || log.before?.name || "Vino"}
-                      </strong>
-                      <span className="admin-log-item__meta">Por {log.actor?.email || "admin"}</span>
-                      <p className="admin-log-item__summary">{buildLogSummary(log)}</p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-        </section>
-      </div>
-    );
-  }
 
   return (
     <section className="admin-login-screen">
