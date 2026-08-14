@@ -27,10 +27,31 @@ const getChangeLogs = async (req, res, next) => {
 
     const entityType = String(req.query.entityType || "").trim();
     const action = String(req.query.action || "").trim();
+    const q = String(req.query.q || "").trim();
 
     const filter = {};
     if (entityType) filter.entityType = entityType;
     if (["create", "update", "delete"].includes(action)) filter.action = action;
+
+    // Con tres chips (tipo, acción) se podía mirar el registro, pero no
+    // BUSCAR en él — y el uso real de una auditoría es puntual: "¿quién le
+    // sacó el admin a fulano?", "¿qué pasó con este vino?". `before`/`after`
+    // son objetos libres (cada entidad guarda lo suyo), así que se busca por
+    // los campos que de verdad identifican una fila para quien la lee: el
+    // admin que actuó y el nombre/mail/título de lo afectado.
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      filter.$or = [
+        { "actor.email": rx },
+        { "after.name": rx },
+        { "before.name": rx },
+        { "after.title": rx },
+        { "before.title": rx },
+        { "after.targetEmail": rx },
+        { "before.email": rx },
+        { "before.wine": rx },
+      ];
+    }
 
     // Antes esto sólo tenía `limit`: cualquier movimiento más allá de los
     // últimos 100 quedaba inaccesible desde el panel, no sólo lento de

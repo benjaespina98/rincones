@@ -17,17 +17,19 @@
   text-transform: inherit;
   text-align: inherit;
   cursor: help;
-  /* El punteado es la única señal, y va en el color del texto a media
-     opacidad para no ganarle a lo que dice el rótulo. */
-  text-decoration: underline dotted currentColor;
+  /* El punteado sigue siendo la única marca —nada de ícono ni fondo, para no
+     poner un botón al lado de cada rótulo de la ficha— pero antes iba en
+     "currentColor" a opacidad casi plena: contra un rótulo ya claro, el
+     subrayado se fundía con la letra y no se distinguía de un subrayado
+     decorativo cualquiera. Ahora usa el color de acento, siempre, así se nota
+     que ES un gesto distinto (toco esto → pasa algo) y no una tipografía. */
+  text-decoration: underline dotted var(--accent-soft);
   text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-  opacity: 0.95;
+  text-decoration-thickness: 1.5px;
 }
 
 .concept-term:hover {
-  opacity: 1;
-  text-decoration-color: var(--accent-soft);
+  text-decoration-color: var(--accent-light);
 }
 
 /* El área de toque real: el rótulo puede medir 10px de alto y un dedo necesita
@@ -48,14 +50,18 @@
   max-width: 460px;
 }
 
+/* Un párrafo por idea y aire real entre ellos: antes era un solo bloque de
+   texto (cinco, seis oraciones seguidas) y se leía todo pegado, sin dónde
+   descansar la vista. 18px entre párrafos —bastante más que el interlineado
+   propio de cada uno— para que el quiebre se note como quiebre. */
 .concept-sheet__body {
-  gap: 14px;
+  gap: 18px;
 }
 
 .concept-sheet__text {
   margin: 0;
   font-size: var(--text-base);
-  line-height: 1.65;
+  line-height: 1.7;
   color: var(--text-secondary);
 }
 
