@@ -102,6 +102,7 @@ test("auth login sets cookie and returns token", async () => {
       role: "admin",
       emailVerified: false,
       onboarded: false,
+      hasBirthDate: false,
     });
   } finally {
     sesiones.restore();
@@ -156,6 +157,7 @@ test("auth register sets cookie and returns token", async () => {
       role: "user",
       emailVerified: false,
       onboarded: false,
+      hasBirthDate: false,
     });
 
     // El registro deja emitido (y guardado, hasheado) un token de verificación:

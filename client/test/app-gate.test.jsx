@@ -15,6 +15,7 @@ const renderWithRoutes = (ui, initialPath) =>
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/verificar-email" element={<div>Verify page</div>} />
+        <Route path="/fecha-nacimiento" element={<div>Birthdate page</div>} />
         <Route path="/onboarding" element={<div>Onboarding page</div>} />
         <Route path="/bodega" element={ui} />
       </Routes>
@@ -22,13 +23,13 @@ const renderWithRoutes = (ui, initialPath) =>
   );
 
 /**
- * `AppGate` va DENTRO de `PrivateRoute`: acá probamos sólo el paso
- * onboarding/verificación, no el de sesión (eso ya lo cubre
- * route-guards.test.jsx).
+ * `AppGate` va DENTRO de `PrivateRoute`: acá probamos sólo los pasos
+ * verificación/fecha de nacimiento/onboarding, no el de sesión (eso ya lo
+ * cubre route-guards.test.jsx).
  */
 describe("AppGate", () => {
   test("cuenta sin verificar nunca ve el contenido: va a /verificar-email", () => {
-    useAuth.mockReturnValue({ user: { emailVerified: false, onboarded: true } });
+    useAuth.mockReturnValue({ user: { emailVerified: false, hasBirthDate: true, onboarded: true } });
 
     renderWithRoutes(<AppGate><div>Bodega</div></AppGate>, "/bodega");
 
@@ -36,8 +37,17 @@ describe("AppGate", () => {
     expect(screen.queryByText("Bodega")).toBeNull();
   });
 
-  test("cuenta verificada pero sin onboarding va a /onboarding", () => {
-    useAuth.mockReturnValue({ user: { emailVerified: true, onboarded: false } });
+  test("verificada pero sin fecha de nacimiento (cuenta de Google) va a /fecha-nacimiento", () => {
+    useAuth.mockReturnValue({ user: { emailVerified: true, hasBirthDate: false, onboarded: true } });
+
+    renderWithRoutes(<AppGate><div>Bodega</div></AppGate>, "/bodega");
+
+    expect(screen.getByText("Birthdate page")).toBeInTheDocument();
+    expect(screen.queryByText("Bodega")).toBeNull();
+  });
+
+  test("con fecha de nacimiento pero sin onboarding va a /onboarding", () => {
+    useAuth.mockReturnValue({ user: { emailVerified: true, hasBirthDate: true, onboarded: false } });
 
     renderWithRoutes(<AppGate><div>Bodega</div></AppGate>, "/bodega");
 
@@ -45,8 +55,8 @@ describe("AppGate", () => {
     expect(screen.queryByText("Bodega")).toBeNull();
   });
 
-  test("verificada y onboardeada: entra directo", () => {
-    useAuth.mockReturnValue({ user: { emailVerified: true, onboarded: true } });
+  test("verificada, con fecha de nacimiento y onboardeada: entra directo", () => {
+    useAuth.mockReturnValue({ user: { emailVerified: true, hasBirthDate: true, onboarded: true } });
 
     renderWithRoutes(<AppGate><div>Bodega</div></AppGate>, "/bodega");
 

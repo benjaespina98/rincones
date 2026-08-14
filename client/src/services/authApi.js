@@ -9,6 +9,19 @@ export const login = async (email, password) => {
 export const register = async (email, password, firstName = "", birthDate = "") => {
   const { data } = await api.post("/auth/register", { email, password, firstName, birthDate });
   if (data.data?.token) setAuthToken(data.data.token);
+  // El registro ya abre sesión (no hace falta un login aparte): junto con el
+  // user/token va `mail`, para que quien llame sepa si el correo de
+  // verificación salió o no y pueda avisarlo en vez de dejar a la persona
+  // esperando algo que nunca llegó.
+  return { ...data.data, mail: data.mail };
+};
+
+// "Continuar con Google": credential es el ID token que entrega el botón de
+// Google Identity Services en el navegador. El server lo valida y crea la
+// cuenta (o la vincula a una existente) — ver el controlador.
+export const googleAuth = async (credential) => {
+  const { data } = await api.post("/auth/google", { credential });
+  if (data.data?.token) setAuthToken(data.data.token);
   return data.data;
 };
 

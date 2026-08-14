@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/user.model");
 const mailService = require("../services/mail.service");
 const { validateBirthDate } = require("../utils/age");
@@ -40,6 +41,11 @@ const buildAuthResponse = (user, token) => ({
       role: user.role,
       emailVerified: Boolean(user.emailVerified),
       onboarded: Boolean(user.onboardedAt),
+      // Cuentas de Google entran sin haber pasado por el formulario que pide
+      // fecha de nacimiento (validación de mayoría de edad). `AppGate` usa
+      // esto para exigirla en una pantalla propia antes de dejar pasar, en
+      // vez de asumir 18+ o inventar una fecha.
+      hasBirthDate: Boolean(user.birthDate),
     },
     // El token también se devuelve en el body para que el cliente lo guarde y
     // lo mande por header Authorization (imprescindible en Safari/iOS, donde la
@@ -132,6 +138,7 @@ const me = async (req, res, next) => {
         onboarded: Boolean(user.onboardedAt),
         firstName: user.firstName || "",
         emailVerified: Boolean(user.emailVerified),
+        hasBirthDate: Boolean(user.birthDate),
       },
     });
   } catch (error) {
@@ -204,13 +211,19 @@ const register = async (req, res, next) => {
     const verificationToken = issueEmailVerificationToken(user);
     await user.save();
     // Nunca lanza (ver la función): un SMTP caído no puede tirar abajo un
-    // registro que, por lo demás, ya está completo.
-    await sendVerificationEmail(user, verificationToken);
+    // registro que, por lo demás, ya está completo. Pero el resultado SÍ se
+    // devuelve (antes se descartaba acá, a diferencia de resendVerification):
+    // si el envío falló, el cliente lo tiene que saber para avisar en vez de
+    // dejar a la persona esperando un mail que nunca salió.
+    const mailResult = await sendVerificationEmail(user, verificationToken);
 
     // Generar token
     const token = await startSession(res, user, req);
 
-    return res.status(201).json(buildAuthResponse(user, token));
+    return res.status(201).json({
+      ...buildAuthResponse(user, token),
+      mail: { sent: mailResult.sent, verifyUrl: mailResult.verifyUrl },
+    });
   } catch (error) {
     return next(error);
   }
@@ -448,6 +461,85 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
+// Un solo cliente, reconstruido perezosamente: `getGoogleClient` explota recién
+// al primer login con Google si falta la variable, no al arrancar el server
+// (que sí debe poder levantar sin esto configurado — es opcional).
+let googleClient = null;
+const getGoogleClient = () => {
+  const clientId = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+  if (!clientId) {
+    const error = new Error("Falta GOOGLE_CLIENT_ID en variables de entorno");
+    error.statusCode = 500;
+    throw error;
+  }
+  if (!googleClient) googleClient = new OAuth2Client(clientId);
+  return { client: googleClient, clientId };
+};
+
+/**
+ * Alta o inicio de sesión con "Continuar con Google".
+ *
+ * Recibe el `credential` (ID token JWT) que entrega el botón de Google
+ * Identity Services en el navegador y lo verifica del lado del server contra
+ * la API de Google — nunca se confía en un email que mande el cliente sin
+ * probarlo, igual que nunca se confía una contraseña sin hashear.
+ *
+ * Por qué esto arregla el problema de fondo del mail que no llega: Google ya
+ * verificó ese email cuando la persona creó SU cuenta de Google, así que acá
+ * no hay ningún link que mandar ni SMTP del que depender — `emailVerified`
+ * queda en `true` desde el primer instante.
+ */
+const googleAuth = async (req, res, next) => {
+  try {
+    const credential = String(req.body.credential || "").trim();
+    if (!credential) {
+      return res.status(400).json({ message: "Falta el credential de Google" });
+    }
+
+    const { client, clientId } = getGoogleClient();
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ message: "No pudimos validar tu cuenta de Google" });
+    }
+
+    if (!payload?.email || !payload.email_verified) {
+      return res.status(401).json({ message: "Tu cuenta de Google no tiene el email verificado" });
+    }
+
+    const email = String(payload.email).trim().toLowerCase();
+    const googleId = String(payload.sub);
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (!user) {
+      user = await User.create({
+        email,
+        googleId,
+        firstName: String(payload.given_name || payload.name || "").trim() || "Cuenta nueva",
+        role: "user",
+        emailVerified: true,
+      });
+    } else {
+      // Cuenta existente (creada con mail+contraseña) que ahora entra por
+      // Google por primera vez: se vincula en vez de crear un duplicado, y de
+      // paso confirma el email si todavía no lo estaba — Google ya certificó
+      // que es de quien dice ser.
+      let dirty = false;
+      if (!user.googleId) { user.googleId = googleId; dirty = true; }
+      if (!user.emailVerified) { user.emailVerified = true; dirty = true; }
+      if (dirty) await user.save();
+    }
+
+    const token = await startSession(res, user, req);
+    return res.status(200).json(buildAuthResponse(user, token));
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -458,4 +550,5 @@ module.exports = {
   resetPassword,
   verifyEmail,
   resendVerification,
+  googleAuth,
 };

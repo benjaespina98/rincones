@@ -16,6 +16,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const VerifyRequiredPage = lazy(() => import("./pages/VerifyRequiredPage"));
+const BirthdatePage = lazy(() => import("./pages/BirthdatePage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const PromoReportPage = lazy(() => import("./pages/PromoReportPage"));
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
@@ -76,6 +77,10 @@ function App() {
         <Route
           path="/verificar-email"
           element={<PrivateRoute><VerifyRequiredPage /></PrivateRoute>}
+        />
+        <Route
+          path="/fecha-nacimiento"
+          element={<PrivateRoute><BirthdatePage /></PrivateRoute>}
         />
         <Route
           path="/onboarding"

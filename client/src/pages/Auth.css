@@ -305,6 +305,38 @@
   color: var(--text);
 }
 
+.auth-google {
+  margin-top: 18px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  margin-bottom: 14px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.auth-google__btn {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-google__btn.is-disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .auth-linkbtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
