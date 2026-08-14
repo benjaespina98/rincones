@@ -15,6 +15,7 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
 const VerifyRequiredPage = lazy(() => import("./pages/VerifyRequiredPage"));
 const BirthdatePage = lazy(() => import("./pages/BirthdatePage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
@@ -65,6 +66,10 @@ function App() {
         {/* Se abre desde el link del mail: puede caer en un navegador sin
             sesión iniciada (otro dispositivo), así que va afuera de PrivateRoute. */}
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        {/* A donde vuelve el navegador después de "Continuar con Google"
+            (redirect de página completa, no popup — ver utils/googleOAuth.js).
+            Sin sesión todavía, igual que /verify-email. */}
+        <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
         {/* El informe del anunciante. Sin sesión y sin la navegación de la app:
             lo abre alguien de afuera que sólo quiere ver sus números. */}
