@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
+import Segmented from "../components/Segmented";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -76,29 +77,23 @@ export default function GuardadosPage() {
         <p>Los que querés probar. Cuando consigas uno, escaneálo para sumarlo a tu bodega.</p>
       </header>
 
-      {/* El MISMO segmentado que la bodega: elegir una vista entre pocas, con su
-          número al lado. Antes acá eran chips sueltos y allá un segmentado, para
-          hacer exactamente lo mismo. */}
-      <div className="segmented" role="group" aria-label="Qué guardados ver">
-        <button
-          type="button"
-          className={`segmented__btn ${filter === "all" ? "is-active" : ""}`}
-          aria-pressed={filter === "all"}
-          onClick={() => setFilter("all")}
-        >
-          Todos
-          {wishes.length > 0 && <span className="segmented__n">{wishes.length}</span>}
-        </button>
-        <button
-          type="button"
-          className={`segmented__btn ${filter === "favorites" ? "is-active" : ""}`}
-          aria-pressed={filter === "favorites"}
-          onClick={() => setFilter("favorites")}
-        >
-          <Icon name="heart" filled={filter === "favorites"} size={13} /> Favoritos
-          {favCount > 0 && <span className="segmented__n">{favCount}</span>}
-        </button>
-      </div>
+      <Segmented
+        ariaLabel="Qué guardados ver"
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { id: "all", label: "Todos", count: wishes.length },
+          {
+            id: "favorites",
+            label: (
+              <>
+                <Icon name="heart" filled={filter === "favorites"} size={13} /> Favoritos
+              </>
+            ),
+            count: favCount,
+          },
+        ]}
+      />
 
       {loading && <LoadingSkeleton type="list" count={4} />}
 

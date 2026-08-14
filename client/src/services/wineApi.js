@@ -70,42 +70,6 @@ export const getWineStats = async () => {
   return data.data;
 };
 
-export const searchWines = async (query) => {
-  const { data } = await api.get("/wines/search", {
-    params: { q: query },
-  });
-
-  return data.data || [];
-};
-
-export const getWineSuggestions = async () => {
-  const wines = await getWines();
-
-  return [...wines]
-    .sort((a, b) => {
-      const ratingDelta = Number(b.rating || 0) - Number(a.rating || 0);
-      if (ratingDelta !== 0) return ratingDelta;
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    })
-    .slice(0, 6)
-    .map((wine) => ({
-      ...wine,
-      reason: wine.favorite
-        ? "Basado en tus favoritos"
-        : wine.tasted
-          ? "Similar a vinos que ya tomaste"
-          : "Sugerencia según tu bodega",
-    }));
-};
-
-export const toggleWineFavorite = async (id, isFavorite) => {
-  return updateWine(id, { favorite: isFavorite });
-};
-
-export const toggleWineTasted = async (id, isTasted) => {
-  return updateWine(id, { tasted: isTasted });
-};
-
 export const getSpendingStats = async () => {
   const { data } = await api.get("/wines/stats/spending");
   return data.data;

@@ -16,6 +16,7 @@ import {
   getReportLink,
   revokeReportLink,
 } from "../services/promotionsApi";
+import { cantidad, diaCorto } from "../utils/format";
 import "./styles/AdminPromotionsPage.css";
 
 /**
@@ -165,17 +166,6 @@ const aFormulario = (p) => ({
   sponsored: p.sponsored === true,
 });
 
-/** "YYYY-MM-DD" a "31 dic". UTC, o el navegador resta 3 horas y muestra el día anterior. */
-const diaCorto = (valor) => {
-  const [a, m, d] = String(valor).split("-").map(Number);
-  if (!a) return valor;
-  return new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-};
-
 /** La ventana de vigencia en palabras, que es como se lee de un vistazo. */
 const ventanaEnPalabras = (p) => {
   const { startsAt, endsAt } = p.form || {};
@@ -188,12 +178,6 @@ const ventanaEnPalabras = (p) => {
 /** El mensaje de error que mandó el server, si es que mandó uno útil. */
 const mensajeDeError = (error, porDefecto) =>
   error?.response?.data?.error || error?.response?.data?.message || porDefecto;
-
-const NUM = new Intl.NumberFormat("es-AR");
-
-/** "1 impresión" y no "1 impresiones": en la pantalla de los números, se nota. */
-const cantidad = (n, singular, plural) =>
-  `${NUM.format(n || 0)} ${(n || 0) === 1 ? singular : plural}`;
 
 export default function AdminPromotionsPage() {
   const { showSuccess, showError } = useToast();

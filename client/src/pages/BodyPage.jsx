@@ -6,6 +6,7 @@ import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import StarRating from "../components/StarRating";
 import BodegaFilters from "../components/BodegaFilters";
+import Segmented from "../components/Segmented";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -895,25 +896,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
           tres bloques distintos (la tira de la colección, la línea de conteo y
           estos botones) son uno solo, y acá dice de antemano qué vas a encontrar
           del otro lado sin tener que tocar para averiguarlo. */}
-      <div className="segmented bodega-vista" role="group" aria-label="Qué parte de tu bodega ver">
-        {[
-          { id: "instock", label: "En stock", detalle: "Los que tenés en casa ahora" },
-          { id: "all", label: "Todos", detalle: "Toda tu colección" },
-          { id: "probados", label: "Probados", detalle: "Los que tomaste alguna vez, tengas o no" },
-        ].map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            className={`segmented__btn ${vista === v.id ? "is-active" : ""}`}
-            aria-pressed={vista === v.id}
-            title={v.detalle}
-            onClick={() => setVista(v.id)}
-          >
-            {v.label}
-            <span className="segmented__n">{conteoPorVista[v.id]}</span>
-          </button>
-        ))}
-      </div>
+      <Segmented
+        className="bodega-vista"
+        ariaLabel="Qué parte de tu bodega ver"
+        value={vista}
+        onChange={setVista}
+        options={[
+          { id: "instock", label: "En stock", title: "Los que tenés en casa ahora", count: conteoPorVista.instock },
+          { id: "all", label: "Todos", title: "Toda tu colección", count: conteoPorVista.all },
+          { id: "probados", label: "Probados", title: "Los que tomaste alguna vez, tengas o no", count: conteoPorVista.probados },
+        ]}
+      />
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (
