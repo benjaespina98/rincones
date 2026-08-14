@@ -1,0 +1,23 @@
+/* Antes esta pantalla importaba AdminUsersPage.css entero para tomar prestadas
+   media docena de clases compartidas (`.admin-users__toolbar`, `.admin-btn`,
+   `.admin-review*`, la paginación). Quedaba acoplada a un archivo que no es
+   el suyo: cualquier cambio pensado sólo para Usuarios podía romper Reseñas
+   sin que nadie lo notara. Este archivo importa lo compartido explícitamente
+   (ver el `@import` abajo) y sólo agrega lo propio de moderación. */
+@import "./AdminUsersPage.css";
+
+.admin-reviews__header {
+  margin-bottom: 12px;
+}
+
+.admin-reviews__header h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+/* Filtro por puntaje: el uso real de moderación es "mostrame lo peor
+   primero", no leer todo en orden cronológico. */
+.admin-reviews__rating-filter {
+  display: flex;
+  gap: 6px;
+}

@@ -37,7 +37,19 @@ export default function GoogleCallbackPage() {
       navigate("/login", { replace: true });
       return;
     }
+    if (resultado.error === "nonce_mismatch") {
+      // Dos intentos de login se superpusieron (doble click, volver atrás con
+      // el navegador y reintentar) y el nonce guardado ya no es el de este
+      // viaje. No es un problema del lado de Google ni del server: sólo hay
+      // que arrancar de nuevo.
+      showError("La sesión de Google expiró en el camino. Probá de nuevo.");
+      navigate("/login", { replace: true });
+      return;
+    }
     if (resultado.error) {
+      // "missing_token"/"invalid_token": Google volvió sin el id_token
+      // esperado. Puede ser que la persona haya llegado a esta URL por su
+      // cuenta (sin pasar por el botón), no necesariamente una falla real.
       showError("No se pudo continuar con Google. Probá de nuevo.");
       navigate("/login", { replace: true });
       return;
@@ -52,7 +64,14 @@ export default function GoogleCallbackPage() {
         navigate(resultado.mode === "register" ? "/bodega" : "/", { replace: true });
       })
       .catch((err) => {
-        const msg = err.response?.data?.message || "No se pudo continuar con Google.";
+        // Sin respuesta del server (red caída, CORS, timeout) vs. un rechazo
+        // explícito del server (credential inválido, email no verificado) son
+        // dos problemas distintos — el primero conviene decirlo distinto para
+        // no hacer parecer que la cuenta de Google está mal cuando en
+        // realidad no llegó ni a validarse.
+        const msg = err.response
+          ? err.response.data?.message || "No se pudo continuar con Google."
+          : "No pudimos conectar para validar tu cuenta de Google. Revisá tu conexión y probá de nuevo.";
         showError(msg);
         navigate("/login", { replace: true });
       });

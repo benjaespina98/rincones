@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icon from "../components/Icon";
 import { getPublicReport } from "../services/promotionsApi";
+import { NUM, diaCorto } from "../utils/format";
 import "./styles/PromoReportPage.css";
 
 /**
@@ -29,18 +30,6 @@ import "./styles/PromoReportPage.css";
  *    diaria sí: el anunciante la cruza con su propio calendario —el día que hizo
  *    su promoción, el fin de semana largo— y ahí el número se vuelve suyo.
  */
-
-const NUM = new Intl.NumberFormat("es-AR");
-
-const diaCorto = (dia) => {
-  const [a, m, d] = String(dia).split("-").map(Number);
-  if (!a) return dia;
-  return new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-};
 
 const RANGOS = [7, 30, 90];
 

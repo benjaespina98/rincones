@@ -33,10 +33,15 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    // Indexado: el panel de admin filtra por rol, y cada cambio de rol o
+    // borrado de un admin cuenta `role: "admin"` para no dejar la app sin
+    // ninguno — sin índice, esas dos consultas recorren toda la colección a
+    // medida que crece la base de usuarios.
     role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
+      index: true,
     },
 
     // Perfil de usuario

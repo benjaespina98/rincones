@@ -90,6 +90,23 @@ const resendVerificationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Login con Google: antes compartía el bucket de 5/15min de `loginLimiter`,
+// pensado para frenar adivinar contraseñas por fuerza bruta. Acá no hay
+// contraseña que adivinar — el credential es un JWT que ya firmó Google, así
+// que el riesgo de abuso es otro (loops rotos, reintentos de una integración
+// que falla), no fuerza bruta. Un límite compartido con login castigaba a
+// alguien probando distintas cuentas de Google en poco tiempo con el mismo
+// mensaje ambiguo que un ataque de contraseñas — más generoso, pero no
+// abierto del todo.
+const googleAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20,
+  message: "Demasiados intentos, intenta en unos minutos",
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // La política vive en config/cors.js, no acá. Estaba escrita también en el
 // entrypoint de Vercel y las dos copias se separaron: PATCH quedó permitido en
 // esta y no en la otra, y eso rompió en producción —sólo en producción— el "+"/"−"
@@ -118,9 +135,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth/login", loginLimiter);
-// Mismo límite que login: es otra forma de entrar, no de registrarse (una
-// cuenta de Google ya existente sólo abre sesión).
-app.use("/api/auth/google", loginLimiter);
+app.use("/api/auth/google", googleAuthLimiter);
 app.use("/api/auth/forgot-password", forgotLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/auth/resend-verification", resendVerificationLimiter);

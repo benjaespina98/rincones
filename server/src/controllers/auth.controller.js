@@ -39,6 +39,10 @@ const buildAuthResponse = (user, token) => ({
       id: String(user._id),
       email: user.email,
       role: user.role,
+      // Mismo motivo que `onboarded` arriba: `/me` ya lo devuelve, y sin esto
+      // acá el saludo mostraba el nombre derivado del email hasta que la PWA
+      // se reabría y `/me` corregía el dato.
+      firstName: user.firstName || "",
       emailVerified: Boolean(user.emailVerified),
       onboarded: Boolean(user.onboardedAt),
       // Cuentas de Google entran sin haber pasado por el formulario que pide

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const ChangeLog = require("../models/changeLog.model");
 const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
@@ -5,18 +6,44 @@ const WineReview = require("../models/wineReview.model");
 const WineWish = require("../models/wineWish.model");
 const WineMoment = require("../models/wineMoment.model");
 
+// Registra una acción de admin sobre OTRA cuenta. Best-effort, igual que la
+// auditoría de reseñas: la moderación (acá, la gestión de usuarios) nunca
+// tiene que romperse porque falló la escritura del log.
+const logAdminAction = async ({ entityType, entityId, action, actor, before, after }) => {
+  try {
+    await ChangeLog.create({ entityType, entityId, action, actor, before, after });
+  } catch {
+    // No hay nada mejor que hacer acá: ver el comentario de arriba.
+  }
+};
+
 const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getChangeLogs = async (req, res, next) => {
   try {
+    const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(Number(req.query.limit || 30), 100);
+    const skip = (page - 1) * limit;
 
-    const logs = await ChangeLog.find()
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const entityType = String(req.query.entityType || "").trim();
+    const action = String(req.query.action || "").trim();
 
-    return res.status(200).json({ data: logs });
+    const filter = {};
+    if (entityType) filter.entityType = entityType;
+    if (["create", "update", "delete"].includes(action)) filter.action = action;
+
+    // Antes esto sólo tenía `limit`: cualquier movimiento más allá de los
+    // últimos 100 quedaba inaccesible desde el panel, no sólo lento de
+    // traer. Con `page`/`skip` la historia completa es navegable.
+    const [logs, total] = await Promise.all([
+      ChangeLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      ChangeLog.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      data: logs,
+      pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
+    });
   } catch (error) {
     return next(error);
   }
@@ -92,12 +119,22 @@ const getUsers = async (req, res, next) => {
     }
     if (role === "user" || role === "admin") filter.role = role;
 
-    // Sin `stats`: es el contador que se lleva a mano y puede haber quedado
-    // atrasado. Los números de cada fila salen de las agregaciones de abajo, que
-    // cuentan de verdad. Traer los dos era ofrecer dos respuestas para lo mismo.
+    const sortField = ["createdAt", "wineCount", "reviewCount"].includes(String(req.query.sort))
+      ? req.query.sort
+      : "createdAt";
+    const sortDir = req.query.dir === "asc" ? 1 : -1;
+    // wineCount/reviewCount no viven en el documento (se calculan abajo), así
+    // que no se pueden ordenar en la consulta de `User` — se ordenan en
+    // memoria después de traer la página. Es correcto porque el orden por
+    // esas columnas es sólo dentro de la página visible, no global; ordenar
+    // "todos los usuarios por cantidad de vinos" de verdad necesitaría una
+    // agregación distinta, que no vale la pena mientras el panel pagina de a
+    // pocas decenas de filas.
+    const sortInMemory = sortField !== "createdAt";
+
     const users = await User.find(filter)
       .select("_id email firstName lastName role createdAt")
-      .sort({ createdAt: -1 })
+      .sort(sortInMemory ? { createdAt: -1 } : { [sortField]: sortDir })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -105,25 +142,40 @@ const getUsers = async (req, res, next) => {
     // Conteo real de vinos y reseñas por usuario, en dos consultas agregadas
     // (no una por fila): es lo que permite ver de un vistazo quién usa la app.
     const ids = users.map((u) => u._id);
-    const [wineCounts, reviewCounts] = await Promise.all([
+    const [wineCounts, reviewCounts, facet] = await Promise.all([
       Wine.aggregate([{ $match: { userId: { $in: ids } } }, { $group: { _id: "$userId", n: { $sum: 1 } } }]),
       WineReview.aggregate([{ $match: { userId: { $in: ids } } }, { $group: { _id: "$userId", n: { $sum: 1 } } }]),
+      // `total` (con el filtro activo) y `admins` (global, para la guarda de
+      // "no te quedes sin admins") en una sola ida a la base en vez de dos
+      // `countDocuments` en serie.
+      User.aggregate([
+        {
+          $facet: {
+            total: [{ $match: filter }, { $count: "n" }],
+            admins: [{ $match: { role: "admin" } }, { $count: "n" }],
+          },
+        },
+      ]),
     ]);
     const wineMap = new Map(wineCounts.map((r) => [String(r._id), r.n]));
     const reviewMap = new Map(reviewCounts.map((r) => [String(r._id), r.n]));
+    const total = facet[0]?.total[0]?.n || 0;
+    const admins = facet[0]?.admins[0]?.n || 0;
 
-    const total = await User.countDocuments(filter);
-    const admins = await User.countDocuments({ role: "admin" });
+    let rows = users.map((u) => ({
+      ...u,
+      wineCount: wineMap.get(String(u._id)) || 0,
+      reviewCount: reviewMap.get(String(u._id)) || 0,
+      isSelf: String(u._id) === String(req.user.id),
+    }));
+    if (sortInMemory) {
+      rows = rows.sort((a, b) => (a[sortField] - b[sortField]) * sortDir);
+    }
 
     return res.status(200).json({
-      data: users.map((u) => ({
-        ...u,
-        wineCount: wineMap.get(String(u._id)) || 0,
-        reviewCount: reviewMap.get(String(u._id)) || 0,
-        isSelf: String(u._id) === String(req.user.id),
-      })),
+      data: rows,
       meta: { admins },
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
     });
   } catch (error) {
     return next(error);
@@ -166,8 +218,21 @@ const updateUserRole = async (req, res, next) => {
       }
     }
 
+    const previousRole = user.role;
     user.role = role;
     await user.save();
+
+    // Otorgar o quitar admin es la acción más sensible del panel — quedaba
+    // sin auditar mientras que un simple cambio de vino sí lo estaba. Si una
+    // cuenta admin se compromete, esto es lo primero que hay que poder mirar.
+    await logAdminAction({
+      entityType: "user",
+      entityId: user._id,
+      action: "update",
+      actor: { userId: req.user.id, email: req.user.email, role: "admin" },
+      before: { role: previousRole },
+      after: { role: user.role, targetEmail: user.email },
+    });
 
     return res.status(200).json({
       message: `${user.email} ahora es ${role === "admin" ? "administrador" : "usuario"}`,
@@ -197,15 +262,127 @@ const deleteUser = async (req, res, next) => {
     }
 
     // Cascada: si no, quedan vinos y reseñas huérfanos que igual se muestran.
-    await Promise.all([
-      Wine.deleteMany({ userId: user._id }),
-      WineWish.deleteMany({ userId: user._id }),
-      WineMoment.deleteMany({ userId: user._id }),
-      WineReview.deleteMany({ userId: user._id }),
-    ]);
-    await User.deleteOne({ _id: user._id });
+    //
+    // Va dentro de una transacción: son 5 borrados separados y, si el proceso
+    // se cae a mitad de camino (o uno de los `deleteMany` falla), sin
+    // transacción la cuenta podía quedar borrada con vinos/reseñas/deseos
+    // huérfanos todavía en la base — o al revés, la cuenta seguir viva con
+    // parte de sus datos ya borrados. `withTransaction` deshace todo si algo
+    // falla a mitad de camino.
+    //
+    // Sólo funciona contra un replica set (así corre producción, en Atlas).
+    // Un Mongo standalone local (`mongodb://127.0.0.1:27017`, sin réplica) no
+    // soporta transacciones y tira ese error puntual — ahí se cae al borrado
+    // sin transacción de siempre, para no bloquear el desarrollo local.
+    const cascade = async (session) => {
+      const opts = session ? { session } : undefined;
+      await Promise.all([
+        Wine.deleteMany({ userId: user._id }, opts),
+        WineWish.deleteMany({ userId: user._id }, opts),
+        WineMoment.deleteMany({ userId: user._id }, opts),
+        WineReview.deleteMany({ userId: user._id }, opts),
+      ]);
+      await User.deleteOne({ _id: user._id }, opts);
+    };
+
+    try {
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(() => cascade(session));
+      } finally {
+        await session.endSession();
+      }
+    } catch (txError) {
+      const noSoportaTransacciones =
+        /Transaction numbers|IllegalOperation|Transactions are not supported/i.test(
+          String(txError?.message || "")
+        );
+      if (!noSoportaTransacciones) throw txError;
+      await cascade(null);
+    }
+
+    await logAdminAction({
+      entityType: "user",
+      entityId: user._id,
+      action: "delete",
+      actor: { userId: req.user.id, email: req.user.email, role: "admin" },
+      before: { email: user.email, role: user.role, firstName: user.firstName },
+      after: null,
+    });
 
     return res.status(200).json({ message: `Cuenta de ${user.email} eliminada` });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Borra varios usuarios de una — pensado para las cuentas de prueba
+ * (qa_*, smoke_*) que hoy hay que sacar de a una. Reusa exactamente las
+ * mismas guardas que `deleteUser` (no te podés borrar a vos mismo, no se
+ * puede dejar la app sin ningún admin) fila por fila, así que un pedido con
+ * 10 ids donde una es inválida borra las otras 9 y avisa cuál falló, en vez
+ * de fallar todo o nada por una sola fila problemática.
+ */
+const bulkDeleteUsers = async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.filter(Boolean) : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ message: "No se recibió ningún usuario para eliminar" });
+    }
+    if (ids.length > 100) {
+      return res.status(400).json({ message: "Máximo 100 usuarios por lote" });
+    }
+
+    const deleted = [];
+    const failed = [];
+
+    for (const userId of ids) {
+      try {
+        const user = await User.findById(userId);
+        if (!user) {
+          failed.push({ userId, reason: "No encontrado" });
+          continue;
+        }
+        if (String(user._id) === String(req.user.id)) {
+          failed.push({ userId, email: user.email, reason: "Es tu propia cuenta" });
+          continue;
+        }
+        if (user.role === "admin") {
+          const admins = await User.countDocuments({ role: "admin" });
+          if (admins <= 1) {
+            failed.push({ userId, email: user.email, reason: "Es el único admin" });
+            continue;
+          }
+        }
+
+        await Promise.all([
+          Wine.deleteMany({ userId: user._id }),
+          WineWish.deleteMany({ userId: user._id }),
+          WineMoment.deleteMany({ userId: user._id }),
+          WineReview.deleteMany({ userId: user._id }),
+        ]);
+        await User.deleteOne({ _id: user._id });
+
+        await logAdminAction({
+          entityType: "user",
+          entityId: user._id,
+          action: "delete",
+          actor: { userId: req.user.id, email: req.user.email, role: "admin" },
+          before: { email: user.email, role: user.role, firstName: user.firstName },
+          after: null,
+        });
+
+        deleted.push({ userId, email: user.email });
+      } catch {
+        failed.push({ userId, reason: "Error al eliminar" });
+      }
+    }
+
+    return res.status(200).json({
+      message: `${deleted.length} de ${ids.length} cuentas eliminadas`,
+      data: { deleted, failed },
+    });
   } catch (error) {
     return next(error);
   }
@@ -221,11 +398,17 @@ const getReviews = async (req, res, next) => {
     const limit = Math.min(Number(req.query.limit || 20), 100);
     const skip = (page - 1) * limit;
     const q = String(req.query.q || "").trim();
+    // Filtro por puntaje: el uso real de moderación es "mostrame las de 1-2
+    // estrellas primero", no revisar todo en orden cronológico.
+    const maxRating = Number(req.query.maxRating);
 
     const filter = {};
     if (q) {
       const rx = new RegExp(escapeRegex(q), "i");
       filter.$or = [{ name: rx }, { winery: rx }, { text: rx }, { authorName: rx }];
+    }
+    if (Number.isFinite(maxRating) && maxRating >= 1 && maxRating <= 5) {
+      filter.rating = { $lte: maxRating };
     }
 
     const [reviews, total] = await Promise.all([
@@ -276,6 +459,7 @@ module.exports = {
   getUsers,
   updateUserRole,
   deleteUser,
+  bulkDeleteUsers,
   getReviews,
   deleteReview,
 };

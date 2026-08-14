@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import { getPromotionStats } from "../services/promotionsApi";
+import { NUM, cantidad, diaCorto } from "../utils/format";
 import "./PromoStats.css";
 
 /**
@@ -21,29 +22,6 @@ import "./PromoStats.css";
  * 3. DICE DE QUÉ PERÍODO HABLA. Un total sin período es un número que no se puede
  *    verificar contra nada.
  */
-
-const NUM = new Intl.NumberFormat("es-AR");
-
-/** El número con su unidad en el número correcto: "1 impresión", no "1 impresiones". */
-const cantidad = (n, singular, plural) =>
-  `${NUM.format(n || 0)} ${(n || 0) === 1 ? singular : plural}`;
-
-/**
- * El día como "12 ago", para el eje del gráfico.
- *
- * `timeZone: "UTC"` porque la fecha se arma con `Date.UTC`: sin eso el navegador la
- * pasa a hora local y en Argentina devuelve el día anterior. Un informe corrido un
- * día no se puede comparar contra nada.
- */
-const diaCorto = (day) => {
-  const [a, m, d] = String(day).split("-").map(Number);
-  if (!a || !m || !d) return day;
-  return new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-};
 
 export default function PromoStats({ promoId, title, onClose }) {
   const [days, setDays] = useState(30);

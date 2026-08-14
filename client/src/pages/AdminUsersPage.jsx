@@ -1,11 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { getUsers, updateUserRole, deleteUser } from "../services/adminApi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getUsers, updateUserRole, deleteUser, bulkDeleteUsers } from "../services/adminApi";
 import { useToast } from "../context/ToastContext";
 import ConfirmModal from "../components/ConfirmModal";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import Icon from "../components/Icon";
 import "./styles/AdminUsersPage.css";
+
+const SORT_OPTIONS = [
+  { value: "createdAt:desc", label: "Alta: más nuevos" },
+  { value: "createdAt:asc", label: "Alta: más viejos" },
+  { value: "wineCount:desc", label: "Más vinos" },
+  { value: "wineCount:asc", label: "Menos vinos" },
+  { value: "reviewCount:desc", label: "Más reseñas" },
+  { value: "reviewCount:asc", label: "Menos reseñas" },
+];
 
 /**
  * Gestión de usuarios y roles.
@@ -14,7 +23,7 @@ import "./styles/AdminUsersPage.css";
  * admin" viven en el server; acá además deshabilitamos los controles para que
  * ni siquiera se pueda intentar.
  */
-const AdminUsersPage = ({ embedded = false }) => {
+const AdminUsersPage = () => {
   const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState([]);
   const [admins, setAdmins] = useState(0);
@@ -23,16 +32,22 @@ const AdminUsersPage = ({ embedded = false }) => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 0, limit: 20 });
   const [busyId, setBusyId] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [sortKey, setSortKey] = useState("createdAt:desc");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+
+  const [sort, dir] = sortKey.split(":");
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const data = await getUsers({ page, limit: 20, q: query, role: roleFilter });
+      const data = await getUsers({ page, limit: 20, q: query, role: roleFilter, sort, dir });
       setUsers(data.data);
       setAdmins(data.meta?.admins || 0);
       setPagination(data.pagination);
@@ -41,13 +56,19 @@ const AdminUsersPage = ({ embedded = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [page, query, roleFilter]);
+  }, [page, query, roleFilter, sort, dir]);
 
   // Debounce de la búsqueda: escribir no dispara una consulta por tecla.
   useEffect(() => {
     const t = setTimeout(loadUsers, query ? 350 : 0);
     return () => clearTimeout(t);
   }, [loadUsers, query]);
+
+  // La selección es de "esta página": cambiar de filtro, orden o página deja
+  // ids que ya no se ven en pantalla, y eso confunde más de lo que ayuda.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [page, query, roleFilter, sortKey]);
 
   const handleRoleChange = async (user) => {
     if (busyId) return;
@@ -80,6 +101,32 @@ const AdminUsersPage = ({ embedded = false }) => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    setConfirmBulkDelete(false);
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    try {
+      setBulkBusy(true);
+      const res = await bulkDeleteUsers(ids);
+      const { deleted = [], failed = [] } = res.data || {};
+      if (failed.length === 0) {
+        showSuccess(res.message || `${deleted.length} cuentas eliminadas`);
+      } else {
+        showError(
+          `${deleted.length} eliminadas, ${failed.length} no se pudieron (${failed
+            .map((f) => f.reason)
+            .join(", ")})`
+        );
+      }
+      setSelected(new Set());
+      await loadUsers();
+    } catch (err) {
+      showError(err.response?.data?.message || "No se pudo completar el borrado en lote");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const formatDate = (d) =>
     d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
@@ -91,13 +138,33 @@ const AdminUsersPage = ({ embedded = false }) => {
     /^(qa[._]|smoke_|local_test|test)/i.test(u.email || "") ||
     /@rincones\.(local|test)$/i.test(u.email || "");
 
+  // Sólo entran a la selección las filas que de verdad se pueden borrar: sin
+  // esto, "seleccionar todo" incluiría tu propia cuenta o al único admin, y
+  // el borrado en lote fallaría para esa fila sin que quede claro por qué.
+  const selectableIds = useMemo(
+    () => users.filter((u) => !u.isSelf && !(u.role === "admin" && admins <= 1)).map((u) => u._id),
+    [users, admins]
+  );
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(selectableIds));
+  };
+
   return (
-    <div className={`admin-users ${embedded ? "admin-users--embedded" : ""}`}>
-      {!embedded && (
-        <header className="admin-users__header">
-          <h1>Usuarios</h1>
-        </header>
-      )}
+    <div className="admin-users">
+      <header className="admin-users__header">
+        <h1>Usuarios</h1>
+      </header>
 
       <div className="admin-users__toolbar">
         <div className="admin-users__search">
@@ -127,7 +194,36 @@ const AdminUsersPage = ({ embedded = false }) => {
             </button>
           ))}
         </div>
+        <select
+          className="admin-users__sort"
+          value={sortKey}
+          onChange={(e) => { setSortKey(e.target.value); setPage(1); }}
+          aria-label="Ordenar por"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
+
+      {selectableIds.length > 0 && (
+        <div className="admin-bulkbar">
+          <label className="admin-checkbox">
+            <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+            <span>{selected.size > 0 ? `${selected.size} seleccionados` : "Seleccionar todos"}</span>
+          </label>
+          {selected.size > 0 && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--danger"
+              onClick={() => setConfirmBulkDelete(true)}
+              disabled={bulkBusy}
+            >
+              <Icon name="trash" size={14} /> Eliminar {selected.size} cuentas
+            </button>
+          )}
+        </div>
+      )}
 
       {loading && <p className="admin-users__loading">Cargando usuarios…</p>}
 
@@ -147,12 +243,23 @@ const AdminUsersPage = ({ embedded = false }) => {
       {!loading && !error && users.length > 0 && (
         <ul className="admin-user-list">
           {users.map((u) => {
-            const busy = busyId === u._id;
+            const busy = busyId === u._id || bulkBusy;
             // Sin otro admin, quitarse el rol dejaría la app sin panel.
             const lastAdmin = u.role === "admin" && admins <= 1;
+            const selectable = !u.isSelf && !lastAdmin;
             return (
               <li key={u._id} className={`admin-user ${busy ? "is-busy" : ""}`}>
                 <div className="admin-user__main">
+                  {selectable && (
+                    <label className="admin-checkbox admin-checkbox--row">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(u._id)}
+                        onChange={() => toggleOne(u._id)}
+                        aria-label={`Seleccionar ${u.email}`}
+                      />
+                    </label>
+                  )}
                   <div className="admin-user__id">
                     <span className="admin-user__name">
                       {displayName(u)}
@@ -239,6 +346,17 @@ const AdminUsersPage = ({ embedded = false }) => {
         isDangerous
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmBulkDelete}
+        title={`¿Eliminar ${selected.size} cuentas?`}
+        message="Se va a borrar cada cuenta seleccionada junto con todo su contenido (vinos, guardados, momentos y reseñas). No se puede deshacer."
+        confirmText={`Eliminar ${selected.size} cuentas`}
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={handleBulkDelete}
+        onCancel={() => setConfirmBulkDelete(false)}
       />
     </div>
   );
