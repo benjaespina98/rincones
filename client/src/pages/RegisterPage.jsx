@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import { register as registerRequest, googleAuth } from "../services/authApi";
+import { register as registerRequest } from "../services/authApi";
 import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import Icon from "../components/Icon";
@@ -84,23 +84,6 @@ const RegisterPage = () => {
       setLoading(false);
     }
   };
-
-  const handleGoogle = useCallback(async (credential) => {
-    if (!credential) return;
-    try {
-      setLoading(true);
-      const user = await googleAuth(credential);
-      applySession(user);
-      showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
-      navigate("/bodega");
-    } catch (err) {
-      const msg = err.response?.data?.message || "No se pudo continuar con Google.";
-      setError(msg);
-      showError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [applySession, navigate, showError, showSuccess]);
 
   return (
     <div className="auth-screen">
@@ -216,7 +199,7 @@ const RegisterPage = () => {
           </button>
         </form>
 
-        <GoogleAuthButton onCredential={handleGoogle} disabled={loading} />
+        <GoogleAuthButton mode="register" disabled={loading} />
 
         <div className="auth-footer">
           <div className="auth-footer__row">

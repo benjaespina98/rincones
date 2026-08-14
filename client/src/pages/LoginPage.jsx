@@ -1,8 +1,7 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import { googleAuth } from "../services/authApi";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
@@ -11,7 +10,7 @@ import "./Auth.css";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, applySession } = useAuth();
+  const { login } = useAuth();
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,23 +42,6 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
-
-  const handleGoogle = useCallback(async (credential) => {
-    if (!credential) return;
-    try {
-      setLoading(true);
-      const user = await googleAuth(credential);
-      applySession(user);
-      showSuccess("¡Bienvenido de vuelta!");
-      navigate("/");
-    } catch (err) {
-      const msg = err.response?.data?.message || "No se pudo continuar con Google.";
-      setError(msg);
-      showError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [applySession, navigate, showError, showSuccess]);
 
   return (
     <div className="auth-screen">
@@ -117,7 +99,7 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <GoogleAuthButton onCredential={handleGoogle} disabled={loading} />
+        <GoogleAuthButton mode="login" disabled={loading} />
 
         <div className="auth-footer">
           <div className="auth-footer__row">

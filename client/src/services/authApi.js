@@ -16,13 +16,19 @@ export const register = async (email, password, firstName = "", birthDate = "") 
   return { ...data.data, mail: data.mail };
 };
 
-// "Continuar con Google": credential es el ID token que entrega el botón de
-// Google Identity Services en el navegador. El server lo valida y crea la
-// cuenta (o la vincula a una existente) — ver el controlador.
+// "Continuar con Google": credential es el ID token que Google deja en la
+// URL al volver de la redirección (ver utils/googleOAuth.js). El server lo
+// valida y crea la cuenta (o la vincula a una existente) — ver el controlador.
+//
+// Devuelve sólo el user (no { user, token } como el resto de las respuestas
+// crudas del server): quien llama a esto va derecho a `applySession(user)`,
+// no a desarmar la respuesta — mandarle el objeto sin desarmar fue justo el
+// bug que dejaba a alguien que entraba con Google trabado en "confirmá tu
+// email" para siempre, con la cuenta ya verificada en la base.
 export const googleAuth = async (credential) => {
   const { data } = await api.post("/auth/google", { credential });
   if (data.data?.token) setAuthToken(data.data.token);
-  return data.data;
+  return data.data.user;
 };
 
 export const getMe = async () => {
