@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import { useToast } from "../context/ToastContext";
-import { createWine } from "../services/wineApi";
+import { createWine, deleteWine } from "../services/wineApi";
 import { createWish } from "../services/wishApi";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
@@ -58,7 +58,7 @@ const toWinePayload = (draft) => ({
 
 export default function ScanWinePage() {
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { addToast, removeToast, showSuccess, showError } = useToast();
 
   /**
    * El alta va DIRECTO a la API, sin pasar por `useWineCollection`.
@@ -78,6 +78,11 @@ export default function ScanWinePage() {
   // que evita que un dato mal leído entre a la bodega sin que nadie lo vea.
   const [review, setReview] = useState(null);
   const [saving, setSaving] = useState(false);
+  // True entre que terminó de leerse la etiqueta y termina el match contra
+  // catálogo. Mientras tanto el escáner sigue montado (ver handleCapture): antes
+  // se desmontaba apenas llegaba la lectura y, por un instante, ni el escáner ni
+  // la revisión estaban en pantalla — se veía la pantalla inicial otra vez.
+  const [matching, setMatching] = useState(false);
 
   // Un enlace viejo a /agregar?q=… buscaba acá. Ahora se busca en Descubrí:
   // lo mandamos allá con el término puesto, en vez de perderlo.
@@ -90,22 +95,44 @@ export default function ScanWinePage() {
 
   // Guarda el vino escaneado en la bodega y lleva directo a su ficha, que es
   // donde el usuario ve la descripción y puede editar/agregar momentos.
+  //
+  // El aviso de éxito lleva "Deshacer": recién se creó, así que deshacer es
+  // simplemente borrarlo — no hay stock que devolver ni lotes que reacomodar,
+  // a diferencia de abrir una botella (ver BodyPage.handleOpenBottle, mismo
+  // patrón de toast). Vale para los tres niveles de confianza por igual: el
+  // toque de guardar ya fue una decisión de la persona, esto es la red de
+  // seguridad para el toque equivocado, no una confirmación adicional.
   const saveWine = async (draft) => {
     const payload = toWinePayload(draft);
     const { wine: created } = await createWine(payload);
     successHaptic();
-    // Con cero botellas el vino NO entró a tu bodega, entró a tu historial. El
-    // aviso tiene que decir lo que pasó: "agregado a tu bodega" mandaría a
-    // buscarlo a "En stock", que es el único lugar donde no está.
-    showSuccess(
-      payload.quantity === 0
-        ? `"${created.name}" guardado como probado`
-        : `"${created.name}" agregado a tu bodega`
-    );
     // El evento que más dice del producto: cargar un vino es la acción por la que
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
     // que permite saber si el lector de etiquetas vale lo que cuesta.
     trackEvent("wine_added", { source: draft?.source || "escaneo" });
+
+    // Con cero botellas el vino NO entró a tu bodega, entró a tu historial. El
+    // aviso tiene que decir lo que pasó: "agregado a tu bodega" mandaría a
+    // buscarlo a "En stock", que es el único lugar donde no está.
+    const mensaje =
+      payload.quantity === 0
+        ? `"${created.name}" guardado como probado`
+        : `"${created.name}" agregado a tu bodega`;
+
+    const toastId = addToast(mensaje, "success", 8000, {
+      label: "Deshacer",
+      onClick: async () => {
+        removeToast(toastId);
+        try {
+          await deleteWine(created._id);
+          showSuccess("Deshecho");
+          navigate("/agregar", { replace: true });
+        } catch {
+          showError("No se pudo deshacer");
+        }
+      },
+    });
+
     // `recienAgregado` enciende, una sola vez y en la ficha, el "¿sabías que?"
     // del vino: acabás de guardar la botella y en vez de un "listo" seco la app
     // te cuenta algo que no sabías. Es el único momento del recorrido donde no
@@ -119,8 +146,6 @@ export default function ScanWinePage() {
   // antes se tomaba el primer resultado a ciegas y podía pisar región/uva/cosecha
   // con las de otra botella.
   const handleCapture = async (payload) => {
-    setShowScanner(false);
-
     const values = {
       winery: payload.winery || "",
       line: payload.line || "",
@@ -139,6 +164,7 @@ export default function ScanWinePage() {
 
     let matchedFrom = null;
     if (values.winery || values.line || values.properName) {
+      setMatching(true);
       try {
         const match = await matchCatalogWine(values);
         if (match) {
@@ -156,9 +182,14 @@ export default function ScanWinePage() {
         }
       } catch {
         // Sin enriquecimiento: revisamos lo que leyó el escáner.
+      } finally {
+        setMatching(false);
       }
     }
 
+    // Recién acá se apaga el escáner y se prende la revisión, en el mismo tick:
+    // nunca hay un frame donde ninguna de las dos pantallas esté montada.
+    setShowScanner(false);
     setReview({
       photo: payload.preview || "",
       source: payload.source || "",
@@ -241,6 +272,9 @@ export default function ScanWinePage() {
           onWish={handleWishReview}
           onCancel={() => setReview(null)}
           onRescan={review.source === "manual" ? undefined : () => { setReview(null); setShowScanner(true); }}
+          // "Buscar manualmente": la misma pantalla de revisión, en blanco, que
+          // ya usa "Cargar a mano" desde la vista principal.
+          onManual={review.source === "manual" ? undefined : startManual}
         />
       </div>
     );
@@ -255,6 +289,7 @@ export default function ScanWinePage() {
             onCapture={handleCapture}
             onCancel={() => setShowScanner(false)}
             onManual={() => { setShowScanner(false); startManual(); }}
+            matching={matching}
           />
         </div>
       </div>

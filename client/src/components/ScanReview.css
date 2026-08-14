@@ -318,3 +318,72 @@
 }
 
 .scan-review__link:hover { color: var(--text-secondary); }
+
+/* ── Baja confianza sin campo puntual que señalar ────────────────────────────
+   Reemplaza al formulario entero: no hay chips ni inputs que mostrar, así que
+   el espacio se usa para las dos salidas reales en vez de simular una ficha
+   con datos que nadie leyó. */
+.scan-review__unidentified {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 22px 12px 6px;
+  text-align: center;
+}
+
+.scan-review__unidentified-icon {
+  color: var(--gold-soft);
+  margin-bottom: 4px;
+}
+
+.scan-review__unidentified-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.scan-review__unidentified-hint {
+  margin: 0 0 14px;
+  max-width: 34ch;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.scan-review__unidentified-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+}
+
+.scan-review__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color: #fff;
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+}
+
+.scan-review__btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-md);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-md);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+}

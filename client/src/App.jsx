@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
+import AppGate from "./components/AppGate";
 import AppLayout from "./components/AppLayout";
 import PageviewTracker from "./components/PageviewTracker";
 import SplashScreen from "./components/SplashScreen";
@@ -13,6 +14,9 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+const VerifyRequiredPage = lazy(() => import("./pages/VerifyRequiredPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const PromoReportPage = lazy(() => import("./pages/PromoReportPage"));
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
 const BodyPage = lazy(() => import("./pages/BodyPage"));
@@ -30,7 +34,9 @@ const RouteFallback = () => <SplashScreen label="Un momento" />;
 
 const withLayout = (title, element) => (
   <PrivateRoute>
-    <AppLayout pageTitle={title}>{element}</AppLayout>
+    <AppGate>
+      <AppLayout pageTitle={title}>{element}</AppLayout>
+    </AppGate>
   </PrivateRoute>
 );
 
@@ -55,10 +61,26 @@ function App() {
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        {/* Se abre desde el link del mail: puede caer en un navegador sin
+            sesión iniciada (otro dispositivo), así que va afuera de PrivateRoute. */}
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         {/* El informe del anunciante. Sin sesión y sin la navegación de la app:
             lo abre alguien de afuera que sólo quiere ver sus números. */}
         <Route path="/informe/:token" element={<PromoReportPage />} />
+
+        {/* Gates obligatorios: necesitan sesión (por eso van con PrivateRoute),
+            pero NO pasan por AppGate — si lo hicieran, cada una redirigiría a
+            sí misma en loop. Sin AppLayout: son pantallas de tránsito, no
+            secciones de la app, y no tienen sentido con tab bar. */}
+        <Route
+          path="/verificar-email"
+          element={<PrivateRoute><VerifyRequiredPage /></PrivateRoute>}
+        />
+        <Route
+          path="/onboarding"
+          element={<PrivateRoute><OnboardingPage /></PrivateRoute>}
+        />
 
         {/* Home = Descubrí (recomendaciones + contenido) */}
         <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />

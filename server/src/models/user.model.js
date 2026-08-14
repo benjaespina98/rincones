@@ -109,6 +109,24 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: {
       type: Date,
     },
+
+    // Verificación de email. Igual mecánica que el reset de contraseña: el
+    // token que viaja por el link nunca se guarda tal cual, sólo su hash — así
+    // que ni un dump de la base alcanza para armar un link de verificación.
+    // No hay ningún endpoint que reciba `emailVerified` del cliente: la única
+    // forma de que pase a `true` es `verifyEmail`, y sólo con el token vigente.
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     versionKey: false,

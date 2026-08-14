@@ -243,6 +243,7 @@ const price = async (req, res, next) => {
 // lectura de etiqueta. Devuelve null si no hay una coincidencia confiable: es
 // preferible no completar campos a completarlos con otra botella.
 const match = async (req, res, next) => {
+  const t0 = process.hrtime.bigint();
   try {
     const data = await catalogService.findMatch({
       winery: String(req.body.winery || ""),
@@ -251,6 +252,8 @@ const match = async (req, res, next) => {
       varietal: String(req.body.varietal || ""),
       vintage: String(req.body.vintage || ""),
     });
+    const totalMs = Number(process.hrtime.bigint() - t0) / 1e6;
+    console.info(`[scan] match hit=${Boolean(data)} total=${totalMs.toFixed(1)}ms`);
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);

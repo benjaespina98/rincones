@@ -5,7 +5,7 @@ import { WINE_TYPE_LABELS, WINERIES, REGIONS, VARIETALS } from "../data/wineRefe
 import { composeDisplayName, guessWineType, confidenceLevel } from "../utils/wineIdentity";
 import {
   checkCoherence,
-  BLOCKING_ISSUES,
+  identificationVerdict,
   FIELDS_FOR_ISSUE,
   ISSUE_COPY,
 } from "../utils/wineValidation";
@@ -81,6 +81,7 @@ export default function ScanReview({
   onWish,
   onCancel,
   onRescan,
+  onManual,
 }) {
   const [values, setValues] = useState(() => ({
     winery: reading?.values?.winery || "",
@@ -107,6 +108,10 @@ export default function ScanReview({
   // Cuántas botellas entran a la cava. Obligar a escanear doce veces la misma
   // etiqueta porque compraste una caja no tiene sentido.
   const [cantidad, setCantidad] = useState(1);
+  // Si la lectura salió tan floja que no hay campo puntual que señalar, se
+  // esconde el formulario detrás de "Completar los datos a mano" (ver
+  // `sinIdentificar` más abajo) en vez de mostrarlo de entrada.
+  const [revelarDatos, setRevelarDatos] = useState(false);
 
   // Estable entre renders: es dependencia de los useMemo del veredicto, y un
   // objeto nuevo en cada render los haría recalcular siempre.
@@ -217,26 +222,47 @@ export default function ScanReview({
     Boolean(title) && title.trim().toLowerCase() === String(values.winery || "").trim().toLowerCase();
 
   /**
-   * Con una identificación dudosa no se guarda hasta tocar algo.
+   * ── ALTA / MEDIA / BAJA, CON EL VEREDICTO QUE YA EXISTÍA ────────────────────
+   * No es un threshold nuevo: es `identificationVerdict`, el mismo que usa el
+   * servidor para decidir si un vino puede publicarse al catálogo público (ver
+   * server/src/data/wineValidation.js — este archivo es su espejo cliente, y el
+   * comentario de arriba de todo explica por qué hay dos copias). Reusarlo acá
+   * es lo que evita inventar un criterio de confianza aparte para la pantalla.
    *
-   * `bloqueado` es deliberadamente flojo: alcanza con que la persona haya editado
-   * uno de los campos señalados y que el problema ya no exista. No pedimos que
-   * complete la ficha entera ni que confirme campo por campo — eso convertiría
-   * cada escaneo en un formulario, que es justo lo que no queremos. Un vino bien
-   * leído sigue siendo un toque; sólo el que salió mal pide una corrección, y
-   * pide la mínima.
-   *
-   * ── POR QUÉ YA NO FRENA UNA LECTURA FLOJA ───────────────────────────────────
-   * Antes esto era `verdict === "doubtful"`, que además de los problemas reales
-   * incluía "el modelo leyó el nombre con menos de 50". Eso frenaba el guardado de
-   * un vino que no tenía NADA mal: sólo se había leído con poca luz. Y era doble
-   * castigo, porque la confianza baja ya no cambia nada — el catálogo público
-   * ahora admite por identidad, no por confianza (ver communityWines.service.js).
-   *
-   * Quedan los dos casos en que de verdad no hay vino que guardar: sin nombre, y
-   * nombre igual a la bodega sin confirmar. Los dos se resuelven en un toque.
+   *   trusted    → alta: nombre y bodega leídos con seguridad, sin problemas.
+   *   unverified → media: hay datos, pero no lo bastante seguros para darlos
+   *                por buenos solos (ej. confirmó porque la persona escribió,
+   *                no porque el modelo lo leyó con confianza).
+   *   doubtful   → baja: o hay un problema real (nombre vacío, nombre igual a
+   *                la bodega sin confirmar) o el nombre se leyó con menos de 50
+   *                de confianza — no hay vino que ofrecer todavía.
    */
-  const bloqueado = issues.some((code) => BLOCKING_ISSUES.has(code));
+  const verdict = useMemo(
+    () =>
+      identificationVerdict({
+        values: { ...values, type: derivedType, sameNameConfirmed: sameNameOk },
+        confidence: conf,
+        editedFields: [...touched],
+        source: isManual ? "manual" : "scan",
+        issues,
+      }),
+    [values, derivedType, sameNameOk, conf, touched, isManual, issues]
+  );
+
+  /**
+   * Sin nombre, o nombre igual a la bodega sin confirmar: hay un campo
+   * puntual que arreglar, y ya está a la vista (`forcedFields`). Ahí seguimos
+   * mostrando el formulario normal — es un toque, no un formulario.
+   *
+   * Cuando la baja confianza NO viene de un problema puntual —el modelo
+   * simplemente no pudo leer bien la etiqueta— no hay ningún campo que señalar:
+   * mostrar el formulario igual sería invitar a completar a ciegas datos que
+   * nadie leyó. Ahí el estado es otro: "no pudimos identificarlo", con salida a
+   * reintentar o cargar a mano, y sólo si la persona insiste se abre el
+   * formulario (`revelarDatos`).
+   */
+  const sinIdentificar = !isManual && verdict === "doubtful" && issues.length === 0;
+  const bloqueado = verdict === "doubtful";
 
   /**
    * Un candado que cierra en el mismo tick, no en el próximo render.
@@ -274,6 +300,18 @@ export default function ScanReview({
     });
   };
 
+  // Un rótulo por nivel, arriba de todo — es lo primero que se lee y el que
+  // fija la expectativa correcta antes de ver un solo dato.
+  const kicker = isManual
+    ? "Cargar a mano"
+    : sinIdentificar
+      ? "No pudimos identificarlo"
+      : verdict === "trusted"
+        ? "Vino encontrado"
+        : verdict === "unverified"
+          ? "¿Este es tu vino?"
+          : "Esto leímos de la etiqueta";
+
   return (
     <form className="scan-review" onSubmit={submit}>
       <header className="scan-review__head">
@@ -281,9 +319,7 @@ export default function ScanReview({
           <img className="scan-review__thumb" src={photo} alt="Foto de la etiqueta que escaneaste" />
         )}
         <div className="scan-review__headings">
-          <p className="scan-review__kicker">
-            {isManual ? "Cargar a mano" : "Esto leímos de la etiqueta"}
-          </p>
+          <p className="scan-review__kicker">{kicker}</p>
           <h2 className="scan-review__title">
             {title || (isManual ? "Nuevo vino" : "Vino sin nombre")}
           </h2>
@@ -291,6 +327,43 @@ export default function ScanReview({
         </div>
       </header>
 
+      {/* ── BAJA CONFIANZA, SIN UN CAMPO PUNTUAL QUE SEÑALAR ────────────────────
+          No hay bodega/nombre a medias para mostrar en chips: el modelo no
+          pudo leer la etiqueta con seguridad y punto. Ofrecer el formulario acá
+          sería invitar a completar a ciegas — mejor decirlo así de directo, con
+          las dos salidas reales (repetir la foto o cargarlo a mano) y dejar la
+          puerta de "igual quiero completarlo yo" abierta pero discreta. */}
+      {sinIdentificar && !revelarDatos ? (
+        <div className="scan-review__unidentified" role="status">
+          <Icon name="alert-triangle" size={20} className="scan-review__unidentified-icon" />
+          <p className="scan-review__unidentified-title">
+            No pudimos identificar el vino con suficiente seguridad.
+          </p>
+          <p className="scan-review__unidentified-hint">
+            Preferimos avisarte antes que guardar datos que capaz no son ciertos.
+          </p>
+          <div className="scan-review__unidentified-actions">
+            {onRescan && (
+              <button type="button" className="scan-review__btn-primary" onClick={onRescan}>
+                <Icon name="camera" size={16} /> Intentar nuevamente
+              </button>
+            )}
+            {onManual && (
+              <button type="button" className="scan-review__btn-secondary" onClick={onManual}>
+                <Icon name="pencil" size={16} /> Buscar manualmente
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="scan-review__link"
+            onClick={() => setRevelarDatos(true)}
+          >
+            Completar los datos a mano
+          </button>
+        </div>
+      ) : (
+        <>
       {matchedFrom && issues.length === 0 && (
         <p className="scan-review__matched">
           <Icon name="sparkles" size={13} /> Completamos algunos datos desde el catálogo
@@ -533,6 +606,8 @@ export default function ScanReview({
           </button>
         </div>
       </div>
+        </>
+      )}
     </form>
   );
 }

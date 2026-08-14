@@ -33,6 +33,10 @@ const PUBLICAS = new Set([
   // Cerrar sesión tiene que funcionar aunque el token ya haya expirado; si no,
   // el refresh quedaría vivo en la base sin forma de revocarlo.
   "auth.routes.js: post /logout",
+  // Se abre desde el link del mail de verificación, en un navegador que puede
+  // no tener sesión iniciada (otro dispositivo, o la sesión ya venció). La
+  // credencial acá es el token del link, no la cookie — igual que reset-password.
+  "auth.routes.js: post /verify-email",
 
   // ── Métricas de uso ─────────────────────────────────────────────────────
   // La ingesta es pública porque los visitantes SIN sesión son justamente los

@@ -250,11 +250,38 @@ describe("ScanReview", () => {
   });
 
   /**
-   * Antes esto frenaba el guardado, y era doble castigo: el vino no tenía nada
-   * mal, sólo se había leído con poca luz. Y la confianza ya no cambia si entra
-   * al catálogo público — eso lo decide la identidad (communityWines.service.js).
+   * ── DECISIÓN ACTUALIZADA ─────────────────────────────────────────────────
+   * Antes una lectura floja no frenaba nada: no había ningún campo puntual que
+   * corregir, y el catálogo público de todos modos decide por identidad, no
+   * por confianza. Pero eso dejaba pasar en silencio justo el caso que hay que
+   * frenar — "no sabemos qué es esto" — con el mismo botón de siempre. Ahora
+   * una confianza de nombre por debajo del umbral (`CONFIDENCE.REVIEW`, el
+   * mismo que ya usa el servidor) muestra el estado de baja confianza en vez
+   * del formulario, con salida a reintentar, buscar a mano, o — si la persona
+   * de verdad quiere— completar los datos ella misma.
    */
-  it("una lectura floja no frena nada: no hay nada que corregir", () => {
+  it("una lectura floja no ofrece guardar de un toque: pide reintentar o cargar a mano", () => {
+    const onConfirm = vi.fn();
+    const onRescan = vi.fn();
+    const onManual = vi.fn();
+    const floja = lectura(
+      { winery: "Mosquita Muerta", line: "Pispi", varietal: "Blend", type: "red" },
+      { line: 35, winery: 40, varietal: 30 }
+    );
+
+    render(<ScanReview reading={floja} onConfirm={onConfirm} onRescan={onRescan} onManual={onManual} />);
+
+    expect(screen.getByText(/no pudimos identificar el vino con suficiente seguridad/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /agregar a mi bodega/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /intentar nuevamente/i }));
+    expect(onRescan).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /buscar manualmente/i }));
+    expect(onManual).toHaveBeenCalledTimes(1);
+  });
+
+  it("desde una lectura floja, se puede insistir y completar los datos a mano", () => {
     const onConfirm = vi.fn();
     const floja = lectura(
       { winery: "Mosquita Muerta", line: "Pispi", varietal: "Blend", type: "red" },
@@ -262,15 +289,39 @@ describe("ScanReview", () => {
     );
 
     render(<ScanReview reading={floja} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: /completar los datos a mano/i }));
 
+    // Ahora sí aparece el formulario de siempre, con el guardado bloqueado
+    // hasta que se toque algo — mismo criterio que "el nombre igual a la bodega".
     const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
+    expect(guardar).toBeDisabled();
+
+    // Un valor DISTINTO del que ya tenía el campo: si se deja el mismo texto,
+    // React no dispara el cambio (no hay nada que actualizar) y el test no
+    // prueba nada.
+    fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
+      target: { value: "Pispi Reserva" },
+    });
     expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    // La confianza baja viaja igual: el servidor la usa para NO marcarlo como
-    // verificado, que es donde sigue viviendo la exigencia.
-    expect(onConfirm.mock.calls[0][0].identConfidence).toMatchObject({ line: 35 });
+  });
+
+  it("una identificación con problemas (no sólo floja) muestra el formulario, no el estado de 'sin identificar'", () => {
+    // Distingue las dos causas de "doubtful": acá SÍ hay un campo puntual que
+    // señalar (varietal desconocido más nombre=bodega), así que corresponde
+    // seguir mostrando el aviso de siempre con el campo al lado, no el panel
+    // de "no pudimos identificarlo".
+    const onConfirm = vi.fn();
+    const rota = lectura(
+      { winery: "Pispi", line: "Pispi", varietal: "Blend", type: "red" },
+      { line: 97, winery: 96, varietal: 90 }
+    );
+
+    render(<ScanReview reading={rota} onConfirm={onConfirm} />);
+    expect(screen.queryByText(/no pudimos identificar el vino con suficiente seguridad/i)).toBeNull();
+    expect(screen.getByText(/no lo pudimos leer bien/i)).toBeTruthy();
   });
 
   it("una uva rara se muestra editable en vez de esconderse en un chip", () => {
@@ -286,5 +337,14 @@ describe("ScanReview", () => {
     expect(screen.getByPlaceholderText("Uva")).toBeTruthy();
     // Y no bloquea: es raro, no imposible.
     expect(screen.getByRole("button", { name: /agregar a mi bodega/i })).not.toBeDisabled();
+    // Con un dato que no cierra, el veredicto es "unverified" (media
+    // confianza): se pide una confirmación, no se anuncia como resuelto.
+    expect(screen.getByText(/¿este es tu vino\?/i)).toBeTruthy();
+  });
+
+  it("una lectura sin nada raro se anuncia como encontrada, no como una pregunta", () => {
+    render(<ScanReview reading={BUENA} onConfirm={vi.fn()} />);
+    expect(screen.getByText(/vino encontrado/i)).toBeTruthy();
+    expect(screen.queryByText(/¿este es tu vino\?/i)).toBeNull();
   });
 });

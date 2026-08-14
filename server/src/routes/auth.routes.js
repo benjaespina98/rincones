@@ -13,5 +13,9 @@ router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
+// Público: se abre desde el link del mail, sin sesión iniciada en ese navegador.
+router.post("/verify-email", authController.verifyEmail);
+// Autenticado: ya sabemos quién es por la sesión, no hace falta pedir el email.
+router.post("/resend-verification", authenticate, authController.resendVerification);
 
 module.exports = router;
