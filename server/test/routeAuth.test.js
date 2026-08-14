@@ -25,6 +25,9 @@ const path = require("node:path");
 const PUBLICAS = new Set([
   "auth.routes.js: post /login",
   "auth.routes.js: post /register",
+  // Es otra forma de entrar (o crear cuenta): no hay sesión previa, la
+  // credencial es el ID token de Google que el server valida ahí mismo.
+  "auth.routes.js: post /google",
   "auth.routes.js: post /forgot-password",
   "auth.routes.js: post /reset-password",
   // El refresh se llama JUSTO cuando el token de acceso ya venció: exigir uno

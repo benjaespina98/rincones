@@ -10,12 +10,29 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    // Obligatoria salvo para cuentas creadas con Google: ahí no hay
+    // contraseña propia, sólo `googleId`. Nunca las dos cosas: una cuenta
+    // agrega Google si el email ya existía, en vez de duplicarse.
     passwordHash: {
       type: String,
-      required: [true, "La contraseña es obligatoria"],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "La contraseña es obligatoria",
+      ],
       select: false,
     },
-    
+    // Id estable de Google ("sub" del token) para cuentas creadas o
+    // vinculadas con "Continuar con Google". `sparse` porque la mayoría de
+    // los usuarios no lo tiene.
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+
     role: {
       type: String,
       enum: ["user", "admin"],

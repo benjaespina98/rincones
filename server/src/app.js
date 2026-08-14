@@ -118,6 +118,9 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth/login", loginLimiter);
+// Mismo límite que login: es otra forma de entrar, no de registrarse (una
+// cuenta de Google ya existente sólo abre sesión).
+app.use("/api/auth/google", loginLimiter);
 app.use("/api/auth/forgot-password", forgotLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/auth/resend-verification", resendVerificationLimiter);

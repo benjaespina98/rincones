@@ -102,6 +102,15 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Adopta la sesión que YA abrió un endpoint (register, Google): esos
+  // devuelven user+token igual que login, así que no hay que volver a pedirle
+  // credenciales al server — hacerlo (como pasaba antes en RegisterPage)
+  // gastaba una llamada de más y de paso una entrada en `loginLimiter`.
+  const applySession = useCallback((user) => {
+    setUser(user);
+    setSinConexion(false);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       // Llamar a endpoint de logout para limpiar la cookie
@@ -120,10 +129,11 @@ export const AuthProvider = ({ children }) => {
       sinConexion,
       isAdmin: user?.role === "admin",
       login,
+      applySession,
       logout,
       refreshUser: hydrateUser,
     }),
-    [user, loading, sinConexion, login, logout, hydrateUser]
+    [user, loading, sinConexion, login, applySession, logout, hydrateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

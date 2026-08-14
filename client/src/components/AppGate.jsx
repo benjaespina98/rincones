@@ -19,6 +19,7 @@ const AppGate = ({ children }) => {
   const gate = resolveAuthGate(user);
 
   if (gate === "verify-email") return <Navigate to="/verificar-email" replace />;
+  if (gate === "birthdate") return <Navigate to="/fecha-nacimiento" replace />;
   if (gate === "onboarding") return <Navigate to="/onboarding" replace />;
 
   return children;

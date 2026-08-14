@@ -6,6 +6,9 @@ const router = Router();
 
 router.post("/login", authController.login);
 router.post("/register", authController.register);
+// Público: es la forma de entrar, no hay sesión previa. El credential de
+// Google es lo que se valida del lado del server, ver el controlador.
+router.post("/google", authController.googleAuth);
 router.get("/me", authenticate, authController.me);
 // Público a propósito: se usa cuando el token de acceso YA venció. La
 // credencial es la cookie httpOnly del refresh, no el header.

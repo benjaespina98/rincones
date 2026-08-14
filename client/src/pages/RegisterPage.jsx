@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import { register as registerRequest } from "../services/authApi";
+import { register as registerRequest, googleAuth } from "../services/authApi";
 import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
+import GoogleAuthButton from "../components/GoogleAuthButton";
 import "./Auth.css";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { applySession } = useAuth();
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,13 +57,24 @@ const RegisterPage = () => {
 
     try {
       setLoading(true);
-      await registerRequest(email, password, firstName, birthDate);
-      await login(email, password);
-      showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
+      // El registro ya abre sesión — un segundo `login()` acá era una llamada
+      // de más (y de paso, contra el mismo límite de intentos de login).
+      const response = await registerRequest(email, password, firstName, birthDate);
+      applySession(response.user);
+      if (response.mail?.sent === false) {
+        // No es un error del registro (la cuenta quedó creada igual), pero la
+        // persona necesita saber que el mail de confirmación no salió, para no
+        // quedarse esperando algo que nunca va a llegar — puede reenviarlo
+        // desde la pantalla siguiente.
+        showError("Creamos tu cuenta, pero no pudimos mandarte el mail de confirmación. Pedí que te lo reenvíen desde la próxima pantalla.");
+      } else {
+        showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
+      }
       // A Bodega, no a Descubrí: recién nacida, la bodega está vacía y ahí
       // vive el cartel con el botón directo a escanear el primer vino. Mandar
       // a un usuario nuevo al feed de recomendaciones lo deja sin ningún
-      // camino evidente hacia esa primera foto.
+      // camino evidente hacia esa primera foto. (AppGate igual intercepta
+      // antes si falta verificar el email.)
       navigate("/bodega");
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo crear la cuenta.";
@@ -72,6 +84,23 @@ const RegisterPage = () => {
       setLoading(false);
     }
   };
+
+  const handleGoogle = useCallback(async (credential) => {
+    if (!credential) return;
+    try {
+      setLoading(true);
+      const user = await googleAuth(credential);
+      applySession(user);
+      showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
+      navigate("/bodega");
+    } catch (err) {
+      const msg = err.response?.data?.message || "No se pudo continuar con Google.";
+      setError(msg);
+      showError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [applySession, navigate, showError, showSuccess]);
 
   return (
     <div className="auth-screen">
@@ -186,6 +215,8 @@ const RegisterPage = () => {
             {loading ? <span className="auth-spinner" aria-hidden="true" /> : <>Crear cuenta <Icon name="arrow-right" size={18} /></>}
           </button>
         </form>
+
+        <GoogleAuthButton onCredential={handleGoogle} disabled={loading} />
 
         <div className="auth-footer">
           <div className="auth-footer__row">
