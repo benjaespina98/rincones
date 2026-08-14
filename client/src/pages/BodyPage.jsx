@@ -99,7 +99,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
    */
   const [guardados] = useState(leerFiltrosGuardados);
 
-  const [vista, setVista] = useState(() => normalizarVista(inicial) || "instock");
+  // "Favoritos" no es una vista propia (VISTAS sólo tiene instock/all/probados),
+  // así que `normalizarVista("favorites")` da null y el default de acá abajo
+  // ganaba: "instock". Eso escondía a cualquier favorito sin botellas —lo
+  // marcaste, pero como no tenés stock, la vista "En stock" ni lo mira—. Entrar
+  // a Favoritos tiene que mostrar TODOS los favoritos, tengas botellas o no.
+  const [vista, setVista] = useState(() =>
+    inicial === "favorites" ? "all" : normalizarVista(inicial) || "instock"
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
   // Filtros que se COMBINAN entre sí y con la vista.
@@ -207,6 +214,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const pendingDeleteToastRef = useRef("");
 
   useEffect(() => {
+    if (initialFilter === "favorites") {
+      setVista("all");
+      return;
+    }
     const v = normalizarVista(initialFilter);
     if (v) setVista(v);
   }, [initialFilter]);

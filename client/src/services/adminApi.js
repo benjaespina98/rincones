@@ -11,8 +11,8 @@ export const getAdminSummary = async (hours = 24) => {
   return data.data;
 };
 
-export const getChangeLogs = async ({ page = 1, limit = 30, entityType = "", action = "" } = {}) => {
-  const { data } = await api.get("/admin/logs", { params: { page, limit, entityType, action } });
+export const getChangeLogs = async ({ page = 1, limit = 30, entityType = "", action = "", q = "" } = {}) => {
+  const { data } = await api.get("/admin/logs", { params: { page, limit, entityType, action, q } });
   return data;
 };
 

@@ -58,7 +58,16 @@ export default function ConceptSheet({ id, ctx, onClose }) {
           </div>
 
           <div className="settings-sheet__body concept-sheet__body">
-            <p className="concept-sheet__text">{concepto.body}</p>
+            {/* El cuerpo va en párrafos, no en un bloque único: un concepto
+                explicado en cinco oraciones seguidas se lee como una pared de
+                texto, y acá cada idea (qué es → qué implica en la copa) ya
+                tenía un quiebre natural. `body` puede llegar como string viejo
+                por las dudas, pero todos los conceptos ya son arreglos. */}
+            {(Array.isArray(concepto.body) ? concepto.body : [concepto.body]).map((parrafo, i) => (
+              <p className="concept-sheet__text" key={i}>
+                {parrafo}
+              </p>
+            ))}
 
             {/* Lo que ninguna enciclopedia puede decirte: cómo se aplica a la
                 botella que tenés adelante. Si el dato no está, no hay línea

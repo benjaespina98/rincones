@@ -388,19 +388,34 @@
   transform: rotate(180deg);
 }
 
-/* Contenido expandido */
+/* Contenido expandido.
+   Antes arrancaba pegado a la cabecera, sin nada que marque dónde termina "lo
+   que siempre se ve" y empieza "lo que se abrió": un borde arriba, tenue, hace
+   ese corte legible sin meter un fondo distinto que compita con el resto de
+   la fila. El padding también sube un poco (10px arriba) para que el
+   contenido no arranque pegado al borde nuevo. */
 .wine-row__expand {
   display: grid;
   gap: 12px;
-  padding: 0 12px 14px;
+  padding: 12px 12px 14px;
+  border-top: 1px solid var(--line);
   animation: rincon-enter-down 200ms var(--ease-out);
 }
 
+/* Con una sola acción (es lo normal: "Abrí una botella" O "Marcar probado",
+   nunca las dos), el botón quedaba angosto y pegado a la izquierda, como una
+   pastilla perdida en una fila vacía. Ocupa el ancho completo: es la acción
+   principal de la fila desplegada y tiene que leerse como tal. */
 .wine-row__controls {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.wine-row__controls .wine-action-btn {
+  flex: 1;
+  min-width: 160px;
 }
 
 .wine-row__links {

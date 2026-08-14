@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getChangeLogs } from "../services/adminApi";
 import ErrorState from "../components/ErrorState";
+import Icon from "../components/Icon";
 
 const ACTION_LABELS = { create: "Creado", update: "Actualizado", delete: "Eliminado" };
 
@@ -67,6 +68,7 @@ const AdminActivityPage = () => {
   const [page, setPage] = useState(1);
   const [entityType, setEntityType] = useState("");
   const [action, setAction] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -74,7 +76,7 @@ const AdminActivityPage = () => {
     try {
       setLoading(true);
       setError("");
-      const res = await getChangeLogs({ page, limit: 30, entityType, action });
+      const res = await getChangeLogs({ page, limit: 30, entityType, action, q: query });
       setLogs(res.data || []);
       setPagination(res.pagination || { page: 1, pages: 1, total: 0 });
     } catch {
@@ -82,11 +84,14 @@ const AdminActivityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, entityType, action]);
+  }, [page, entityType, action, query]);
 
+  // Mismo debounce que Usuarios: escribir "fulano@" no dispara una consulta
+  // por letra.
   useEffect(() => {
-    load();
-  }, [load]);
+    const t = setTimeout(load, query ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [load, query]);
 
   return (
     <section>
@@ -97,6 +102,21 @@ const AdminActivityPage = () => {
             ? `${pagination.total} movimientos registrados en total.`
             : "Todo lo que se creó, editó o borró en la app."}
         </p>
+      </div>
+
+      {/* Buscar es lo que de verdad se usa con un registro largo: los chips
+          acotan el TIPO de movimiento, pero no ayudan a encontrar "qué pasó
+          con este vino" entre miles de filas. Busca por el admin que actuó y
+          por el nombre/mail/título de lo afectado (ver `q` en el server). */}
+      <div className="admin-log-search">
+        <Icon name="search" size={16} />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+          placeholder="Buscar por admin, vino, mail…"
+          aria-label="Buscar en el registro"
+        />
       </div>
 
       <div className="admin-log-filters">
@@ -141,7 +161,9 @@ const AdminActivityPage = () => {
       {!loading && error && <ErrorState title={error} onRetry={load} compact />}
 
       {!loading && !error && logs.length === 0 && (
-        <p className="admin-empty-state">No hay movimientos con estos filtros.</p>
+        <p className="admin-empty-state">
+          {query ? `Nada coincide con "${query}".` : "No hay movimientos con estos filtros."}
+        </p>
       )}
 
       {!loading && !error && logs.length > 0 && (

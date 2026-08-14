@@ -448,6 +448,34 @@ button.admin-chip.is-active {
   color: var(--gold-soft);
 }
 
+/* Mismo look que el buscador de Usuarios (`.admin-users__search`), pero
+   definido acá porque Actividad no importa ese CSS: es el único control
+   compartido entre las dos pantallas y no ameritaba un archivo aparte. */
+.admin-log-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  padding: 0 14px;
+  min-height: var(--control-md);
+  margin-bottom: 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.admin-log-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--text-base);
+  outline: none;
+}
+
 .admin-log-filters {
   display: flex;
   flex-wrap: wrap;
