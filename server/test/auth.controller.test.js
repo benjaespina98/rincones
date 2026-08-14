@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const User = require("../src/models/user.model");
 const authController = require("../src/controllers/auth.controller");
 const RefreshToken = require("../src/models/refreshToken.model");
@@ -99,6 +100,8 @@ test("auth login sets cookie and returns token", async () => {
       id: "user-1",
       email: "admin@example.com",
       role: "admin",
+      emailVerified: false,
+      onboarded: false,
     });
   } finally {
     sesiones.restore();
@@ -117,7 +120,17 @@ test("auth register sets cookie and returns token", async () => {
 
   bcrypt.hash = async () => "hashed-password";
   User.findOne = async () => null;
-  User.create = async (payload) => ({ _id: "user-2", email: payload.email, role: payload.role });
+  let savedUser = null;
+  User.create = async (payload) => {
+    const user = {
+      _id: "user-2",
+      email: payload.email,
+      role: payload.role,
+      emailVerified: false,
+      async save() { savedUser = this; },
+    };
+    return user;
+  };
 
   const req = {
     body: {
@@ -141,13 +154,44 @@ test("auth register sets cookie and returns token", async () => {
       id: "user-2",
       email: "new@example.com",
       role: "user",
+      emailVerified: false,
+      onboarded: false,
     });
+
+    // El registro deja emitido (y guardado, hasheado) un token de verificación:
+    // la cuenta arranca no verificada, pero con el link ya armable.
+    assert.ok(savedUser, "el usuario se guardó tras emitir el token");
+    assert.match(savedUser.emailVerificationToken, /^[a-f0-9]{64}$/);
+    assert.ok(savedUser.emailVerificationExpires > Date.now());
   } finally {
     sesiones.restore();
     User.findOne = originalFindOne;
     User.create = originalCreate;
     bcrypt.hash = originalHash;
     process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test("auth register rejects duplicate email", async () => {
+  const originalFindOne = User.findOne;
+  User.findOne = async () => ({ _id: "existing", email: "dup@example.com" });
+
+  const req = {
+    body: {
+      email: "dup@example.com",
+      password: "Secret123",
+      firstName: "Dup",
+      birthDate: "1990-06-15",
+    },
+  };
+  const res = createRes();
+
+  try {
+    await authController.register(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 409);
+    assert.match(res.body.message, /registrado/i);
+  } finally {
+    User.findOne = originalFindOne;
   }
 });
 
@@ -204,5 +248,202 @@ test("auth logout limpia las dos cookies y revoca la sesión", async () => {
     assert.deepEqual(res.clearedCookies.map((c) => c.name), ["authToken", "refreshToken"]);
   } finally {
     sesiones.restore();
+  }
+});
+
+// ── `onboarded` en las respuestas de auth ────────────────────────────────
+//
+// El bug real: `buildAuthResponse` (login/register/refresh) no mandaba
+// `onboarded`, así que después de registrarse el cliente armaba `user` con
+// ese campo en `undefined` — distinto de `false` — y el gate de onboarding no
+// disparaba hasta la próxima vez que la app llamara a `/me`. Estos tests
+// cubren las dos respuestas por separado: tienen que decir lo mismo.
+
+test("auth login refleja onboardedAt en 'onboarded'", async () => {
+  const originalFindOne = User.findOne;
+  const originalCompare = bcrypt.compare;
+  const originalSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+
+  bcrypt.compare = async () => true;
+  User.findOne = () => ({
+    select: () => ({
+      _id: "user-3", email: "onb@example.com", role: "user", passwordHash: "hash",
+      onboardedAt: new Date("2024-01-01"), emailVerified: true,
+    }),
+  });
+
+  const req = { body: { email: "onb@example.com", password: "Secret123" }, get: () => "test-agent" };
+  const res = createRes();
+  const sesiones = stubSessions();
+
+  try {
+    await authController.login(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.body.data.user.onboarded, true);
+  } finally {
+    sesiones.restore();
+    User.findOne = originalFindOne;
+    bcrypt.compare = originalCompare;
+    process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test("auth me refleja onboardedAt en 'onboarded', igual que login/register", async () => {
+  const originalFindById = User.findById;
+  User.findById = async () => ({
+    _id: "user-3", email: "onb@example.com", role: "user",
+    onboardedAt: null, firstName: "", emailVerified: true,
+  });
+
+  const req = { user: { id: "user-3" } };
+  const res = createRes();
+
+  try {
+    await authController.me(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.body.data.onboarded, false);
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
+// ── Verificación de email ────────────────────────────────────────────────
+
+// Simula la fila de Mongo: el hash guardado es el único dato que importa para
+// que el `findOne` "encuentre" al usuario, igual que en la base real.
+const makeVerifiableUser = ({ token, expiresInMs = 60 * 60 * 1000, verified = false }) => ({
+  _id: "u1",
+  email: "user@example.com",
+  emailVerified: verified,
+  emailVerificationToken: crypto.createHash("sha256").update(token).digest("hex"),
+  emailVerificationExpires: Date.now() + expiresInMs,
+  saveCount: 0,
+  async save() { this.saveCount += 1; },
+});
+
+const stubFindOneForVerify = (user) => {
+  User.findOne = (filter) => ({
+    select: () =>
+      filter.email === user.email && filter.emailVerificationToken === user.emailVerificationToken
+        ? user
+        : null,
+  });
+};
+
+test("auth verifyEmail confirma con un token válido", async () => {
+  const originalFindOne = User.findOne;
+  const token = "buen-token";
+  const user = makeVerifiableUser({ token });
+  stubFindOneForVerify(user);
+
+  const req = { body: { token, email: user.email } };
+  const res = createRes();
+
+  try {
+    await authController.verifyEmail(req, res, (err) => { if (err) throw err; });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.emailVerified, true);
+    assert.equal(user.emailVerified, true);
+    // Un solo uso: el token queda limpio, no reutilizable.
+    assert.equal(user.emailVerificationToken, undefined);
+    assert.equal(user.saveCount, 1);
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("auth verifyEmail rechaza un token inválido", async () => {
+  const originalFindOne = User.findOne;
+  const user = makeVerifiableUser({ token: "el-correcto" });
+  stubFindOneForVerify(user);
+
+  const req = { body: { token: "otro-cualquiera", email: user.email } };
+  const res = createRes();
+
+  try {
+    await authController.verifyEmail(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 400);
+    assert.equal(user.emailVerified, false);
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("auth verifyEmail rechaza un token vencido", async () => {
+  const originalFindOne = User.findOne;
+  const token = "token-viejo";
+  const user = makeVerifiableUser({ token, expiresInMs: -1000 });
+  stubFindOneForVerify(user);
+
+  const req = { body: { token, email: user.email } };
+  const res = createRes();
+
+  try {
+    await authController.verifyEmail(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 400);
+    assert.equal(user.emailVerified, false);
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("auth verifyEmail no deja reusar el mismo token dos veces", async () => {
+  const originalFindOne = User.findOne;
+  const token = "token-de-un-solo-uso";
+  const user = makeVerifiableUser({ token });
+  stubFindOneForVerify(user);
+
+  const req = { body: { token, email: user.email } };
+
+  try {
+    const res1 = createRes();
+    await authController.verifyEmail(req, res1, (err) => { if (err) throw err; });
+    assert.equal(res1.statusCode, 200);
+
+    // Mismo request, segunda vez: el hash ya no está en el usuario, así que el
+    // "findOne" (que lee el estado actual, como Mongo) no lo encuentra más.
+    const res2 = createRes();
+    await authController.verifyEmail(req, res2, (err) => { if (err) throw err; });
+    assert.equal(res2.statusCode, 400);
+    assert.equal(user.saveCount, 1, "la segunda vez no debe volver a guardar");
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("auth resendVerification emite un token nuevo para una cuenta no verificada", async () => {
+  const originalFindById = User.findById;
+  const user = { _id: "u1", email: "user@example.com", emailVerified: false, saveCount: 0, async save() { this.saveCount += 1; } };
+  User.findById = async () => user;
+
+  const req = { user: { id: "u1" } };
+  const res = createRes();
+
+  try {
+    await authController.resendVerification(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 200);
+    assert.match(user.emailVerificationToken, /^[a-f0-9]{64}$/);
+    assert.ok(user.emailVerificationExpires > Date.now());
+    assert.equal(user.saveCount, 1);
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
+test("auth resendVerification no hace nada si el email ya está confirmado", async () => {
+  const originalFindById = User.findById;
+  const user = { _id: "u1", email: "user@example.com", emailVerified: true, saveCount: 0, async save() { this.saveCount += 1; } };
+  User.findById = async () => user;
+
+  const req = { user: { id: "u1" } };
+  const res = createRes();
+
+  try {
+    await authController.resendVerification(req, res, (err) => { if (err) throw err; });
+    assert.equal(res.statusCode, 200);
+    assert.match(res.body.message, /ya está confirmado/);
+    assert.equal(user.saveCount, 0, "una cuenta ya verificada no debe emitir token ni guardar");
+  } finally {
+    User.findById = originalFindById;
   }
 });

@@ -59,6 +59,16 @@ const loadResetTemplate = async (resetUrl) => {
   }
 };
 
+const loadVerifyTemplate = async (verifyUrl) => {
+  try {
+    const templatePath = path.resolve(__dirname, "../emails/verifyEmail.html");
+    const raw = await fs.promises.readFile(templatePath, "utf8");
+    return raw.replace(/{{VERIFY_URL}}/g, verifyUrl);
+  } catch {
+    return `<p>Para confirmar tu email, hacé clic <a href="${verifyUrl}">aquí</a>. El enlace expira en 24 horas.</p>`;
+  }
+};
+
 /** Envía el email de recuperación de contraseña. Lanza si el envío falla. */
 const sendPasswordResetEmail = async ({ to, resetUrl }) => {
   const transporter = getTransporter();
@@ -81,9 +91,32 @@ const sendPasswordResetEmail = async ({ to, resetUrl }) => {
   });
 };
 
+/** Envía el email de verificación de cuenta. Lanza si el envío falla. */
+const sendVerificationEmail = async ({ to, verifyUrl }) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    throw new Error("SMTP no configurado");
+  }
+
+  const { from } = getMailConfig();
+  const html = await loadVerifyTemplate(verifyUrl);
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject: "Confirmá tu email · Rincones",
+    text:
+      `Ya casi. Confirmá que esta cuenta de Rincones es tuya.\n\n` +
+      `Abrí este enlace para continuar (expira en 24 horas):\n${verifyUrl}\n\n` +
+      `Si no creaste esta cuenta, podés ignorar este correo.`,
+    html,
+  });
+};
+
 module.exports = {
   isMailConfigured,
   getTransporter,
   verifyMailTransport,
   sendPasswordResetEmail,
+  sendVerificationEmail,
 };

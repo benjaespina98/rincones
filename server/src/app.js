@@ -68,6 +68,28 @@ const forgotLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Registro: antes sólo lo cubría el límite general de 600/15min compartido con
+// toda la API. Crear cuentas es justo la acción que un script de abuso repite
+// (probar emails, saturar el envío de verificación), así que le pusimos el
+// suyo — generoso para una persona real, no para un loop.
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 20,
+  message: "Demasiadas cuentas creadas desde acá, intenta más tarde",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Reenvío de verificación: mismo criterio que forgotLimiter (protege el envío
+// de mails, no la creación de cuentas).
+const resendVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5,
+  message: "Demasiados reenvíos, intenta más tarde",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // La política vive en config/cors.js, no acá. Estaba escrita también en el
 // entrypoint de Vercel y las dos copias se separaron: PATCH quedó permitido en
 // esta y no en la otra, y eso rompió en producción —sólo en producción— el "+"/"−"
@@ -97,6 +119,8 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/forgot-password", forgotLimiter);
+app.use("/api/auth/register", registerLimiter);
+app.use("/api/auth/resend-verification", resendVerificationLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/labels", labelsRoutes);

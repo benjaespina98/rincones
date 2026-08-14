@@ -24,7 +24,7 @@ const SCAN_QUALITY = 0.92;
 const STORE_MAX_DIM = 1280;
 const STORE_QUALITY = 0.85;
 
-const LabelScanner = ({ onCapture, onCancel, onManual }) => {
+const LabelScanner = ({ onCapture, onCancel, onManual, matching }) => {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
@@ -191,13 +191,18 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
       ) : (
         <div className="label-scanner__preview">
           <img src={preview} alt="Etiqueta seleccionada" />
-          {analyzing && (
+          {/* `matching` sigue en true después de que la lectura terminó: el padre
+              todavía está buscando coincidencia en el catálogo antes de mostrar la
+              revisión. Sin este segundo estado, la persona veía la lupa parar y la
+              pantalla quedaba muda un instante (o, peor, llegaba a asomar la
+              pantalla inicial) mientras esa llamada terminaba. */}
+          {(analyzing || matching) && (
             <div className="label-scanner__scanning" role="status">
               <span className="label-scanner__scan-line" />
               <div className="label-scanner__scan-text">
                 <span className="label-scanner__spinner" aria-hidden="true" />
                 <span>
-                  Leyendo la etiqueta…
+                  {matching ? "Buscando coincidencia…" : "Leyendo la etiqueta…"}
                   {/* Que después hay una revisión se dice ACÁ, mientras se
                       espera. Es el momento en que la persona se está preguntando
                       si la app va a guardar cualquier cosa, y saber que va a

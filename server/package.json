@@ -13,6 +13,7 @@
     "migrate:names": "node scripts/migrateWineNames.js",
     "migrate:promos": "node scripts/migratePromotions.js",
     "migrate:catalogo": "node scripts/migrateCommunityCatalog.js",
+    "migrate:verify-existing": "node scripts/grandfatherVerifiedUsers.js",
     "mail:test": "node scripts/testEmail.js",
     "backup:drill": "node scripts/backupRestoreDrill.js",
     "import:images": "node scripts/importWineImages.js"

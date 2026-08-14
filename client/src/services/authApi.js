@@ -36,6 +36,16 @@ export const resetPassword = async ({ token, email, newPassword }) => {
   return data;
 };
 
+export const verifyEmail = async ({ token, email }) => {
+  const { data } = await api.post("/auth/verify-email", { token, email });
+  return data;
+};
+
+export const resendVerification = async () => {
+  const { data } = await api.post("/auth/resend-verification");
+  return data; // puede incluir { verifyUrl } en entorno de desarrollo
+};
+
 export const getProfile = async () => {
   const { data } = await api.get("/users/profile");
   return data.data;

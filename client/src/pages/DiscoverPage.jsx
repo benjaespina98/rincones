@@ -342,9 +342,6 @@ export default function DiscoverPage() {
                   >
                     <div className="wine-result-card__media">
                       <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} fit="contain" />
-                      {r.type && r.type !== "unknown" && (
-                        <span className="chip chip--type chip--overlay wine-result-card__type">{WINE_TYPE_LABELS[r.type]}</span>
-                      )}
                     </div>
 
                     <div className="wine-result-card__body">
@@ -354,6 +351,13 @@ export default function DiscoverPage() {
                       </p>
 
                       <div className="wine-result-card__meta chip-row">
+                        {/* El tipo va acá, junto al resto de los datos, no flotando
+                            sobre la foto: con fit="contain" la botella entra entera
+                            y centrada, y un badge absoluto en la esquina le caía
+                            encima del cuello. Mismo criterio que spotlight/Guardados. */}
+                        {r.type && r.type !== "unknown" && (
+                          <span className="chip chip--type">{WINE_TYPE_LABELS[r.type]}</span>
+                        )}
                         {r.varietal && <span className="chip">{r.varietal}</span>}
                         {r.vintage && <span className="chip">{r.vintage}</span>}
                         {r.region && (
