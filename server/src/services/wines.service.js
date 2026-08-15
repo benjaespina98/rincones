@@ -91,8 +91,13 @@ const toWineStatus = ({ tasted, quantity, status }) => {
   return tasted ? "tasted" : "stock";
 };
 
+// `.lean()`: esta lista va derecho a `res.json`, nadie llama `.save()` sobre lo
+// que devuelve (ver controllers/wines.controller.js). Sin lean, Mongoose arma
+// un documento completo por vino —getters, setters, tracking de cambios— para
+// tirarlo a la basura apenas se serializa. Es más notorio acá que en el resto:
+// es la pantalla que se abre más seguido (toda la bodega, de entrada).
 async function listWines(userId) {
-  return Wine.find({ userId }).sort({ createdAt: -1 }).select("-rawText");
+  return Wine.find({ userId }).sort({ createdAt: -1 }).select("-rawText").lean();
 }
 
 /**
@@ -121,7 +126,8 @@ async function searchWines(userId, query) {
     $and: terms.map((t) => ({ $or: campos(new RegExp(escapeRegex(t), "i")) })),
   })
     .sort({ createdAt: -1 })
-    .select("-rawText");
+    .select("-rawText")
+    .lean();
 }
 
 async function getStatsSummary(userId) {

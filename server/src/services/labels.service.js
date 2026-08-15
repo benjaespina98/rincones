@@ -1,4 +1,17 @@
-const { createWorker } = require("tesseract.js");
+// Requerida perezosamente (ver más abajo, en `analyzeImageBuffer`): este módulo
+// se importa al arrancar el server —`app.js` monta todas las rutas de una,
+// no sólo las que se van a usar— así que un `require` de nivel de módulo acá
+// cargaba tesseract.js (OCR + wasm, pesado) en CADA arranque en frío de la
+// función serverless, para CUALQUIER request, aunque fuera un simple listado
+// de la bodega que nunca toca este archivo. Y encima casi nunca hace falta:
+// es sólo el fallback cuando Gemini no está configurado o falla (ver
+// labels.controller.js). Cargarlo recién al primer uso saca ese costo del
+// arranque para el resto de la app.
+let tesseract = null;
+const getTesseract = () => {
+  if (!tesseract) tesseract = require("tesseract.js");
+  return tesseract;
+};
 
 const tryParseVintage = (text) => {
   if (!text) return null;
@@ -23,6 +36,7 @@ const simpleNameFromOcr = (text) => {
 };
 
 const analyzeImageBuffer = async (buffer) => {
+  const { createWorker } = getTesseract();
   const worker = await createWorker({ logger: () => {} });
   try {
     // try spanish then english

@@ -148,8 +148,22 @@ api.interceptors.response.use(
       try {
         const token = await renovarSesion();
         if (token) return api(original);
-      } catch {
-        // El refresh también venció o fue revocado: abajo se cierra la sesión.
+      } catch (refreshError) {
+        const refreshStatus = refreshError?.response?.status;
+        // El refresh mismo no pudo contestar (timeout, sin red, arranque en frío
+        // del server: exactamente lo esperable al reabrir la PWA después de un
+        // rato). Eso NO dice que la sesión terminó, sólo que no se pudo preguntar
+        // — y sin embargo, si seguíamos de largo, lo que llegaba a quien llamó
+        // (AuthContext) era el 401 ORIGINAL de `/auth/me`, que sí mira como
+        // definitivo. Ahí es donde la app deslogueaba con una sesión viva: el
+        // fallo de red del refresh se disfrazaba de "no hay sesión". Propagar el
+        // error del refresh (sin status, o 5xx) en vez del 401 original deja que
+        // `esFalloDeRed` en el cliente lo reconozca como lo que es.
+        if (refreshStatus === undefined || refreshStatus >= 500) {
+          return Promise.reject(refreshError);
+        }
+        // El refresh sí contestó (401/403): la sesión terminó de verdad. Seguimos
+        // abajo con el 401 original, que cierra sesión como corresponde.
       }
     }
 
