@@ -130,24 +130,56 @@ async function searchWines(userId, query) {
     .lean();
 }
 
+/**
+ * Los contadores de la bodega, contados por Mongo.
+ *
+ * ── LO QUE HACÍA ANTES ──────────────────────────────────────────────────────
+ * `Wine.find({ userId })` sin `select` ni `lean`: bajaba la colección ENTERA
+ * —documentos completos, con la ficha de IA, las notas, los lotes y el texto de
+ * OCR— y los hidrataba como documentos de Mongoose, para después contar cinco
+ * números en JavaScript. Con una bodega de doscientos vinos eso es varios
+ * megabytes por la red para devolver un objeto de seis campos.
+ *
+ * Y promediaba mal, con el mismo error que ya se había corregido en
+ * `getUserStats`: dividía por TODOS los vinos, así que cada vino sin puntuar
+ * entraba como un cero. Con 62 vinos y 20 puntuados el promedio daba 1.0, un
+ * número que no describe a nadie. Se promedia sólo lo puntuado.
+ */
 async function getStatsSummary(userId) {
-  const wines = await Wine.find({ userId });
+  const [resumen] = await Wine.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    {
+      $group: {
+        _id: null,
+        totalWines: { $sum: 1 },
+        tastedWines: { $sum: { $cond: ["$tasted", 1, 0] } },
+        favoriteWines: { $sum: { $cond: ["$favorite", 1, 0] } },
+        stockWines: { $sum: { $cond: [{ $gt: ["$quantity", 0] }, 1, 0] } },
+        // Suma y cuenta por separado: el promedio se arma abajo sólo con lo
+        // que de verdad tiene puntaje.
+        sumaPuntajes: { $sum: { $cond: [{ $gt: ["$rating", 0] }, "$rating", 0] } },
+        puntuados: { $sum: { $cond: [{ $gt: ["$rating", 0] }, 1, 0] } },
+        r5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
+        r4: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
+        r3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
+        r2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
+        r1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
+      },
+    },
+  ]).exec();
 
-  const avgRating = wines.length > 0 ? (wines.reduce((sum, w) => sum + w.rating, 0) / wines.length).toFixed(1) : 0;
+  // Una bodega vacía no devuelve fila: se contesta con todo en cero y con la
+  // misma forma, para que quien lo lea no tenga que preguntar si existe.
+  const r = resumen || {};
+  const puntuados = r.puntuados || 0;
 
   return {
-    totalWines: wines.length,
-    tastedWines: wines.filter((w) => w.tasted).length,
-    favoriteWines: wines.filter((w) => w.favorite).length,
-    stockWines: wines.filter((w) => Number(w.quantity) > 0).length,
-    averageRating: parseFloat(avgRating),
-    byRating: {
-      5: wines.filter((w) => w.rating === 5).length,
-      4: wines.filter((w) => w.rating === 4).length,
-      3: wines.filter((w) => w.rating === 3).length,
-      2: wines.filter((w) => w.rating === 2).length,
-      1: wines.filter((w) => w.rating === 1).length,
-    },
+    totalWines: r.totalWines || 0,
+    tastedWines: r.tastedWines || 0,
+    favoriteWines: r.favoriteWines || 0,
+    stockWines: r.stockWines || 0,
+    averageRating: puntuados > 0 ? Number(((r.sumaPuntajes || 0) / puntuados).toFixed(1)) : 0,
+    byRating: { 5: r.r5 || 0, 4: r.r4 || 0, 3: r.r3 || 0, 2: r.r2 || 0, 1: r.r1 || 0 },
   };
 }
 
