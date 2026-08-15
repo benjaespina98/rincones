@@ -345,11 +345,18 @@ const describeWine = async (wine) => {
 // de la noche. Se pide a mano (no se genera al abrir la ficha) y se cachea entre
 // todos los usuarios, así una receta cuesta una sola llamada para siempre.
 
+// Tienen que ser las mismas claves que `NIGHT_PLANS` en
+// client/src/data/playlists.js: el controlador cae en "cena" ante un plan que no
+// conoce, así que un plan que exista sólo del lado del cliente devuelve la
+// receta equivocada —el chip dice "En familia" y llega una cena de a dos— sin
+// ningún error que lo delate.
 const PLANS = {
-  cena:   "una cena tranquila de a dos, en casa",
-  asado:  "un asado con familia o amigos",
-  amigos: "una juntada con amigos, picoteando",
-  solo:   "una noche solo, sin apuro",
+  cena:    "una cena tranquila de a dos, en casa",
+  copas:   "unas copas y charla, sin comida de por medio: sólo algo para picar",
+  familia: "un almuerzo o cena en familia, mesa larga y varias generaciones",
+  amigos:  "una juntada con amigos, picoteando",
+  asado:   "un asado con familia o amigos",
+  solo:    "una noche solo, sin apuro",
 };
 
 const RECIPE_SCHEMA = {
@@ -386,7 +393,9 @@ un cocinero: con criterio, con el punto justo y con una razón detrás de cada p
 - dish: el nombre del plato como iría en una carta, concreto y argentino
   (ej: "Ojo de bife con manteca de romero y papas confitadas", no "carne roja").
   Acorde al plan: para un asado, parrilla; para una juntada, algo de picoteo con
-  altura; para una cena de a dos, un plato de sartén o de horno.
+  altura; para una cena de a dos, un plato de sartén o de horno; para unas copas
+  y charla, una tabla o algo que se coma con la mano y no ensucie la copa; para
+  la mesa en familia, una fuente que vaya al centro y alcance para todos.
 - why: UNA oración de sommelier sobre por qué ese plato va con ESTE vino, nombrando
   lo que pasa en la boca: qué corta la grasa, qué levanta la acidez, qué hace el
   tanino con la proteína, qué recoge el ahumado. Nada de "armonía perfecta",
