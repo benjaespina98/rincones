@@ -135,14 +135,37 @@ const revokeAllForUser = async (userId) => {
   await RefreshToken.deleteMany({ userId });
 };
 
+/**
+ * ── POR QUÉ EL DEFAULT YA NO ES `none` ──────────────────────────────────────
+ *
+ * `none` significa "mandá esta cookie también cuando la petición sale de OTRO
+ * sitio". Era necesario mientras el cliente le pegaba a la API por su dominio
+ * propio (`rincones-api.vercel.app` desde `rincones.vercel.app`): dos sitios
+ * distintos, porque `vercel.app` está en la Public Suffix List.
+ *
+ * Esa era justamente la causa de "se me cierra la sesión sola" — ver el
+ * comentario largo en `client/src/services/api.js`. El cliente ahora sale
+ * siempre por el mismo origen (`/api`, que Vercel reescribe hacia la API), así
+ * que la cookie nunca más viaja cross-site y `none` pasó de ser necesario a ser
+ * dos problemas gratis:
+ *
+ *   - Es la cookie que los navegadores tratan como de terceros: Safari la
+ *     bloquea, Chrome la restringe, Firefox la aísla. Aunque hoy se use
+ *     first-party, es la categoría con la vida útil más corta y más recortable.
+ *   - Es la que habilita CSRF: `none` hace que un POST desde cualquier sitio
+ *     lleve la sesión puesta.
+ *
+ * `lax` es lo correcto para una API del mismo origen: se manda en todo lo que
+ * la app hace y no en lo que hace un sitio ajeno. El override sigue estando por
+ * si algún día el front y la API viven de verdad en sitios separados — pero eso
+ * hay que elegirlo a mano, sabiendo lo de arriba, y no heredarlo de un default.
+ */
 const getAuthCookieOptions = () => {
   const isProduction = process.env.NODE_ENV === "production";
   const configuredSameSite = String(process.env.COOKIE_SAMESITE || "").trim().toLowerCase();
   const sameSite = ["strict", "lax", "none"].includes(configuredSameSite)
     ? configuredSameSite
-    : isProduction
-      ? "none"
-      : "lax";
+    : "lax";
 
   const cookieOptions = {
     httpOnly: true,

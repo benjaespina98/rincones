@@ -6,17 +6,66 @@ const devApiUrl = "http://localhost:4000/api";
 const normalizeApiUrl = (value) => String(value || "").trim().replace(/\/$/, "");
 
 const configuredApiUrl = normalizeApiUrl(import.meta.env.VITE_API_URL);
-const configuredLooksLocal = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/api)?$/i.test(
-  configuredApiUrl
-);
 
-// En producción usamos una ruta relativa (mismo origen) que Vercel redirige a la API
-// mediante un rewrite (ver client/vercel.json). Así la cookie de sesión es first-party
-// y funciona en Safari/iOS (que bloquea cookies de terceros entre subdominios).
-// En desarrollo apuntamos al server local.
-const baseURL = import.meta.env.PROD
-  ? (configuredApiUrl && !configuredLooksLocal ? configuredApiUrl : "/api")
-  : (configuredApiUrl || devApiUrl);
+/**
+ * ── "SE ME CIERRA LA SESIÓN SOLA DESPUÉS DE UN RATO" ────────────────────────
+ *
+ * Ésta era la causa, y estaba acá: en producción la app le pegaba a
+ * `https://rincones-api.vercel.app/api` en vez de a `/api`.
+ *
+ * Verificado en el bundle publicado: `VITE_API_URL` está cargada en Vercel con
+ * la URL absoluta de la API, y la condición vieja la aceptaba con sólo no ser
+ * localhost. O sea que el rewrite de `client/vercel.json` —que existe
+ * exactamente para que las llamadas salgan por el MISMO origen— quedaba sin
+ * usar, y una variable de entorno bien intencionada desactivaba en silencio la
+ * única razón por la que ese rewrite estaba puesto.
+ *
+ * Por qué eso mata la sesión: `rincones.vercel.app` y `rincones-api.vercel.app`
+ * NO son dos subdominios del mismo sitio. `vercel.app` está en la Public Suffix
+ * List, así que para el navegador son dos sitios distintos, y las cookies de
+ * sesión (`authToken`, `refreshToken`, `SameSite=None; Secure`) pasan a ser
+ * cookies de terceros. Safari/iOS las bloquea siempre; Chrome en incógnito y
+ * bajo las restricciones nuevas; Firefox las aisla por sitio.
+ *
+ * Y el síntoma es exactamente el que se reportó, porque el token de acceso NO
+ * viaja en cookie sino en el header `Authorization` desde localStorage:
+ *
+ *   entrás           → anda, el token nuevo está en localStorage
+ *   15 minutos       → el token vence
+ *   se abre la app   → 401 → se pide `/auth/refresh` → la cookie de refresh no
+ *                      se manda (es de terceros) → 401 → al login
+ *
+ * De ahí que "reinstalar la PWA lo arregla temporalmente": no arregla nada,
+ * te hace loguear de nuevo y volvés a tener 15 minutos de token fresco. Y de
+ * ahí que pase igual en navegador y en PWA: no es del service worker (no hay),
+ * es de dónde vive la cookie.
+ *
+ * ── LA REGLA, AHORA ─────────────────────────────────────────────────────────
+ *
+ * En producción sólo se acepta una URL configurada si es del MISMO origen que
+ * la página. Cualquier otra cosa cae a `/api`, que es el rewrite. No es que la
+ * variable esté prohibida: es que una URL cross-origin rompe la sesión de una
+ * forma que no se nota hasta 15 minutos después, y eso no puede depender de que
+ * nadie la cargue en el panel de Vercel. La condición vieja miraba lo que no
+ * importaba (si parecía local); lo que importa es si es el mismo origen.
+ */
+export const resolverBaseUrl = ({ configurada, origen, produccion }) => {
+  if (!produccion) return configurada || devApiUrl;
+  if (!configurada) return "/api";
+  // Relativa: ya es del mismo origen por definición.
+  if (configurada.startsWith("/")) return configurada;
+  try {
+    return new URL(configurada).origin === origen ? configurada : "/api";
+  } catch {
+    return "/api";
+  }
+};
+
+const baseURL = resolverBaseUrl({
+  configurada: configuredApiUrl,
+  origen: typeof window !== "undefined" ? window.location.origin : "",
+  produccion: import.meta.env.PROD,
+});
 
 const api = axios.create({
   baseURL,
