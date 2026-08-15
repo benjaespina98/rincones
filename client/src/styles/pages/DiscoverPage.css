@@ -333,6 +333,9 @@
 .spotlight__surprise {
   display: inline-flex;
   align-items: center;
+  /* El ícono reemplazó al emoji del dado: como es un SVG y no un glifo, el aire
+     entre ícono y texto hay que ponerlo acá (el emoji lo traía puesto). */
+  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--line-accent);

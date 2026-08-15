@@ -1,4 +1,5 @@
 import api from "./api";
+import { invalidarDestacados } from "./wineSearchApi";
 
 export const getWines = async () => {
   const { data } = await api.get("/wines");
@@ -22,6 +23,9 @@ export const getWineById = async (id) => {
  */
 export const createWine = async (payload) => {
   const { data } = await api.post("/wines", payload);
+  // La bodega cambió, así que las recomendaciones guardadas quedaron viejas: el
+  // vino recién cargado no puede seguir apareciendo como sugerencia.
+  invalidarDestacados();
   return { wine: data.data, merged: data.merged === true, added: data.added ?? 0 };
 };
 

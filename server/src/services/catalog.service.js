@@ -397,29 +397,21 @@ const searchWines = async (query) => {
   return { results, degraded: offFailed && results.length === 0 };
 };
 
-// Selección de vinos destacados para la home "Descubrí". Sale del catálogo
-// curado (instantáneo, sin gastar cuota de IA), variando por día para que rote.
-const getFeatured = (count = 8) => {
-  // Semilla diaria: mismo set durante el día, cambia cada jornada.
-  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-  const pool = [...CATALOG];
-  // Barajado determinístico por la semilla del día.
-  for (let i = pool.length - 1; i > 0; i -= 1) {
-    const j = (daySeed * 9301 + i * 49297) % (i + 1);
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  // Diversificamos por bodega para no repetir la misma marca.
-  const seenWinery = new Set();
-  const picked = [];
-  for (const wine of pool) {
-    if (seenWinery.has(wine.winery)) continue;
-    seenWinery.add(wine.winery);
-    const { haystack, ...rest } = wine;
-    picked.push(rest);
-    if (picked.length >= count) break;
-  }
-  return picked;
-};
+/**
+ * El catálogo curado entero, listo para mostrar.
+ *
+ * Acá vivía `getFeatured`, que elegía los ocho destacados de la home barajando
+ * el catálogo con una semilla derivada del día y deduplicando por bodega. Esa
+ * elección se mudó a `services/recommendations.service.js`, donde puede mirar la
+ * bodega y las preferencias de quien está del otro lado — que es lo que le
+ * faltaba: el barajado devolvía la misma home para todo el mundo y podía
+ * recomendarte un vino que ya tenías.
+ *
+ * Lo que queda acá es lo único que era responsabilidad del catálogo: entregar
+ * las filas sin `haystack`, que es el campo interno de búsqueda y no tiene por
+ * qué salir a la red.
+ */
+const getCatalogPool = () => CATALOG.map(({ haystack, ...wine }) => wine);
 
 // --- Match seguro contra el catálogo (para enriquecer un escaneo) ---
 
@@ -536,4 +528,4 @@ const isCuratedWine = (wine) => {
   return curatedKeys.has(`${core}|${varietal}|${wineryToken}`);
 };
 
-module.exports = { searchWines, searchCatalog, guessType, getFeatured, isCuratedWine, findMatch };
+module.exports = { searchWines, searchCatalog, guessType, getCatalogPool, isCuratedWine, findMatch };
