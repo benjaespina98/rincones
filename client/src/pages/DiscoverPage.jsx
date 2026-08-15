@@ -93,8 +93,22 @@ export default function DiscoverPage() {
       .then((w) => {
         if (!active) return;
         setFeatured(w);
-        // Entrar por uno al azar del set, no siempre por el primero.
-        setSpotlightIdx(w.length > 0 ? Math.floor(Math.random() * w.length) : 0);
+        /**
+         * Se entra por la PRIMERA, que es la de mayor afinidad.
+         *
+         * Acá se entraba por una al azar del set. Tenía sentido mientras el set
+         * era un barajado sin orden interno —daba exactamente lo mismo cuál
+         * fuera la primera—, pero desde que el server lo devuelve RANKEADO (ver
+         * services/recommendations.service.js: afinidad y descubrimiento
+         * intercalados, la mejor primero) sortear la entrada tiraba a la basura
+         * todo el ranking: la recomendación mejor calzada tenía una chance en
+         * ocho de ser la que veías.
+         *
+         * La variedad no se pierde, cambia de lugar: el set entero rota todos
+         * los días y "Mostrame otra" recorre el resto, que es exactamente para
+         * lo que está.
+         */
+        setSpotlightIdx(0);
         setSurprised(false);
         setSaltoDesde(null);
       })
