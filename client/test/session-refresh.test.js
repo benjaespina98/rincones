@@ -1,5 +1,68 @@
 import { describe, it, expect, afterEach } from "vitest";
-import api, { debeRenovarSesion, setAuthToken } from "../src/services/api";
+import api, { debeRenovarSesion, resolverBaseUrl, setAuthToken } from "../src/services/api";
+
+/**
+ * Contra dónde salen las llamadas en producción.
+ *
+ * ── EL BUG QUE ESTO EVITA QUE VUELVA ────────────────────────────────────────
+ * Es el "se me cierra la sesión sola después de un rato", y no era del refresh
+ * ni del AuthContext: era que en producción la app le pegaba a
+ * `https://rincones-api.vercel.app/api` en vez de a `/api`. `vercel.app` está
+ * en la Public Suffix List, así que ese host y el del front son dos SITIOS
+ * distintos y las cookies de sesión pasaban a ser de terceros — bloqueadas en
+ * Safari, en incógnito y bajo las restricciones nuevas de Chrome. El login
+ * andaba igual (el token de acceso va por header, desde localStorage) y recién
+ * al vencer, 15 minutos después, el refresh se quedaba sin cookie y te sacaba.
+ *
+ * La condición vieja miraba si la URL configurada "parecía local". Eso no es lo
+ * que importa: lo que importa es si es el mismo origen que la página.
+ */
+describe("resolverBaseUrl", () => {
+  const PROD = "https://rincones.vercel.app";
+
+  it("en producción ignora una URL de otro origen: rompería la cookie de sesión", () => {
+    // Exactamente lo que estaba cargado en Vercel y lo que se verificó en el
+    // bundle publicado.
+    expect(
+      resolverBaseUrl({
+        configurada: "https://rincones-api.vercel.app/api",
+        origen: PROD,
+        produccion: true,
+      })
+    ).toBe("/api");
+  });
+
+  it("en producción sin variable configurada usa el rewrite del mismo origen", () => {
+    expect(resolverBaseUrl({ configurada: "", origen: PROD, produccion: true })).toBe("/api");
+  });
+
+  it("en producción acepta una URL que SÍ es del mismo origen", () => {
+    expect(
+      resolverBaseUrl({ configurada: `${PROD}/api`, origen: PROD, produccion: true })
+    ).toBe(`${PROD}/api`);
+    expect(resolverBaseUrl({ configurada: "/api", origen: PROD, produccion: true })).toBe("/api");
+  });
+
+  it("en producción una URL rota no deja la app sin base", () => {
+    expect(resolverBaseUrl({ configurada: "no-es-una-url", origen: PROD, produccion: true })).toBe("/api");
+  });
+
+  it("una variable de desarrollo olvidada en el panel tampoco rompe producción", () => {
+    // El caso que la condición vieja sí cubría; no se pierde.
+    expect(
+      resolverBaseUrl({ configurada: "http://localhost:4000/api", origen: PROD, produccion: true })
+    ).toBe("/api");
+  });
+
+  it("en desarrollo manda la variable, y sin ella el server local", () => {
+    expect(
+      resolverBaseUrl({ configurada: "http://localhost:4000/api", origen: "http://localhost:5173", produccion: false })
+    ).toBe("http://localhost:4000/api");
+    expect(
+      resolverBaseUrl({ configurada: "", origen: "http://localhost:5173", produccion: false })
+    ).toBe("http://localhost:4000/api");
+  });
+});
 
 /**
  * Cuándo hay que renovar la sesión en silencio en vez de mandar al login.
