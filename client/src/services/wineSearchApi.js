@@ -23,11 +23,10 @@ export const searchWines = async (query) => {
  * Vinos destacados para la home Descubrí (catálogo curado, sin gastar cuota IA).
  *
  * ── POR QUÉ SE CACHEA ──────────────────────────────────────────────────────
- * Lo que devuelve el server es determinístico por día: sale del catálogo curado
- * barajado con una semilla que es la fecha (ver `getFeatured` en
- * catalog.service.js). O sea que dos llamadas el mismo día devuelven exactamente
- * lo mismo, y la estábamos haciendo en cada montaje de Descubrí — cada vez que
- * volvés a la home desde otra pestaña.
+ * Dentro del día, dos llamadas devuelven lo mismo: el set se arma con tu bodega
+ * y tus preferencias, más la fecha como desempate (ver `rankFeatured` en
+ * server/src/services/recommendations.service.js). Y la estábamos pidiendo en
+ * cada montaje de Descubrí — cada vez que volvés a la home desde otra pestaña.
  *
  * Eso importaba más de lo que parece: el resto de la pantalla es data local y se
  * pinta en el primer frame, así que esta era la ÚNICA pieza que esperaba a la
@@ -69,6 +68,23 @@ export const getFeaturedWines = async () => {
   }
 
   return results;
+};
+
+/**
+ * Tira el caché de destacados.
+ *
+ * Hace falta desde que el set depende de tu bodega: cargar un vino cambia lo que
+ * corresponde recomendar —el que acabás de cargar deja de ser una sugerencia,
+ * porque ya lo tenés—, y sin esto la home seguiría ofreciéndotelo hasta la
+ * medianoche. Se llama al crear un vino, que es el único momento en que el
+ * perfil cambia lo suficiente como para que se note.
+ */
+export const invalidarDestacados = () => {
+  try {
+    sessionStorage.removeItem(`${FEATURED_KEY}_${hoyEnArgentina()}`);
+  } catch {
+    // Sin sessionStorage no hay caché que tirar: no hay nada que hacer.
+  }
 };
 
 /**

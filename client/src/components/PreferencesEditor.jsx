@@ -41,7 +41,9 @@ export default function PreferencesEditor({ initialTypes = [], initialVarietals 
       onSaved?.({ favoriteTypes: types, favoriteVarietals: varietals });
       onClose?.();
     } catch {
-      showError("No se pudieron guardar las preferencias");
+      // El mismo texto que en el onboarding: es la misma operación y fallaba
+      // con dos redacciones según desde qué pantalla la hicieras.
+      showError("No se pudieron guardar tus preferencias. Probá de nuevo.");
     } finally {
       setSaving(false);
     }

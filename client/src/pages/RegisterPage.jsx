@@ -68,7 +68,8 @@ const RegisterPage = () => {
         // desde la pantalla siguiente.
         showError("Creamos tu cuenta, pero no pudimos mandarte el mail de confirmación. Pedí que te lo reenvíen desde la próxima pantalla.");
       } else {
-        showSuccess("¡Cuenta creada! Bienvenido a Rincones 🍷");
+        // Sin género: ver la nota en LoginPage.
+        showSuccess("¡Cuenta creada! Te damos la bienvenida a Rincones 🍷");
       }
       // A Bodega, no a Descubrí: recién nacida, la bodega está vacía y ahí
       // vive el cartel con el botón directo a escanear el primer vino. Mandar

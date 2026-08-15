@@ -92,7 +92,11 @@ export const homeTitle = ({ stats, seed = 0 } = {}) => {
   if (!stats) return "¿Qué vino descubrimos hoy?";
 
   const total = stats?.totals?.total || 0;
+  // Vinos con botellas vs. botellas sueltas: no son lo mismo y cada texto
+  // necesita el suyo. `bottles` puede no venir (server anterior a este cambio):
+  // sin el dato se cae a `stock`, que al menos no miente sobre si hay algo.
   const stock = stats?.totals?.stock || 0;
+  const botellas = stats?.totals?.bottles ?? stock;
 
   if (total === 0) return "Empecemos tu bodega";
 
@@ -115,7 +119,7 @@ export const homeTitle = ({ stats, seed = 0 } = {}) => {
     return pick(["¿Qué abrimos esta noche?", "¿Con qué cerramos el día?", "Es hora de elegir una botella"], seed);
   }
 
-  if (stock === 1) return "Te queda una botella";
+  if (botellas === 1) return "Te queda una botella";
 
   if (top?.count >= 3) {
     return pick(

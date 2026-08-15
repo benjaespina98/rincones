@@ -21,6 +21,18 @@ import "../styles/pages/SuggestionsPage.css";
 
 const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
 
+/**
+ * Un solo texto para el mismo problema.
+ *
+ * Había dos: uno para "el modelo contestó pero no entendió el plato" y otro para
+ * "la llamada falló". Para quien lo lee es exactamente la misma situación —
+ * escribió un plato y no pasó nada— y la app le contestaba con dos frases
+ * distintas según un detalle interno que no puede ver. Encima mandaban a lugares
+ * con nombres distintos ("los clásicos de abajo" y "las opciones de abajo") que
+ * son la misma lista.
+ */
+const NO_ENTENDIMOS_EL_PLATO =
+  "No pudimos interpretar ese plato. Probá con alguno de los de abajo.";
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
@@ -150,10 +162,10 @@ export default function SuggestionsPage() {
         setReading({ text: texto, food: data.food, note: data.note || "" });
         applyContext({ food: data.food });
       } else {
-        showError("No se pudo interpretar ese plato. Probá con alguna de las opciones de abajo.");
+        showError(NO_ENTENDIMOS_EL_PLATO);
       }
     } catch {
-      showError("No se pudo interpretar ese plato. Probá con uno de los clásicos de abajo.");
+      showError(NO_ENTENDIMOS_EL_PLATO);
     } finally {
       setResolving(false);
     }

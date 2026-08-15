@@ -55,36 +55,99 @@ const PLAYLISTS = {
   },
 };
 
-/** Los cuatro planes. El orden es el de la barra de chips. */
+/**
+ * Los planes. El orden es el de la barra de chips, y va de la mesa más chica a
+ * la más grande: eso hace que la fila se lea sola.
+ *
+ * Se sumaron dos que faltaban y que no eran variantes de los otros: comer en
+ * familia no es una cena de a dos ni un asado (mesa larga, mediodía, sin
+ * ceremonia), y "copas y charla" es el único plan donde NO hay comida de por
+ * medio, que es justo el más común a la tardecita.
+ *
+ * Los valores viajan al server para la receta: cualquier plan que se agregue acá
+ * tiene que existir también en `PLANS` de server/src/services/wineAi.service.js,
+ * o la receta cae en "cena" y contradice al chip que tocaste.
+ */
 export const NIGHT_PLANS = [
-  { value: "cena",   label: "Cena de a dos" },
-  { value: "asado",  label: "Asado" },
-  { value: "amigos", label: "Con amigos" },
-  { value: "solo",   label: "Tranqui, solo" },
+  { value: "cena",    label: "Cena de a dos" },
+  { value: "copas",   label: "Copas y charla" },
+  { value: "familia", label: "En familia" },
+  { value: "amigos",  label: "Con amigos" },
+  { value: "asado",   label: "Asado" },
+  { value: "solo",    label: "Tranqui, solo" },
 ];
 
-const BURBUJAS = new Set(["sparkling", "white", "rosé"]);
+const FRESCOS = new Set(["sparkling", "white", "rosé"]);
 
 /**
- * Qué poner, según el plan y qué hay en la copa.
+ * Cuánto pesa lo que hay en la copa: liviano o denso.
  *
- * El plan manda: con quién estás define el volumen de la noche mucho más que el
- * varietal. El vino desempata, y sólo donde de verdad cambia algo —un espumante
- * y un tinto de guarda no piden la misma mesa—.
+ * Es la única distinción del vino que le cambia algo a la música. Un espumante y
+ * un Cabernet de guarda no piden la misma mesa, pero un Malbec y un Cabernet sí
+ * —y elegir por varietal habría dado la ilusión de precisión sin ninguna—.
+ *
+ * `body` de la ficha (1-5) manda cuando está, porque describe a ESTA botella: un
+ * Pinot liviano deja de sonar como un tinto pesado sólo por ser tinto. Sin ficha
+ * se cae al tipo, que es la aproximación de siempre.
  */
-export const playlistFor = (plan, wineType, hour = new Date().getHours()) => {
-  switch (plan) {
-    case "asado":
-      return PLAYLISTS.softRock;
-    case "amigos":
-      return BURBUJAS.has(wineType) ? PLAYLISTS.chillHits : PLAYLISTS.vivaLatino;
-    case "solo":
-      // Una copa a las 5 de la tarde y una a medianoche no son la misma copa.
-      return hour < 19 ? PLAYLISTS.afternoonAcoustic : PLAYLISTS.peacefulPiano;
-    case "cena":
-    default:
-      return BURBUJAS.has(wineType) ? PLAYLISTS.jazzClassics : PLAYLISTS.jazzVibes;
-  }
+const pesoDelVino = (wineType, structure) => {
+  const cuerpo = Number(structure?.body);
+  if (Number.isFinite(cuerpo) && cuerpo > 0) return cuerpo >= 3.5 ? "denso" : "liviano";
+  return FRESCOS.has(wineType) ? "liviano" : "denso";
+};
+
+/**
+ * Qué poner: el plan elige la familia, el vino elige el peso, la hora desempata.
+ *
+ * ── POR QUÉ NO ALCANZABA CON EL PLAN ────────────────────────────────────────
+ * Antes "asado" devolvía Soft Rock siempre, con cualquier botella y a cualquier
+ * hora. Dos vinos distintos en el mismo plan recibían exactamente la misma
+ * sugerencia, y eso se nota: la playlist dejaba de parecer elegida y pasaba a
+ * parecer una constante con nombre de plan.
+ *
+ * Ahora las tres señales que de verdad cambian la mesa entran las tres. La hora
+ * sólo se consulta donde cambia algo real —un asado de mediodía y uno de noche
+ * no suenan igual; una cena de a dos suena igual a las nueve que a las once—, y
+ * donde no cambia nada no se usa, para no inventar precisión.
+ */
+const PLANES = {
+  cena: {
+    // De a dos: la música es fondo. Las burbujas piden algo con más vestido.
+    liviano: () => PLAYLISTS.jazzClassics,
+    denso: () => PLAYLISTS.jazzVibes,
+  },
+  copas: {
+    // Sin comida: manda la charla, así que nada que pida atención.
+    liviano: () => PLAYLISTS.chillHits,
+    denso: () => PLAYLISTS.jazzVibes,
+  },
+  familia: {
+    // Mesa larga. De día es sobremesa; de noche ya son los temas que todos se saben.
+    liviano: () => PLAYLISTS.chillHits,
+    denso: (hour) => (hour < 17 ? PLAYLISTS.afternoonAcoustic : PLAYLISTS.softRock),
+  },
+  amigos: {
+    // Una juntada con un tinto de cuerpo termina arriba; con un blanco, picoteando.
+    liviano: () => PLAYLISTS.chillHits,
+    denso: () => PLAYLISTS.vivaLatino,
+  },
+  asado: {
+    // El tinto y la parrilla son inseparables. Con algo fresco, y todavía con
+    // luz, el asado es más largo y más tranquilo que el de la noche.
+    liviano: (hour) => (hour < 19 ? PLAYLISTS.afternoonAcoustic : PLAYLISTS.chillHits),
+    denso: () => PLAYLISTS.softRock,
+  },
+  solo: {
+    // Acá el vino no cambia nada y la hora lo cambia todo: una copa a las cinco
+    // de la tarde y una a medianoche no son la misma copa.
+    liviano: (hour) => (hour < 19 ? PLAYLISTS.afternoonAcoustic : PLAYLISTS.peacefulPiano),
+    denso: (hour) => (hour < 19 ? PLAYLISTS.afternoonAcoustic : PLAYLISTS.peacefulPiano),
+  },
+};
+
+export const playlistFor = (plan, wineType, hour = new Date().getHours(), structure = null) => {
+  const elegir = PLANES[plan] || PLANES.cena;
+  return elegir[pesoDelVino(wineType, structure)](hour);
 };
 
 export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${playlist.id}`;

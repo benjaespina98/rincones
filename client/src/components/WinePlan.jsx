@@ -80,7 +80,11 @@ export default function WinePlan({ wine, info }) {
   const airear = wine.type === "red" && Number(info?.structure?.tannin) >= 4;
 
   const receta = plan ? recipes[plan] : null;
-  const playlist = plan ? playlistFor(plan, wine.type) : null;
+  // La estructura viaja junto al tipo: con el cuerpo de ESTA botella, un Pinot
+  // liviano deja de recibir la música de un tinto pesado sólo por ser tinto.
+  const playlist = plan
+    ? playlistFor(plan, wine.type, new Date().getHours(), info?.structure)
+    : null;
 
   const elegirPlan = (value) => {
     setFailed(false);

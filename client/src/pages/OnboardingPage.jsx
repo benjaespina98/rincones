@@ -83,7 +83,9 @@ export default function OnboardingPage() {
         {step === 0 && (
           <div className="onb__step">
             <span className="onb__mark"><Logo size={34} /></span>
-            <h1 className="onb__title">Bienvenido a Rincones 🍷</h1>
+            {/* Sin género: es el título más visible de la app y le ponía sexo a
+                quien lo estaba leyendo. Ver la nota en LoginPage. */}
+            <h1 className="onb__title">Te damos la bienvenida a Rincones 🍷</h1>
             <p className="onb__sub">Para arrancar, ¿qué estilos de vino te gustan más?</p>
 
             <div className="onb__grid">

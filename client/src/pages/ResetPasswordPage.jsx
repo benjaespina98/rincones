@@ -40,7 +40,9 @@ export default function ResetPasswordPage() {
     try {
       setLoading(true);
       await resetPassword({ token, email: emailFromQuery, newPassword: password });
-      showSuccess("Contraseña actualizada. ¡Listo!");
+      // Igual que en PasswordEditor: es la misma acción y decía dos cosas
+      // distintas según desde dónde la hicieras.
+      showSuccess("Contraseña actualizada");
       navigate("/login");
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo restablecer la contraseña.";

@@ -1,5 +1,7 @@
 const catalogService = require("../services/catalog.service");
 const wineReviews = require("../services/wineReviews.service");
+const recommendations = require("../services/recommendations.service");
+const Wine = require("../models/wine.model");
 const User = require("../models/user.model");
 const { describeWine, suggestRecipe, classifyDish, PLANS } = require("../services/wineAi.service");
 const wineImages = require("../services/wineImages.service");
@@ -185,21 +187,52 @@ const DESTACADOS = 8;
  */
 const CANDIDATOS = DESTACADOS * 4;
 
+/** La semilla del día: mismo set mientras dura la jornada, otro mañana. */
+const semillaDelDia = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+
 const featured = async (req, res, next) => {
   try {
     /**
-     * Primero los que tienen foto.
+     * El perfil sale de dos consultas baratas y en paralelo: la bodega (qué
+     * compró de verdad) y el onboarding (qué dijo que le gusta). Las dos son
+     * `lean` y proyectadas a los pocos campos que puntúan — no hace falta traer
+     * los vinos enteros para saber qué uvas toma.
      *
-     * La tarjeta grande de Descubrí es casi toda imagen: sin foto muestra la
-     * botella genérica, que es la misma para todos los vinos y no dice nada de
-     * ese vino en particular. Un vino con etiqueta de verdad se reconoce de un
-     * vistazo, y es la diferencia entre una recomendación y un renglón.
+     * Si alguna falla, el perfil queda vacío y la home sigue funcionando con el
+     * catálogo sin personalizar: una recomendación genérica es mucho mejor que
+     * una pantalla vacía.
+     */
+    const [wines, user] = await Promise.all([
+      Wine.find({ userId: req.user.id })
+        .select("name winery varietal region type rating")
+        .lean()
+        .catch(() => []),
+      User.findById(req.user.id).select("preferences").lean().catch(() => null),
+    ]);
+
+    const perfil = recommendations.buildTasteProfile({
+      wines,
+      preferences: user?.preferences || {},
+    });
+
+    /**
+     * Se rankea de más y después se recorta, por dos razones que empujan igual:
+     * la foto no se sabe hasta consultar el pool compartido, y priorizar a los
+     * que la tienen exige tener de dónde elegir.
+     *
+     * Primero los que tienen foto. La tarjeta grande de Descubrí es casi toda
+     * imagen: sin foto muestra la botella genérica, que es la misma para todos
+     * los vinos y no dice nada de ese vino en particular.
      *
      * Es un ORDEN, no un filtro: si no hay ocho con foto —hoy no los hay— se
      * completan con el resto en vez de devolver menos. Y el orden es estable
-     * dentro de cada grupo, así que la rotación diaria del catálogo se mantiene.
+     * dentro de cada grupo, así que el ranking por afinidad se conserva.
      */
-    const candidatos = await wineImages.enrichWithImages(catalogService.getFeatured(CANDIDATOS));
+    const rankeados = recommendations.rankFeatured(catalogService.getCatalogPool(), perfil, {
+      count: CANDIDATOS,
+      seed: semillaDelDia(),
+    });
+    const candidatos = await wineImages.enrichWithImages(rankeados);
     const data = candidatos
       .map((wine, i) => ({ wine, i }))
       .sort((a, b) => {
@@ -210,12 +243,14 @@ const featured = async (req, res, next) => {
       })
       .slice(0, DESTACADOS)
       .map(({ wine }) => wine);
-    // La selección es determinística por día (semilla = la fecha), así que el
-    // navegador puede quedarse con la respuesta un rato sin desincronizarse de
-    // nada. `private` porque va detrás de sesión y no puede cachearla un proxy
-    // compartido. Diez minutos: suficiente para que ir y volver de otra pestaña
-    // no cueste una petición, y corto frente a las fotos comunitarias, que sí
-    // pueden cambiar durante el día.
+    // `private` y no `public`: desde que el set se arma con la bodega y las
+    // preferencias de quien pregunta, la respuesta es de ESA persona y un proxy
+    // compartido no puede servírsela a otra.
+    //
+    // Diez minutos siguen estando bien: dentro del día la selección sólo cambia
+    // si la persona carga un vino nuevo, y que la home tarde unos minutos en
+    // enterarse es preferible a pagar dos consultas cada vez que se vuelve de
+    // otra pestaña.
     res.set("Cache-Control", "private, max-age=600");
     return res.status(200).json({ data });
   } catch (error) {

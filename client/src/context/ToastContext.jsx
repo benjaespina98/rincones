@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import Toast from "../components/Toast";
 
 const ToastContext = createContext(null);
@@ -8,7 +8,9 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = "info", duration = 3000, action = null) => {
-    const id = `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // `substr` está deprecado hace años; `slice` hace lo mismo y no depende de
+    // una API que los navegadores mantienen sólo por compatibilidad.
+    const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
     setToasts((prev) => [...prev, { id, message, type, duration, action }]);
 
@@ -35,8 +37,27 @@ export const ToastProvider = ({ children }) => {
     return addToast(message, "info", duration);
   }, [addToast]);
 
+  /**
+   * El valor del contexto, memoizado.
+   *
+   * Era un objeto literal nuevo en cada render, y este proveedor envuelve a TODA
+   * la app y se re-renderiza cada vez que aparece o desaparece un toast. Con la
+   * identidad del valor cambiando, React re-renderizaba todos los consumidores
+   * de `useToast` —la ficha del vino, Mi Bodega entera, la home— cada vez que se
+   * mostraba un "Guardado". El aviso más chico de la app costaba un render
+   * general.
+   *
+   * Las seis funciones ya eran estables (`useCallback`), así que lo único que
+   * faltaba era no tirar el objeto que las contiene. `AuthContext` ya lo hacía
+   * así; esto lo empareja.
+   */
+  const value = useMemo(
+    () => ({ addToast, removeToast, showSuccess, showError, showWarning, showInfo }),
+    [addToast, removeToast, showSuccess, showError, showWarning, showInfo]
+  );
+
   return (
-    <ToastContext.Provider value={{ addToast, removeToast, showSuccess, showError, showWarning, showInfo }}>
+    <ToastContext.Provider value={value}>
       {children}
       {/* Región viva: casi todo el feedback de la app (guardar, borrar, favoritos,
           errores) vive en toasts, así que sin esto un lector de pantalla no

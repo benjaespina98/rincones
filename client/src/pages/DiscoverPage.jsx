@@ -15,6 +15,7 @@ import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
+import { elegirOtroDistinto, razonDelSalto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
 import DailyLesson from "../components/DailyLesson";
@@ -71,6 +72,10 @@ export default function DiscoverPage() {
   // "Sorprendeme" sigue moviéndose por el resto.
   const [spotlightIdx, setSpotlightIdx] = useState(0);
   const [surprised, setSurprised] = useState(false);
+  // De qué botella venimos al tocar "Mostrame otra": sin esto el salto no se
+  // puede contar y la tarjeta nueva aparece sin ninguna razón, que es
+  // exactamente lo que hacía sentir al botón un random con nombre lindo.
+  const [saltoDesde, setSaltoDesde] = useState(null);
 
   /* Semilla de la sesión: decide con cuál de las redacciones se cuentan el
      título y el motivo (ver utils/momentCopy.js). Se calcula una sola vez al
@@ -88,9 +93,24 @@ export default function DiscoverPage() {
       .then((w) => {
         if (!active) return;
         setFeatured(w);
-        // Entrar por uno al azar del set, no siempre por el primero.
-        setSpotlightIdx(w.length > 0 ? Math.floor(Math.random() * w.length) : 0);
+        /**
+         * Se entra por la PRIMERA, que es la de mayor afinidad.
+         *
+         * Acá se entraba por una al azar del set. Tenía sentido mientras el set
+         * era un barajado sin orden interno —daba exactamente lo mismo cuál
+         * fuera la primera—, pero desde que el server lo devuelve RANKEADO (ver
+         * services/recommendations.service.js: afinidad y descubrimiento
+         * intercalados, la mejor primero) sortear la entrada tiraba a la basura
+         * todo el ranking: la recomendación mejor calzada tenía una chance en
+         * ocho de ser la que veías.
+         *
+         * La variedad no se pierde, cambia de lugar: el set entero rota todos
+         * los días y "Mostrame otra" recorre el resto, que es exactamente para
+         * lo que está.
+         */
+        setSpotlightIdx(0);
         setSurprised(false);
+        setSaltoDesde(null);
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
@@ -204,12 +224,23 @@ export default function DiscoverPage() {
    * set — que es lo que la fila hacía de verdad, pero ocupando media pantalla.
    */
 
-  const surpriseMe = () => {
-    if (featured.length < 2) return;
+  /**
+   * "Mostrame otra": el salto más grande que permita el set, no un sorteo.
+   *
+   * El sorteo devolvía otro Malbec de Mendoza la mayoría de las veces —las
+   * recomendaciones se parecen entre sí porque salen de tus gustos—, así que el
+   * botón prometía algo distinto y entregaba lo mismo. La regla vive en
+   * utils/discovery.js, aparte, porque es lo que hace que el botón valga.
+   */
+  const mostrarOtra = () => {
+    const proximo = elegirOtroDistinto(featured, spotlightIdx);
+    if (proximo === null) return;
     tapHaptic();
-    let next = spotlightIdx;
-    while (next === spotlightIdx) next = Math.floor(Math.random() * featured.length);
-    setSpotlightIdx(next);
+    // Se guarda de dónde venimos para poder contar el salto ("si te gustó el
+    // Malbec, probá qué hace un Cabernet"), que es lo que lo vuelve una
+    // recomendación y no un cambio de tarjeta.
+    setSaltoDesde(featured[spotlightIdx] || null);
+    setSpotlightIdx(proximo);
     setSurprised(true);
   };
 
@@ -501,14 +532,19 @@ export default function DiscoverPage() {
                   dice una app, no alguien. "Hoy te recomiendo" pone a alguien
                   del otro lado, que es lo que el motivo de abajo ya venía
                   haciendo ("Hace frío y todavía no tenés Malbec"). */}
+              {/* "Al azar" era la peor palabra posible acá: le avisaba a la
+                  persona que lo que está mirando no fue elegido. Y el motivo se
+                  reemplazaba por una frase fija ("Salgamos un rato de la
+                  rutina"), justo cuando MÁS falta hace una razón. Ahora el salto
+                  se nombra —de qué uva a cuál— y si el set no daba para saltar,
+                  se cae al motivo de siempre en vez de inventar uno. */}
               <span className="spotlight__eyebrow">
-                <Icon name="sparkle" size={12} />
-                {surprised ? "Al azar" : "Hoy te recomiendo"}
+                <Icon name={surprised ? "compass" : "sparkle"} size={12} />
+                {surprised ? "Algo distinto" : "Hoy te recomiendo"}
               </span>
               <span className="spotlight__kicker">
-                {surprised
-                  ? "Salgamos un rato de la rutina"
-                  : whyThisWine(spotlight, stats, seed)}
+                {(surprised && razonDelSalto(saltoDesde, spotlight)) ||
+                  whyThisWine(spotlight, stats, seed)}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
@@ -537,9 +573,16 @@ export default function DiscoverPage() {
                 <><Icon name="heart" size={16} /> Quiero probar</>
               )}
             </button>
-            <button type="button" className="spotlight__surprise" onClick={surpriseMe}>
-              🎲 Sorprendeme
-            </button>
+            {/* El dado decía "esto es un random" con un dibujo, que es
+                justamente lo que el botón NO tiene que parecer. La brújula dice
+                lo que hace: llevarte a otro lado. Se esconde si no hay a dónde
+                ir — ofrecer otra botella cuando no hay otra es prometer algo que
+                no va a pasar. */}
+            {featured.length > 1 && (
+              <button type="button" className="spotlight__surprise" onClick={mostrarOtra}>
+                <Icon name="compass" size={15} /> Mostrame otra
+              </button>
+            )}
           </div>
         </section>
       )}

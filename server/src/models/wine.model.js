@@ -428,7 +428,22 @@ wineSchema.statics.getUserStats = async function (userId) {
             $group: {
               _id: null,
               total: { $sum: 1 },
-              stock: { $sum: { $cond: [{ $eq: ["$status", "stock"] }, 1, 0] } },
+              // Cuántos vinos DISTINTOS tenés con botellas. Se cuenta por
+              // `quantity`, que es la única fuente de verdad del stock (la
+              // sostiene la invariante de `utils/lots.js`), y NO por `status`.
+              //
+              // Contando por status faltaba la mitad de la bodega: `toWineStatus`
+              // manda a un vino con botellas a "tasted" en cuanto lo probaste una
+              // vez, así que todo lo que abriste alguna vez y todavía tenés
+              // quedaba fuera de la cuenta. Alcanzaba con probar tu único vino
+              // para que la home dijera "Ya no te queda nada en stock" con la
+              // botella abierta al lado. Es el mismo error que ya se había
+              // corregido en `consumed`, en la línea de abajo.
+              stock: { $sum: { $cond: [{ $gt: ["$quantity", 0] }, 1, 0] } },
+              // Botellas, no vinos: dos cosas distintas que los textos venían
+              // mezclando ("te queda una botella" cuando quedaba un vino con
+              // seis). Quien escribe copy necesita el número que va a decir.
+              bottles: { $sum: { $ifNull: ["$quantity", 0] } },
               // Se cuenta por el campo `tasted`, no por `status`. Al terminar
               // la última botella `toWineStatus` pasa el vino a "archived", así
               // que contando por status un vino que te tomaste entero dejaba de
@@ -452,7 +467,7 @@ wineSchema.statics.getUserStats = async function (userId) {
     topVarietals: (out.topVarietals || []).map((r) => ({ varietal: r._id, count: r.count })),
     topRegions: (out.topRegions || []).map((r) => ({ region: r._id, count: r.count })),
     avgRating: out.avgRating && out.avgRating[0] ? Number((out.avgRating[0].avgRating || 0).toFixed(2)) : 0,
-    totals: out.totals && out.totals[0] ? out.totals[0] : { total: 0, stock: 0, consumed: 0 },
+    totals: out.totals && out.totals[0] ? out.totals[0] : { total: 0, stock: 0, bottles: 0, consumed: 0 },
     // Los tres de arriba, ya en la forma que consume el contenido educativo.
     // Siempre presentes y en cero cuando no hay datos: quien los lee no tiene
     // que preguntar si existen, sólo si alcanzan.

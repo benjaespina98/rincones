@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getWines,
   createWine as createWineApi,
@@ -7,36 +7,55 @@ import {
   adjustWineStock,
   openBottle as openBottleApi,
   undoOpenBottle as undoOpenBottleApi,
-  getWineStats,
   bulkWines,
 } from "../services/wineApi";
 
+/**
+ * Acá había un `stats` que pedía `/wines/stats/summary` en cada carga de Mi
+ * Bodega y en cada acción en lote, y que NO LEÍA NADIE: el único consumidor del
+ * hook (BodyPage) nunca lo desestructuraba, y las estadísticas que sí se
+ * muestran salen de `useWineStats`, que es otro endpoint.
+ *
+ * No era sólo una variable de más. Ese endpoint bajaba la colección COMPLETA del
+ * usuario —documentos enteros, con descripciones, momentos y lotes— para contar
+ * cinco números que después se tiraban. Era la consulta más cara de la app, en
+ * la pantalla más usada, al pedo.
+ */
 export const useWineCollection = () => {
   const [wines, setWines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [stats, setStats] = useState({
-    winesCount: 0,
-    tastedWines: 0,
-    averageRating: 0,
-  });
 
-  // Cargar vinos desde el API
+  /**
+   * Qué carga fue la última. Sin esto, dos cargas encimadas —tocar "Reintentar"
+   * mientras la primera todavía viaja— pueden resolverse al revés y dejar en
+   * pantalla la respuesta VIEJA, o un error de una petición que ya no importa.
+   */
+  const cargaActual = useRef(0);
+
+  /**
+   * Carga la bodega y los contadores.
+   *
+   * Eran DOS viajes a la red en serie —la lista y unos contadores que nadie
+   * leía— así que Mi Bodega esperaba el doble de lo necesario para pintar.
+   * Ahora es uno solo.
+   */
   const loadWines = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await getWines();
-      setWines(data);
+    const carga = (cargaActual.current += 1);
 
-      // Cargar stats
-      const statsData = await getWineStats();
-      setStats(statsData);
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getWines();
+      if (cargaActual.current !== carga) return;
+      setWines(data);
     } catch (err) {
-      setError("No se pudo cargar tu bodega.");
+      if (cargaActual.current !== carga) return;
       console.error(err);
+      setError("No se pudo cargar tu bodega.");
     } finally {
-      setLoading(false);
+      if (cargaActual.current === carga) setLoading(false);
     }
   }, []);
 
@@ -147,9 +166,6 @@ export const useWineCollection = () => {
       return prev.map((w) => (seleccion.has(String(w._id)) ? { ...w, ...cambio } : w));
     });
 
-    // Los contadores del perfil (cuántos vinos, cuántos probados) los lleva el
-    // server: se vuelven a pedir en vez de recalcularlos acá por segunda vez.
-    getWineStats().then(setStats).catch(() => {});
     return afectados;
   }, []);
 
@@ -157,7 +173,6 @@ export const useWineCollection = () => {
     wines,
     loading,
     error,
-    stats,
     addWine,
     deleteWine,
     updateWine,
