@@ -7,10 +7,17 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { initErrorMonitoring } from "./services/errorMonitoring";
+import { observarBuildViejo } from "./utils/staleBuild";
 
 // Sin VITE_SENTRY_DSN no hace nada (ver services/errorMonitoring.js): no
 // bloquea el render, así que va suelta y no adentro del árbol de componentes.
 initErrorMonitoring();
+
+// Antes de montar nada: un chunk que no baja porque el shell quedó viejo tiene
+// que resolverse trayendo el documento nuevo, no mostrando un error. Si se
+// enganchara adentro del árbol, el primer import fallido —el de la propia
+// pantalla que se está abriendo— ya habría pasado de largo. Ver utils/staleBuild.js.
+observarBuildViejo();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

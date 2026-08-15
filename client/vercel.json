@@ -5,12 +5,14 @@
       "destination": "https://rincones-api.vercel.app/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "//": "El fallback del SPA, pero SIN /assets. Los rewrites corren después del filesystem, así que esto sólo atiende rutas que no existen como archivo — y un chunk que ya no existe (build viejo) es exactamente eso. Devolverle `index.html` a un <script type=module> hacía que el navegador se quejara del MIME en vez de dar un 404 limpio, y el error resultante era ilegible. Con el 404 honesto, utils/staleBuild.js reconoce el caso y trae la versión nueva.",
+      "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
+      "//": "Los assets llevan hash en el nombre: un archivo con ese nombre nunca cambia de contenido, así que se puede cachear para siempre.",
       "source": "/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
@@ -23,7 +25,21 @@
       ]
     },
     {
+      "//": "El shell NUNCA se cachea sin revalidar, y las tres formas de pedirlo tienen que decir lo mismo. Antes la regla era sólo `/index.html`, que es la que NADIE pide: los headers se resuelven contra la ruta que entra, y la PWA arranca en `/` (su start_url) y navega a rutas como `/login`. Esas dos quedaban con el caché por defecto, así que la app instalada podía arrancar durante días con un index.html viejo, pidiendo chunks de un build que ya no existía. Ese era el motivo real de tener que desinstalar y reinstalar para poder entrar.",
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
       "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "//": "Cualquier otra navegación del SPA: se sirve el mismo index.html, así que necesita la misma regla. Las exclusiones son los archivos que SÍ se cachean y ya tienen su regla arriba — se listan acá en vez de confiar en qué regla gana cuando dos coinciden, que no está garantizado.",
+      "source": "/((?!assets/|api/|favicon\\.svg|vite\\.svg|og-image\\.png|manifest\\.webmanifest|icon-|apple-touch-icon).*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" }
       ]

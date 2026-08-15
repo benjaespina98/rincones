@@ -26,4 +26,14 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // La config de Vite y los tests corren en Node, no en el navegador: sin esto
+    // `process` es una variable no definida y `npm run lint` termina en error,
+    // que es como estaba. Los globals del navegador se conservan porque los
+    // tests usan jsdom (window, sessionStorage, document).
+    files: ['vite.config.js', 'test/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+  },
 ])

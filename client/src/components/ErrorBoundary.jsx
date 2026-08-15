@@ -1,5 +1,6 @@
 import React from "react";
 import { captureError } from "../services/errorMonitoring";
+import { esErrorDeBuildViejo, recuperarDeBuildViejo } from "../utils/staleBuild";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -8,14 +9,28 @@ class ErrorBoundary extends React.Component {
       hasError: false,
       error: null,
       errorInfo: null,
+      // El error es un chunk que no bajó, no un bug: la app quedó vieja y lo que
+      // corresponde no es "reintentar" sino traer la versión nueva.
+      esVersionVieja: false,
     };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, esVersionVieja: esErrorDeBuildViejo(error) };
   }
 
   componentDidCatch(error, errorInfo) {
+    /**
+     * Última red del shell viejo.
+     *
+     * `observarBuildViejo` (main.jsx) ataja la mayoría antes de que React se
+     * entere, pero un `lazy()` que rechaza durante el render llega hasta acá. Si
+     * la recarga se dispara, esta pantalla no se ve: la página se está yendo.
+     * Si devuelve `false` es porque ya se recargó una vez y no alcanzó, y ahí sí
+     * hay que mostrar algo — con el texto correcto, que no es "algo salió mal".
+     */
+    if (esErrorDeBuildViejo(error) && recuperarDeBuildViejo()) return;
+
     console.error("Error caught by boundary:", error, errorInfo);
     captureError(error, { componentStack: errorInfo?.componentStack });
     this.setState({
@@ -24,7 +39,20 @@ class ErrorBoundary extends React.Component {
     });
   }
 
+  /**
+   * Limpiar el estado sólo sirve cuando el error fue de render: se vuelve a
+   * intentar el mismo árbol y puede andar.
+   *
+   * Con un chunk que no bajó no sirve para nada —el módulo quedó rechazado en el
+   * caché del navegador y el segundo intento falla igual, que es por qué este
+   * botón dejaba a la gente golpeándolo—. Ahí lo único que puede funcionar es
+   * pedir el documento de nuevo.
+   */
   handleReset = () => {
+    if (this.state.esVersionVieja) {
+      window.location.reload();
+      return;
+    }
     this.setState({
       hasError: false,
       error: null,
@@ -57,10 +85,12 @@ class ErrorBoundary extends React.Component {
             }}
           >
             <h1 style={{ marginBottom: "var(--space-md)" }}>
-              ⚠️ Algo salió mal
+              {this.state.esVersionVieja ? "Hay una versión nueva" : "Algo salió mal"}
             </h1>
             <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-lg)" }}>
-              Algo salió mal. Probá recargar la página.
+              {this.state.esVersionVieja
+                ? "Actualizá para seguir. Tus vinos y tu sesión quedan como están."
+                : "No pudimos mostrar esta pantalla. Probá de nuevo."}
             </p>
             {import.meta.env.DEV && this.state.error && (
               <details
@@ -97,7 +127,7 @@ class ErrorBoundary extends React.Component {
                 className="button button--primary"
                 style={{ flex: 1 }}
               >
-                Reintentar
+                {this.state.esVersionVieja ? "Actualizar" : "Reintentar"}
               </button>
               <button
                 onClick={() => (window.location.href = "/")}
