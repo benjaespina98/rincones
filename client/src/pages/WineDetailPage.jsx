@@ -654,10 +654,27 @@ export default function WineDetailPage() {
               varietal={wine.varietal}
               vintage={wine.vintage}
               onRated={(value) => {
-                // Se guarda también en el vino para que las estadísticas, los
-                // filtros y el orden de Bodega sigan funcionando.
+                /**
+                 * Puntuar escribe en DOS lados: la reseña pública (la maneja
+                 * `WineOpinion`, que ya avisa si falla) y el vino de tu bodega,
+                 * que es de donde salen los filtros, el orden y el promedio del
+                 * perfil. Esto es lo segundo.
+                 *
+                 * El `.catch(() => {})` que había acá tragaba ese fallo entero:
+                 * la reseña quedaba publicada, el vino seguía con el puntaje
+                 * viejo, y nadie se enteraba hasta que Mi Bodega ordenaba mal o
+                 * el promedio no cerraba. Un error silencioso que además dejaba
+                 * los dos lados diciendo cosas distintas.
+                 *
+                 * Se vuelve al puntaje anterior para que el estado local diga la
+                 * verdad de lo que quedó guardado, y se avisa qué pasó.
+                 */
+                const anterior = wine.rating;
                 setWine((w) => ({ ...w, rating: value }));
-                updateWine(id, { rating: value }).catch(() => {});
+                updateWine(id, { rating: value }).catch(() => {
+                  setWine((w) => ({ ...w, rating: anterior }));
+                  showError("Publicamos tu puntuación, pero no se actualizó en tu bodega.");
+                });
               }}
             />
 
