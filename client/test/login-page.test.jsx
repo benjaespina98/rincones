@@ -34,6 +34,16 @@ describe("LoginPage", () => {
 
     await waitFor(() => expect(screen.getByText("Home page")).toBeInTheDocument());
     expect(loginSpy).toHaveBeenCalledWith("test@example.com", "Secret123");
-    expect(showSuccessSpy).toHaveBeenCalledWith("¡Bienvenido de vuelta!");
+
+    // Que salude, sin clavar la redacción: fijar el texto exacto convertía
+    // cualquier ajuste de copy en un test roto, sin proteger nada.
+    expect(showSuccessSpy).toHaveBeenCalledTimes(1);
+    const [saludo] = showSuccessSpy.mock.calls[0];
+    expect(saludo).toBeTruthy();
+
+    // Lo que sí importa fijar: no le pone género a quien entra. La app le habla
+    // de vos a todo el mundo y no sabe el género de nadie, así que "Bienvenido"
+    // le erraba a la mitad de los usuarios.
+    expect(saludo).not.toMatch(/bienvenid[oa]\b/i);
   });
 });

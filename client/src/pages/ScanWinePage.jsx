@@ -125,7 +125,9 @@ export default function ScanWinePage() {
         removeToast(toastId);
         try {
           await deleteWine(created._id);
-          showSuccess("Deshecho");
+          // "Deshecho" es un participio suelto: suena a log del sistema, no a
+          // alguien contándote qué pasó. Además no decía QUÉ se deshizo.
+          showSuccess(`"${created.name}" ya no está en tu bodega`);
           navigate("/agregar", { replace: true });
         } catch {
           showError("No se pudo deshacer");

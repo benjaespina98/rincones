@@ -32,7 +32,10 @@ const LoginPage = () => {
     try {
       setLoading(true);
       await login(formData.email, formData.password);
-      showSuccess("¡Bienvenido de vuelta!");
+      // "Bienvenido" le pone género a alguien de quien no sabemos el género, y
+      // la app le habla de vos a todo el mundo: la mitad de los usuarios leían
+      // un saludo que no era para ellos. Esto saluda igual de bien sin suponer.
+      showSuccess("Qué bueno tenerte de vuelta");
       navigate("/");
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo iniciar sesión. Revisá tus datos.";
