@@ -72,10 +72,30 @@ const DATALISTS = {
   varietal: { id: "sr-varietals", options: VARIETALS },
 };
 
+/**
+ * Quién respalda el nombre de este vino, dicho en una línea.
+ *
+ * No es un adorno: hasta ahora la pantalla mostraba con la misma cara un nombre
+ * que figura en un catálogo y uno que el modelo creyó leer en una foto con
+ * brillo. Son dos cosas distintas y la persona que está por guardar es la única
+ * que puede desempatar, así que hay que decírselo.
+ */
+const VERIFICACION_COPY = {
+  "catalogo-ar": "Verificado: figura así en el catálogo argentino",
+  "comunidad-verificada": "Verificado: otras personas lo tienen cargado igual",
+  // Dicho con precisión: lo que confirma es que el vino existe y se llama así,
+  // no que alguien lo haya visto. Prometer más de lo que una fuente da es
+  // exactamente el problema que esta línea vino a resolver.
+  gemini: "Chequeado aparte: este vino existe y se llama así",
+};
+
+/** Cómo se llama cada campo cuando hay que nombrarlo en una frase. */
+const CAMPO_EN_FRASE = { varietal: "la uva", region: "la región", type: "el tipo" };
+
 export default function ScanReview({
   photo,
   reading,
-  matchedFrom,
+  verification,
   saving = false,
   onConfirm,
   onWish,
@@ -105,9 +125,37 @@ export default function ScanReview({
    * guardar seguía apagado—. Un toque, y sigue.
    */
   const [sameNameOk, setSameNameOk] = useState(false);
+  /**
+   * El candidato que la app propuso y que la persona ya resolvió.
+   *
+   * "aceptado" copia sus datos a la lectura; "descartado" esconde la pregunta.
+   * Cualquiera de los dos es una respuesta, y las dos veces la pregunta se va: la
+   * peor versión de esto sería un cartel que sigue preguntando lo mismo después
+   * de que le contestaste.
+   */
+  const [sugerencia, setSugerencia] = useState("pendiente");
+  /**
+   * ── LA PREGUNTA QUE FALTABA: ¿ESTA BOTELLA ES TUYA? ───────────────────────
+   *
+   * Son dos cargas distintas y la app las trataba casi igual. Una es "compré
+   * este vino y lo tengo en casa"; la otra, "lo tomé en un restaurante y me lo
+   * quiero acordar". Lo único que las separaba era un botón chico abajo del
+   * stepper —"Lo tomé afuera, no me quedó ninguna"— que había que descubrir, y
+   * cuyo efecto real (poner las botellas en cero) no se leía en ningún lado.
+   *
+   * Ahora es una pregunta explícita y ANTES del número: primero decidís qué
+   * pasó, después —sólo si el vino es tuyo— cuántas botellas. Cada rama dice lo
+   * que implica, porque implican cosas distintas en toda la app: la de afuera no
+   * entra a "En stock", no abre un lote, no cuenta como compra y no tiene una
+   * fecha de "en tu bodega desde" que contar.
+   */
+  const [destino, setDestino] = useState("bodega");
+  const afuera = destino === "afuera";
   // Cuántas botellas entran a la cava. Obligar a escanear doce veces la misma
   // etiqueta porque compraste una caja no tiene sentido.
   const [cantidad, setCantidad] = useState(1);
+  // Lo que de verdad se guarda: sin botellas cuando lo tomaste afuera.
+  const botellas = afuera ? 0 : cantidad;
   // Si la lectura salió tan floja que no hay campo puntual que señalar, se
   // esconde el formulario detrás de "Completar los datos a mano" (ver
   // `sinIdentificar` más abajo) en vez de mostrarlo de entrada.
@@ -117,6 +165,20 @@ export default function ScanReview({
   // objeto nuevo en cada render los haría recalcular siempre.
   const conf = useMemo(() => reading?.confidence || {}, [reading]);
   const isManual = reading?.source === "manual";
+
+  /**
+   * Los campos que la fuente contradice, nombrados para poder decirlos.
+   *
+   * Se dejan de mostrar en cuanto la persona toca el campo: ya lo miró, que es
+   * todo lo que este aviso pedía.
+   */
+  const desacuerdos = useMemo(
+    () =>
+      (verification?.mismatches || [])
+        .filter((c) => CAMPO_EN_FRASE[c] && !touched.has(c))
+        .map((c) => CAMPO_EN_FRASE[c]),
+    [verification, touched]
+  );
 
   const title = useMemo(
     () => composeDisplayName({ name: values.properName, line: values.line }),
@@ -154,6 +216,39 @@ export default function ScanReview({
     const destino = field === NAME_FIELD ? nameTarget : field;
     setValues((v) => ({ ...v, [destino]: value }));
     setTouched((t) => new Set(t).add(destino));
+  };
+
+  /**
+   * "Sí, es ese": adopta el vino que propuso la app.
+   *
+   * Los campos quedan marcados como TOCADOS, y no es un detalle de
+   * implementación: para el servidor, un campo que la persona puso vale 100 —es
+   * la señal más fuerte que maneja el sistema— y confirmar un candidato mirando
+   * la botella es exactamente eso. Sin esto, aceptar la sugerencia dejaría el
+   * vino con la misma confianza floja que tenía antes de que alguien lo mirara.
+   *
+   * Sólo se escribe lo que el candidato sabe: si no trae región, la leída se
+   * queda. Nunca se borra un dato para reemplazarlo por un hueco.
+   */
+  const aplicarCandidato = (c) => {
+    if (!c) return;
+    const nuevos = {
+      line: c.name || "",
+      properName: "",
+      winery: c.winery || values.winery,
+      varietal: c.varietal || values.varietal,
+      region: c.region || values.region,
+      type: c.type && c.type !== "unknown" ? c.type : values.type,
+    };
+    setValues((v) => ({ ...v, ...nuevos }));
+    setTouched((t) => {
+      const next = new Set(t);
+      for (const campo of ["line", "properName", "winery", "varietal", "region"]) {
+        if (nuevos[campo]) next.add(campo);
+      }
+      return next;
+    });
+    setSugerencia("aceptada");
   };
 
   // El tipo se deriva de la uva: no tiene sentido preguntarlo aparte.
@@ -291,7 +386,7 @@ export default function ScanReview({
       ...values,
       type: derivedType,
       name: title,
-      quantity: cantidad,
+      quantity: botellas,
       // La evidencia con la que el servidor decide si esto puede publicarse.
       identSource: isManual ? "manual" : reading?.source === "ocr" ? "ocr" : "scan",
       identConfidence: conf,
@@ -364,9 +459,116 @@ export default function ScanReview({
         </div>
       ) : (
         <>
-      {matchedFrom && issues.length === 0 && (
-        <p className="scan-review__matched">
-          <Icon name="sparkles" size={13} /> Completamos algunos datos desde el catálogo
+      {/* ── EL NOMBRE, CONTRASTADO CONTRA ALGO QUE NO ES LA FOTO ───────────
+          El modelo se puntúa a sí mismo: puede leer nítido y aun así equivocarse
+          de nombre, porque en la foto no hay nada contra qué comparar. Esto es lo
+          que el servidor encontró al cruzarlo con fuentes reales de vinos, y se
+          dice ANTES de los campos porque cambia cómo hay que mirarlos.
+
+          Los tres estados son distintos y ninguno se puede tapar con otro:
+          confirmado (no hay nada que revisar), corregido (el nombre que ves NO es
+          el que leímos de la etiqueta, y merece una mirada) y sin verificar
+          (existe la chance de que este vino no se llame así). */}
+      {/* ── "¿ES ESTE VINO?" ─────────────────────────────────────────────────
+          El tramo del medio de la identificación. La app encontró un candidato
+          que encaja pero no lo bastante como para darlo por hecho —dos líneas
+          parecidas de la misma bodega, un nombre leído a medias—, así que no
+          tocó ningún dato y pregunta.
+
+          La pregunta es barata para quien tiene la botella en la mano (la mira y
+          contesta) y evita el error que más molesta: que la app cambie sola el
+          vino por otro. Aceptar es un toque y completa bodega, uva, región y
+          tipo de una; si la segunda opción estaba cerca, también se ofrece. */}
+      {!isManual && verification?.candidate && sugerencia === "pendiente" && (
+        <div className="scan-review__suggestion" role="status">
+          <p className="scan-review__suggestion-q">¿Es este vino?</p>
+          <p className="scan-review__suggestion-name">{verification.candidate.name}</p>
+          <p className="scan-review__suggestion-meta">
+            {[
+              verification.candidate.winery,
+              verification.candidate.varietal,
+              verification.candidate.region,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <div className="scan-review__suggestion-actions">
+            <button
+              type="button"
+              className="scan-review__btn-primary"
+              onClick={() => aplicarCandidato(verification.candidate)}
+              disabled={saving}
+            >
+              <Icon name="check" size={16} /> Sí, es ese
+            </button>
+            <button
+              type="button"
+              className="scan-review__btn-secondary"
+              onClick={() => setSugerencia("descartada")}
+              disabled={saving}
+            >
+              No, es otro
+            </button>
+          </div>
+          {verification.alternative?.name && (
+            <button
+              type="button"
+              className="scan-review__link"
+              onClick={() => aplicarCandidato(verification.alternative)}
+              disabled={saving}
+            >
+              ¿O es {verification.alternative.name}?
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Confirmado a mano. Se deja dicho —igual que el "se llama igual que la
+          bodega"— para que no parezca que los campos se llenaron solos. */}
+      {sugerencia === "aceptada" && (
+        <p className="scan-review__confirmed" role="status">
+          <Icon name="check" size={13} /> Listo, lo tomamos como {title || "ese vino"}.
+        </p>
+      )}
+
+      {!isManual && verification?.status === "confirmado" && issues.length === 0 && (
+        <p className="scan-review__verified" role="status">
+          <Icon name="check" size={13} />{" "}
+          {VERIFICACION_COPY[verification.source] || "Encontramos este vino en el catálogo"}
+        </p>
+      )}
+
+      {!isManual && verification?.status === "corregido" && (
+        <p className="scan-review__corrected" role="status">
+          <Icon name="sparkles" size={13} />
+          <span>
+            Ajustamos el nombre al del catálogo: <strong>{verification.name}</strong>. Si tu
+            etiqueta dice otra cosa, corregilo.
+          </span>
+        </p>
+      )}
+
+      {/* Lo que la fuente contradice. No se pisó ningún dato —la etiqueta la
+          tenés vos, y las bodegas cambian cortes entre añadas—: los campos en
+          discusión quedaron abiertos abajo, y esto dice cuáles y por qué, que es
+          lo que evita el "revisá algo" sin decir qué. */}
+      {!isManual && desacuerdos.length > 0 && (
+        <p className="scan-review__unverified" role="status">
+          <Icon name="alert-triangle" size={13} />
+          <span>
+            {desacuerdos.length === 1
+              ? `Según esa fuente, ${desacuerdos[0]} de este vino es otra: mirá la etiqueta.`
+              : `Según esa fuente, ${desacuerdos.slice(0, -1).join(", ")} y ${
+                  desacuerdos[desacuerdos.length - 1]
+                } de este vino son otras: mirá la etiqueta.`}
+          </span>
+        </p>
+      )}
+
+      {!isManual && verification?.status === "sin-verificar" && issues.length === 0 && (
+        <p className="scan-review__unverified" role="status">
+          <Icon name="alert-triangle" size={13} />
+          <span>No encontramos este vino en ningún catálogo. Revisá el nombre antes de guardar.</span>
         </p>
       )}
 
@@ -489,74 +691,88 @@ export default function ScanReview({
         {showAll ? "Ocultar los que están bien" : "Editar todos los datos"}
       </button>
 
-      {/* Cuántas botellas. Los atajos cubren los casos reales —media docena,
-          una caja— sin obligar a tocar doce veces el más.
+      {/* ── QUÉ PASÓ CON ESTA BOTELLA ────────────────────────────────────────
+          Antes de cualquier número. Las dos opciones dicen su consecuencia con
+          todas las letras porque son dos lugares distintos de la app: una suma
+          botellas a tu cava (con su lote y su fecha), la otra no toca el stock y
+          sólo deja escrito que lo tomaste.
 
-          ── EL CERO ES UNA OPCIÓN, Y HACÍA FALTA ──────────────────────────────
-          El mínimo era 1, así que un vino que tomaste afuera —en un restaurante,
-          en casa de alguien— sólo se podía registrar declarando una botella que
-          nunca tuviste. Y esa botella no era un número inocente: abría un LOTE
-          con su fecha de compra, entraba a tus gastos y dejaba el vino contado
-          como parte de tu cava. Para que el historial dijera la verdad había que
-          mentirle al inventario.
-
-          El modelo ya sabía distinguirlos: "probado" y "stock" son dos ejes
-          independientes, y las cuatro combinaciones son normales (ver
-          utils/cellarViews.js). Lo único que faltaba era dejar de forzar el
-          mínimo acá. Con 0 botellas el vino entra a tu colección, queda probado,
-          aparece en "Probados" y en tus estadísticas de lo que tomaste — y no
-          aparece en "En stock" ni inventa una compra. */}
-      <div className="scan-qty">
-        <span className="scan-qty__label">¿Cuántas botellas?</span>
-        <div className="scan-qty__row">
-          <div className="scan-qty__stepper">
-            <button
-              type="button"
-              onClick={() => setCantidad((n) => Math.max(0, n - 1))}
-              disabled={saving || cantidad <= 0}
-              aria-label="Una botella menos"
-            >
-              <Icon name="minus" size={16} />
-            </button>
-            <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
-            <button
-              type="button"
-              onClick={() => setCantidad((n) => Math.min(99, n + 1))}
-              disabled={saving || cantidad >= 99}
-              aria-label="Una botella más"
-            >
-              <Icon name="plus" size={16} />
-            </button>
-          </div>
-          <div className="scan-qty__presets">
-            {[6, 12].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
-                onClick={() => setCantidad(n)}
-                disabled={saving}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* El atajo, para no tener que descubrir que el stepper baja hasta cero.
-            Dice el caso —"lo tomé, no me lo llevé"— y no el número, porque nadie
-            piensa "cero botellas": piensa "éste lo tomé afuera". */}
+          "Probado" y "stock" son dos ejes independientes y las cuatro
+          combinaciones son normales (ver utils/cellarViews.js): por eso esto se
+          puede preguntar sin que ninguna respuesta obligue a mentirle a la otra.
+          Antes de que existiera el cero, un vino tomado afuera sólo se podía
+          registrar declarando una botella que nunca tuviste — y esa botella
+          entraba a tus gastos y te contaba como parte de la cava. */}
+      <div className="scan-destino" role="group" aria-label="Qué pasó con esta botella">
         <button
           type="button"
-          className={`scan-qty__afuera ${cantidad === 0 ? "is-active" : ""}`}
-          onClick={() => setCantidad((n) => (n === 0 ? 1 : 0))}
+          className={`scan-destino__opcion ${afuera ? "" : "is-active"}`}
+          onClick={() => setDestino("bodega")}
           disabled={saving}
-          aria-pressed={cantidad === 0}
+          aria-pressed={!afuera}
         >
-          <Icon name={cantidad === 0 ? "check" : "circle"} size={14} />
-          Lo tomé afuera, no me quedó ninguna
+          <Icon name={afuera ? "circle" : "check"} size={15} />
+          <span className="scan-destino__texto">
+            <strong>La tengo yo</strong>
+            <em>Entra a tu bodega, con stock</em>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`scan-destino__opcion ${afuera ? "is-active" : ""}`}
+          onClick={() => setDestino("afuera")}
+          disabled={saving}
+          aria-pressed={afuera}
+        >
+          <Icon name={afuera ? "check" : "circle"} size={15} />
+          <span className="scan-destino__texto">
+            <strong>Lo tomé afuera</strong>
+            <em>Queda entre los probados, sin sumar botellas</em>
+          </span>
         </button>
       </div>
+
+      {/* Cuántas botellas, sólo si son tuyas. Los atajos cubren los casos reales
+          —media docena, una caja— sin obligar a tocar doce veces el más. */}
+      {!afuera && (
+        <div className="scan-qty">
+          <span className="scan-qty__label">¿Cuántas botellas?</span>
+          <div className="scan-qty__row">
+            <div className="scan-qty__stepper">
+              <button
+                type="button"
+                onClick={() => setCantidad((n) => Math.max(1, n - 1))}
+                disabled={saving || cantidad <= 1}
+                aria-label="Una botella menos"
+              >
+                <Icon name="minus" size={16} />
+              </button>
+              <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
+              <button
+                type="button"
+                onClick={() => setCantidad((n) => Math.min(99, n + 1))}
+                disabled={saving || cantidad >= 99}
+                aria-label="Una botella más"
+              >
+                <Icon name="plus" size={16} />
+              </button>
+            </div>
+            <div className="scan-qty__presets">
+              {[6, 12].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
+                  onClick={() => setCantidad(n)}
+                  disabled={saving}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="scan-review__actions">
         <button
@@ -570,7 +786,7 @@ export default function ScanReview({
           ) : (
             <>
               <Icon name="check" size={17} />{" "}
-              {cantidad === 0
+              {afuera
                 ? "Guardarlo como probado"
                 : cantidad === 1
                   ? "Agregar a mi bodega"

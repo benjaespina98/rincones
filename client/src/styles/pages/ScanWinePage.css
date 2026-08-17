@@ -13,7 +13,7 @@
 
 .scan-wine-page .page-header {
   margin: 0.4rem 0.75rem 0;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid rgba(172, 145, 255, 0.32);
   background: linear-gradient(135deg, rgba(140, 95, 246, 0.48), rgba(64, 44, 146, 0.82));
 }
@@ -255,36 +255,61 @@
   color: var(--text);
 }
 
-/* "Lo tomé afuera": el atajo al cero.
-   Va debajo del stepper y a lo ancho, como una casilla y no como un preset más:
-   no es otra cantidad entre 1, 6 y 12, es una situación distinta —el vino que
-   tomaste y no te llevaste—. Puesto al lado de los números se leería como "0
-   botellas", que es el dato pero no el motivo. */
-.scan-qty__afuera {
+/* ── ¿Es tuya o la tomaste afuera? ──────────────────────────────────────────
+   Acá vivía `.scan-qty__afuera`, un atajo al cero pegado abajo del stepper. El
+   problema no era el estilo sino el lugar: una situación distinta —el vino que
+   tomaste y no te llevaste— dibujada como una opción más del contador, después
+   del número y sin decir qué implicaba.
+
+   Ahora son dos opciones del mismo tamaño, antes del número, y cada una lleva su
+   consecuencia escrita debajo. La elegida se pinta entera: la diferencia tiene
+   que verse de una, porque decide en qué parte de la app termina el vino. */
+.scan-destino {
+  display: grid;
+  gap: 8px;
+}
+
+.scan-destino__opcion {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  margin-top: 10px;
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--glass);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
   text-align: left;
   cursor: pointer;
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
-.scan-qty__afuera.is-active {
+.scan-destino__opcion.is-active {
   border-color: var(--accent);
   background: var(--accent-muted);
   color: var(--text);
 }
 
-.scan-qty__afuera:disabled {
+.scan-destino__opcion:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+.scan-destino__texto {
+  display: grid;
+  gap: 2px;
+}
+
+.scan-destino__texto strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* La consecuencia, en voz baja pero siempre visible: es lo que la pantalla no
+   decía en ningún lado y lo que después explica por qué el vino aparece —o no—
+   en "En stock". */
+.scan-destino__texto em {
+  font-style: normal;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
 }

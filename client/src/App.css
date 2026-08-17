@@ -227,6 +227,31 @@ html {
   transform: scale(0.97);
 }
 
+/* La salida lateral del estado vacío: un enlace y no un segundo botón. Dos
+   botones del mismo peso obligan a elegir entre dos cosas que no compiten —una
+   es lo que la pantalla propone hacer, la otra es "en realidad venía a otra
+   cosa"—. */
+.empty-alt {
+  margin-top: 2px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-strong);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .empty-alt:hover {
+    color: var(--text);
+  }
+}
+
 /* ── Shared error state with retry (ErrorState component) ──
    Un fallo de carga nunca debe verse como "no hay nada": se distingue por el
    color de advertencia y por ofrecer siempre una salida (Reintentar). */
@@ -664,7 +689,7 @@ select:disabled {
   display: grid;
   gap: 0.35rem;
   border: 1px solid #3a3157;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: rgba(20, 18, 40, 0.7);
   padding: 0.55rem;
 }
@@ -777,7 +802,7 @@ select:disabled {
 .toggle-chip.is-on {
   border-color: rgba(47, 182, 123, 0.45);
   background: rgba(47, 182, 123, 0.14);
-  color: #7fe3b4;
+  color: var(--success-text);
 }
 
 /* Favorito enciende en el color de favoritos y no en verde: son dos cosas

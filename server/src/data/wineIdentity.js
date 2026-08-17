@@ -29,6 +29,9 @@ const FIELD_CONVENTION = `Separá la etiqueta en estos campos, que son EXCLUYENT
   Si es un corte de varias uvas, poné "Blend".
 - name: el nombre PROPIO del vino, sólo si es distinto de la bodega, de la línea y de la uva
   (ej: "Angélica Zapata", "Nicasia", "Antología", "Iscay", "Nosotros"). Vacío en cualquier otro caso.
+  OJO: "Reserva", "Gran Reserva", "Roble", "Selección", "Premium", "Cosecha Tardía" y
+  similares NO son nombres propios: son la línea o la categoría, y van en "line".
+  Tampoco es un nombre propio la uva ni una palabra que ya escribiste en otro campo.
 
 Ejemplos:
 - Etiqueta "Trapiche / Reserva / Malbec" → winery:"Trapiche", line:"Reserva", varietal:"Malbec", name:""

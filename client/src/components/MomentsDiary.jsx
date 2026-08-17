@@ -29,7 +29,7 @@ const fecha = (d) =>
     ? new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-export default function MomentsDiary() {
+export default function MomentsDiary({ probados = 0 }) {
   const navigate = useNavigate();
   const [moments, setMoments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +50,47 @@ export default function MomentsDiary() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Sin momentos y sin fallo no se ocupa lugar: el perfil de alguien que todavía
-  // no registró ninguno no necesita una tarjeta vacía explicando qué se pierde.
-  if (!loading && !failed && moments.length === 0) return null;
+  /**
+   * ── EL VACÍO QUE SÍ VALE LA PENA MOSTRAR ──────────────────────────────────
+   *
+   * Acá no se mostraba nada con cero momentos, y el razonamiento era bueno para
+   * un perfil recién creado: nadie necesita una tarjeta vacía explicándole lo
+   * que se está perdiendo.
+   *
+   * Pero deja afuera a la persona para la que esto importa más: la que YA tomó
+   * vinos —los tiene marcados como probados— y nunca escribió un momento, casi
+   * seguro porque no sabe que puede. El diario es lo que distingue a Rincones de
+   * una planilla de inventario, y era invisible hasta que alguien lo usaba por
+   * primera vez: el clásico caso de una función que sólo descubre quien ya la
+   * conocía.
+   *
+   * Así que el vacío aparece sólo ahí: con botellas probadas y sin una sola
+   * anotación. Sin vinos probados sigue sin ocupar lugar, como antes.
+   */
+  if (!loading && !failed && moments.length === 0) {
+    if (probados === 0) return null;
+
+    return (
+      <section className="diary" aria-label="Tu diario de momentos">
+        <div className="diary__head">
+          <h3 className="diary__title">
+            <Icon name="calendar" size={16} /> Tu diario
+            <span className="diary__private" title="Nadie más puede verlos">
+              <Icon name="lock" size={11} /> Sólo vos
+            </span>
+          </h3>
+        </div>
+        <p className="diary__invite">
+          Ya probaste {probados === 1 ? "un vino" : `${probados} vinos`}, pero todavía no
+          escribiste ninguna noche. Cuando abrís una botella podés anotar con quién estabas,
+          dónde y qué comieron — y eso queda para siempre, sólo para vos.
+        </p>
+        <button type="button" className="diary__more" onClick={() => navigate("/bodega?filter=probados")}>
+          Empezar por un vino que ya tomaste <Icon name="arrow-right" size={15} />
+        </button>
+      </section>
+    );
+  }
 
   const visibles = verTodos ? moments : moments.slice(0, MAX_VISIBLES);
 

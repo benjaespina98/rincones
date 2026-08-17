@@ -284,7 +284,11 @@
 .rating-input__star {
   border: none;
   background: none;
-  font-size: 1.6rem;
+  /* La misma estrella que la de tu opinión (WineOpinion.css), que estaba en
+     1.9rem: eran dos selectores de estrellas en la misma pantalla, con el mismo
+     gesto y dos tamaños. El más grande gana, que además es mejor blanco para el
+     pulgar. */
+  font-size: 1.9rem;
   color: rgba(255, 255, 255, 0.16);
   padding: 2px;
   line-height: 1;
@@ -1088,7 +1092,7 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
   background: var(--glass);
-  color: #ff6ea0;
+  color: var(--favorite);
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }

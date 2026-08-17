@@ -343,6 +343,22 @@ async function createWine(userId, payload) {
   // son justo donde alguien escribe "Cabernet Sauvingon" a las once de la noche.
   const uva = canonicalVarietal(varietal);
 
+  /**
+   * Cargar un vino con CERO botellas es "lo tomé afuera".
+   *
+   * El camino de reposición (arriba) ya lo trataba así: marca probado, anota la
+   * fecha y suma un consumo. Un vino NUEVO cargado igual no hacía nada de eso —
+   * llegaba con `tasted: true` y nada más—, así que quedaba entre los probados
+   * pero sin última vez ni consumos: el mismo hecho registrado de dos formas
+   * distintas según si el vino ya estaba en tu bodega o no.
+   *
+   * La fecha es la de la carga y no la de la copa, que no sabemos; es lo que hay,
+   * y quien lo lea (la ficha) lo dice con esas palabras.
+   */
+  const botellas = parseQuantity(quantity, 1);
+  const tomadoAfuera = botellas === 0;
+  const probado = tasted === true || tomadoAfuera;
+
   const identificacion = evaluarIdentificacion(payload, {
     name: String(name || "").trim(),
     line: line?.trim() || "",
@@ -368,15 +384,21 @@ async function createWine(userId, payload) {
     rawText: rawText || "",
     type: type || "unknown",
     rating: rating ? parseInt(rating) : 0,
-    tasted: tasted === true,
+    tasted: probado,
     favorite: favorite === true,
     // El lote inicial (estas botellas, con la fecha de alta) lo arma el hook
     // `pre("validate")` del modelo, que es el que sostiene la invariante
-    // quantity === suma de los `remaining` en todo camino de escritura.
-    quantity: parseQuantity(quantity, 1),
-    status: toWineStatus({ tasted: tasted === true, quantity: parseQuantity(quantity, 1), status }),
-    lastConsumedAt: lastConsumedAt ? new Date(lastConsumedAt) : undefined,
-    consumptionCount: parseQuantity(consumptionCount, 0),
+    // quantity === suma de los `remaining` en todo camino de escritura. Con cero
+    // botellas no hay lote: no entró nada a la cava, y eso es lo que después
+    // permite distinguir un vino que nunca fue tuyo de uno que se te terminó.
+    quantity: botellas,
+    status: toWineStatus({ tasted: probado, quantity: botellas, status }),
+    lastConsumedAt: lastConsumedAt
+      ? new Date(lastConsumedAt)
+      : tomadoAfuera
+        ? new Date()
+        : undefined,
+    consumptionCount: parseQuantity(consumptionCount, tomadoAfuera ? 1 : 0),
     cellar: {
       location: cellarLocation?.trim() || undefined,
       drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined,
@@ -444,7 +466,9 @@ async function createWine(userId, payload) {
 
   const user = await User.findById(userId);
   user.stats.winesCount = (user.stats.winesCount || 0) + 1;
-  if (tasted) user.stats.tastedWines = (user.stats.tastedWines || 0) + 1;
+  // `probado` y no `tasted`: el vino que cargaste como tomado afuera también
+  // cuenta entre tus probados, que es exactamente lo que dice el perfil.
+  if (probado) user.stats.tastedWines = (user.stats.tastedWines || 0) + 1;
   await user.save();
 
   await logChange(user, "create", savedWine._id, null, { name: savedWine.name, winery: savedWine.winery });
@@ -1040,18 +1064,20 @@ function scoreWine(wine, context) {
     if (match) score += 15;
   }
 
-  // Estilo buscado (refina; la comida es el driver principal).
+  // Las ganas con las que estás. Pesan más que tu gusto personal a propósito:
+  // ver PESO_GANAS arriba. La comida sigue siendo el driver principal —esa es un
+  // veto, no un puntaje— y esto ordena adentro de lo que ella permite.
   const m = context.mood;
   if (m === "liviano" && ["white", "sparkling", "rosé"].includes(wine.type)) {
-    score += 12;
+    score += PESO_GANAS;
     reasons.push("Liviano, como pediste");
   }
   if (m === "cuerpo" && ["red", "fortified"].includes(wine.type)) {
-    score += 12;
+    score += PESO_GANAS;
     reasons.push("Con el cuerpo que buscabas");
   }
   if (m === "festivo" && wine.type === "sparkling") {
-    score += 15;
+    score += PESO_GANAS;
     reasons.push("Para brindar");
   }
 
@@ -1093,6 +1119,34 @@ function fitsFood(wine, context) {
   if (!wine.type || wine.type === "unknown") return true;
   return pairing.types.includes(wine.type);
 }
+
+/**
+ * ── LO QUE PEDISTE MANDA SOBRE LO QUE TE GUSTA ──────────────────────────────
+ *
+ * Cuánto vale acertarle a las ganas (`context.mood`). Es más que el máximo que
+ * puede sumar el gusto personal (30 por puntaje + 10 por favorito) y ésa es
+ * exactamente la razón del número: pedir "algo liviano" tiene que ganarle al
+ * Malbec de 5★. Valía 12, y con eso el pedido perdía siempre: la respuesta era
+ * el tinto preferido, con el motivo "5★ · Favorito" — la app contestando otra
+ * cosa de la que se le preguntó.
+ *
+ * ── DÓNDE SE ELIGE ESTO HOY: EN NINGÚN LADO ────────────────────────────────
+ * El eje se llegó a exponer en el Sommelier como una segunda fila de chips y se
+ * sacó al verlo en pantalla: entre las categorías de comida y las ganas, la
+ * pantalla pedía dos decisiones antes de contestar una sola pregunta, y lo que
+ * de verdad usa la gente es escribir el plato. El servicio lo sigue soportando y
+ * `suggestWines.test.js` fija cómo debe comportarse; si algún día vuelve —un
+ * "¿algo liviano?" en la home, por ejemplo— el peso ya está bien puesto.
+ *
+ * ── Y POR QUÉ NO ES UN VETO, COMO LA COMIDA ─────────────────────────────────
+ * Porque las ganas no son una regla de maridaje, son una intención. Un tinto con
+ * pescado está mal y punto; en cambio "con cuerpo" no excluye a un blanco —un
+ * Chardonnay con madera es un blanco con cuerpo— y vetar por tipo dejaría afuera
+ * botellas que sí son la respuesta. Además, dos pedidos que se contradicen
+ * ("con cuerpo" + pescado) vaciarían la pantalla en vez de contestar lo mejor
+ * posible dentro de lo que sí manda, que es la comida.
+ */
+const PESO_GANAS = 45;
 
 async function suggestWines(userId, context = {}) {
   const all = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");

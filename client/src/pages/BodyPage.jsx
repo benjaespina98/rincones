@@ -13,12 +13,13 @@ import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { normalizeSearchText } from "../utils/text";
-import { tiempoEnCava, enCavaDesde, stockLabel } from "../utils/cellarTime";
+import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import { normalizarVista, pasaVista } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
+import { tapHaptic } from "../utils/haptics";
 import "../styles/pages/BodyPage.css";
 
 /**
@@ -579,8 +580,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (vista === "probados") {
       return {
         icon: "check",
-        title: "Todavía no probaste ninguno",
-        hint: "Cuando abrís una botella, el vino queda marcado acá solo.",
+        title: "Tu historial empieza con la primera botella",
+        hint: "Cuando abrís una, el vino queda acá solo — con lo que puntuaste y lo que escribiste.",
         actionLabel: "Ver lo que tenés",
         onAction: () => setVista("instock"),
       };
@@ -590,19 +591,26 @@ export default function BodyPage({ initialFilter = "instock" }) {
         icon: "bottle",
         title: "No te queda ninguna botella",
         // Lo que tomaste no se perdió: está en Probados. Decirlo acá es lo que
-        // evita pensar que la app borró algo.
+        // evita pensar que la app borró algo, y ahora además se puede ir de un
+        // toque en vez de tener que descubrir la pestaña.
         hint: "Los vinos que tomaste siguen en Probados.",
         actionLabel: "Escanear un vino",
         onAction: () => navigate("/agregar"),
+        secondaryLabel: conteoPorVista.probados > 0 ? "Ver los que probaste" : "",
+        onSecondary: () => setVista("probados"),
       };
     }
+    // La bodega vacía de verdad —cero vinos— tiene su propio estado más abajo,
+    // con la bienvenida que corresponde. Acá se llega con vinos cargados y una
+    // vista que igual no muestra ninguno.
     return {
       icon: "bottle",
-      title: "Tu bodega está vacía",
-      actionLabel: "Escanear un vino",
-      onAction: () => navigate("/agregar"),
+      title: "Nada para mostrar en esta vista",
+      hint: "Probá con otra parte de tu colección.",
+      actionLabel: "Ver toda mi bodega",
+      onAction: () => setVista("all"),
     };
-  }, [searchTerm, filtrosActivos, vista, navigate]);
+  }, [searchTerm, filtrosActivos, vista, navigate, conteoPorVista.probados]);
 
   // ── Selección múltiple ─────────────────────────────────────────────────────
 
@@ -879,6 +887,29 @@ export default function BodyPage({ initialFilter = "instock" }) {
           )}
         </div>
 
+        {/* ── LISTA / GRILLA, A LA VISTA ─────────────────────────────────────
+            Vivía al fondo del panel de filtros, y no es un filtro: no recorta
+            nada. Es cómo querés mirar tu colección —las etiquetas o los
+            nombres— y se cambia mucho más seguido que cualquier faceta. Ahí
+            adentro costaba cuatro toques y el estado actual no se veía sin
+            abrir el panel.
+
+            Un solo botón que alterna, no dos: son dos modos y el ícono muestra
+            a cuál vas a ir, igual que el botón de silencio de cualquier
+            reproductor. Dos chips ocuparían el ancho que necesita el buscador. */}
+        <button
+          type="button"
+          className="bodega-modo"
+          onClick={() => {
+            tapHaptic();
+            setViewMode((m) => (m === "grid" ? "list" : "grid"));
+          }}
+          aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+          title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+        >
+          <Icon name={viewMode === "grid" ? "list" : "grid"} size={17} />
+        </button>
+
         {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
             todas las apps del mundo, así que como botón de filtros no se lee —hay
             que probarlo para saber qué hace—. */}
@@ -1002,7 +1033,25 @@ export default function BodyPage({ initialFilter = "instock" }) {
               .filter(Boolean)
               .join(" · ");
             const bodega = yaLoDice(wine.winery) ? "" : wine.winery;
-            const enCava = tiempoEnCava(enCavaDesde(wine), { corto: true });
+            // Un vino que tomaste afuera nunca estuvo en tu cava: el "hace X"
+            // saldría de la fecha en que lo anotaste y hablaría de una botella
+            // que no existió. Ver `nuncaEstuvoEnTuCava`.
+            const nuncaFueTuyo = nuncaEstuvoEnTuCava(wine);
+            const enCava = nuncaFueTuyo ? "" : tiempoEnCava(enCavaDesde(wine), { corto: true });
+            /**
+             * ¿Este está en su punto?
+             *
+             * El dato ya se calculaba en esta pantalla —lo usa el filtro "Listos
+             * para abrir"— pero no se veía en ninguna fila: había que activar el
+             * filtro para enterarte de cuáles eran, o sea preguntar antes de
+             * saber que había algo para preguntar. En la vitrina es la respuesta
+             * a "¿cuál abro hoy?", que es para lo que uno mira esa vista.
+             *
+             * Sólo en "En stock" y sólo cuando es que sí: un "todavía no" en cada
+             * fila sería una columna de advertencias sobre botellas que están
+             * perfectamente bien guardadas.
+             */
+            const enSuPunto = esVitrina && getCellarStatus(wine).status === "peak";
             // Corte de grupo: sólo cuando cambia respecto del vino anterior.
             const group = groupOf(wine);
             const showGroup = group && (i === 0 || groupOf(visibleWines[i - 1]) !== group);
@@ -1113,6 +1162,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       )}
                       {bodega && <span className="wine-row__winery">{bodega}</span>}
 
+                      {/* ── DÓNDE VA "EN SU PUNTO" (probado en pantalla) ───────
+                          Su propio renglón, debajo de la bodega. Las otras dos
+                          posiciones se descartaron mirándolas en un teléfono:
+                          adentro del renglón de la uva partía "Rosado · Rosé ·
+                          2024" en dos líneas, y en la columna del stock le
+                          robaba noventa píxeles de ancho al nombre, que pasaba a
+                          cortarse. Acá tiene la fila entera para él y no empuja
+                          nada. */}
+                      {enSuPunto && (
+                        <span className="wine-row__peak" title="Está dentro de su ventana de guarda">
+                          <Icon name="sparkle" size={11} /> En su punto
+                        </span>
+                      )}
+
                       {/* El puntaje con estrellas y no como número: en la vitrina
                           hay lugar, y cinco estrellas se comparan de un vistazo
                           entre vinos vecinos, que es justo lo que uno hace acá.
@@ -1128,7 +1191,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""} ${
                           Number(wine.quantity) === 1 ? "is-last" : ""
                         }`}
-                        title={stockLabel(wine.quantity)}
+                        title={nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
                       >
                         {Number(wine.quantity) <= 0 ? "—" : `×${wine.quantity}`}
                       </span>
@@ -1252,7 +1315,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         cava se mide en años y eso vale, pero no cuando competía
                         por ancho con el nombre del vino—. */}
                     <p className="wine-row__state-line">
-                      {stockLabel(wine.quantity)}
+                      {/* "Sin stock" es cierto pero incompleto para un vino que
+                          nunca fue tuyo: no te quedaste sin botellas, nunca las
+                          tuviste, y ésa es la única lectura que explica por qué
+                          la fila no ofrece abrir una. */}
+                      {nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
                       {enCava && ` · en tu cava hace ${enCava}`}
                     </p>
 
@@ -1304,13 +1371,19 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </div>
       )}
 
+      {/* La primera pantalla que ve alguien que se acaba de registrar. "Tu
+          bodega está vacía" era un diagnóstico correcto y desalentador: dice lo
+          que falta, no lo que puede pasar. Y ofrecía una sola puerta —escanear—
+          para alguien que quizá todavía no tiene la botella en la mano. */}
       {!loading && !error && wines.length === 0 && (
         <EmptyState
           icon="bottle"
-          title="Tu bodega está vacía"
-          hint="Sacale una foto a la etiqueta y la cargamos por vos."
+          title="Tu bodega espera su primera botella"
+          hint="Sacale una foto a la etiqueta: la cargamos con su uva, su región y su ficha."
           actionLabel="Escanear mi primer vino"
           onAction={() => navigate("/agregar")}
+          secondaryLabel="Explorá vinos para probar"
+          onSecondary={() => navigate("/")}
         />
       )}
 
@@ -1346,8 +1419,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         vintageFilter={vintageFilter}
         setVintageFilter={setVintageFilter}
         vintageOptions={vintageOptions}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         hayFiltros={filtrosActivos.length > 0}
         onLimpiar={clearAllFilters}
       />

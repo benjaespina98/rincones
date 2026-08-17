@@ -79,6 +79,36 @@ export const enCavaDesde = (wine) => {
 };
 
 /**
+ * ¿Esta botella nunca fue tuya?
+ *
+ * Es el vino que cargaste diciendo "lo tomé afuera": entró a tu colección como
+ * probado y sin stock. La diferencia con uno que tuviste y se te terminó es real
+ * y se notaba en toda la app diciendo cosas falsas — "En tu bodega desde el 12
+ * de marzo" sobre una copa que tomaste en un restaurante, "en tu cava hace 3
+ * meses" sobre algo que nunca estuvo en tu casa.
+ *
+ * Se DEDUCE en vez de guardarse un campo nuevo, y esa es la parte que importa:
+ * los lotes son el registro de cada compra y no se borran nunca (el que se agota
+ * queda con `remaining: 0`), así que "sin ningún lote y sin botellas" significa
+ * exactamente "acá nunca entró nada". Y se corrige solo: el día que comprás ese
+ * vino, entra un lote y deja de ser cierto, sin que nadie tenga que acordarse de
+ * actualizar un flag.
+ *
+ * El caso que no puede distinguir: un vino cargado antes de que existieran los
+ * lotes y terminado también antes. Es un puñado de filas viejas, y lo peor que
+ * les pasa es que la ficha diga "lo tomaste afuera" en vez de "lo tuviste". Los
+ * datos de compra lo desmienten cuando están, y se miran por eso.
+ */
+export const nuncaEstuvoEnTuCava = (wine) => {
+  if (Number(wine?.quantity) > 0) return false;
+  const lotes = Array.isArray(wine?.lots) ? wine.lots : [];
+  if (lotes.length > 0) return false;
+  if (wine?.restockedAt) return false;
+  if (wine?.purchase?.purchasedAt || Number(wine?.purchase?.price) > 0) return false;
+  return true;
+};
+
+/**
  * El stock, dicho como lo diría una persona.
  *
  * "Última botella" no es adorno: cambia la decisión de abrirla o guardarla, que

@@ -2,7 +2,7 @@ import Icon from "./Icon";
 import ConceptTerm from "./ConceptTerm";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus, cellarSourceNote } from "../utils/cellarStatus";
-import { enCavaDesde, tiempoEnCava } from "../utils/cellarTime";
+import { enCavaDesde, tiempoEnCava, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import "./WineIdentity.css";
 
 /**
@@ -22,15 +22,36 @@ const SIN_DATO = "—";
 const FECHA_LARGA = { day: "2-digit", month: "short", year: "numeric" };
 
 /**
- * Desde cuándo lo tenés.
+ * Desde cuándo lo tenés — o desde cuándo lo tuviste, o si nunca fue tuyo.
  *
  * "Mejor a partir de 2028" sin esto es media frase: para saber si vale la pena
  * esperarlo hay que saber hace cuánto que está esperando. Manda la fecha de
  * compra si la cargaste; si no, la del lote más viejo que todavía tiene
  * botellas (ver `enCavaDesde`), que es cuando entró a la cava lo que te queda.
+ *
+ * ── LOS TRES CASOS SON TRES FRASES ─────────────────────────────────────────
+ * Había una sola —"En tu bodega desde"— y se decía siempre, incluso sobre un
+ * vino que cargaste como "lo tomé afuera". Ese vino nunca estuvo en tu bodega:
+ * la fecha que mostraba era la del día que lo anotaste, presentada como si
+ * fuera el día que lo trajiste a casa. Y un vino que se te terminó tampoco
+ * "está" en tu bodega desde ninguna fecha: estuvo.
  */
 function tenencia(wine) {
   const comprado = wine.purchase?.purchasedAt;
+
+  // Nunca entró a tu cava. La fecha que tenemos es la del día que lo anotaste,
+  // no la de la copa: se dice así, en vez de disfrazarla de "lo tomaste el".
+  if (nuncaEstuvoEnTuCava(wine)) {
+    const cuando = wine.lastConsumedAt || wine.createdAt;
+    const fecha = cuando ? new Date(cuando) : null;
+    if (!fecha || Number.isNaN(fecha.getTime())) return null;
+    return {
+      rotulo: "Lo tomaste afuera. Anotado el",
+      fecha: fecha.toLocaleDateString("es-AR", FECHA_LARGA),
+      hace: "",
+    };
+  }
+
   const desde = comprado || enCavaDesde(wine);
   if (!desde) return null;
 
@@ -38,14 +59,15 @@ function tenencia(wine) {
   if (Number.isNaN(fecha.getTime())) return null;
 
   const hace = tiempoEnCava(desde, { corto: true });
+  const quedan = Number(wine.quantity) > 0;
   return {
-    // Dos frases distintas porque son dos hechos distintos: uno es una compra
-    // con fecha; el otro, el día que lo cargaste en la app.
-    rotulo: comprado ? "Comprado el" : "En tu bodega desde",
+    // Tres frases para tres hechos distintos: una compra con fecha, un vino que
+    // tenés desde una fecha, y uno que tuviste y ya no.
+    rotulo: comprado ? "Comprado el" : quedan ? "En tu bodega desde" : "Lo tuviste desde",
     fecha: fecha.toLocaleDateString("es-AR", FECHA_LARGA),
     // Vacío cuando llegó esta semana: "hace 3 días" al lado de la fecha no
     // agrega nada que la fecha no diga.
-    hace,
+    hace: quedan ? hace : "",
   };
 }
 

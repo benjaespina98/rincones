@@ -326,7 +326,7 @@
 .spotlight__add:hover:not(:disabled) { filter: brightness(1.08); }
 .spotlight__add.is-added {
   background: rgba(47, 182, 123, 0.18);
-  color: #7fe3b4;
+  color: var(--success-text);
   box-shadow: none;
 }
 
@@ -676,7 +676,7 @@
 .wine-result-card__want.is-wished {
   background: rgba(47, 182, 123, 0.16);
   border-color: rgba(47, 182, 123, 0.4);
-  color: #7fe3b4;
+  color: var(--success-text);
   box-shadow: none;
   filter: none;
   cursor: default;

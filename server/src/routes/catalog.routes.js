@@ -23,15 +23,13 @@ router.get("/featured", authenticate, catalogController.featured);
 // GET /api/catalog/price - precio comunitario (promedio de lo que pagó la gente).
 router.get("/price", authenticate, catalogController.price);
 
-// POST /api/catalog/match - completa datos de un escaneo desde el catálogo.
-//
-// SIN `aiLimiter` a propósito: desde que `findMatch` mira sólo el catálogo curado
-// y el comunitario, esto no toca Gemini ni sale a internet — es memoria y una
-// consulta indexada. Contarlo contra la cuota de IA cobraba dos llamadas por
-// escaneo (ésta y la de la etiqueta) sobre un presupuesto de 60 por hora, así que
-// escanear una compra entera se quedaba sin margen a la mitad. El límite general
-// de la app sigue aplicando.
-router.post("/match", authenticate, catalogController.match);
+// Acá vivía POST /api/catalog/match, que el navegador llamaba DESPUÉS de leer la
+// etiqueta para completar los datos que faltaban. Se fue junto con la pregunta
+// que resolvía: el cruce contra el catálogo ahora es parte de la lectura y pasa
+// dentro de /api/labels/analyze, en el mismo viaje, porque ahí además se
+// verifica el nombre (ver `conVerificacion` en labels.controller.js). Eran dos
+// llamadas para la misma pregunta —¿qué botella es ésta?— y separarlas era lo
+// que permitía que el nombre entrara sin que ninguna fuente lo respaldara.
 
 // Reseñas públicas de vinos (comunidad).
 // "/reviews/mine" va antes que "/reviews" por claridad; son rutas distintas y

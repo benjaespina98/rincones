@@ -4,6 +4,19 @@
   padding: 16px 14px 126px;
 }
 
+/* ── Desktop: una columna, no una pared ─────────────────────────────────────
+   El layout global corta en 1180px, que está bien para una grilla pero no para
+   esto: acá hay UN campo de texto y una lista, y a 1200px de ancho el input del
+   plato medía más que la pantalla de una notebook. Mismo tope que el perfil, que
+   es la otra pantalla de una sola columna. */
+@media (min-width: 768px) {
+  .suggestions-page {
+    max-width: 820px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
 /* Header compacto: antes era un hero enorme que empujaba todo hacia abajo. */
 .sommelier-header {
   margin: 0;
@@ -227,6 +240,15 @@
 
 .context-chip:active {
   transform: scale(0.96);
+}
+
+/* "Más…" abre el resto de las categorías. Se distingue de una comida —borde
+   punteado y sin fondo— para que no se lea como un plato más de la fila. */
+.context-chip--more {
+  border-style: dashed;
+  background: none;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .context-chip--active {
@@ -586,7 +608,7 @@
 .discover-card__add.is-added {
   background: rgba(47, 182, 123, 0.16);
   border-color: rgba(47, 182, 123, 0.34);
-  color: #7fe3b4;
+  color: var(--success-text);
   cursor: default;
 }
 

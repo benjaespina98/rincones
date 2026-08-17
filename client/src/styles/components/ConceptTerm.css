@@ -1,12 +1,18 @@
 /* ══ Término con definición ════════════════════════════════════════════════
    Un rótulo que ya estaba, ahora tocable. Hereda TODO del texto que envuelve
-   —tamaño, peso, color, mayúsculas— y sólo agrega el punteado: si se viera como
-   un botón, cada barra de la ficha tendría un botón al lado y la pantalla se
-   llenaría de controles para leer una definición.
+   —tamaño, peso, color, mayúsculas— y agrega dos marcas: el subrayado de acento
+   y una "i" en un círculo.
+
+   Las dos, y no una: el subrayado solo se confunde con tipografía (así estaba
+   antes, punteado, y había que descubrir de casualidad que hacía algo) y la "i"
+   sola no diría qué palabra explica. Juntas dicen las dos cosas —esto se toca,
+   y explica ESTO— sin llegar a ser un botón con fondo y borde, que al lado de
+   cada rótulo de la ficha convertiría la pantalla en un panel de controles.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .concept-term {
   display: inline;
+  position: relative;
   margin: 0;
   padding: 0;
   border: 0;
@@ -16,20 +22,68 @@
   letter-spacing: inherit;
   text-transform: inherit;
   text-align: inherit;
-  cursor: help;
-  /* El punteado sigue siendo la única marca —nada de ícono ni fondo, para no
-     poner un botón al lado de cada rótulo de la ficha— pero antes iba en
-     "currentColor" a opacidad casi plena: contra un rótulo ya claro, el
-     subrayado se fundía con la letra y no se distinguía de un subrayado
-     decorativo cualquiera. Ahora usa el color de acento, siempre, así se nota
-     que ES un gesto distinto (toco esto → pasa algo) y no una tipografía. */
-  text-decoration: underline dotted var(--accent-soft);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1.5px;
+  /* `pointer` y no `help`: el cursor de ayuda (el signo de pregunta) anuncia un
+     tooltip que aparece solo al pasar por encima. Esto abre una hoja cuando la
+     tocás, que es otra cosa y en un teléfono es LA cosa. */
+  cursor: pointer;
 }
 
-.concept-term:hover {
-  text-decoration-color: var(--accent-light);
+/* El subrayado vive en el texto y no en el botón, para que no cruce la "i". */
+.concept-term__text {
+  text-decoration: underline solid var(--accent-soft);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color var(--transition-fast);
+}
+
+/* La "i": del tamaño de la letra chica, alineada con la palabra y en el color de
+   acento. No lleva fondo lleno —serían diez lunares de color en una ficha con
+   diez conceptos—: alcanza con el aro. */
+.concept-term__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05em;
+  height: 1.05em;
+  max-width: 14px;
+  max-height: 14px;
+  margin-left: 4px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-soft);
+  /* Sin heredar: estos rótulos suelen venir en mayúsculas y con tracking, y una
+     "I" con espaciado adentro de un círculo de 13px es una mancha. */
+  font-family: var(--font-family-sans, inherit);
+  font-size: 0.68em;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  /* Baja un pelo respecto de la línea de base: pegada al tope de la mayúscula
+     se lee como un exponente y parece una nota al pie. */
+  vertical-align: 0.05em;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .concept-term:hover .concept-term__text {
+    text-decoration-color: var(--accent-light);
+  }
+
+  .concept-term:hover .concept-term__mark {
+    background: var(--accent-muted);
+    border-color: var(--accent-light);
+    color: var(--accent-light);
+  }
+}
+
+/* Con teclado el foco tiene que verse sobre la palabra, no sobre una caja
+   invisible del alto del renglón. */
+.concept-term:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
 /* El área de toque real: el rótulo puede medir 10px de alto y un dedo necesita
@@ -38,10 +92,6 @@
   content: "";
   position: absolute;
   inset: -10px -6px;
-}
-
-.concept-term {
-  position: relative;
 }
 
 /* ── La hoja ─────────────────────────────────────────────────────────────── */

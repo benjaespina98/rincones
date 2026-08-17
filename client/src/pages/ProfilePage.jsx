@@ -314,7 +314,9 @@ export default function ProfilePage() {
           mientras que lo de arriba mide siempre lo mismo. Las dos se esconden
           solas si están vacías. */}
       <MyRatings />
-      <MomentsDiary />
+      {/* Cuántos vinos probaste: es lo que decide si el diario vacío se muestra
+          como invitación o no se muestra en absoluto. Ver MomentsDiary. */}
+      <MomentsDiary probados={wineStats?.totals?.consumed || 0} />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

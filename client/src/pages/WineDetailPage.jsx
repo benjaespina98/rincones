@@ -26,6 +26,7 @@ import {
 } from "../services/wineApi";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { wineDisplayName } from "../utils/wineIdentity";
+import { nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { shareWine } from "../utils/share";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { OCCASIONS, EMOTIONS } from "../data/momentOptions";
@@ -385,7 +386,11 @@ export default function WineDetailPage() {
     setShowDeleteConfirm(false);
     try {
       await deleteWine(id);
-      showSuccess(`"${wineDisplayName(wine)}" eliminado de tu bodega`);
+      showSuccess(
+        `"${wineDisplayName(wine)}" eliminado de ${
+          nuncaEstuvoEnTuCava(wine) ? "tus probados" : "tu bodega"
+        }`
+      );
       navigate("/bodega");
     } catch {
       showError("No se pudo eliminar el vino");
@@ -451,6 +456,17 @@ export default function WineDetailPage() {
       </div>
     );
   }
+
+  /**
+   * Un vino que nunca estuvo en tu casa: lo tomaste afuera y lo anotaste.
+   *
+   * La ficha entera daba por sentado lo contrario —"Ya está en tu bodega",
+   * "Ajustá tu stock", "Eliminar de mi bodega"— sobre una botella que nunca
+   * tuviste. Es el mismo vino y la misma ficha; lo que cambia son las tres o
+   * cuatro frases que hablan de tenencia, y una acción: acá lo útil no es
+   * corregir un inventario que no existe, es decir "lo conseguí".
+   */
+  const noEsTuyo = nuncaEstuvoEnTuCava(wine);
 
   return (
     <div className="wine-detail-page">
@@ -534,7 +550,10 @@ export default function WineDetailPage() {
               <div className="wine-welcome">
                 <div className="wine-welcome__head">
                   <span className="wine-welcome__title">
-                    <Icon name="sparkle" size={14} /> Ya está en tu bodega
+                    <Icon name="sparkle" size={14} />{" "}
+                    {/* Lo que acaba de pasar, dicho como pasó: un vino tomado
+                        afuera no entró a la bodega, entró al historial. */}
+                    {noEsTuyo ? "Anotado entre tus probados" : "Ya está en tu bodega"}
                   </span>
                   <button
                     type="button"
@@ -570,24 +589,42 @@ export default function WineDetailPage() {
                 </button>
               )}
 
-              <div className="wine-qty-controls" role="group" aria-label="Ajustar tu stock">
-                <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
-                <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
-                  <Icon name="minus" size={16} />
+              {/* Con un vino que nunca fue tuyo, un contador en cero con su "−"
+                  apagado no es una herramienta: es un inventario de algo que no
+                  tenés. Lo que sí puede pasar con ese vino es que lo consigas, y
+                  ésa es la acción — la misma llamada, dicha como corresponde. */}
+              {noEsTuyo ? (
+                <button
+                  type="button"
+                  className="wine-detail-open"
+                  disabled={pending}
+                  onClick={() => handleAdjustQuantity(1)}
+                >
+                  <Icon name="plus" size={17} />
+                  Ahora lo tengo: sumarlo a mi bodega
                 </button>
-                {/* Ver BodyPage: el `key` va en el span interno para que la
-                    región viva no se desmonte y siga anunciando. */}
-                <span className="wine-qty" aria-live="polite">
-                  <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
-                </span>
-                <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
-                  <Icon name="plus" size={16} />
-                </button>
-              </div>
+              ) : (
+                <>
+                  <div className="wine-qty-controls" role="group" aria-label="Ajustar tu stock">
+                    <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
+                    <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
+                      <Icon name="minus" size={16} />
+                    </button>
+                    {/* Ver BodyPage: el `key` va en el span interno para que la
+                        región viva no se desmonte y siga anunciando. */}
+                    <span className="wine-qty" aria-live="polite">
+                      <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
+                    </span>
+                    <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
+                      <Icon name="plus" size={16} />
+                    </button>
+                  </div>
 
-              <p className="wine-detail-actions__note">
-                El más y el menos corrigen tu stock. No marcan el vino como tomado.
-              </p>
+                  <p className="wine-detail-actions__note">
+                    El más y el menos corrigen tu stock. No marcan el vino como tomado.
+                  </p>
+                </>
+              )}
 
               {/* Los mismos chips que en la bodega: mismo texto, mismo color,
                   mismo comportamiento. La misma acción con dos caras obliga a
@@ -618,26 +655,18 @@ export default function WineDetailPage() {
               </div>
             </div>
 
-            {/* Qué hacer con la botella esta noche: temperatura, música y un
-                plato con receta. Va acá, pegado a "Abrí una botella", porque es
-                la continuación natural de esa decisión — y no cuesta nada
-                mostrarlo: sólo la receta llama al server, y sólo si la pedís.
+            {/* ── QUÉ ES ESTE VINO, ANTES QUE QUÉ HACER CON ÉL ────────────────
+                Pegado a la identidad y a las acciones, arriba de todo lo demás.
+                El resumen, las barras de cuerpo/acidez/tanino y los aromas son lo
+                que contesta "¿cómo es este vino?" — la pregunta de los primeros
+                cinco segundos, y la única razón por la que alguien vuelve a abrir
+                la ficha de una botella que ya conoce.
 
-                Se muestra siempre, también sin stock. Lo habíamos escondido con
-                cero botellas por prolijidad, pero el razonamiento estaba al
-                revés: el plan es de la noche, no del inventario. Una botella que
-                se terminó es una que vas a reponer, y saber qué cocinar con ella
-                es parte de decidirlo. Por lo mismo vive también en la ficha de
-                los vinos del catálogo, que ni siquiera tenés. */}
-            <WinePlan wine={wine} info={aiInfo} />
-
-            {/* ── EL PERFIL, ANTES QUE TODO LO DEMÁS ──────────────────────────
-                Subió cinco lugares (venía después de tu puntuación, tus notas y
-                tus datos de compra). Las barras de cuerpo, acidez y tanino y los
-                aromas son lo que contesta "¿cómo es este vino?", que es la
-                pregunta de los primeros cinco segundos; y son lo único de la
-                ficha que se compara entre dos botellas. Estaban debajo de tres
-                bloques que se leen una vez y no cambian nunca. */}
+                Venía DESPUÉS del plan de la noche: para leer de qué se trata el
+                vino había que pasar por encima de una tira de chips, una
+                temperatura, una playlist y un plato con receta. Es al revés —
+                primero qué es, después qué hacer con eso—, así que el plan bajó a
+                donde corresponde. */}
             <WineAbout
               loading={aiLoading}
               failed={aiFailed}
@@ -709,6 +738,23 @@ export default function WineDetailPage() {
                     dato dos veces. */}
               </div>
             )}
+
+            {/* ── QUÉ HACER CON ELLA: TEMPERATURA, MÚSICA Y UN PLATO ──────────
+                Bajó de segundo a acá, y el motivo es el orden de las preguntas.
+                El plan es la continuación de "voy a abrir esta botella", pero eso
+                pasa DESPUÉS de saber qué es el vino y qué opinás: arriba estaba
+                empujando la descripción —lo que más se lee— casi una pantalla
+                hacia abajo, con una tira de chips, una playlist y una receta.
+
+                Cierra lo tuyo y da paso a lo de afuera (opiniones, precio), que
+                es material de consulta. Sigue costando cero: la temperatura sale
+                de la ficha ya cargada y la playlist de una lista fija; sólo la
+                receta llama al server, y sólo si la pedís.
+
+                Se muestra siempre, también sin stock: el plan es de la noche, no
+                del inventario. Una botella que se terminó es una que vas a
+                reponer, y saber qué cocinar con ella es parte de decidirlo. */}
+            <WinePlan wine={wine} info={aiInfo} />
 
             {/* De acá para abajo, lo que no es tuyo. Material de consulta: se
                 mira cuando se busca, no cuando se abre la ficha.
@@ -1137,7 +1183,7 @@ export default function WineDetailPage() {
               onClick={() => setShowDeleteConfirm(true)}
             >
               <Icon name="trash" size={15} />
-              Eliminar de mi bodega
+              {noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
             </button>
           </div>
         )}
@@ -1159,14 +1205,19 @@ export default function WineDetailPage() {
            mismo borrar una botella que cargaste ayer que una sobre la que
            escribiste cuatro noches — y esa diferencia la sabe la app, no la
            persona que está por tocar Eliminar. */
+        /* De dónde se va: de la bodega si es tuyo, de tus probados si lo tomaste
+           afuera. Decirle "tu bodega" a un vino que nunca tuviste es justo lo
+           que hace dudar antes de confirmar. */
         message={
           moments.length > 0
-            ? `Se quita "${wineDisplayName(wine)}" de tu bodega. ${
+            ? `Se quita "${wineDisplayName(wine)}" de ${noEsTuyo ? "tus probados" : "tu bodega"}. ${
                 moments.length === 1
                   ? "El momento que escribiste queda"
                   : `Los ${moments.length} momentos que escribiste quedan`
               } en tu diario, y el vino sigue existiendo en el catálogo de Rincones.`
-            : `Se quita "${wineDisplayName(wine)}" de tu bodega. El vino sigue existiendo en el catálogo de Rincones.`
+            : `Se quita "${wineDisplayName(wine)}" de ${
+                noEsTuyo ? "tus probados" : "tu bodega"
+              }. El vino sigue existiendo en el catálogo de Rincones.`
         }
         confirmText="Eliminar"
         cancelText="Cancelar"

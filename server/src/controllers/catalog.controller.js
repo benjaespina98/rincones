@@ -274,26 +274,10 @@ const price = async (req, res, next) => {
   }
 };
 
-// POST /api/catalog/match - busca en el catálogo el vino que corresponde a una
-// lectura de etiqueta. Devuelve null si no hay una coincidencia confiable: es
-// preferible no completar campos a completarlos con otra botella.
-const match = async (req, res, next) => {
-  const t0 = process.hrtime.bigint();
-  try {
-    const data = await catalogService.findMatch({
-      winery: String(req.body.winery || ""),
-      line: String(req.body.line || ""),
-      name: String(req.body.name || ""),
-      varietal: String(req.body.varietal || ""),
-      vintage: String(req.body.vintage || ""),
-    });
-    const totalMs = Number(process.hrtime.bigint() - t0) / 1e6;
-    console.info(`[scan] match hit=${Boolean(data)} total=${totalMs.toFixed(1)}ms`);
-    return res.status(200).json({ data });
-  } catch (error) {
-    return next(error);
-  }
-};
+// El endpoint `match` se fue: el cruce contra el catálogo dejó de ser una
+// llamada aparte del navegador y ocurre dentro de la lectura de la etiqueta,
+// donde además se verifica el nombre. `catalogService.findMatch` sigue vivo y lo
+// usa ese camino; ver labels.controller.js.
 
 // GET /api/catalog/reviews?name=&winery= - reseñas públicas de un vino.
 const reviews = async (req, res, next) => {
@@ -379,4 +363,4 @@ const removeReview = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, recipe, pairing, featured, price, match, reviews, myReviews, publishReview, removeReview };
+module.exports = { search, describe, recipe, pairing, featured, price, reviews, myReviews, publishReview, removeReview };

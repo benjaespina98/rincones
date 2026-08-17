@@ -146,18 +146,8 @@ export const classifyDish = async (dish) => {
   return data?.data || null;
 };
 
-/**
- * Busca en el catálogo el vino que corresponde a una lectura de etiqueta.
- * Devuelve null si no hay coincidencia confiable — el server prefiere no
- * completar nada antes que completar con otra botella.
- */
-export const matchCatalogWine = async (reading) => {
-  const { data } = await api.post("/catalog/match", {
-    winery: reading.winery || "",
-    line: reading.line || "",
-    name: reading.properName || reading.name || "",
-    varietal: reading.varietal || "",
-    vintage: reading.vintage || "",
-  });
-  return data?.data || null;
-};
+// Acá vivía `matchCatalogWine`, que el escáner llamaba después de leer la
+// etiqueta para completar los huecos. Ya no existe de este lado: el cruce contra
+// el catálogo —y la verificación del nombre, que es lo que no se hacía— pasa
+// dentro de /labels/analyze, así que entre la foto y la revisión hay un solo
+// viaje de red en vez de dos.

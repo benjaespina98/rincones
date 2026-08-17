@@ -22,6 +22,20 @@ import "../styles/pages/SuggestionsPage.css";
 const FOOD_OPTIONS = Object.entries(FOOD_LABELS).map(([value, label]) => ({ value, label }));
 
 /**
+ * ── LOS ATAJOS SON ATAJOS, NO UN MENÚ ───────────────────────────────────────
+ *
+ * Las doce categorías estaban todas a la vista, en un rail que había que
+ * arrastrar para llegar al final. Eso invierte para qué está la pantalla: lo
+ * principal es escribir lo que vas a comer de verdad —"milanesas", "empanadas",
+ * "sushi"—, y los chips son el camino corto para los casos más frecuentes.
+ *
+ * Estos seis cubren casi todas las cenas; el resto sigue estando a un toque, y
+ * cualquier cosa que no esté en la lista se escribe (la tabla local resuelve al
+ * instante y el modelo cubre lo raro).
+ */
+const FOOD_DESTACADAS = ["asado", "carne", "pasta", "pizza", "pescado", "picada"];
+
+/**
  * Un solo texto para el mismo problema.
  *
  * Había dos: uno para "el modelo contestó pero no entendió el plato" y otro para
@@ -58,6 +72,8 @@ export default function SuggestionsPage() {
   const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
   const hasContext = Boolean(context.food);
+  // Los atajos que no son de todos los días, escondidos hasta que se piden.
+  const [verTodasLasComidas, setVerTodasLasComidas] = useState(false);
 
   // Sin contexto no mostramos nada de la bodega: el Sommelier sugiere solo
   // cuando elegís con qué vas a comer. Si entre las sugerencias hay vinos que
@@ -134,6 +150,7 @@ export default function SuggestionsPage() {
     setQuery("");
     applyContext({ food: context.food === value ? null : value });
   };
+
 
   /**
    * Lo que escribiste a mano.
@@ -248,10 +265,16 @@ export default function SuggestionsPage() {
 
         <div className="context-group">
           <span className="context-label">O elegí de acá</span>
-          {/* Una sola fila con scroll horizontal: diez chips en dos o tres
-              renglones son una pared, y acá son el camino corto, no el menú. */}
+          {/* Seis atajos, no doce. Las doce categorías obligaban a arrastrar el
+              rail para ver el final y hacían parecer que la lista ERA la forma
+              de usar la pantalla; lo principal es escribir el plato de verdad.
+              El resto sigue a un toque, y la que está elegida se muestra siempre
+              aunque no sea de las destacadas. */}
           <div className="chip-rail">
-            {FOOD_OPTIONS.map(({ value, label }) => (
+            {FOOD_OPTIONS.filter(
+              ({ value }) =>
+                verTodasLasComidas || FOOD_DESTACADAS.includes(value) || context.food === value
+            ).map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
@@ -261,6 +284,15 @@ export default function SuggestionsPage() {
                 {label}
               </button>
             ))}
+            {!verTodasLasComidas && (
+              <button
+                type="button"
+                className="context-chip context-chip--more"
+                onClick={() => setVerTodasLasComidas(true)}
+              >
+                Más…
+              </button>
+            )}
           </div>
         </div>
 
@@ -275,8 +307,11 @@ export default function SuggestionsPage() {
         {!hasContext && (
           <EmptyState
             icon="wine-glass"
-            title="Contame qué vas a comer"
-            hint="Escribilo arriba o elegí de la lista: te digo qué abrir de tu bodega, y qué buscar si todavía no lo tenés."
+            // No repite el subtítulo del encabezado, que está tres centímetros
+            // más arriba diciendo exactamente eso: acá se explica qué va a pasar
+            // después de contestar, que es lo que el encabezado no dice.
+            title="Elegí arriba y te armo la respuesta"
+            hint="Te digo qué abrir de lo que ya tenés, y qué buscar si todavía no lo tenés."
             compact
           />
         )}

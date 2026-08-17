@@ -9,10 +9,21 @@
 // extra (con imagen y código de barras) y se ordena por debajo.
 
 const { CATALOG, fold } = require("../data/argentineWines");
-const { identityKey, composeSearchName, canonicalGrape } = require("../data/wineIdentity");
-const { isAiSearchConfigured, searchWinesWithAi } = require("./wineAi.service");
+const {
+  identityKey,
+  composeSearchName,
+  composeDisplayName,
+  canonicalGrape,
+} = require("../data/wineIdentity");
+// Se requiere el MÓDULO y no sus funciones sueltas: las llamadas al modelo son
+// justo lo que hay que poder interceptar en un test sin salir a la red.
+const wineAi = require("./wineAi.service");
 const communityWines = require("./communityWines.service");
+// El criterio para decidir qué botella es una lectura. Módulo puro y aparte: es
+// la pieza más delicada del escaneo y tiene que poder probarse sin base ni red.
+const matching = require("../data/wineMatching");
 const CatalogSearch = require("../models/catalogSearch.model");
+const WineVerification = require("../models/wineVerification.model");
 const wineReviews = require("./wineReviews.service");
 
 const OFF_BASE = "https://world.openfoodfacts.org";
@@ -226,7 +237,7 @@ const searchWithAiCached = async (query) => {
 
   let results = [];
   try {
-    results = await searchWinesWithAi(query);
+    results = await wineAi.searchWinesWithAi(query);
   } catch {
     return [];
   }
@@ -387,7 +398,7 @@ const searchWines = async (query) => {
   }
 
   const [aiResults, offResult] = await Promise.all([
-    isAiSearchConfigured() ? searchWithAiCached(q) : Promise.resolve([]),
+    wineAi.isAiSearchConfigured() ? searchWithAiCached(q) : Promise.resolve([]),
     searchOpenFoodFacts(q).catch(() => null),
   ]);
 
@@ -459,56 +470,413 @@ const MATCH_THRESHOLD = 0.72;
  * curado y lo que cargó gente real. Los dos son locales, así que la revisión
  * ahora aparece apenas termina de leerse la etiqueta.
  */
-const findMatch = async ({ winery, line, name, varietal, vintage } = {}) => {
-  // Para BUSCAR sí queremos la uva: "Saint Felicien" a secas trae las cuatro
-  // uvas de la línea y el match tendría que desempatar a ciegas.
-  //
-  // Va la uva CANÓNICA y no la leída, por lo mismo que el veto de más abajo:
-  // buscar "Pispi Blend de tintas" exige que todos esos términos estén en el
-  // índice, y el catálogo curado dice "Blend" — así que la fila correcta ni
-  // siquiera entraba a la lista de candidatos.
-  const query =
+// Cómo se busca una lectura de etiqueta: con la uva adentro, porque "Saint
+// Felicien" a secas trae las cuatro uvas de la línea y el match tendría que
+// desempatar a ciegas.
+//
+// Va la uva CANÓNICA y no la leída, por lo mismo que el veto de `mejorCandidato`:
+// buscar "Pispi Blend de tintas" exige que todos esos términos estén en el
+// índice, y el catálogo curado dice "Blend" — así que la fila correcta ni
+// siquiera entraba a la lista de candidatos.
+const consultaDeLectura = ({ winery, line, name, varietal } = {}) =>
+  String(
     composeSearchName({ name, line, varietal: canonicalGrape(varietal || ""), winery }) ||
-    name ||
-    "";
-  if (String(query).trim().length < 2) return null;
+      name ||
+      ""
+  ).trim();
 
-  const [local, community] = await buscarLocal(query);
-  const results = dedupeAndRank([local, community]);
-  if (!results?.length) return null;
+/**
+ * De una lista de candidatos, el que de verdad es esta botella — o ninguno.
+ *
+ * Está separado del `findMatch` de abajo porque la misma decisión se toma dos
+ * veces sobre listas distintas: para ENRIQUECER una lectura (candidatos locales)
+ * y para VERIFICAR el nombre (donde la lista puede venir del modelo). Que el
+ * criterio sea uno solo es lo que evita que un vino se dé por bueno en un camino
+ * y por dudoso en el otro.
+ *
+ * La uva se compara en su forma canónica, no como la leyó el modelo.
+ *
+ * Es el caso Pispi otra vez, por otra puerta. La etiqueta se leyó como "Blend
+ * de tintas", que es correcto, y el catálogo curado lo tiene como "Blend": el
+ * veto los veía distintos y DESCARTABA la fila curada. El match caía entonces en
+ * la fila comunitaria, que existe pero tiene datos peores —región "Mendoza
+ * Argentina" en vez de "Valle de Uco, Mendoza"—, y esa región se escribía en el
+ * vino del usuario con confianza 75.
+ *
+ * O sea que una lectura MÁS detallada de la etiqueta daba un resultado PEOR.
+ */
+/**
+ * De una lista de candidatos, el que de verdad es esta botella — o ninguno.
+ *
+ * El criterio entero (pesos, vetos, umbrales) vive en data/wineMatching.js, que
+ * es un módulo puro y se prueba solo. Acá quedó el envoltorio que lo usa en los
+ * dos caminos que lo necesitan: identificar y verificar.
+ */
+const mejorCandidato = (results, lectura = {}) => {
+  const { best } = matching.identify(lectura, results || []);
+  return best;
+};
 
-  /**
-   * La uva se compara en su forma canónica, no como la leyó el modelo.
-   *
-   * Es el caso Pispi otra vez, por otra puerta. La etiqueta se leyó como "Blend
-   * de tintas", que es correcto, y el catálogo curado lo tiene como "Blend": el
-   * veto de abajo los veía distintos y DESCARTABA la fila curada. El match caía
-   * entonces en la fila comunitaria, que existe pero tiene datos peores —región
-   * "Mendoza Argentina" en vez de "Valle de Uco, Mendoza"—, y esa región se
-   * escribía en el vino del usuario con confianza 75.
-   *
-   * O sea que una lectura MÁS detallada de la etiqueta daba un resultado PEOR.
-   */
-  const uvaLeida = fold(canonicalGrape(varietal || ""));
+/**
+ * ── DE DÓNDE SALEN LOS CANDIDATOS ───────────────────────────────────────────
+ *
+ * Acá había UNA búsqueda, armada con el nombre y la uva. La bodega no entraba —
+ * `composeSearchName` sólo la usa cuando no hay nombre— y eso rompía el caso más
+ * común de todos: la etiqueta se leyó bien salvo la línea. Con "Zuccardi" y
+ * "Serie Q" (en vez de "Serie A") no se recuperaba NADA, teniendo la bodega
+ * perfecta y catorce vinos suyos en el catálogo. El matcher no podía elegir bien
+ * porque nunca veía la fila correcta.
+ *
+ * Ahora son tres consultas que se unen, todas locales y baratas:
+ *
+ *   1. la lectura completa — el caso feliz, y el más preciso;
+ *   2. SÓLO la bodega — trae su catálogo entero, que es la red de seguridad para
+ *      cualquier línea mal leída;
+ *   3. sólo el nombre — para cuando la bodega es la que salió mal.
+ *
+ * Recuperar de más no afloja nada: el que decide es el scoring, que ahora mira
+ * las cinco señales. Traer de menos, en cambio, es una identificación que jamás
+ * puede ocurrir.
+ */
+const MAX_CANDIDATOS = 80;
 
-  let best = null;
-  for (const cand of results) {
-    const uvaCand = fold(canonicalGrape(cand.varietal || ""));
-    // Vetos duros: mejor no enriquecer que enriquecer mal.
-    if (uvaLeida && uvaCand && uvaLeida !== uvaCand) continue;
-    if (winery && cand.winery && tokenOverlap(winery, cand.winery) === 0) continue;
+const candidatosParaLectura = async (lectura = {}) => {
+  const completa = consultaDeLectura(lectura);
+  const bodega = String(lectura.winery || "").trim();
+  const nucleo = matching.nucleoDe({ line: lectura.line, properName: lectura.name });
 
-    const wineryScore = winery && cand.winery ? tokenOverlap(winery, cand.winery) : 0.5;
-    const coreScore = tokenOverlap(line || name || query, cand.line || cand.name || "");
-    const varietalScore = uvaLeida && uvaCand ? (uvaLeida === uvaCand ? 1 : 0) : 0.5;
+  const consultas = [...new Set([completa, bodega, nucleo].map((q) => String(q || "").trim()))]
+    .filter((q) => q.length >= 3);
+  if (consultas.length === 0) return [];
 
-    const score = 0.45 * wineryScore + 0.35 * coreScore + 0.2 * varietalScore;
-    if (!best || score > best.score) best = { score, wine: cand };
+  const listas = await Promise.all(
+    consultas.map((q) =>
+      buscarLocal(q)
+        .then(([curados, comunidad]) => [...curados, ...comunidad])
+        .catch(() => [])
+    )
+  );
+
+  // Deduplicar por identidad y no por objeto: la misma fila llega por dos
+  // consultas distintas y contarla dos veces no la hace más probable.
+  const porClave = new Map();
+  for (const wine of listas.flat()) {
+    const { core, varietal, wineryToken } = identityKey(wine);
+    const clave = `${core}|${varietal}|${wineryToken}`;
+    if (!porClave.has(clave)) porClave.set(clave, wine);
   }
 
-  if (!best || best.score < MATCH_THRESHOLD) return null;
+  return [...porClave.values()].slice(0, MAX_CANDIDATOS);
+};
+
+/**
+ * Los vinos que YA tenés y se parecen a esta lectura.
+ *
+ * Es la señal que la app tenía y no usaba: si escaneás algo de una bodega que ya
+ * está en tu cava, lo más probable es que sea un vino que ya cargaste —se repite
+ * lo que gustó— y esa fila ya pasó por tus manos.
+ *
+ * Sólo entran los CONFIRMADOS (`verdict: "trusted"`), y ahí está toda la
+ * diferencia: tus vinos dudosos son, justamente, escaneos que quizá salieron mal.
+ * Usarlos para confirmar una lectura nueva sería repetir tu propio error con cara
+ * de certeza — el mismo motivo por el que una fila comunitaria de una sola
+ * persona no verifica nada.
+ */
+const misVinosParecidos = async (userId, lectura = {}) => {
+  if (!userId) return [];
+  const bodega = String(lectura.winery || "").trim();
+  const nucleo = matching.nucleoDe({ line: lectura.line, properName: lectura.name });
+  if (!bodega && !nucleo) return [];
+
+  const rx = (v) => new RegExp(escapeRegex(v), "i");
+  const condiciones = [];
+  if (bodega) condiciones.push({ winery: rx(bodega) });
+  if (nucleo) condiciones.push({ name: rx(nucleo) }, { line: rx(nucleo) });
+
+  try {
+    const Wine = require("../models/wine.model");
+    const mios = await Wine.find({
+      userId,
+      "identification.verdict": "trusted",
+      $or: condiciones,
+    })
+      .select("name line winery region varietal type image")
+      .limit(12)
+      .lean();
+
+    return mios.map((w) => ({
+      id: `mio-${w._id}`,
+      name: w.name || "",
+      line: w.line || "",
+      winery: w.winery || "",
+      region: w.region || "",
+      varietal: w.varietal || "",
+      type: w.type || "unknown",
+      image: w.image || "",
+      vintage: "",
+      source: "mis-vinos",
+    }));
+  } catch {
+    // Tu bodega es una señal extra, no un requisito: si falla, se identifica
+    // igual con el resto.
+    return [];
+  }
+};
+
+/**
+ * Identifica qué vino es esta lectura, mirando todo lo que sabemos.
+ *
+ * Devuelve el nivel de certeza (`alta` / `media` / `ninguna`), el candidato y —si
+ * la cosa estaba pareja— la alternativa, que es lo que le permite a la pantalla
+ * ofrecer "¿es este o este otro?" en vez de mandar a corregir a mano.
+ */
+const identifyReading = async (lectura = {}, { userId } = {}) => {
+  const [delCatalogo, mios] = await Promise.all([
+    candidatosParaLectura(lectura),
+    misVinosParecidos(userId, lectura),
+  ]);
+  const candidatos = [...mios, ...delCatalogo];
+  // El universo viaja con el resultado para que quien siga —la verificación del
+  // nombre— no tenga que volver a buscarlo. Es el camino crítico del escaneo:
+  // tres consultas de más por foto no se justifican para responder sobre la
+  // misma lista de vinos.
+  return { ...matching.identify(lectura, candidatos), candidatos };
+};
+
+/**
+ * El match que se usa para COMPLETAR datos sin preguntar.
+ *
+ * Exige identificación alta y no le alcanza con "probablemente sea éste": lo que
+ * sale de acá se escribe en el vino de una persona sin que nadie lo confirme.
+ * Con una identificación media hay algo mejor que rellenar a ciegas —mostrar el
+ * candidato y preguntar—, y de eso se encarga la pantalla de revisión.
+ */
+const findMatch = async (lectura = {}, opciones = {}) => {
+  const { level, best } = await identifyReading(lectura, opciones);
+  if (!best || level !== "alta") return null;
+
   // La cosecha nunca se adopta del catálogo: es propia de la botella.
-  return { ...best.wine, vintage: vintage || best.wine.vintage || "", matchScore: Number(best.score.toFixed(2)) };
+  return {
+    ...best.wine,
+    vintage: lectura.vintage || best.wine.vintage || "",
+    matchScore: Number(best.score.toFixed(2)),
+  };
+};
+
+// --- Verificación: ¿este vino existe, y cómo se llama exactamente? ---
+
+/**
+ * ── POR QUÉ NO ALCANZA CON LA CONFIANZA DEL MODELO ──────────────────────────
+ * La visión devuelve un nombre y se puntúa a sí misma: "95, lo leí nítido". Pero
+ * leer bien no es lo mismo que acertar. El modelo lee lo que está impreso más
+ * grande y lo declara nombre del vino, y ahí es donde se equivoca: se come una
+ * palabra de la línea, junta el nombre con la denominación, o transcribe algo
+ * que no es cómo se llama la botella. Nada de eso baja la confianza, porque el
+ * modelo no tiene con qué contrastarlo — está mirando una foto, no un catálogo.
+ *
+ * Esto es ese contraste. El nombre leído se cruza contra fuentes que existen
+ * fuera de la foto, y de ahí salen tres respuestas posibles:
+ *
+ *   "confirmado" → una fuente real tiene este vino con este nombre.
+ *   "corregido"  → lo tiene, pero se llama distinto: mandamos el nombre exacto.
+ *   "sin-verificar" → nadie lo respalda. No es que esté mal; es que no lo
+ *                  podemos dar por bueno solos, y quien decide es la persona
+ *                  que tiene la botella en la mano.
+ *
+ * ── QUÉ VALE COMO FUENTE ────────────────────────────────────────────────────
+ * El catálogo curado y lo comunitario YA VERIFICADO (dos personas distintas que
+ * cargaron lo mismo por su cuenta), más el modelo consultado por TEXTO, que es
+ * una pregunta distinta de la que se le hizo a la foto y se responde con lo que
+ * sabe del mercado, no con lo que cree ver.
+ *
+ * Lo comunitario de una sola persona queda AFUERA a propósito, y es la parte que
+ * importa: esa fila puede ser exactamente el mismo escaneo mal leído de la
+ * semana pasada —incluso de la misma persona—. Confirmar una lectura con su
+ * propia copia no es verificar nada, es repetirse.
+ */
+const FUENTES_VERIFICABLES = new Set(["catalogo-ar", "comunidad-verificada", "gemini"]);
+
+/** El nombre exacto de una fila, sea del catálogo, de la comunidad o del modelo. */
+const nombreDeFila = (wine = {}) =>
+  String(wine.line || wine.properName || wine.name || "").trim();
+
+/**
+ * ── CORREGIR NO ES SUGERIR ──────────────────────────────────────────────────
+ *
+ * Reescribir el nombre de la botella que alguien tiene en la mano es la
+ * afirmación más fuerte que hace el escaneo, y hasta acá se hacía con el mismo
+ * umbral que completar una región vacía. Un candidato "probable" alcanzaba para
+ * cambiarle el nombre al vino, en silencio.
+ *
+ * Ahora hay tres respuestas y cada una pide su nivel de certeza:
+ *
+ *   confirmado → la fuente dice el mismo nombre que se leyó. No cambia nada.
+ *   corregido  → la fuente dice otro nombre Y la identificación es ALTA (puntaje
+ *                alto, sin empate, y con el nombre coincidiendo al menos en
+ *                parte). Recién ahí se reescribe.
+ *   sugerido   → hay un candidato razonable pero no es para darlo por hecho. NO
+ *                se toca ningún dato: se muestra y se pregunta, que es un toque
+ *                para quien está mirando la etiqueta.
+ */
+const resolverVerificacion = (lectura, best, level = "alta") => {
+  const wine = best.wine;
+  const leido = composeDisplayName({ name: lectura.name, line: lectura.line });
+  const oficial = nombreDeFila(wine);
+  const coincide = !oficial || fold(oficial) === fold(leido);
+
+  return {
+    status: coincide ? "confirmado" : level === "alta" ? "corregido" : "sugerido",
+    source: wine.source || "",
+    name: oficial || leido,
+    wine,
+    score: Number(best.score.toFixed(2)),
+    // Los campos que la fuente contradice. Sólo los devuelve el modelo, que es a
+    // quien se le puede preguntar eso; el catálogo aporta filas, no opiniones.
+    mismatches: [],
+  };
+};
+
+const SIN_VERIFICAR = { status: "sin-verificar", source: "", name: "", wine: null, mismatches: [] };
+
+// Qué tan seguro tiene que estar el modelo para que su respuesta cuente. Por
+// debajo de esto contestó "puede ser", y "puede ser" no verifica nada.
+const CONFIANZA_MINIMA_DEL_MODELO = 70;
+const VERIFY_CACHE_DAYS = 30;
+
+/**
+ * La identidad LEÍDA, como clave de caché.
+ *
+ * No es la clave de identidad de la app (`identityKey`) a propósito: acá lo que
+ * se cachea es la pregunta, y la pregunta es exactamente lo que se leyó, errores
+ * incluidos. Dos lecturas distintas de la misma botella son dos preguntas
+ * distintas y tienen que poder dar respuestas distintas — una puede traer el
+ * nombre roto y la otra no.
+ */
+const claveDeVerificacion = (lectura = {}) =>
+  [lectura.winery, lectura.line || lectura.name, lectura.varietal].map((v) => fold(v || "")).join("|");
+
+/**
+ * Le pregunta al modelo si este vino existe, con caché de 30 días.
+ *
+ * Nunca lanza. Un fallo de red NO se cachea: si se guardara como "no existe",
+ * un timeout dejaría a ese vino sin verificar por un mes.
+ */
+const verificarConModelo = async (lectura) => {
+  const key = claveDeVerificacion(lectura);
+
+  try {
+    const cached = await WineVerification.findOne({ key }).lean();
+    if (cached) return cached.found ? cached.wine : null;
+  } catch {
+    // Sin caché seguimos: el peor caso es pagar la consulta.
+  }
+
+  let wine = null;
+  try {
+    wine = await wineAi.verifyWineWithAi(lectura);
+  } catch {
+    // La API falló. Se devuelve "no verificado" sin escribir nada.
+    return null;
+  }
+
+  // Una respuesta insegura vale lo mismo que ninguna, y se cachea como ninguna:
+  // volver a preguntar lo mismo va a dar lo mismo.
+  const util = wine && wine.confidence >= CONFIANZA_MINIMA_DEL_MODELO ? wine : null;
+
+  try {
+    await WineVerification.updateOne(
+      { key },
+      {
+        $set: {
+          key,
+          found: Boolean(util),
+          wine: util,
+          expiresAt: new Date(Date.now() + VERIFY_CACHE_DAYS * 24 * 60 * 60 * 1000),
+        },
+      },
+      { upsert: true }
+    );
+  } catch {
+    // La caché es una optimización, no un requisito.
+  }
+
+  return util;
+};
+
+/**
+ * Verifica una lectura de etiqueta contra una fuente real de vinos.
+ *
+ * Nunca lanza: si las fuentes fallan, la respuesta es "sin-verificar", que es la
+ * verdad —no pudimos confirmarlo— y deja el escaneo funcionando igual.
+ *
+ * El escalón del modelo sólo corre cuando lo local no encontró nada, y pasa por
+ * el MISMO caché de 30 días que la búsqueda por texto: un vino que ya se buscó
+ * (o que ya se escaneó) se verifica sin gastar una llamada.
+ */
+const verifyReading = async (lectura = {}, { candidatos = null } = {}) => {
+  const query = consultaDeLectura(lectura);
+  // Con dos letras no hay nada que verificar: se confirmaría cualquier cosa.
+  if (query.length < 3) return SIN_VERIFICAR;
+
+  /**
+   * Los candidatos pueden venir dados por quien ya los buscó.
+   *
+   * Identificar y verificar son dos preguntas distintas —qué botella es, y quién
+   * respalda ese nombre— pero se responden sobre la MISMA lista. El escaneo las
+   * hace las dos, una atrás de la otra: recibirla hecha ahorra repetir tres
+   * consultas en el camino crítico, y de paso garantiza que las dos respuestas
+   * hablen del mismo conjunto de vinos.
+   */
+  const universo = candidatos || (await candidatosParaLectura(lectura));
+  const verificables = universo.filter((w) => FUENTES_VERIFICABLES.has(w.source));
+  const identificado = matching.identify(lectura, verificables);
+  const local = identificado.best;
+
+  /**
+   * ── CUÁNDO SE LE PREGUNTA AL MODELO ────────────────────────────────────────
+   * Cuando lo local no CONFIRMÓ la identidad tal como se leyó. O sea: siempre,
+   * salvo que una fuente congelada y auditable ya haya dicho "sí, este vino
+   * existe y se llama exactamente así" — ahí una segunda opinión no agrega nada
+   * y cuesta una llamada y un par de segundos en el peor momento posible.
+   *
+   * Si el catálogo CORRIGIÓ el nombre, sí se pregunta: corregir es afirmar algo
+   * más fuerte que confirmar (estamos cambiando lo que dice la etiqueta que la
+   * persona tiene en la mano) y conviene que dos fuentes coincidan antes.
+   */
+  const veredictoLocal = local ? resolverVerificacion(lectura, local, identificado.level) : null;
+  if (veredictoLocal?.status === "confirmado") return veredictoLocal;
+
+  if (wineAi.isAiSearchConfigured()) {
+    const delModelo = await verificarConModelo(lectura);
+    // El match se corre igual sobre la respuesta del modelo: contestó sobre ESTA
+    // lectura, pero puede haber entendido otra botella —otra bodega, otra uva—, y
+    // los vetos duros son los mismos para todas las fuentes.
+    const porModelo = delModelo ? matching.identify(lectura, [delModelo]) : null;
+
+    if (porModelo?.best) {
+      const veredicto = resolverVerificacion(lectura, porModelo.best, porModelo.level);
+
+      // Las dos fuentes dicen el mismo nombre: manda el catálogo, que es el que
+      // se puede leer y corregir. Coincidir no lo hace más cierto, pero sí saca
+      // la duda de encima de una corrección — que es cambiarle el nombre a la
+      // botella que la persona tiene en la mano. Y una corrección respaldada por
+      // dos fuentes deja de ser una sugerencia.
+      if (veredictoLocal && fold(veredictoLocal.name) === fold(veredicto.name)) {
+        return {
+          ...veredictoLocal,
+          status: veredictoLocal.status === "sugerido" ? "corregido" : veredictoLocal.status,
+          mismatches: delModelo.mismatches || [],
+        };
+      }
+
+      return { ...veredicto, mismatches: delModelo.mismatches || [] };
+    }
+  }
+
+  // El modelo no supo o no coincidió: queda lo que haya dicho lo local, que
+  // puede ser una corrección del catálogo (fuente auditable, alcanza sola), una
+  // sugerencia para confirmar, o nada.
+  return veredictoLocal || SIN_VERIFICAR;
 };
 
 // Set de claves canónicas del catálogo curado, para saber si un vino ya está
@@ -528,4 +896,14 @@ const isCuratedWine = (wine) => {
   return curatedKeys.has(`${core}|${varietal}|${wineryToken}`);
 };
 
-module.exports = { searchWines, searchCatalog, guessType, getCatalogPool, isCuratedWine, findMatch };
+module.exports = {
+  searchWines,
+  searchCatalog,
+  guessType,
+  getCatalogPool,
+  isCuratedWine,
+  findMatch,
+  identifyReading,
+  candidatosParaLectura,
+  verifyReading,
+};

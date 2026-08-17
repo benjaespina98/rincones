@@ -59,13 +59,98 @@
   color: var(--text-secondary);
 }
 
-.scan-review__matched {
+/* ── "¿Es este vino?" ───────────────────────────────────────────────────────
+   La pregunta cuando la app tiene un candidato pero no certeza. Va arriba de
+   todo y con peso propio —no es un aviso al pie— porque contestarla resuelve la
+   pantalla entera: un toque completa bodega, uva, región y tipo.
+
+   El nombre del candidato es lo más grande del bloque: es LO que se está
+   preguntando, y quien tiene la botella en la mano contesta mirándolo a él. */
+.scan-review__suggestion {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+}
+
+.scan-review__suggestion-q {
+  margin: 0;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.scan-review__suggestion-name {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.scan-review__suggestion-meta {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.scan-review__suggestion-actions {
   display: flex;
-  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.scan-review__suggestion-actions button {
+  flex: 1;
+}
+
+/* ── De dónde sale la confianza en el nombre ────────────────────────────────
+   Tres estados, tres pesos. Acá había una sola línea ("Completamos algunos datos
+   desde el catálogo") que hablaba del relleno de campos vacíos y nunca del
+   nombre, que es el dato que importa. Los tres comparten forma y se distinguen
+   por color e ícono: confirmado se lee al pasar, corregido y sin verificar
+   piden que mires. */
+.scan-review__verified,
+.scan-review__corrected,
+.scan-review__unverified {
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
   margin: 0;
   font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.scan-review__verified {
+  align-items: center;
   color: var(--accent-soft);
+}
+
+.scan-review__corrected {
+  color: var(--text-secondary);
+}
+
+.scan-review__corrected strong {
+  color: var(--text);
+}
+
+/* El único de los tres que es una advertencia: puede que este vino no se llame
+   así. No bloquea nada —hay vinos chicos que no están en ningún catálogo— pero
+   tampoco se disfraza de dato confirmado. */
+.scan-review__unverified {
+  color: var(--gold-soft);
+}
+
+.scan-review__verified svg,
+.scan-review__corrected svg,
+.scan-review__unverified svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 /* Datos leídos con seguridad: sólo se muestran, no se preguntan. */

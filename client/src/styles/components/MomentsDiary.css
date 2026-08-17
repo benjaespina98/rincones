@@ -157,6 +157,16 @@
   overflow: hidden;
 }
 
+/* La invitación cuando todavía no escribiste ninguno. Es prosa y no una lista
+   de features: lo que se está ofreciendo es acordarse de una noche, no usar una
+   función. */
+.diary__invite {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
 .diary__more {
   align-self: flex-start;
   min-height: 40px;

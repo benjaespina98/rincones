@@ -79,8 +79,6 @@ export default function BodegaFilters({
   vintageFilter,
   setVintageFilter,
   vintageOptions,
-  viewMode,
-  setViewMode,
   hayFiltros,
   onLimpiar,
 }) {
@@ -243,27 +241,16 @@ export default function BodegaFilters({
               </section>
             )}
 
-            <section className="bfilters__group">
-              <span className="bfilters__label">Ver como</span>
-              <div className="bfilters__chips">
-                <button
-                  type="button"
-                  className={`bfilters__chip ${viewMode === "list" ? "is-active" : ""}`}
-                  aria-pressed={viewMode === "list"}
-                  onClick={() => setViewMode("list")}
-                >
-                  <Icon name="list" size={14} /> Lista
-                </button>
-                <button
-                  type="button"
-                  className={`bfilters__chip ${viewMode === "grid" ? "is-active" : ""}`}
-                  aria-pressed={viewMode === "grid"}
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Icon name="grid" size={14} /> Grilla
-                </button>
-              </div>
-            </section>
+            {/* ── LISTA / GRILLA SE FUE DE ACÁ ───────────────────────────────
+                Estaba al fondo de este panel, después de siete filtros. Pero no
+                es un filtro: no recorta nada, no cambia qué vinos ves, y se toca
+                mucho más seguido que cualquier faceta —es "quiero ver las
+                etiquetas" contra "quiero leer los nombres"—. Enterrado acá
+                costaba tres toques (abrir, bajar, elegir) y otro para cerrar.
+
+                Ahora vive en la barra de arriba, al lado del buscador, donde se
+                ve el estado actual sin abrir nada. Ver `.bodega-modo` en
+                BodyPage.jsx. */}
           </div>
 
           <div className="settings-sheet__footer">

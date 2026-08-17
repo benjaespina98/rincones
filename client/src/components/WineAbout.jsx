@@ -111,11 +111,11 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
               comparte renglón con ellos— así que esconderlo no ahorraba nada.
 
               La temperatura NO se suma acá, aunque sea la otra mitad de la
-              pregunta: la dice el Plan, que en esta misma pantalla va MÁS
-              ARRIBA que esta sección. Repetirla dos bloques después sería
-              exactamente la clase de duplicación que se está sacando del
-              resto de la app. Y allá se dice mejor: "Servila a 16-18 °C" es
-              una instrucción, y viene con el aireado cuando el vino lo pide. */}
+              pregunta: la dice el Plan, más abajo en esta misma pantalla.
+              Repetirla sería exactamente la clase de duplicación que se está
+              sacando del resto de la app, y allá se dice mejor: "Servila a
+              16-18 °C" es una instrucción, y viene con el aireado cuando el
+              vino lo pide. */}
           {info.alcohol && (
             <div className="wine-about__facts">
               <span className="wine-about__fact">
