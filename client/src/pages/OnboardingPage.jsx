@@ -85,7 +85,10 @@ export default function OnboardingPage() {
             <span className="onb__mark"><Logo size={34} /></span>
             {/* Sin género: es el título más visible de la app y le ponía sexo a
                 quien lo estaba leyendo. Ver la nota en LoginPage. */}
-            <h1 className="onb__title">Te damos la bienvenida a Rincones 🍷</h1>
+            {/* El emoji va pegado al nombre con un espacio duro: en un teléfono
+                el título entra en dos líneas y la copa quedaba sola en la
+                segunda, como si se hubiera caído del renglón. */}
+            <h1 className="onb__title">Te damos la bienvenida a Rincones&nbsp;🍷</h1>
             <p className="onb__sub">Para arrancar, ¿qué estilos de vino te gustan más?</p>
 
             <div className="onb__grid">

@@ -5,6 +5,17 @@
   padding: 8px 16px 32px;
 }
 
+/* Desktop: una columna con tope, igual que el perfil y el Sommelier. Sin esto,
+   el segmentado de dos opciones —"Todos" y "Favoritos"— se estiraba a 1200px de
+   ancho para dos palabras. */
+@media (min-width: 768px) {
+  .guardados-page {
+    max-width: 820px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
 .guardados-header h1 {
   margin: 0;
   font-family: var(--font-family-serif);

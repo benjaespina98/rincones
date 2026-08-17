@@ -303,6 +303,17 @@
   line-height: 1.35;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
+  /* La uva y la cosecha son UN dato ("Chardonnay · 2022") y se cortaban entre
+     la palabra y el año cuando el chip de tipo era largo —"Espumante"—,
+     dejando el año colgado en un renglón propio. Que se corte el renglón entero
+     antes que partir el par: se ve en la fila de un espumante en un teléfono. */
+  text-wrap: balance;
+}
+
+/* El tipo no se separa de lo que le sigue por un pixel de más: si no entra,
+   entra completo en la línea de abajo. */
+.wine-row__type {
+  white-space: nowrap;
 }
 
 /* La bodega, en su propio renglón y un punto más apagada: es contexto, no

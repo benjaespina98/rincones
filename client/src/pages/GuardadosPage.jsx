@@ -108,14 +108,26 @@ export default function GuardadosPage() {
       {!loading && !error && visible.length === 0 && (
         <EmptyState
           icon="heart"
-          title={filter === "favorites" ? "Todavía no marcaste favoritos" : "Sin vinos guardados"}
+          // "Sin vinos guardados" es un diagnóstico; esto es para qué sirve la
+          // pantalla. Mismo criterio que el vacío de Mi Bodega.
+          title={
+            filter === "favorites"
+              ? "Todavía no marcaste favoritos"
+              : "Tu lista de pendientes está esperando"
+          }
           hint={
             filter === "favorites"
               ? "Tocá el corazón de un vino guardado para tenerlo a mano acá."
-              : "Buscá o descubrí vinos y tocá “Quiero probar” para guardarlos acá."
+              : "Los vinos que querés probar, anotados: cuando veas uno en Descubrí o en el Sommelier, tocá “Quiero probar” y aparece acá."
           }
           actionLabel={filter === "favorites" ? undefined : "Descubrir vinos"}
           onAction={filter === "favorites" ? undefined : () => navigate("/")}
+          // La otra puerta: quien ya tiene la botella en la mano no viene a
+          // anotarla, viene a cargarla.
+          secondaryLabel={filter === "favorites" ? "Ver todos los guardados" : "Ya tengo uno: escanearlo"}
+          onSecondary={
+            filter === "favorites" ? () => setFilter("all") : () => navigate("/agregar")
+          }
         />
       )}
 

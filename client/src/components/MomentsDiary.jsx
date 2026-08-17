@@ -24,6 +24,50 @@ import "../styles/components/MomentsDiary.css";
 
 const MAX_VISIBLES = 6;
 
+/** Desde cuántos momentos vale la pena sacar conclusiones. */
+const MINIMO_PARA_RESUMIR = 3;
+
+/**
+ * Las tres preguntas que uno le hace a un diario, contestadas con lo que ya está
+ * en pantalla: cuántas noches van este año, cuál es el vino que más repetiste y
+ * con quién solés tomar.
+ *
+ * Sale de los momentos ya cargados, así que no cuesta ninguna consulta. Cada
+ * dato aparece SÓLO si es cierto: sin compañías anotadas no se inventa una, y un
+ * vino que aparece una sola vez no es "el que más repetís".
+ */
+const resumirMomentos = (moments) => {
+  if (moments.length < MINIMO_PARA_RESUMIR) return "";
+
+  const añoActual = new Date().getFullYear();
+  const esteAño = moments.filter(
+    (m) => new Date(m.consumedAt).getFullYear() === añoActual
+  ).length;
+
+  const masFrecuente = (valores) => {
+    const cuenta = new Map();
+    for (const v of valores.filter(Boolean)) cuenta.set(v, (cuenta.get(v) || 0) + 1);
+    let top = null;
+    for (const [valor, n] of cuenta) if (!top || n > top.n) top = { valor, n };
+    return top && top.n > 1 ? top : null;
+  };
+
+  const vino = masFrecuente(moments.map((m) => m.wine?.name || m.wineSnapshot?.name));
+  const compañía = masFrecuente(moments.map((m) => (m.companions || "").trim()));
+
+  const partes = [
+    esteAño > 0 &&
+      `${esteAño} ${esteAño === 1 ? "noche anotada" : "noches anotadas"} en ${añoActual}`,
+    vino && `el que más repetiste es ${vino.valor}`,
+    compañía && `casi siempre con ${compañía.valor}`,
+  ].filter(Boolean);
+
+  if (partes.length === 0) return "";
+  // Mayúscula al principio y punto al final: es una frase, no una lista de datos.
+  const frase = partes.join(" · ");
+  return frase.charAt(0).toUpperCase() + frase.slice(1) + ".";
+};
+
 const fecha = (d) =>
   d
     ? new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })
@@ -93,6 +137,7 @@ export default function MomentsDiary({ probados = 0 }) {
   }
 
   const visibles = verTodos ? moments : moments.slice(0, MAX_VISIBLES);
+  const resumen = resumirMomentos(moments);
 
   return (
     <section className="diary" aria-label="Tu diario de momentos">
@@ -112,6 +157,22 @@ export default function MomentsDiary({ probados = 0 }) {
 
       {failed && !loading && (
         <ErrorState title="No se pudo cargar tu diario" onRetry={load} compact />
+      )}
+
+      {!loading && !failed && resumen && (
+        /**
+         * ── UNA LECTURA DE CONJUNTO, NO SÓLO LA PILA ──────────────────────────
+         *
+         * El diario era una lista cronológica y nada más: para saber "¿cuánto
+         * tomé este año?" o "¿con quién?" había que contar a ojo, que es
+         * exactamente lo que una lista no puede contestar. Estas tres frases
+         * salen de los momentos que YA están cargados —no hay una consulta más—
+         * y son las tres preguntas que uno le hace a un diario cuando lo abre.
+         *
+         * Se muestran recién con tres momentos: con uno o dos, "tu ocasión más
+         * frecuente" describe una casualidad, no una costumbre.
+         */
+        <p className="diary__resumen">{resumen}</p>
       )}
 
       {!loading && !failed && (

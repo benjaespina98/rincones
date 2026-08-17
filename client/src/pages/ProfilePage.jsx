@@ -196,24 +196,47 @@ export default function ProfilePage() {
         );
       })()}
 
+      {/* ── TRES NÚMEROS QUE AHORA DICEN ALGO ──────────────────────────────
+          Eran "Vinos 8 · Probados 4 · Rating 4.2": ciertos y mudos. Un número
+          sin referencia no se puede leer —¿8 es mucho?, ¿4.2 sobre qué?— y los
+          tres datos que lo vuelven legible ya venían en la misma respuesta y no
+          los miraba nadie: las BOTELLAS (que no son lo mismo que los vinos: ocho
+          etiquetas pueden ser quince botellas), qué PARTE de tu colección
+          probaste, y que el promedio sale sólo de lo que puntuaste. */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
             {statsLoading ? "" : wineStats?.totals?.total || 0}
           </div>
           <div className="label">Vinos</div>
+          {!statsLoading && (wineStats?.totals?.bottles || 0) > 0 && (
+            <div className="stat-card__hint">
+              {wineStats.totals.bottles === 1
+                ? "1 botella"
+                : `${wineStats.totals.bottles} botellas`}
+            </div>
+          )}
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
             {statsLoading ? "" : wineStats?.totals?.consumed || 0}
           </div>
           <div className="label">Probados</div>
+          {!statsLoading && (wineStats?.totals?.total || 0) > 0 && (
+            <div className="stat-card__hint">
+              {Math.round(((wineStats.totals.consumed || 0) / wineStats.totals.total) * 100)}% de tu
+              colección
+            </div>
+          )}
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
             {statsLoading ? "" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "—"}
           </div>
-          <div className="label">Rating</div>
+          <div className="label">Puntuación</div>
+          {!statsLoading && wineStats?.avgRating > 0 && (
+            <div className="stat-card__hint">promedio de lo que puntuaste</div>
+          )}
         </div>
       </div>
 

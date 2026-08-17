@@ -266,6 +266,11 @@ const musicItems = (now) =>
     type: "playlist",
     title: p.name,
     summary: p.mood,
+    // Para qué mesa es. Es lo que convierte dos links a Spotify en parte de una
+    // app de vino: la música sola no dice nada, pegada a un momento sí. Sale de
+    // la misma hora y el mismo día que ya eligieron la playlist (ver
+    // data/playlists.js), así que no afirma nada que no estemos suponiendo ya.
+    badge: p.momento || "",
     source: { name: "Spotify", url: playlistUrl(p) },
   }));
 

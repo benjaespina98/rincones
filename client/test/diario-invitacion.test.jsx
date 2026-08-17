@@ -65,3 +65,57 @@ describe("el diario sin momentos", () => {
     await waitFor(() => expect(screen.getByText(/sólo vos/i)).toBeTruthy());
   });
 });
+
+/**
+ * La lectura de conjunto que va arriba de la lista. Sale de los momentos ya
+ * cargados —no cuesta una consulta— y contesta lo que una pila cronológica no
+ * puede: cuántas noches van, cuál repetís y con quién.
+ */
+const momento = (props) => ({
+  _id: Math.random().toString(36),
+  consumedAt: "2026-07-01",
+  wine: { _id: "w1", name: "Saint Felicien", type: "red" },
+  enBodega: true,
+  companions: "",
+  ...props,
+});
+
+describe("el resumen del diario", () => {
+  it("con menos de tres momentos no saca conclusiones", async () => {
+    getAllMoments.mockResolvedValue([momento({}), momento({})]);
+    const { container } = montar({ probados: 4 });
+
+    await waitFor(() => expect(container.querySelector(".diary__list")).toBeTruthy());
+    expect(container.querySelector(".diary__resumen")).toBeNull();
+  });
+
+  it("cuenta las noches del año, el vino que más repetiste y con quién", async () => {
+    getAllMoments.mockResolvedValue([
+      momento({ companions: "Sofi" }),
+      momento({ companions: "Sofi" }),
+      momento({ wine: { _id: "w2", name: "Pispi", type: "red" }, companions: "" }),
+    ]);
+    montar({ probados: 4 });
+
+    await waitFor(() =>
+      expect(screen.getByText(/3 noches anotadas en 2026/i)).toBeTruthy()
+    );
+    expect(screen.getByText(/el que más repetiste es Saint Felicien/i)).toBeTruthy();
+    expect(screen.getByText(/casi siempre con Sofi/i)).toBeTruthy();
+  });
+
+  it("no inventa una costumbre con un solo caso", async () => {
+    // Tres vinos distintos y tres compañías distintas: no hay nada que repetir,
+    // así que sólo queda la cuenta de noches.
+    getAllMoments.mockResolvedValue([
+      momento({ wine: { _id: "a", name: "Uno" }, companions: "Ana" }),
+      momento({ wine: { _id: "b", name: "Dos" }, companions: "Beto" }),
+      momento({ wine: { _id: "c", name: "Tres" }, companions: "Cami" }),
+    ]);
+    montar({ probados: 4 });
+
+    await waitFor(() => expect(screen.getByText(/3 noches anotadas/i)).toBeTruthy());
+    expect(screen.queryByText(/el que más repetiste/i)).toBeNull();
+    expect(screen.queryByText(/casi siempre con/i)).toBeNull();
+  });
+});

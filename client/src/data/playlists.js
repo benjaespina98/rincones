@@ -164,6 +164,23 @@ export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${pl
  * playlists oficiales verificadas de arriba, así que no hay ningún link nuevo
  * que se pueda romper.
  */
+/**
+ * ── PARA QUÉ MOMENTO ES CADA UNA ────────────────────────────────────────────
+ *
+ * La sección de música de Descubrí mostraba nombre y descripción —"Soft Rock ·
+ * los temas que todos se saben, para la parrilla"— y nada que dijera CUÁNDO
+ * ponerla. Sin eso son dos links a Spotify en una app de vino: la música sólo
+ * significa algo pegada a una mesa.
+ *
+ * El momento sale de la misma decisión que ya elige la playlist (la hora y el
+ * día), así que no se inventa nada: si a las nueve de la noche de un sábado
+ * suena Viva Latino es porque estamos suponiendo una juntada, y eso es
+ * exactamente lo que conviene decir en voz alta. Son los mismos planes que los
+ * chips de la ficha (`NIGHT_PLANS`), para que la app nombre los momentos de una
+ * sola manera.
+ */
+const con = (playlist, momento) => ({ ...playlist, momento });
+
 export const suggestedPlaylists = (
   hour = new Date().getHours(),
   weekday = new Date().getDay()
@@ -171,22 +188,28 @@ export const suggestedPlaylists = (
   const finde = [5, 6, 0].includes(weekday);
 
   // Madrugada: cualquiera que siga despierto no quiere Viva Latino.
-  if (hour < 7) return [PLAYLISTS.peacefulPiano, PLAYLISTS.jazzVibes];
+  if (hour < 7) {
+    return [con(PLAYLISTS.peacefulPiano, "Tranqui, solo"), con(PLAYLISTS.jazzVibes, "Copas y charla")];
+  }
 
-  if (hour < 12) return [PLAYLISTS.afternoonAcoustic, PLAYLISTS.chillHits];
+  if (hour < 12) {
+    return [con(PLAYLISTS.afternoonAcoustic, "Tranqui, solo"), con(PLAYLISTS.chillHits, "En familia")];
+  }
 
   // Mediodía y primera tarde: mesa, sobremesa, luz.
   if (hour < 17) {
     return finde
-      ? [PLAYLISTS.softRock, PLAYLISTS.afternoonAcoustic]
-      : [PLAYLISTS.afternoonAcoustic, PLAYLISTS.jazzVibes];
+      ? [con(PLAYLISTS.softRock, "Asado"), con(PLAYLISTS.afternoonAcoustic, "En familia")]
+      : [con(PLAYLISTS.afternoonAcoustic, "Tranqui, solo"), con(PLAYLISTS.jazzVibes, "Copas y charla")];
   }
 
   // Tardecita: la hora en que se descorcha sin ser todavía de noche.
-  if (hour < 20) return [PLAYLISTS.chillHits, PLAYLISTS.afternoonAcoustic];
+  if (hour < 20) {
+    return [con(PLAYLISTS.chillHits, "Copas y charla"), con(PLAYLISTS.afternoonAcoustic, "Tranqui, solo")];
+  }
 
   // Noche. El finde levanta el volumen; un miércoles, no.
   return finde
-    ? [PLAYLISTS.vivaLatino, PLAYLISTS.jazzClassics]
-    : [PLAYLISTS.jazzVibes, PLAYLISTS.peacefulPiano];
+    ? [con(PLAYLISTS.vivaLatino, "Con amigos"), con(PLAYLISTS.jazzClassics, "Cena de a dos")]
+    : [con(PLAYLISTS.jazzVibes, "Cena de a dos"), con(PLAYLISTS.peacefulPiano, "Tranqui, solo")];
 };
