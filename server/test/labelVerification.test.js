@@ -4,6 +4,7 @@ const catalogService = require("../src/services/catalog.service");
 const communityWines = require("../src/services/communityWines.service");
 const wineAi = require("../src/services/wineAi.service");
 const WineVerification = require("../src/models/wineVerification.model");
+const Wine = require("../src/models/wine.model");
 
 /**
  * ¿ESTE VINO EXISTE, Y SE LLAMA ASÍ?
@@ -380,5 +381,86 @@ test("los campos que el modelo contradice viajan como desacuerdos", async () => 
   } finally {
     restoreComunidad();
     modelo.restore();
+  }
+});
+
+/**
+ * ── TU PROPIA BODEGA COMO SEÑAL ─────────────────────────────────────────────
+ *
+ * Un vino que ya confirmaste una vez es un candidato de primera: se repite lo
+ * que gustó, y esa fila ya pasó por tus manos. Sólo entran los `trusted` — tus
+ * escaneos dudosos son justamente los que podrían repetir un error viejo con
+ * cara de certeza.
+ *
+ * Este test existe por un bug que ninguno de los otros podía ver: la consulta
+ * usaba una función que no estaba declarada en el módulo, así que tiraba
+ * ReferenceError apenas había un usuario con sesión. El llamador lo atrapaba y
+ * seguía, con lo cual el escaneo "funcionaba" y tus vinos nunca participaban.
+ * Todo lo demás corría sin `userId`, que es el único caso donde ese código no
+ * se ejecuta.
+ */
+const conMisVinos = (vinos) => {
+  const original = Wine.find;
+  const consultas = [];
+  Wine.find = (filtro) => {
+    consultas.push(filtro);
+    return {
+      select: () => ({ limit: () => ({ lean: async () => vinos }) }),
+    };
+  };
+  return { consultas, restore: () => { Wine.find = original; } };
+};
+
+test("un vino tuyo ya confirmado entra como candidato", async () => {
+  const restoreComunidad = conComunidad([]);
+  const restoreModelo = sinModelo();
+  const mios = conMisVinos([
+    {
+      _id: "mio1",
+      name: "Refugio Alto",
+      line: "Refugio Alto",
+      winery: "Bodega Los Cardones",
+      region: "Valle de Uco, Mendoza",
+      varietal: "Bonarda",
+      type: "red",
+    },
+  ]);
+
+  try {
+    const r = await catalogService.identifyReading(
+      { winery: "Bodega Los Cardones", line: "Refugio Alto", name: "", varietal: "Bonarda", type: "red" },
+      { userId: "u1" }
+    );
+
+    assert.equal(r.level, "alta");
+    assert.equal(r.best.wine.source, "mis-vinos");
+    // Y se consultó lo que corresponde: sólo tuyo y sólo lo confirmado.
+    const filtro = mios.consultas[0];
+    assert.equal(filtro.userId, "u1");
+    assert.equal(filtro["identification.verdict"], "trusted");
+  } finally {
+    restoreComunidad();
+    restoreModelo();
+    mios.restore();
+  }
+});
+
+test("una bodega con caracteres raros no rompe la consulta", async () => {
+  // "Bodega (Ex) Norton +" como texto de una etiqueta mal leída: si no se escapa,
+  // el patrón es un regex inválido y la consulta explota.
+  const restoreComunidad = conComunidad([]);
+  const restoreModelo = sinModelo();
+  const mios = conMisVinos([]);
+
+  try {
+    const r = await catalogService.identifyReading(
+      { winery: "Bodega (Ex) Norton +", line: "Reserva ***", name: "", varietal: "" },
+      { userId: "u1" }
+    );
+    assert.equal(r.level, "ninguna");
+  } finally {
+    restoreComunidad();
+    restoreModelo();
+    mios.restore();
   }
 });

@@ -393,6 +393,50 @@ describe("ScanReview", () => {
     expect(draft.identEditedFields).toContain("line");
   });
 
+  /**
+   * Aceptar el candidato mueve el nombre a la LÍNEA. Lo que se edite después
+   * tiene que ir al mismo campo: si no, el nombre nuevo queda en el nombre
+   * propio y la línea conserva el del candidato — dos campos con dos vinos
+   * distintos, y la deduplicación mira la línea primero, así que el vino se
+   * guardaría con un nombre que ya no es el que dice la pantalla.
+   */
+  it("después de aceptar, editar el nombre no deja dos vinos en el mismo vino", () => {
+    const onConfirm = vi.fn();
+    // La lectura trae NOMBRE PROPIO, que es el caso donde el destino cambia.
+    const conNombrePropio = lectura(
+      { winery: "Catena Zapata", properName: "Angélica Zapta", varietal: "Malbec", type: "red" },
+      { name: 70, winery: 92, varietal: 90 }
+    );
+
+    render(
+      <ScanReview
+        reading={conNombrePropio}
+        onConfirm={onConfirm}
+        verification={{
+          status: "sugerido",
+          candidate: { name: "Angélica Zapata", winery: "Catena Zapata", varietal: "Malbec" },
+          alternative: null,
+          mismatches: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /sí, es ese/i }));
+    // Aceptado, el nombre pasa a ser un dato confirmado y se muestra como chip:
+    // para corregirlo hay que abrir todos los campos, que es el mismo camino que
+    // haría una persona.
+    fireEvent.click(screen.getByRole("button", { name: /editar todos los datos/i }));
+    fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
+      target: { value: "Angélica Zapata Alluvial" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+
+    const draft = onConfirm.mock.calls[0][0];
+    expect(draft.name).toBe("Angélica Zapata Alluvial");
+    expect(draft.line).toBe("Angélica Zapata Alluvial");
+    expect(draft.properName).toBe("");
+  });
+
   it("se puede rechazar el candidato y seguir con lo que dice la etiqueta", () => {
     const onConfirm = vi.fn();
     const dudosa = lectura(

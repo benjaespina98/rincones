@@ -570,6 +570,24 @@ const candidatosParaLectura = async (lectura = {}) => {
 };
 
 /**
+ * El texto que escribió una persona, como patrón de búsqueda.
+ *
+ * Escapa lo que Mongo interpretaría como regex. La misma función existe en
+ * wines.service.js —doce caracteres— y NO se importa de ahí a propósito: este
+ * módulo lo cargan el buscador y el escaneo, y hacerlo depender del servicio de
+ * vinos (que arrastra los modelos, los lotes y el catálogo comunitario) para
+ * reusar una línea sería pagar un árbol entero de requires por nada.
+ *
+ * Estaba faltando: se usaba sin declarar, así que en cuanto una persona con
+ * sesión escaneaba una etiqueta esto tiraba ReferenceError. No se veía porque el
+ * llamador lo atrapa y sigue —el escaneo funcionaba igual— pero tus propios
+ * vinos nunca entraban como candidatos. Un fallo silencioso que degradaba la
+ * identificación sin romper nada.
+ */
+const comoRegex = (valor) =>
+  new RegExp(String(valor).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+/**
  * Los vinos que YA tenés y se parecen a esta lectura.
  *
  * Es la señal que la app tenía y no usaba: si escaneás algo de una bodega que ya
@@ -588,10 +606,9 @@ const misVinosParecidos = async (userId, lectura = {}) => {
   const nucleo = matching.nucleoDe({ line: lectura.line, properName: lectura.name });
   if (!bodega && !nucleo) return [];
 
-  const rx = (v) => new RegExp(escapeRegex(v), "i");
   const condiciones = [];
-  if (bodega) condiciones.push({ winery: rx(bodega) });
-  if (nucleo) condiciones.push({ name: rx(nucleo) }, { line: rx(nucleo) });
+  if (bodega) condiciones.push({ winery: comoRegex(bodega) });
+  if (nucleo) condiciones.push({ name: comoRegex(nucleo) }, { line: comoRegex(nucleo) });
 
   try {
     const Wine = require("../models/wine.model");

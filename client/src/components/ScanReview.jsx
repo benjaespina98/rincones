@@ -193,8 +193,23 @@ export default function ScanReview({
    * es un nombre propio, editarlo lo sigue siendo. Cuando no hay nada, va a la
    * línea, que es el caso mayoritario ("Reserva", "Saint Felicien", "Pispi") y
    * el que `identityKey` prefiere para deduplicar.
+   *
+   * ── POR QUÉ ES ESTADO Y NO UN VALOR DERIVADO ───────────────────────────────
+   * Salía de la lectura ORIGINAL, y aceptar un candidato lo dejaba apuntando al
+   * campo equivocado: el candidato se escribe en la línea y vacía el nombre
+   * propio, pero el destino seguía siendo `properName`. Si después editabas el
+   * nombre, el texto nuevo iba al nombre propio mientras la línea conservaba el
+   * del candidato — dos campos con dos vinos distintos, y `identityKey` mira la
+   * línea primero, así que el vino se guardaba con un nombre que ya no era el
+   * que decía la pantalla.
+   *
+   * Se recalcula sólo cuando algo mueve el dato de campo (aceptar un candidato),
+   * y no en cada tecla: si dependiera de los valores actuales, borrar el nombre
+   * entero cambiaría el destino a mitad de tipeo.
    */
-  const nameTarget = reading?.values?.properName ? "properName" : "line";
+  const [nameTarget, setNameTarget] = useState(() =>
+    reading?.values?.properName ? "properName" : "line"
+  );
 
   const valueOf = (field) => (field === NAME_FIELD ? title : values[field]);
 
@@ -248,6 +263,9 @@ export default function ScanReview({
       }
       return next;
     });
+    // El nombre del candidato queda en la línea, así que lo que se edite después
+    // tiene que ir ahí. Ver el comentario de `nameTarget`.
+    setNameTarget("line");
     setSugerencia("aceptada");
   };
 
