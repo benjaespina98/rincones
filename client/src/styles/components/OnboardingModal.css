@@ -44,7 +44,7 @@
 .onb__dot {
   width: 28px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--line-strong);
   transition: background var(--transition-smooth);
 }

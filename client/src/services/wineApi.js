@@ -84,6 +84,19 @@ export const getSuggestedWines = async (context = {}) => {
   return data.data || [];
 };
 
+/**
+ * Los vinos TUYOS que están en su mejor momento: con botellas y dentro de su
+ * ventana de guarda.
+ *
+ * El endpoint existía en el servidor desde hace tiempo y no lo llamaba nadie —
+ * la respuesta a "¿qué abro hoy?" estaba calculada y sin usar—. Cada uno viene
+ * con su `cellarStatus`, que es de dónde sale la ventana que se muestra.
+ */
+export const getCellarReady = async () => {
+  const { data } = await api.get("/wines/cellar-ready");
+  return data.data || [];
+};
+
 export const getWineMoments = async (id) => {
   const { data } = await api.get(`/wines/${id}/moments`);
   return data.data || [];

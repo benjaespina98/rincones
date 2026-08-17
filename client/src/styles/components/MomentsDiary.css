@@ -157,6 +157,26 @@
   overflow: hidden;
 }
 
+/* La lectura de conjunto, arriba de la lista: lo que la pila de momentos no
+   puede contestar de un vistazo. Va en el color del acento porque es lo único
+   de la sección que habla de VOS y no de una noche puntual. */
+.diary__resumen {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--accent-soft);
+}
+
+/* La invitación cuando todavía no escribiste ninguno. Es prosa y no una lista
+   de features: lo que se está ofreciendo es acordarse de una noche, no usar una
+   función. */
+.diary__invite {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
 .diary__more {
   align-self: flex-start;
   min-height: 40px;

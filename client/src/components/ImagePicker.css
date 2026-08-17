@@ -149,7 +149,7 @@
 }
 
 .imgpick__uploaded {
-  color: #7fe3b4;
+  color: var(--success-text);
 }
 
 .imgpick__error {

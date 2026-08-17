@@ -303,6 +303,17 @@
   line-height: 1.35;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
+  /* La uva y la cosecha son UN dato ("Chardonnay · 2022") y se cortaban entre
+     la palabra y el año cuando el chip de tipo era largo —"Espumante"—,
+     dejando el año colgado en un renglón propio. Que se corte el renglón entero
+     antes que partir el par: se ve en la fila de un espumante en un teléfono. */
+  text-wrap: balance;
+}
+
+/* El tipo no se separa de lo que le sigue por un pixel de más: si no entra,
+   entra completo en la línea de abajo. */
+.wine-row__type {
+  white-space: nowrap;
 }
 
 /* La bodega, en su propio renglón y un punto más apagada: es contexto, no
@@ -376,7 +387,7 @@
 
 .wine-row__qty.is-empty {
   background: var(--wine-soft);
-  color: #f0a9b6;
+  color: var(--danger-text);
 }
 
 .wine-row__caret {
@@ -444,13 +455,13 @@
 
 .wine-action-btn:hover:not(:disabled) {
   border-color: rgba(47, 182, 123, 0.4);
-  color: #7fe3b4;
+  color: var(--success-text);
 }
 
 .wine-action-btn.is-active {
   background: rgba(47, 182, 123, 0.16);
   border-color: rgba(47, 182, 123, 0.45);
-  color: #7fe3b4;
+  color: var(--success-text);
 }
 
 .wine-action-btn:disabled {
@@ -677,6 +688,10 @@
   min-width: 0;
 }
 
+/* Lista/grilla y filtros son hermanos en la barra: mismo tamaño, mismo círculo,
+   misma altura que el buscador. Lo que los distingue es el ícono y que sólo uno
+   de los dos lleva número. */
+.bodega-modo,
 .bodega-filtros {
   position: relative;
   display: grid;
@@ -711,11 +726,16 @@
   font-weight: 800;
 }
 
+.bodega-modo:hover,
 .bodega-filtros:hover,
 .bodega-filtros.is-open,
 .bodega-filtros.has-active {
   border-color: var(--line-accent);
   color: var(--text);
+}
+
+.bodega-modo:active {
+  transform: scale(0.94);
 }
 
 /* ── Fichas de los filtros aplicados ─────────────────────────────────────────
@@ -998,6 +1018,32 @@
 
 /* El tipo con todas las letras: el color de la botella dibujada insinúa, pero un
    rosado y un tinto claro se parecen demasiado en 40px. */
+/* "En su punto": el único adorno de color de la vitrina, y se lo gana porque es
+   lo que contesta la pregunta con la que uno abre esa vista.
+
+   Vive en la columna derecha, arriba del stock: es estado de la botella, no
+   identidad. Probado en pantalla, abajo con la uva y el año partía el renglón en
+   dos y estiraba la tarjeta — el dato que venía a ayudar terminaba entorpeciendo
+   la lectura de toda la fila. */
+.wine-row__peak {
+  /* `justify-self` y no `align-self`: la columna de info es un grid, y sin esto
+     la pastilla se estiraba a lo ancho de toda la fila —hasta meterse debajo del
+     botón de "Probado"— en vez de ocupar lo que mide su texto. */
+  justify-self: start;
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--accent-soft);
+  white-space: nowrap;
+}
+
 .wine-row__type {
   display: inline-block;
   margin-right: 7px;

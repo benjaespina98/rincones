@@ -24,7 +24,7 @@ const SCAN_QUALITY = 0.92;
 const STORE_MAX_DIM = 1280;
 const STORE_QUALITY = 0.85;
 
-const LabelScanner = ({ onCapture, onCancel, onManual, matching }) => {
+const LabelScanner = ({ onCapture, onCancel, onManual }) => {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
@@ -97,6 +97,15 @@ const LabelScanner = ({ onCapture, onCancel, onManual, matching }) => {
         region: analysis.region || "",
         type: analysis.type || "unknown",
         confidence: analysis.confidence || {},
+        // Lo que el servidor ya detectó que no cierra en esta lectura. Se venía
+        // perdiendo acá: el servidor lo mandaba, la revisión lo esperaba, y en el
+        // medio este objeto lo dejaba afuera, así que un problema que el servidor
+        // sí sabía ver (una uva rara de su vocabulario largo) llegaba vacío.
+        issues: Array.isArray(analysis.issues) ? analysis.issues : [],
+        // Si el nombre lo respalda una fuente real de vinos, y con cuál. Ver
+        // `conVerificacion` en el controlador: es lo que separa "lo leímos" de
+        // "existe y se llama así".
+        verification: analysis.verification || null,
         source: analysis.source || "",
         rawText: analysis.rawText || "",
       });
@@ -191,18 +200,17 @@ const LabelScanner = ({ onCapture, onCancel, onManual, matching }) => {
       ) : (
         <div className="label-scanner__preview">
           <img src={preview} alt="Etiqueta seleccionada" />
-          {/* `matching` sigue en true después de que la lectura terminó: el padre
-              todavía está buscando coincidencia en el catálogo antes de mostrar la
-              revisión. Sin este segundo estado, la persona veía la lupa parar y la
-              pantalla quedaba muda un instante (o, peor, llegaba a asomar la
-              pantalla inicial) mientras esa llamada terminaba. */}
-          {(analyzing || matching) && (
+          {/* Una sola espera. Antes eran dos —leer la etiqueta y después buscar
+              la coincidencia en el catálogo, desde el navegador—; el cruce contra
+              el catálogo se hizo parte de la lectura y vive en el servidor, así
+              que acá quedó un único estado en vez de dos textos encadenados. */}
+          {analyzing && (
             <div className="label-scanner__scanning" role="status">
               <span className="label-scanner__scan-line" />
               <div className="label-scanner__scan-text">
                 <span className="label-scanner__spinner" aria-hidden="true" />
                 <span>
-                  {matching ? "Buscando coincidencia…" : "Leyendo la etiqueta…"}
+                  Leyendo la etiqueta…
                   {/* Que después hay una revisión se dice ACÁ, mientras se
                       espera. Es el momento en que la persona se está preguntando
                       si la app va a guardar cualquier cosa, y saber que va a

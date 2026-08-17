@@ -134,6 +134,150 @@ const searchWinesWithAi = async (query) => {
     .slice(0, MAX_ITEMS);
 };
 
+// --- Verificación de una lectura de etiqueta ---
+//
+// ── POR QUÉ NO ALCANZA CON REUSAR LA BÚSQUEDA ───────────────────────────────
+// Esto empezó llamando a `searchWinesWithAi` con lo leído y viendo si algún
+// resultado se parecía. Funciona a medias y falla justo donde importa: una
+// búsqueda devuelve lo que se PARECE, así que ante un nombre mal transcripto el
+// modelo contesta con los vinos vecinos de esa bodega y el match tiene que
+// adivinar cuál era. Nunca se le preguntó lo único que queremos saber.
+//
+// Acá se le pregunta de frente: ¿este vino existe? ¿se llama así? ¿qué de lo que
+// leímos no cierra? Es una pregunta de conocimiento, no de búsqueda, y se
+// responde SIN la foto: el modelo ya la miró una vez: volver a mostrársela sería
+// pedirle que se confirme a sí mismo. Dos preguntas independientes sobre la misma
+// botella es lo que hace que coincidir signifique algo.
+
+const VERIFY_TIMEOUT_MS = 8000;
+const VERIFY_BUDGET_MS = 12000;
+
+const VERIFY_SCHEMA = {
+  type: "object",
+  properties: {
+    // Lo primero que se decide y lo único que no se puede dejar a medias.
+    exists: { type: "boolean" },
+    winery: { type: "string" },
+    line: { type: "string" },
+    name: { type: "string" },
+    varietal: { type: "string" },
+    region: { type: "string" },
+    type: {
+      type: "string",
+      enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
+    },
+    // Qué campos de la lectura NO coinciden con lo que el modelo sabe del vino.
+    // No se pisan: se marcan, y la revisión los abre para que los mire una
+    // persona. Ver el comentario de `conVerificacion` en labels.controller.js.
+    mismatches: {
+      type: "array",
+      items: { type: "string", enum: ["winery", "name", "varietal", "region", "type"] },
+    },
+    confidence: { type: "integer" },
+  },
+  required: ["exists", "confidence"],
+};
+
+const buildVerifyPrompt = (lectura) => {
+  const leido = [
+    lectura.winery && `- Bodega: ${lectura.winery}`,
+    lectura.line && `- Línea: ${lectura.line}`,
+    lectura.name && `- Nombre propio: ${lectura.name}`,
+    lectura.varietal && `- Uva: ${lectura.varietal}`,
+    lectura.region && `- Región: ${lectura.region}`,
+    lectura.type && lectura.type !== "unknown" && `- Tipo: ${lectura.type}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `Sos un sommelier con memoria enciclopédica del mercado argentino de vinos.
+
+Otra persona leyó la etiqueta de una botella con un lector automático y sacó esto:
+
+${leido}
+
+Tu tarea NO es buscar vinos parecidos: es decir si ESTE vino existe y si está bien
+transcripto. El lector se equivoca de maneras típicas —se come una letra, junta la
+línea con la uva, confunde el nombre de fantasía con la bodega, inventa una región
+que suena bien— y vos sos el control.
+
+Devolvé:
+- exists: true SÓLO si conocés este vino como un producto que existe de verdad. Si
+  no lo conocés, false. Un vino chico o nuevo que no conocés es false, y está bien:
+  "no lo conozco" es una respuesta útil, "seguro que sí" sin estar seguro no.
+- Si exists es true, devolvé los datos OFICIALES del vino en los campos winery,
+  line, name, varietal, region y type, escritos como los escribe la bodega. Si lo
+  leído ya estaba bien, repetilo igual.
+- mismatches: los campos de la lectura de arriba que NO coinciden con lo que sabés
+  de este vino. Sólo contradicciones reales, no diferencias de escritura ni datos
+  que la lectura dejó vacíos.
+- confidence: 0-100, qué tan seguro estás de que este vino existe y de que sus
+  datos son los que devolviste. 90+ sólo para vinos que conocés bien.
+
+${FIELD_CONVENTION}
+
+Regla que manda sobre todas: no inventes. Ante la duda, exists:false y confidence
+baja. Una verificación equivocada es peor que ninguna, porque le da autoridad a un
+dato que nadie miró.`;
+};
+
+/**
+ * Verifica una lectura de etiqueta contra lo que el modelo sabe de vinos.
+ *
+ * Devuelve `null` cuando no hay nada que afirmar (sin API key, el modelo no
+ * conoce el vino, o contestó cualquier cosa). Lanza si la API falla, para que el
+ * llamador decida —y para que un fallo de red no se cachee como "no existe".
+ */
+const verifyWineWithAi = async (lectura = {}) => {
+  if (!isGeminiConfigured()) return null;
+  const algoQueVerificar = [lectura.winery, lectura.line, lectura.name].some((v) =>
+    String(v || "").trim()
+  );
+  if (!algoQueVerificar) return null;
+
+  const parsed = await generateJson({
+    parts: [{ text: buildVerifyPrompt(lectura) }],
+    schema: VERIFY_SCHEMA,
+    timeoutMs: VERIFY_TIMEOUT_MS,
+    budgetMs: VERIFY_BUDGET_MS,
+    // Cadena de búsqueda y no de visión: es una pregunta de texto, y de paso no
+    // compite por la cuota diaria del modelo que acaba de leer la etiqueta.
+    task: "search",
+  });
+
+  if (parsed?.exists !== true) return null;
+
+  const clean = (s) => String(s || "").trim();
+  const line = clean(parsed.line);
+  const properName = clean(parsed.name);
+  // Un "existe" sin nombre no verifica nada: es un sí vacío.
+  if (!line && !properName) return null;
+
+  const confianza = Number(parsed.confidence);
+
+  return {
+    // La misma forma que una fila del catálogo, para que el match no tenga que
+    // saber de dónde vino cada candidato.
+    id: `verif-${slug(`${clean(parsed.winery)}-${line || properName}`)}`,
+    name: composeDisplayName({ name: properName, line }),
+    line,
+    properName,
+    winery: clean(parsed.winery),
+    region: clean(parsed.region),
+    varietal: clean(parsed.varietal),
+    type: clean(parsed.type) || "unknown",
+    image: "",
+    vintage: "",
+    rating: 0,
+    barcode: "",
+    source: "gemini",
+    mismatches: Array.isArray(parsed.mismatches)
+      ? [...new Set(parsed.mismatches.map((f) => String(f)))].slice(0, 5)
+      : [],
+    confidence: Number.isFinite(confianza) ? Math.max(0, Math.min(100, confianza)) : 0,
+  };
+};
+
 // --- Descripción de un vino (ficha estilo Vivino) ---
 
 const DESCRIBE_SCHEMA = {
@@ -516,6 +660,7 @@ ${FOOD_KEYS.join(", ")}.
 module.exports = {
   isAiSearchConfigured,
   searchWinesWithAi,
+  verifyWineWithAi,
   describeWine,
   suggestRecipe,
   classifyDish,

@@ -6,6 +6,13 @@ import Icon from "./Icon";
  * Existe para que todas las pantallas cuenten lo mismo de la misma forma. Antes
  * cada una improvisaba: algunas tenían el patrón completo, otras una frase gris
  * suelta y otras directamente no renderizaban nada (la home dejaba un hueco).
+ *
+ * ── POR QUÉ AHORA HAY UNA SEGUNDA SALIDA ────────────────────────────────────
+ * Con una sola acción, un vacío que no es el que la persona esperaba se vuelve
+ * un callejón: "No te queda ninguna botella · Escanear un vino" le ofrece cargar
+ * algo a alguien que quizá sólo quería ver lo que ya tomó, y que está a un toque
+ * de distancia pero en otra vista. La segunda acción es discreta —un enlace, no
+ * un botón— justamente porque es la salida lateral, no la principal.
  */
 export default function EmptyState({
   icon = "sparkles",
@@ -13,6 +20,8 @@ export default function EmptyState({
   hint,
   actionLabel,
   onAction,
+  secondaryLabel,
+  onSecondary,
   compact = false,
 }) {
   return (
@@ -25,6 +34,11 @@ export default function EmptyState({
       {actionLabel && onAction && (
         <button type="button" className="empty-cta" onClick={onAction}>
           {actionLabel}
+        </button>
+      )}
+      {secondaryLabel && onSecondary && (
+        <button type="button" className="empty-alt" onClick={onSecondary}>
+          {secondaryLabel}
         </button>
       )}
     </div>

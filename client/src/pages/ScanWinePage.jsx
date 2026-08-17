@@ -7,7 +7,6 @@ import { createWine, deleteWine } from "../services/wineApi";
 import { createWish } from "../services/wishApi";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
-import { matchCatalogWine } from "../services/wineSearchApi";
 import { trackEvent } from "../services/analyticsApi";
 import "../styles/pages/ScanWinePage.css";
 
@@ -20,18 +19,16 @@ const toWinePayload = (draft) => ({
   vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
   type: draft.type || "unknown",
   image: draft.image || "",
-  // Las botellas que elegiste en la revisión. Estaba fijo en 1, así que el
-  // selector "¿Cuántas botellas?" —presets de media docena y caja incluidos—
-  // no servía para nada: comprabas doce, cargabas una.
-  //
-  // El piso es 0 y no 1: cero es el vino que tomaste afuera y no te llevaste.
-  // Ver el comentario largo en ScanReview, donde se elige.
+  // Las botellas que elegiste en la revisión. Cero es la respuesta a "lo tomé
+  // afuera": el vino existe en tu colección pero no hay ninguna botella tuya, así
+  // que no se abre ningún lote ni se inventa una compra. Ver el comentario largo
+  // en ScanReview, donde se pregunta.
   quantity: Math.max(0, Number.parseInt(draft.quantity, 10) || 0),
 
-  // Sin botellas, el vino entra ya probado. Es la única lectura posible de "lo
-  // tomé afuera": si no lo tenés y lo estás cargando igual, es porque lo tomaste.
-  // `tasted` es un eje independiente del stock, así que esto no fuerza nada raro
-  // — sólo dice lo que pasó.
+  // Sin botellas, el vino entra ya probado: si no lo tenés y lo estás cargando
+  // igual, es porque lo tomaste. `tasted` es un eje independiente del stock, así
+  // que esto no fuerza nada raro — sólo dice lo que pasó. El servidor completa el
+  // resto del hecho (cuándo, y que cuenta como un consumo).
   tasted: Math.max(0, Number.parseInt(draft.quantity, 10) || 0) === 0,
 
   /**
@@ -78,11 +75,6 @@ export default function ScanWinePage() {
   // que evita que un dato mal leído entre a la bodega sin que nadie lo vea.
   const [review, setReview] = useState(null);
   const [saving, setSaving] = useState(false);
-  // True entre que terminó de leerse la etiqueta y termina el match contra
-  // catálogo. Mientras tanto el escáner sigue montado (ver handleCapture): antes
-  // se desmontaba apenas llegaba la lectura y, por un instante, ni el escáner ni
-  // la revisión estaban en pantalla — se veía la pantalla inicial otra vez.
-  const [matching, setMatching] = useState(false);
 
   // Un enlace viejo a /agregar?q=… buscaba acá. Ahora se busca en Descubrí:
   // lo mandamos allá con el término puesto, en vez de perderlo.
@@ -109,14 +101,20 @@ export default function ScanWinePage() {
     // El evento que más dice del producto: cargar un vino es la acción por la que
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
     // que permite saber si el lector de etiquetas vale lo que cuesta.
-    trackEvent("wine_added", { source: draft?.source || "escaneo" });
+    // `destino` distingue las dos cargas que ahora la pantalla pregunta de
+    // frente: la botella que entra a la cava y la copa que tomaste afuera. Son
+    // dos usos distintos del producto y hasta ahora se contaban como uno solo.
+    trackEvent("wine_added", {
+      source: draft?.source || "escaneo",
+      destino: payload.quantity === 0 ? "afuera" : "bodega",
+    });
 
     // Con cero botellas el vino NO entró a tu bodega, entró a tu historial. El
     // aviso tiene que decir lo que pasó: "agregado a tu bodega" mandaría a
     // buscarlo a "En stock", que es el único lugar donde no está.
     const mensaje =
       payload.quantity === 0
-        ? `"${created.name}" guardado como probado`
+        ? `"${created.name}" anotado entre tus probados`
         : `"${created.name}" agregado a tu bodega`;
 
     const toastId = addToast(mensaje, "success", 8000, {
@@ -126,8 +124,13 @@ export default function ScanWinePage() {
         try {
           await deleteWine(created._id);
           // "Deshecho" es un participio suelto: suena a log del sistema, no a
-          // alguien contándote qué pasó. Además no decía QUÉ se deshizo.
-          showSuccess(`"${created.name}" ya no está en tu bodega`);
+          // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
+          // dónde, que no es lo mismo si el vino nunca entró a la bodega.
+          showSuccess(
+            payload.quantity === 0
+              ? `"${created.name}" ya no está entre tus probados`
+              : `"${created.name}" ya no está en tu bodega`
+          );
           navigate("/agregar", { replace: true });
         } catch {
           showError("No se pudo deshacer");
@@ -143,62 +146,43 @@ export default function ScanWinePage() {
     return created;
   };
 
-  // Tras la foto SIEMPRE mostramos la revisión. Enriquecemos con el catálogo,
-  // pero sólo si hay una coincidencia confiable (el server aplica vetos duros):
-  // antes se tomaba el primer resultado a ciegas y podía pisar región/uva/cosecha
-  // con las de otra botella.
-  const handleCapture = async (payload) => {
-    const values = {
-      winery: payload.winery || "",
-      line: payload.line || "",
-      properName: payload.properName || "",
-      varietal: payload.varietal || "",
-      vintage: payload.vintage || "",
-      region: payload.region || "",
-      type: payload.type || "unknown",
-    };
-    const confidence = { ...(payload.confidence || {}) };
-    // Lo que el servidor ya detectó que no cierra en esta lectura. La revisión
-    // vuelve a calcularlo sobre lo que la persona vaya editando, pero arrancar
-    // con esto evita que el cliente tenga que conocer todo el vocabulario de
-    // uvas del catálogo para llegar a la misma conclusión.
-    const issuesDelServidor = Array.isArray(payload.issues) ? payload.issues : [];
-
-    let matchedFrom = null;
-    if (values.winery || values.line || values.properName) {
-      setMatching(true);
-      try {
-        const match = await matchCatalogWine(values);
-        if (match) {
-          matchedFrom = match.source;
-          // Sólo rellenamos huecos; nunca pisamos algo que se leyó con seguridad.
-          for (const field of ["winery", "line", "varietal", "region", "type"]) {
-            const current = values[field];
-            const isEmpty = !current || (field === "type" && current === "unknown");
-            if (isEmpty && match[field]) {
-              values[field] = match[field];
-              // Dato del catálogo: bueno, pero no leído de ESTA botella.
-              confidence[field] = Math.max(confidence[field] || 0, 75);
-            }
-          }
-        }
-      } catch {
-        // Sin enriquecimiento: revisamos lo que leyó el escáner.
-      } finally {
-        setMatching(false);
-      }
-    }
-
-    // Recién acá se apaga el escáner y se prende la revisión, en el mismo tick:
-    // nunca hay un frame donde ninguna de las dos pantallas esté montada.
+  /**
+   * Tras la foto SIEMPRE mostramos la revisión.
+   *
+   * ── EL CRUCE CONTRA EL CATÁLOGO YA VINO HECHO ──────────────────────────────
+   * Acá había una segunda llamada (`/catalog/match`) que buscaba la coincidencia
+   * y rellenaba los huecos desde el navegador. Se fue al servidor, junto con algo
+   * que antes no hacía NADIE: verificar que el vino exista y cómo se llama
+   * exactamente (ver `conVerificacion` en labels.controller.js). Son la misma
+   * pregunta —¿qué botella es ésta?— y hacerla en dos lugares distintos era lo
+   * que permitía que el nombre entrara sin que ninguna fuente lo respaldara.
+   *
+   * De paso se va un viaje de red del camino crítico: entre la foto y la
+   * revisión ahora hay una sola espera.
+   */
+  const handleCapture = (payload) => {
     setShowScanner(false);
     setReview({
       photo: payload.preview || "",
       source: payload.source || "",
-      values,
-      confidence,
-      matchedFrom,
-      serverIssues: issuesDelServidor,
+      values: {
+        winery: payload.winery || "",
+        line: payload.line || "",
+        properName: payload.properName || "",
+        varietal: payload.varietal || "",
+        vintage: payload.vintage || "",
+        region: payload.region || "",
+        type: payload.type || "unknown",
+      },
+      confidence: { ...(payload.confidence || {}) },
+      // Quién respalda este nombre: el catálogo curado, dos personas que
+      // cargaron lo mismo, el modelo consultado por texto — o nadie.
+      verification: payload.verification || null,
+      // Lo que el servidor ya detectó que no cierra en esta lectura. La revisión
+      // vuelve a calcularlo sobre lo que la persona vaya editando, pero arrancar
+      // con esto evita que el cliente tenga que conocer todo el vocabulario de
+      // uvas del catálogo para llegar a la misma conclusión.
+      serverIssues: Array.isArray(payload.issues) ? payload.issues : [],
     });
   };
 
@@ -210,7 +194,7 @@ export default function ScanWinePage() {
       source: "manual",
       values: { winery: "", line: "", properName: "", varietal: "", vintage: "", region: "", type: "unknown" },
       confidence: {},
-      matchedFrom: null,
+      verification: null,
       serverIssues: [],
     });
 
@@ -226,7 +210,9 @@ export default function ScanWinePage() {
       await saveWine({
         ...draft,
         image: review?.photo || "",
-        identMatchedFrom: review?.matchedFrom || "",
+        // Qué fuente respaldó esta identidad. Sigue siendo evidencia y no
+        // conclusión: el servidor recalcula el veredicto por su cuenta.
+        identMatchedFrom: review?.verification?.source || "",
       });
       setReview(null);
     } catch {
@@ -268,7 +254,7 @@ export default function ScanWinePage() {
         <ScanReview
           photo={review.photo}
           reading={review}
-          matchedFrom={review.matchedFrom}
+          verification={review.verification}
           saving={saving}
           onConfirm={handleConfirmReview}
           onWish={handleWishReview}
@@ -291,7 +277,6 @@ export default function ScanWinePage() {
             onCapture={handleCapture}
             onCancel={() => setShowScanner(false)}
             onManual={() => { setShowScanner(false); startManual(); }}
-            matching={matching}
           />
         </div>
       </div>

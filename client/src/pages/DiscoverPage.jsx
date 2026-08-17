@@ -9,6 +9,7 @@ import StarRating from "../components/StarRating";
 import { visibleContent, mergeIntoGroups } from "../data/discoverContent";
 import { fromPromotion, deservesHero } from "../data/contentTypes";
 import WineShops from "../components/WineShops";
+import CellarReady from "../components/CellarReady";
 import FeaturedEvent from "../components/FeaturedEvent";
 import ExploreFeed from "../components/ExploreFeed";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -591,6 +592,19 @@ export default function DiscoverPage() {
           pantallas distintas apiladas en el mismo scroll. */}
       {!buscando && (
         <>
+          {/* ── 2 bis. Lo que ya tenés y está listo ────────────────────────
+              La home entera hablaba de vinos que NO tenés. Esta fila es la
+              respuesta a "¿cuál abro esta noche?" con botellas de tu casa, y va
+              JUSTO DESPUÉS de la recomendación del día por una razón de orden:
+              primero el descubrimiento (lo que no conocés), enseguida lo que ya
+              es tuyo y está en su punto, y recién después dónde comprar y qué
+              leer.
+
+              `enabled` la apaga entera para quien no tiene botellas: sin stock
+              no hay nada que traer, y una home que recién se estrena no debería
+              pagar una consulta para descubrirlo. */}
+          <CellarReady enabled={(stats?.totals?.stock || 0) > 0} />
+
           {/* ── 3. Dónde comprar ───────────────────────────────────────────
               Va acá, pegada a la recomendación, porque contesta la pregunta que
               deja abierta: "me gustó, ¿dónde lo consigo?". Reemplaza al carrusel

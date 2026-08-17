@@ -108,7 +108,7 @@
   border: 1px solid rgba(181, 153, 255, 0.45);
   background: rgba(132, 99, 245, 0.16);
   color: #f2edff;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   padding: 0.28rem 0.6rem;
   font-size: var(--text-sm);
   font-weight: 700;

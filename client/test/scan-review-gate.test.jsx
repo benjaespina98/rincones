@@ -342,6 +342,130 @@ describe("ScanReview", () => {
     expect(screen.getByText(/¿este es tu vino\?/i)).toBeTruthy();
   });
 
+  /**
+   * ── EL TRAMO DEL MEDIO DE LA IDENTIFICACIÓN ───────────────────────────────
+   * Cuando el servidor encuentra un candidato bueno pero no seguro, NO toca los
+   * datos de la lectura: manda el vino aparte y la pantalla pregunta. Aceptar
+   * tiene que ser un toque que complete todo, y tiene que contar como un dato
+   * puesto por la persona —que es lo que es: alguien mirando la botella.
+   */
+  it("cuando la app duda, ofrece el vino y aceptarlo completa la ficha", () => {
+    const onConfirm = vi.fn();
+    const dudosa = lectura(
+      { winery: "Familia Zuccardi", line: "Serie Q", varietal: "Malbec", type: "red" },
+      { line: 70, winery: 90, varietal: 88 }
+    );
+
+    render(
+      <ScanReview
+        reading={dudosa}
+        onConfirm={onConfirm}
+        verification={{
+          status: "sugerido",
+          source: "catalogo-ar",
+          name: "",
+          mismatches: [],
+          candidate: {
+            name: "Zuccardi Serie A",
+            winery: "Familia Zuccardi",
+            varietal: "Malbec",
+            region: "Valle de Uco, Mendoza",
+            type: "red",
+          },
+          alternative: null,
+        }}
+      />
+    );
+
+    expect(screen.getByText(/¿es este vino\?/i)).toBeTruthy();
+    // Hasta que se conteste, la lectura queda como estaba: la app no cambia el
+    // vino por su cuenta.
+    expect(screen.getByText("Serie Q")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /sí, es ese/i }));
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+
+    const draft = onConfirm.mock.calls[0][0];
+    expect(draft.name).toBe("Zuccardi Serie A");
+    expect(draft.region).toBe("Valle de Uco, Mendoza");
+    // Confirmar mirando la botella vale como dato tipeado: es la señal más
+    // fuerte que tiene el servidor para decidir si esto puede publicarse.
+    expect(draft.identEditedFields).toContain("line");
+  });
+
+  /**
+   * Aceptar el candidato mueve el nombre a la LÍNEA. Lo que se edite después
+   * tiene que ir al mismo campo: si no, el nombre nuevo queda en el nombre
+   * propio y la línea conserva el del candidato — dos campos con dos vinos
+   * distintos, y la deduplicación mira la línea primero, así que el vino se
+   * guardaría con un nombre que ya no es el que dice la pantalla.
+   */
+  it("después de aceptar, editar el nombre no deja dos vinos en el mismo vino", () => {
+    const onConfirm = vi.fn();
+    // La lectura trae NOMBRE PROPIO, que es el caso donde el destino cambia.
+    const conNombrePropio = lectura(
+      { winery: "Catena Zapata", properName: "Angélica Zapta", varietal: "Malbec", type: "red" },
+      { name: 70, winery: 92, varietal: 90 }
+    );
+
+    render(
+      <ScanReview
+        reading={conNombrePropio}
+        onConfirm={onConfirm}
+        verification={{
+          status: "sugerido",
+          candidate: { name: "Angélica Zapata", winery: "Catena Zapata", varietal: "Malbec" },
+          alternative: null,
+          mismatches: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /sí, es ese/i }));
+    // Aceptado, el nombre pasa a ser un dato confirmado y se muestra como chip:
+    // para corregirlo hay que abrir todos los campos, que es el mismo camino que
+    // haría una persona.
+    fireEvent.click(screen.getByRole("button", { name: /editar todos los datos/i }));
+    fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
+      target: { value: "Angélica Zapata Alluvial" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+
+    const draft = onConfirm.mock.calls[0][0];
+    expect(draft.name).toBe("Angélica Zapata Alluvial");
+    expect(draft.line).toBe("Angélica Zapata Alluvial");
+    expect(draft.properName).toBe("");
+  });
+
+  it("se puede rechazar el candidato y seguir con lo que dice la etiqueta", () => {
+    const onConfirm = vi.fn();
+    const dudosa = lectura(
+      { winery: "Familia Zuccardi", line: "Serie Q", varietal: "Malbec", type: "red" },
+      { line: 70, winery: 90, varietal: 88 }
+    );
+
+    render(
+      <ScanReview
+        reading={dudosa}
+        onConfirm={onConfirm}
+        verification={{
+          status: "sugerido",
+          candidate: { name: "Zuccardi Serie A", winery: "Familia Zuccardi", varietal: "Malbec" },
+          alternative: null,
+          mismatches: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /no, es otro/i }));
+
+    // La pregunta se va —contestar que no es una respuesta— y el vino sigue
+    // siendo el que se leyó.
+    expect(screen.queryByText(/¿es este vino\?/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+    expect(onConfirm.mock.calls[0][0].name).toBe("Serie Q");
+  });
+
   it("una lectura sin nada raro se anuncia como encontrada, no como una pregunta", () => {
     render(<ScanReview reading={BUENA} onConfirm={vi.fn()} />);
     expect(screen.getByText(/vino encontrado/i)).toBeTruthy();

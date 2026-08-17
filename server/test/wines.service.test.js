@@ -166,6 +166,59 @@ test("cargar con CERO botellas no toca el stock: sólo deja escrito que lo tomas
   }
 });
 
+/**
+ * El mismo hecho, con un vino que NO tenías: la copa que tomaste afuera de algo
+ * que no está en tu cava.
+ *
+ * Es el gemelo del test de arriba y hacía falta porque los dos caminos del alta
+ * escribían cosas distintas ante la misma carga. El de reposición dejaba el vino
+ * probado, con fecha y con un consumo; el de vino nuevo dejaba sólo `tasted`, así
+ * que ese vino aparecía entre los probados pero sin última vez ni consumos —y
+ * cualquier pantalla que mirara esos campos contaba una historia distinta según
+ * si la botella ya estaba en tu bodega o no.
+ *
+ * Lo que NO tiene que quedar es un lote: es lo que después permite distinguir un
+ * vino que nunca fue tuyo de uno que tuviste y se te terminó.
+ */
+test("un vino NUEVO cargado como tomado afuera queda probado, con su fecha y sin lote", async () => {
+  const originalFind = Wine.find;
+  const originalSave = Wine.prototype.save;
+  const originalUserFindById = User.findById;
+
+  const user = { stats: { winesCount: 0, tastedWines: 0 }, save: async () => {} };
+  // No lo tenías: no hay reposición posible.
+  Wine.find = () => ({ select: async () => [] });
+  // El `save` de mentira NO corre los hooks del modelo, así que los lotes se
+  // miran como lo que el alta escribió (nada) y no como lo que dejaría el hook.
+  Wine.prototype.save = async function save() { return this; };
+  User.findById = async () => user;
+
+  try {
+    const { wine, merged } = await winesService.createWine("user-1", {
+      name: "Refugio Alto",
+      winery: "Bodega Los Cardones",
+      varietal: "Bonarda",
+      quantity: 0,
+    });
+
+    assert.equal(merged, false);
+    assert.equal(wine.quantity, 0, "no entró ninguna botella a la cava");
+    assert.equal(wine.tasted, true, "lo tomaste: eso es lo que se está registrando");
+    assert.equal(wine.consumptionCount, 1, "y cuenta como una vez que lo tomaste");
+    assert.ok(wine.lastConsumedAt, "con su fecha, igual que por el camino de reposición");
+    assert.equal(
+      (wine.lots || []).length,
+      0,
+      "sin compra no hay lote: nunca estuvo en tu cava"
+    );
+    assert.equal(user.stats.tastedWines, 1, "y suma a tus probados del perfil");
+  } finally {
+    restore(Wine, "find", originalFind);
+    restore(Wine.prototype, "save", originalSave);
+    restore(User, "findById", originalUserFindById);
+  }
+});
+
 test("volver a cargar un vino que ya tenías suma stock en vez de duplicarlo", async () => {
   const originalFind = Wine.find;
   const originalFindOneAndUpdate = Wine.findOneAndUpdate;

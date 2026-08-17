@@ -35,7 +35,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line-strong);
   background: rgba(126, 89, 201, 0.2);
   color: #eee8ff;
@@ -103,7 +103,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-full);
   border: 1px solid rgba(189, 166, 255, 0.5);
-  background: linear-gradient(135deg, #a782ef 0%, #7e59c9 100%);
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
   color: #fdfcff;
   font-size: var(--text-xs);
   font-weight: 700;

@@ -24,12 +24,56 @@ import "../styles/components/MomentsDiary.css";
 
 const MAX_VISIBLES = 6;
 
+/** Desde cuántos momentos vale la pena sacar conclusiones. */
+const MINIMO_PARA_RESUMIR = 3;
+
+/**
+ * Las tres preguntas que uno le hace a un diario, contestadas con lo que ya está
+ * en pantalla: cuántas noches van este año, cuál es el vino que más repetiste y
+ * con quién solés tomar.
+ *
+ * Sale de los momentos ya cargados, así que no cuesta ninguna consulta. Cada
+ * dato aparece SÓLO si es cierto: sin compañías anotadas no se inventa una, y un
+ * vino que aparece una sola vez no es "el que más repetís".
+ */
+const resumirMomentos = (moments) => {
+  if (moments.length < MINIMO_PARA_RESUMIR) return "";
+
+  const añoActual = new Date().getFullYear();
+  const esteAño = moments.filter(
+    (m) => new Date(m.consumedAt).getFullYear() === añoActual
+  ).length;
+
+  const masFrecuente = (valores) => {
+    const cuenta = new Map();
+    for (const v of valores.filter(Boolean)) cuenta.set(v, (cuenta.get(v) || 0) + 1);
+    let top = null;
+    for (const [valor, n] of cuenta) if (!top || n > top.n) top = { valor, n };
+    return top && top.n > 1 ? top : null;
+  };
+
+  const vino = masFrecuente(moments.map((m) => m.wine?.name || m.wineSnapshot?.name));
+  const compañía = masFrecuente(moments.map((m) => (m.companions || "").trim()));
+
+  const partes = [
+    esteAño > 0 &&
+      `${esteAño} ${esteAño === 1 ? "noche anotada" : "noches anotadas"} en ${añoActual}`,
+    vino && `el que más repetiste es ${vino.valor}`,
+    compañía && `casi siempre con ${compañía.valor}`,
+  ].filter(Boolean);
+
+  if (partes.length === 0) return "";
+  // Mayúscula al principio y punto al final: es una frase, no una lista de datos.
+  const frase = partes.join(" · ");
+  return frase.charAt(0).toUpperCase() + frase.slice(1) + ".";
+};
+
 const fecha = (d) =>
   d
     ? new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-export default function MomentsDiary() {
+export default function MomentsDiary({ probados = 0 }) {
   const navigate = useNavigate();
   const [moments, setMoments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +94,50 @@ export default function MomentsDiary() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Sin momentos y sin fallo no se ocupa lugar: el perfil de alguien que todavía
-  // no registró ninguno no necesita una tarjeta vacía explicando qué se pierde.
-  if (!loading && !failed && moments.length === 0) return null;
+  /**
+   * ── EL VACÍO QUE SÍ VALE LA PENA MOSTRAR ──────────────────────────────────
+   *
+   * Acá no se mostraba nada con cero momentos, y el razonamiento era bueno para
+   * un perfil recién creado: nadie necesita una tarjeta vacía explicándole lo
+   * que se está perdiendo.
+   *
+   * Pero deja afuera a la persona para la que esto importa más: la que YA tomó
+   * vinos —los tiene marcados como probados— y nunca escribió un momento, casi
+   * seguro porque no sabe que puede. El diario es lo que distingue a Rincones de
+   * una planilla de inventario, y era invisible hasta que alguien lo usaba por
+   * primera vez: el clásico caso de una función que sólo descubre quien ya la
+   * conocía.
+   *
+   * Así que el vacío aparece sólo ahí: con botellas probadas y sin una sola
+   * anotación. Sin vinos probados sigue sin ocupar lugar, como antes.
+   */
+  if (!loading && !failed && moments.length === 0) {
+    if (probados === 0) return null;
+
+    return (
+      <section className="diary" aria-label="Tu diario de momentos">
+        <div className="diary__head">
+          <h3 className="diary__title">
+            <Icon name="calendar" size={16} /> Tu diario
+            <span className="diary__private" title="Nadie más puede verlos">
+              <Icon name="lock" size={11} /> Sólo vos
+            </span>
+          </h3>
+        </div>
+        <p className="diary__invite">
+          Ya probaste {probados === 1 ? "un vino" : `${probados} vinos`}, pero todavía no
+          escribiste ninguna noche. Cuando abrís una botella podés anotar con quién estabas,
+          dónde y qué comieron — y eso queda para siempre, sólo para vos.
+        </p>
+        <button type="button" className="diary__more" onClick={() => navigate("/bodega?filter=probados")}>
+          Empezar por un vino que ya tomaste <Icon name="arrow-right" size={15} />
+        </button>
+      </section>
+    );
+  }
 
   const visibles = verTodos ? moments : moments.slice(0, MAX_VISIBLES);
+  const resumen = resumirMomentos(moments);
 
   return (
     <section className="diary" aria-label="Tu diario de momentos">
@@ -74,6 +157,22 @@ export default function MomentsDiary() {
 
       {failed && !loading && (
         <ErrorState title="No se pudo cargar tu diario" onRetry={load} compact />
+      )}
+
+      {!loading && !failed && resumen && (
+        /**
+         * ── UNA LECTURA DE CONJUNTO, NO SÓLO LA PILA ──────────────────────────
+         *
+         * El diario era una lista cronológica y nada más: para saber "¿cuánto
+         * tomé este año?" o "¿con quién?" había que contar a ojo, que es
+         * exactamente lo que una lista no puede contestar. Estas tres frases
+         * salen de los momentos que YA están cargados —no hay una consulta más—
+         * y son las tres preguntas que uno le hace a un diario cuando lo abre.
+         *
+         * Se muestran recién con tres momentos: con uno o dos, "tu ocasión más
+         * frecuente" describe una casualidad, no una costumbre.
+         */
+        <p className="diary__resumen">{resumen}</p>
       )}
 
       {!loading && !failed && (

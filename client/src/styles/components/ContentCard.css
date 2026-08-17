@@ -99,7 +99,7 @@
 .ccard__adtag {
   padding: 2px 7px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   font-size: var(--text-2xs);
   font-weight: 800;
@@ -149,7 +149,7 @@
   flex-shrink: 0;
   padding: 2px 7px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   font-weight: 700;
   color: var(--text-muted);

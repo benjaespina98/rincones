@@ -5,10 +5,24 @@
   padding: 8px 16px 32px;
 }
 
+/* Desktop: una columna con tope, igual que el perfil y el Sommelier. Sin esto,
+   el segmentado de dos opciones —"Todos" y "Favoritos"— se estiraba a 1200px de
+   ancho para dos palabras. */
+@media (min-width: 768px) {
+  .guardados-page {
+    max-width: 820px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
 .guardados-header h1 {
   margin: 0;
   font-family: var(--font-family-serif);
-  font-size: 1.7rem;
+  /* Mismo escalón que el título de Sommelier y el nombre del vino en la ficha:
+     son los tres encabezados de pantalla y se veían en tres tamaños distintos
+     (1.7 / 1.55 / 1.55rem) por haberse escrito cada uno por su lado. */
+  font-size: var(--text-3xl);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -124,7 +138,7 @@
 }
 
 .guardados-fav.is-active {
-  color: #ff6ea0;
+  color: var(--favorite);
   border-color: rgba(255, 110, 160, 0.4);
   background: rgba(255, 110, 160, 0.12);
 }

@@ -7,9 +7,21 @@ import "../styles/components/ConceptTerm.css";
  * Una palabra que se puede tocar para saber qué significa.
  *
  * Envuelve un rótulo que YA está en pantalla —"Taninos", "Servila a 16-18 °C"—
- * y lo vuelve tocable. No agrega renglones, ni íconos de ayuda, ni una sección
- * nueva: lo único que cambia es un punteado tenue abajo, como una palabra con
- * definición.
+ * y lo vuelve tocable. No agrega renglones ni una sección nueva: sigue siendo la
+ * misma palabra, en su lugar.
+ *
+ * ── POR QUÉ YA NO ES UN PUNTEADO ────────────────────────────────────────────
+ * Era un subrayado de puntitos, y el subrayado punteado significa muchas cosas
+ * distintas según dónde lo veas —una nota al pie, un error de ortografía, una
+ * decoración— pero "tocá acá" no es una de ellas. La marca estaba, y aun así
+ * había que descubrir por accidente que esas palabras hacían algo.
+ *
+ * Ahora son dos señales juntas: la palabra subrayada en el color de acento (no
+ * punteada: entera y fina, como un enlace) y una "i" chiquita en un círculo, que
+ * es el símbolo universal de "acá hay una explicación". Sigue sin ser un botón
+ * con fondo y borde —habría uno al lado de cada rótulo de la ficha y la pantalla
+ * se llenaría de controles para leer una definición— pero deja de depender de
+ * que alguien adivine.
  *
  * La explicación la muestra `ConceptSheet`, en la misma hoja que la receta y
  * los filtros: leés, cerrás y seguís donde estabas. Acá quedó sólo el
@@ -47,7 +59,13 @@ export default function ConceptTerm({ id, ctx, children, className = "" }) {
         }}
         aria-label={`Qué es: ${concepto.title}`}
       >
-        {children}
+        {/* El texto va en su propio span para que el subrayado sea SUYO y no
+            pase por debajo de la "i": una línea que atraviesa el círculo lo
+            convierte en una mancha. */}
+        <span className="concept-term__text">{children}</span>
+        <span className="concept-term__mark" aria-hidden="true">
+          i
+        </span>
       </button>
 
       {abierto && <ConceptSheet id={id} ctx={ctx} onClose={() => setAbierto(false)} />}

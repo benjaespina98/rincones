@@ -3,9 +3,11 @@
 // Si no hay GEMINI_API_KEY, no está configurado y el controlador cae al OCR.
 
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
-const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
+const { FIELD_CONVENTION, composeDisplayName, canonicalGrape } = require("../data/wineIdentity");
 const { canonicalVarietal, checkCoherence } = require("../data/wineValidation");
 const { expandAbbreviation } = require("../data/grapes");
+const { esGenerico } = require("../data/wineMatching");
+const { fold } = require("../data/argentineWines");
 
 const TIMEOUT_MS = 12000;
 // Tope total de la llamada. El cliente aborta a los 30s: el server tiene que
@@ -127,6 +129,43 @@ const clampConfidence = (raw, values) => {
 };
 
 /**
+ * ── "RESERVA" NO ES EL NOMBRE DE NINGÚN VINO ────────────────────────────────
+ *
+ * El prompt lo pide, pero es la instrucción que el modelo desobedece más seguido,
+ * y por un motivo entendible: en la etiqueta "RESERVA" suele estar impreso más
+ * grande que la línea. Cuando eso pasa, el nombre propio queda con una palabra
+ * que comparten cientos de botellas de decenas de bodegas, y desde ahí se
+ * propaga a todo: es el nombre visible del vino, es el "core" con el que se
+ * busca en el catálogo, y es lo que termina guardado.
+ *
+ * Es verificable sin mirar la foto —la palabra o es una categoría o no lo es—
+ * así que se arregla acá en vez de confiar en que el modelo se acuerde:
+ *
+ *   · una categoría ("Reserva", "Roble", "Cosecha Tardía") es la LÍNEA: se pasa
+ *     ahí si la línea está vacía, y si ya hay línea se descarta —el modelo
+ *     partió en dos lo que era un solo dato—;
+ *   · la uva no es un nombre: "Malbec" como nombre propio se descarta;
+ *   · un nombre propio idéntico a la línea es la misma palabra escrita dos veces.
+ *
+ * Lo que NO se toca es la línea: una etiqueta que sólo dice bodega y uva deja el
+ * vino sin nombre, y ese caso ya tiene su aviso ("sin-nombre") en la revisión.
+ */
+const ubicarNombrePropio = (values) => {
+  const propio = values.name;
+  if (!propio) return values;
+
+  const esLaUva = fold(canonicalGrape(propio)) === fold(canonicalGrape(values.varietal || ""));
+  const esLaLinea = values.line && fold(propio) === fold(values.line);
+
+  if (esGenerico(propio) && !esLaUva) {
+    return { ...values, name: "", line: values.line || propio };
+  }
+  if (esLaUva || esLaLinea) return { ...values, name: "" };
+
+  return values;
+};
+
+/**
  * Analiza el buffer de imagen con Gemini y devuelve los datos de la etiqueta.
  * Lanza si falla (el controlador lo captura y cae al OCR).
  */
@@ -155,7 +194,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   // modelo, guardada tal cual y mostrada en la ficha y en la búsqueda.
   const uva = canonicalVarietal(expandAbbreviation(parsed.varietal));
 
-  const values = {
+  const values = ubicarNombrePropio({
     winery: String(parsed.winery || "").trim(),
     line: String(parsed.line || "").trim(),
     name: String(parsed.name || "").trim(),
@@ -163,7 +202,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
     vintage: normalizeVintage(parsed.vintage),
     region: String(parsed.region || "").trim(),
     type: String(parsed.type || "unknown").trim() || "unknown",
-  };
+  });
 
   const confidence = clampConfidence(parsed.confidence, values);
 
