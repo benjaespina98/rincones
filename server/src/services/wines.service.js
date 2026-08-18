@@ -96,8 +96,27 @@ const toWineStatus = ({ tasted, quantity, status }) => {
 // un documento completo por vino —getters, setters, tracking de cambios— para
 // tirarlo a la basura apenas se serializa. Es más notorio acá que en el resto:
 // es la pantalla que se abre más seguido (toda la bodega, de entrada).
+/**
+ * Lo que NO viaja en la lista de la bodega.
+ *
+ * `description` es la ficha generada con IA: el resumen, el cuerpo, los aromas,
+ * la estructura, los maridajes, el "¿sabías que?" y los vinos parecidos. Es lo
+ * más pesado que guarda un vino —del orden de un kilobyte por botella— y en Mi
+ * Bodega no se lee NUNCA: la fila muestra nombre, uva, año, bodega, stock y
+ * puntaje, y la ficha completa la trae aparte `getWineById`, que sí la manda.
+ *
+ * Con sesenta vinos eso es medio megabyte de JSON que se descarga, se parsea y
+ * se tira, en la pantalla que más se abre y en el teléfono de alguien que quizá
+ * está con datos móviles. `rawText` sale por lo mismo desde antes.
+ */
+const FUERA_DE_LA_LISTA = "-rawText -description";
+
+// `.lean()`: esta lista va derecho a `res.json`, nadie llama `.save()` sobre lo
+// que devuelve (ver controllers/wines.controller.js). Sin lean, Mongoose arma
+// un documento completo por vino —getters, setters, tracking de cambios— para
+// tirarlo a la basura apenas se serializa.
 async function listWines(userId) {
-  return Wine.find({ userId }).sort({ createdAt: -1 }).select("-rawText").lean();
+  return Wine.find({ userId }).sort({ createdAt: -1 }).select(FUERA_DE_LA_LISTA).lean();
 }
 
 /**
@@ -126,7 +145,8 @@ async function searchWines(userId, query) {
     $and: terms.map((t) => ({ $or: campos(new RegExp(escapeRegex(t), "i")) })),
   })
     .sort({ createdAt: -1 })
-    .select("-rawText")
+    // Misma lista y mismo consumidor que `listWines`: mismo recorte.
+    .select(FUERA_DE_LA_LISTA)
     .lean();
 }
 

@@ -43,6 +43,46 @@ const AdminActivityPage = lazy(() => import("./pages/AdminActivityPage"));
 // marca, no un spinner suelto sin contexto.
 const RouteFallback = () => <SplashScreen label="Un momento" />;
 
+/**
+ * ── EL ARRANQUE ERA UNA FILA INDIA DE TRES ESPERAS ──────────────────────────
+ *
+ * Abrir la app hacía esto, una cosa después de la otra:
+ *
+ *   1. bajar el bundle y montar React
+ *   2. preguntar `/auth/me` — mirando el splash, con la red QUIETA
+ *   3. recién ahí, con la sesión resuelta, empezar a bajar el chunk de la
+ *      pantalla (Descubrí o Mi Bodega, que son lazy)
+ *   4. y recién ahí pedir los datos
+ *
+ * El paso 3 no depende del 2: la pantalla a la que vas a entrar es la misma
+ * tengas sesión o no la tengas —si no la tenés, vas al login, que también es un
+ * chunk—. Así que ese tiempo muerto del paso 2 se usa para ir bajando lo que se
+ * va a necesitar sí o sí.
+ *
+ * Se piden las tres puertas de entrada reales y nada más: Descubrí (la home),
+ * Mi Bodega (la que más se usa) y el login (adonde va quien no tenga sesión).
+ * Bajar las trece pantallas sería pelearle ancho de banda a la que hace falta
+ * ahora, que es justo lo contrario de lo que se busca.
+ *
+ * Va con `requestIdleCallback` para que ni siquiera compita con el primer
+ * pintado: primero se ve algo, después se adelanta trabajo.
+ */
+const adelantarPantallas = () => {
+  const traer = () => {
+    import("./pages/DiscoverPage");
+    import("./pages/BodyPage");
+    import("./pages/LoginPage");
+  };
+  if (typeof window === "undefined") return undefined;
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(traer, { timeout: 1500 });
+    return () => window.cancelIdleCallback?.(id);
+  }
+  // Safari todavía no tiene requestIdleCallback.
+  const id = setTimeout(traer, 200);
+  return () => clearTimeout(id);
+};
+
 const withLayout = (title, element) => (
   <PrivateRoute>
     <AppGate>
@@ -61,6 +101,9 @@ function App() {
   // se le informan a un anunciante, así que no pueden depender de que la visita
   // haya durado lo suficiente.
   useEffect(() => initPromoTracking(), []);
+  // Ver `adelantarPantallas`: el chunk de la pantalla baja mientras se resuelve
+  // la sesión, en vez de esperar a que termine para recién empezar.
+  useEffect(() => adelantarPantallas(), []);
 
   return (
     <Suspense fallback={<RouteFallback />}>
