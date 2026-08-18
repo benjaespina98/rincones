@@ -68,6 +68,43 @@
 
 .wine-opinion__star:hover:not(:disabled) { transform: scale(1.12); }
 
+/* La palabra de la escala. Comparte renglón con el "quitar" porque los dos
+   hablan de la puntuación que acabás de poner. */
+.wine-opinion__verdict {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -6px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.wine-opinion__verdict strong {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gold-soft);
+}
+
+/* Quitar la puntuación se hacía tocando de nuevo la misma estrella, sin que
+   nada lo dijera: o lo descubrías por accidente o borrabas tu reseña sin
+   querer. Ahora está escrito, y en voz baja, que es lo que corresponde a algo
+   que se usa una vez cada mil. */
+.wine-opinion__clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wine-opinion__clear:hover:not(:disabled) {
+  color: var(--danger-text);
+}
+
 .wine-opinion__add {
   align-self: flex-start;
   display: inline-flex;

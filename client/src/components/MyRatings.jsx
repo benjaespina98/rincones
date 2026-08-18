@@ -1,30 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
-import Icon from "./Icon";
 import StarRating from "./StarRating";
 import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
+import EmptyState from "./EmptyState";
 import { getMyReviews } from "../services/reviewApi";
 import "../styles/components/MyRatings.css";
 
 /**
- * Tus valoraciones, en tu perfil.
+ * La lista de lo que puntuaste.
  *
- * Puntuar era una acción sin memoria: la estrella quedaba en la ficha de esa
- * botella y en ningún lado tuyo. Para acordarte de cuánto le pusiste a algo
- * había que encontrar primero el vino —justo el dato que uno no recuerda— y el
- * promedio del perfil decía "4,2" sin poder mostrar de dónde salía.
+ * ── POR QUÉ YA NO VIVE ADENTRO DEL PERFIL ───────────────────────────────────
+ * Estaba abierta ahí, con cuatro valoraciones a la vista y un "ver las 23". El
+ * perfil ya trae la cabecera, la lista de cuenta, el nivel, cuatro tarjetas de
+ * estadísticas, el gasto y el diario: sumarle una lista que crece sin techo lo
+ * volvía una pantalla de scroll infinito donde nada se encuentra.
  *
- * A diferencia del diario, esto es PÚBLICO y lo dice: son las mismas reseñas
- * que ve cualquiera que busque ese vino.
+ * Es lo mismo que hacen las apps que tienen esto resuelto: en el perfil va un
+ * renglón que dice cuántas son, y la lista tiene su propia pantalla — donde
+ * podés quedarte a leerla sin tener seis secciones más alrededor.
+ *
+ * A diferencia del diario, esto es PÚBLICO: son las mismas reseñas que ve
+ * cualquiera que busque ese vino.
  */
-
-const VISIBLES = 4;
-
 export default function MyRatings() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [verTodas, setVerTodas] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,68 +41,45 @@ export default function MyRatings() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Sin valoraciones no se ocupa lugar: el perfil de alguien que todavía no
-  // puntuó nada no necesita una tarjeta explicando lo que le falta.
-  if (!loading && !failed && reviews.length === 0) return null;
+  if (loading) return <LoadingSkeleton type="inline" count={4} />;
 
-  const visibles = verTodas ? reviews : reviews.slice(0, VISIBLES);
+  if (failed) {
+    return <ErrorState title="No se pudieron cargar tus valoraciones" onRetry={load} compact />;
+  }
+
+  if (reviews.length === 0) {
+    return (
+      <EmptyState
+        icon="star"
+        title="Todavía no puntuaste ningún vino"
+        hint="Las estrellas están en la ficha de cada botella, arriba de tus momentos."
+      />
+    );
+  }
 
   return (
-    <section className="myrat" aria-label="Tus valoraciones">
-      <div className="myrat__head">
-        <h3><Icon name="star" size={15} /> Tus valoraciones</h3>
-        {/* El par del "Sólo vos" del diario: las dos secciones viven en el mismo
-            perfil y hacen falta las dos etiquetas para que se lean como opuestas
-            y no como una advertencia suelta. */}
-        <span className="myrat__public" title="Cualquiera las ve al buscar ese vino">
-          <Icon name="eye" size={12} /> Públicas
-        </span>
-      </div>
-
-      {loading && <LoadingSkeleton type="inline" count={2} />}
-
-      {failed && !loading && (
-        <ErrorState title="No se pudieron cargar tus valoraciones" onRetry={load} compact />
-      )}
-
-      {!loading && !failed && (
-        <>
-          <ul className="myrat__list">
-            {visibles.map((r) => (
-              <li key={r._id} className="myrat-item">
-                <div className="myrat-item__top">
-                  <span className="myrat-item__wine">
-                    <strong>{r.name}</strong>
-                    {/* Bodega y cosecha en el mismo renglón: sin la añada, dos
-                        valoraciones tuyas del mismo vino en años distintos se
-                        ven idénticas y no se sabe cuál es cuál. */}
-                    {(r.winery || r.vintage) && (
-                      <em>
-                        {r.winery}
-                        {r.winery && r.vintage ? " · " : ""}
-                        {r.vintage ? `cosecha ${r.vintage}` : ""}
-                      </em>
-                    )}
-                  </span>
-                  <StarRating value={r.rating} size="sm" />
-                </div>
-                {r.text && <p className="myrat-item__text">{r.text}</p>}
-              </li>
-            ))}
-          </ul>
-
-          {reviews.length > VISIBLES && (
-            <button
-              type="button"
-              className="myrat__more"
-              onClick={() => setVerTodas((v) => !v)}
-              aria-expanded={verTodas}
-            >
-              {verTodas ? "Ver menos" : `Ver las ${reviews.length}`}
-            </button>
-          )}
-        </>
-      )}
-    </section>
+    <ul className="myrat__list" aria-label="Tus valoraciones">
+      {reviews.map((r) => (
+        <li key={r._id} className="myrat-item">
+          <div className="myrat-item__top">
+            <span className="myrat-item__wine">
+              <strong>{r.name}</strong>
+              {/* Bodega y cosecha en el mismo renglón: sin la añada, dos
+                  valoraciones tuyas del mismo vino en años distintos se ven
+                  idénticas y no se sabe cuál es cuál. */}
+              {(r.winery || r.vintage) && (
+                <em>
+                  {r.winery}
+                  {r.winery && r.vintage ? " · " : ""}
+                  {r.vintage ? `cosecha ${r.vintage}` : ""}
+                </em>
+              )}
+            </span>
+            <StarRating value={r.rating} size="sm" showValue={false} />
+          </div>
+          {r.text && <p className="myrat-item__text">{r.text}</p>}
+        </li>
+      ))}
+    </ul>
   );
 }

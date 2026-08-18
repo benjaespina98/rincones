@@ -275,6 +275,36 @@
   transform: rotate(-90deg); /* chevron-down → apunta a la derecha */
 }
 
+/* ── La fila que lleva a una pantalla de contenido ─────────────────────────
+   Misma anatomía que las filas de cuenta, pero con caja propia y un subtítulo:
+   no es un ajuste, es una puerta a algo tuyo, y tiene que verse que hay algo
+   del otro lado. */
+.account-item--feature {
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  align-items: center;
+  min-height: 62px;
+}
+
+.account-item--feature .account-item__icon {
+  background: rgba(242, 183, 55, 0.14);
+  color: var(--gold-soft, #e8c468);
+}
+
+.account-item--feature .account-item__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.account-item--feature em {
+  font-style: normal;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .account-item--danger {
   color: #f0899d;
 }

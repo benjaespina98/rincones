@@ -15,6 +15,22 @@ import "./WineOpinion.css";
  * ese vino. El texto es opcional y aparece recién después de puntuar, para no
  * pedir de entrada un esfuerzo que la mayoría no va a hacer.
  */
+/**
+ * Qué querés decir con cada estrella.
+ *
+ * Cinco estrellas sin palabras obligan a inventarse la escala: para uno el 3 es
+ * "bueno" y para otro es "no me gustó". La palabra hace dos cosas a la vez —
+ * fija la escala y confirma que el toque entró, que en un pulgar apurado sobre
+ * cinco blancos pegados no es poca cosa.
+ */
+const VEREDICTOS = [
+  "No es para mí",
+  "Flojo",
+  "Está bien",
+  "Muy bueno",
+  "De los que se recuerdan",
+];
+
 export default function WineOpinion({ name, winery = "", varietal = "", vintage, onRated }) {
   const { showSuccess, showError } = useToast();
 
@@ -122,6 +138,30 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
           </button>
         ))}
       </div>
+
+      {/* La escala, en palabras. Sigue al dedo mientras elegís (por eso mira a
+          `shown` y no a `rating`) y con cero estrellas dice qué hacer, que era
+          lo único que faltaba para que la fila de estrellas se entienda sin
+          probar. */}
+      <p className="wine-opinion__verdict">
+        {shown > 0 ? (
+          <>
+            <strong>{VEREDICTOS[shown - 1]}</strong>
+            {rating > 0 && (
+              <button
+                type="button"
+                className="wine-opinion__clear"
+                onClick={() => rate(rating)}
+                disabled={saving}
+              >
+                Quitar mi puntuación
+              </button>
+            )}
+          </>
+        ) : (
+          "Tocá una estrella para puntuarlo"
+        )}
+      </p>
 
       {/* La reseña escrita sólo se ofrece una vez que puntuó: pedirla antes es
           pedir un esfuerzo grande a alguien que todavía no se comprometió. */}

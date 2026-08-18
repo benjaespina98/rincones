@@ -26,6 +26,7 @@ const BodyPage = lazy(() => import("./pages/BodyPage"));
 const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
 const ScanWinePage = lazy(() => import("./pages/ScanWinePage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const RatingsPage = lazy(() => import("./pages/RatingsPage"));
 const WineDetailPage = lazy(() => import("./pages/WineDetailPage"));
 const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
 const GuardadosPage = lazy(() => import("./pages/GuardadosPage"));
@@ -134,6 +135,9 @@ function App() {
         <Route path="/descubrir" element={<Navigate to="/agregar" replace />} />
 
         <Route path="/perfil" element={withLayout("Perfil", <ProfilePage />)} />
+        {/* Tus valoraciones tienen pantalla propia y no una sección más adentro
+            del perfil: son una lista que crece sin techo. Ver RatingsPage. */}
+        <Route path="/valoraciones" element={withLayout("Valoraciones", <RatingsPage />)} />
         <Route path="/vino/:id" element={withLayout("Vino", <WineDetailPage />)} />
         <Route path="/descubrir/vino" element={withLayout("Vino", <CatalogWinePage />)} />
 
