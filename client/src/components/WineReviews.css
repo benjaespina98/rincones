@@ -28,15 +28,89 @@
   color: var(--accent-soft);
 }
 
-.wine-reviews__summary {
-  display: inline-flex;
+/* ── El puntaje de la comunidad ────────────────────────────────────────────
+   Dos columnas: el número con sus estrellas a la izquierda, el reparto por
+   estrella a la derecha. En un teléfono angosto el reparto baja abajo, que es
+   el orden correcto de importancia. */
+.wine-score {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 
-.wine-reviews__count {
-  font-size: var(--text-xs);
+.wine-score__main {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 92px;
+}
+
+.wine-score__avg {
+  font-family: var(--font-family-serif);
+  font-size: 2.1rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wine-score__count {
+  font-size: var(--text-2xs);
   color: var(--text-muted);
+  text-align: center;
+}
+
+/* El reparto. Barras finas y en el dorado de las estrellas: es el mismo dato
+   contado de otra manera, no una estadística aparte. */
+.wine-score__bars {
+  flex: 1;
+  min-width: 150px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.wine-score__bars li {
+  display: grid;
+  grid-template-columns: 26px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+}
+
+.wine-score__star {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wine-score__bar {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.wine-score__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--gold);
+  transition: width var(--transition-smooth);
+}
+
+.wine-score__n {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .wine-reviews__empty {

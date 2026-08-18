@@ -539,9 +539,13 @@ export default function DiscoverPage() {
                   rutina"), justo cuando MÁS falta hace una razón. Ahora el salto
                   se nombra —de qué uva a cuál— y si el set no daba para saltar,
                   se cae al motivo de siempre en vez de inventar uno. */}
+              {/* "Algo distinto" nombraba la mecánica del botón (te di otra
+                  cosa), no lo que estás mirando. "Te sirvo otra" es lo que dice
+                  alguien que está del otro lado de la barra, y es además lo que
+                  el botón promete con esas mismas palabras. */}
               <span className="spotlight__eyebrow">
                 <Icon name={surprised ? "compass" : "sparkle"} size={12} />
-                {surprised ? "Algo distinto" : "Hoy te recomiendo"}
+                {surprised ? "Te sirvo otra" : "Hoy te recomiendo"}
               </span>
               <span className="spotlight__kicker">
                 {(surprised && razonDelSalto(saltoDesde, spotlight)) ||
@@ -579,9 +583,14 @@ export default function DiscoverPage() {
                 lo que hace: llevarte a otro lado. Se esconde si no hay a dónde
                 ir — ofrecer otra botella cuando no hay otra es prometer algo que
                 no va a pasar. */}
+            {/* "Mostrame otra" era una orden a un catálogo: pedía otra ficha.
+                Lo que de verdad pasa del otro lado es que alguien te sirve otra
+                copa y te cuenta por qué — que es lo que dice ahora el motivo
+                (ver razonDelSalto). El botón y la frase tienen que hablar el
+                mismo idioma. */}
             {featured.length > 1 && (
               <button type="button" className="spotlight__surprise" onClick={mostrarOtra}>
-                <Icon name="compass" size={15} /> Mostrame otra
+                <Icon name="compass" size={15} /> Servime otra
               </button>
             )}
           </div>

@@ -396,9 +396,14 @@ wineSchema.statics.getUserStats = async function (userId) {
         // Sólo los puntuados. Promediando TODOS, cada vino sin puntuar entraba
         // como un cero: con 62 vinos y 20 puntuados el promedio daba 1.0, un
         // número que no describe a nadie.
+        // El `count` viaja al lado del promedio y sale de la misma etapa que ya
+        // corría: es cuántos vinos puntuaste, que es lo que necesita el perfil
+        // para decir "23 vinos puntuados" en la fila de valoraciones. Sin esto
+        // había que pedir la lista entera de reseñas —con sus textos— sólo para
+        // contar cuántas son.
         avgRating: [
           { $match: { rating: { $gt: 0 } } },
-          { $group: { _id: null, avgRating: { $avg: "$rating" } } },
+          { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } },
         ],
         /**
          * Tres datos que no salían de ningún lado y que el contenido educativo
@@ -467,6 +472,7 @@ wineSchema.statics.getUserStats = async function (userId) {
     topVarietals: (out.topVarietals || []).map((r) => ({ varietal: r._id, count: r.count })),
     topRegions: (out.topRegions || []).map((r) => ({ region: r._id, count: r.count })),
     avgRating: out.avgRating && out.avgRating[0] ? Number((out.avgRating[0].avgRating || 0).toFixed(2)) : 0,
+    ratedCount: (out.avgRating && out.avgRating[0]?.count) || 0,
     totals: out.totals && out.totals[0] ? out.totals[0] : { total: 0, stock: 0, bottles: 0, consumed: 0 },
     // Los tres de arriba, ya en la forma que consume el contenido educativo.
     // Siempre presentes y en cero cuando no hay datos: quien los lee no tiene

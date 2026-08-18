@@ -13,6 +13,9 @@ import "./WineReviews.css";
  * separadas evita los dos widgets de estrellas que antes convivían en la misma
  * pantalla y hacían puntuar dos veces lo mismo.
  */
+/** Desde cuántas opiniones el desglose por estrella dice algo. */
+const MINIMO_PARA_DESGLOSE = 3;
+
 export default function WineReviews({ name, winery = "", varietal = "" }) {
 
   const [state, setState] = useState({ summary: null, mine: null, reviews: [] });
@@ -51,17 +54,54 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
           Arriba, en "Tu opinión", está la tuya y sólo la tuya. */}
       <div className="wine-reviews__head">
         <h3><Icon name="chat" size={16} /> Opiniones de la comunidad</h3>
-        {state.summary && (
-          <div className="wine-reviews__summary">
-            {/* StarRating ya imprime el número, no lo repetimos al lado. */}
-            <StarRating value={state.summary.avg} size="sm" />
-            <span className="wine-reviews__count">
+      </div>
+
+      {/* ── EL PUNTAJE, COMO UN PUNTAJE ────────────────────────────────────
+          Era un renglón: cinco estrellas chiquitas y "12 opiniones" en gris, al
+          costado del título. La valoración es lo primero que se mira de un vino
+          que no conocés y estaba dicha en letra de pie de página.
+
+          Ahora el número manda —grande, con las estrellas debajo— y al lado va
+          el reparto: cuántos le pusieron 5, cuántos 4, cuántos 1. Un 3.5 de
+          gente que puso 3 y 4 no es el mismo vino que un 3.5 de gente que puso
+          5 y 1, y hasta ahora los dos se veían igual. */}
+      {state.summary && (
+        <div className="wine-score">
+          <div className="wine-score__main">
+            <strong className="wine-score__avg">
+              {state.summary.avg.toLocaleString("es-AR", { minimumFractionDigits: 1 })}
+            </strong>
+            {/* El número ya está dicho en grande al lado: las estrellas acá
+                sirven para leerlo de un vistazo, no para repetirlo. */}
+            <StarRating value={state.summary.avg} size="lg" showValue={false} />
+            <span className="wine-score__count">
               {state.summary.count} {state.summary.count === 1 ? "opinión" : "opiniones"}
               {state.mine && " · incluida la tuya"}
             </span>
           </div>
-        )}
-      </div>
+
+          {/* Con menos de tres opiniones el desglose no dice nada que el
+              promedio no diga: son una o dos barras solas y ocupan lugar para
+              informar de menos. */}
+          {state.summary.dist && state.summary.count >= MINIMO_PARA_DESGLOSE && (
+            <ul className="wine-score__bars">
+              {[5, 4, 3, 2, 1].map((estrellas) => {
+                const n = state.summary.dist[estrellas - 1] || 0;
+                const pct = Math.round((n / state.summary.count) * 100);
+                return (
+                  <li key={estrellas}>
+                    <span className="wine-score__star">{estrellas}★</span>
+                    <span className="wine-score__bar" aria-hidden="true">
+                      <span style={{ width: `${pct}%` }} />
+                    </span>
+                    <span className="wine-score__n">{n}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
 
       {loading && <LoadingSkeleton type="inline" count={2} />}
 

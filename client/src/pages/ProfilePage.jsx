@@ -16,7 +16,7 @@ import PasswordEditor from "../components/PasswordEditor";
 import TypeSplit from "../components/TypeSplit";
 import TopRanking from "../components/TopRanking";
 import MomentsDiary from "../components/MomentsDiary";
-import MyRatings from "../components/MyRatings";
+
 import ConfirmModal from "../components/ConfirmModal";
 import "../styles/pages/ProfilePage.css";
 
@@ -331,12 +331,30 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {/* Lo que registraste, en dos secciones: las valoraciones (públicas) y el
-          diario (privado). Van después de las estadísticas porque se leen de
-          otra manera —una por una, sin apuro— y porque crecen sin techo,
-          mientras que lo de arriba mide siempre lo mismo. Las dos se esconden
-          solas si están vacías. */}
-      <MyRatings />
+      {/* ── LAS VALORACIONES SON UNA PUERTA, NO UNA SECCIÓN ────────────────
+          Acá estaba la lista abierta: cuatro valoraciones y un "ver las 23".
+          Sumada a la cabecera, la lista de cuenta, el nivel, las estadísticas,
+          el gasto y el diario, el perfil era una pantalla de scroll sin fondo
+          donde nada se encontraba dos veces seguidas.
+
+          Ahora es un renglón que dice cuántas son y las lleva a su propia
+          pantalla, que es como lo resuelven las apps que ya pasaron por esto.
+          El renglón se esconde solo si no puntuaste nada: una puerta a una
+          habitación vacía es peor que ninguna puerta. */}
+      {(wineStats?.ratedCount || 0) > 0 && (
+        <button
+          type="button"
+          className="account-item account-item--feature"
+          onClick={() => navigate("/valoraciones")}
+        >
+          <span className="account-item__icon"><Icon name="star" size={18} /></span>
+          <span className="account-item__label">
+            Tus valoraciones
+            <em>{wineStats.ratedCount} {wineStats.ratedCount === 1 ? "vino puntuado" : "vinos puntuados"} · públicas</em>
+          </span>
+          <Icon name="arrow-right" size={16} className="account-item__chevron" />
+        </button>
+      )}
       {/* Cuántos vinos probaste: es lo que decide si el diario vacío se muestra
           como invitación o no se muestra en absoluto. Ver MomentsDiary. */}
       <MomentsDiary probados={wineStats?.totals?.consumed || 0} />

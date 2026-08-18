@@ -1,0 +1,65 @@
+/* ══ Tus valoraciones, pantalla completa ═══════════════════════════════════
+   Una lista y nada más. Todo lo que no sea una valoración tuya sobra acá: el
+   promedio, el nivel y las estadísticas se quedaron en el perfil, que es de
+   donde venís y adonde volvés con el botón de arriba.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ratings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px var(--page-pad-x) 20px;
+}
+
+/* La vuelta explícita y arriba de todo. Se llega desde el perfil y sólo desde
+   ahí: sin esta fila, salir depende del botón del sistema, que en una app
+   instalada no siempre está a la vista. */
+.ratings-page__back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ratings-page__back:hover {
+  color: var(--text);
+}
+
+.ratings-page__head h1 {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Que son públicas se dice una vez, acá, y no en cada ficha de la lista. */
+.ratings-page__head p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.ratings-page__head .icon {
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .ratings-page {
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}

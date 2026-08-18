@@ -135,13 +135,34 @@ const listReviews = async (name, winery, userId, limit = 20, varietal = "") => {
       .limit(limit)
       .lean();
 
-    const all = await WineReview.aggregate([
+    /**
+     * El promedio, cuántas son y cuántas hay de cada puntaje.
+     *
+     * Antes esto agrupaba por `key` y devolvía sólo avg y count. Agrupar por
+     * RATING da las tres cosas de una: el reparto es el resultado de la
+     * consulta, y el promedio y el total salen de sumarlo. Es la misma ida a la
+     * base que ya se hacía —no una más— y con eso la ficha puede mostrar el
+     * desglose, que es lo que separa "4.3 de 12 opiniones" de saber si esas 12
+     * están de acuerdo o si son seis que lo aman y seis que lo odian.
+     */
+    const porPuntaje = await WineReview.aggregate([
       { $match: { key } },
-      { $group: { _id: "$key", avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+      { $group: { _id: "$rating", n: { $sum: 1 } } },
     ]);
 
-    const agg = all[0];
-    const summary = agg ? { avg: Math.round(agg.avg * 10) / 10, count: agg.count } : null;
+    // `dist[0]` son las de 1 estrella y `dist[4]` las de 5.
+    const dist = [0, 0, 0, 0, 0];
+    let total = 0;
+    let suma = 0;
+    for (const fila of porPuntaje) {
+      const estrellas = Math.round(Number(fila._id));
+      if (estrellas < 1 || estrellas > 5) continue;
+      dist[estrellas - 1] = fila.n;
+      total += fila.n;
+      suma += estrellas * fila.n;
+    }
+
+    const summary = total > 0 ? { avg: Math.round((suma / total) * 10) / 10, count: total, dist } : null;
 
     await conNombresActuales(docs);
 
