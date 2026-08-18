@@ -235,3 +235,139 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* ══ Cámara viva ═════════════════════════════════════════════════════════
+   El video ocupa el visor entero y el recuadro se dibuja ENCIMA, con el mismo
+   dibujo de esquinas que el modo de archivo — es el mismo lenguaje visual, sólo
+   que ahora está sobre lo que la cámara está viendo en este instante y no sobre
+   un rectángulo vacío antes de sacar la foto. */
+.label-scanner--viva {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Altura explícita en vez de heredar un `flex: 1` de un padre que no la
+   garantiza (el contenedor de la página es un `grid` de alto natural, no un
+   flex a pantalla completa). `dvh` y no `vh`: en el navegador móvil `vh`
+   incluye la barra de direcciones y el visor queda tapado a medias por la
+   barra de disparo. */
+.label-scanner__viewport {
+  position: relative;
+  height: min(60vh, 60dvh, 480px);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: #000;
+}
+
+.label-scanner__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* El marco de esquinas reutiliza `.label-scanner__frame-corner`, pero acá no
+   tiene aspect-ratio ni fondo propio: es un overlay transparente que cubre casi
+   todo el visor, dejando margen a los costados para que el recuadro no toque
+   el borde de la pantalla. */
+.label-scanner__frame--overlay {
+  position: absolute;
+  inset: 8% 10%;
+  aspect-ratio: auto;
+  background: none;
+  border: none;
+}
+
+.label-scanner__viva-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(8, 10, 18, 0.6);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La barra de disparo: galería a la izquierda, el botón grande al centro,
+   cancelar a la derecha — la misma anatomía que cualquier app de cámara, que es
+   justamente el punto: no hay que aprender una interfaz nueva para algo que
+   todo el mundo ya sabe usar. */
+.label-scanner__viva-bar {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 4px 0;
+}
+
+.label-scanner__viva-secondary {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.label-scanner__viva-secondary:active {
+  transform: scale(0.94);
+}
+
+.label-scanner__shutter {
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  padding: 0;
+}
+
+.label-scanner__shutter:active .label-scanner__shutter-ring {
+  transform: scale(0.85);
+}
+
+.label-scanner__shutter-ring {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition-fast);
+}
+
+.label-scanner__manual-link {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.label-scanner__spinner--lg {
+  width: 30px;
+  height: 30px;
+  border-width: 3px;
+}
