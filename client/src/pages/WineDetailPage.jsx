@@ -603,10 +603,23 @@ export default function WineDetailPage() {
                   <Icon name="plus" size={17} />
                   Ahora lo tengo: sumarlo a mi bodega
                 </button>
-              ) : (
-                <>
+              ) : null}
+
+              {/* ── STOCK Y ESTADOS, EN UN RENGLÓN ────────────────────────────
+                  Eran tres bloques apilados —el stepper con su rótulo, una
+                  aclaración de dos líneas debajo, y los chips en una fila
+                  aparte— o sea cinco renglones para tres controles que se tocan
+                  de a uno. Ahora comparten fila y la aclaración se fusionó con
+                  el rótulo: "Ajustá tu stock · no marca que la tomaste" dice lo
+                  mismo en una línea, y el detalle completo sigue en los
+                  aria-label de cada botón, que es donde hace falta de verdad.
+
+                  Los chips son los mismos que en la bodega: mismo texto, mismo
+                  color, mismo comportamiento. La misma acción con dos caras
+                  obliga a aprender la app dos veces. */}
+              <div className="wine-detail-row">
+                {!noEsTuyo && (
                   <div className="wine-qty-controls" role="group" aria-label="Ajustar tu stock">
-                    <span className="wine-qty-controls__label" aria-hidden="true">Ajustá tu stock</span>
                     <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
                       <Icon name="minus" size={16} />
                     </button>
@@ -619,17 +632,8 @@ export default function WineDetailPage() {
                       <Icon name="plus" size={16} />
                     </button>
                   </div>
+                )}
 
-                  <p className="wine-detail-actions__note">
-                    El más y el menos corrigen tu stock. No marcan el vino como tomado.
-                  </p>
-                </>
-              )}
-
-              {/* Los mismos chips que en la bodega: mismo texto, mismo color,
-                  mismo comportamiento. La misma acción con dos caras obliga a
-                  aprender la app dos veces. */}
-              <div className="wine-detail-toggles">
                 <button
                   type="button"
                   className={`toggle-chip ${wine.tasted ? "is-on" : ""}`}
@@ -653,6 +657,12 @@ export default function WineDetailPage() {
                   Favorito
                 </button>
               </div>
+
+              {!noEsTuyo && (
+                <p className="wine-detail-actions__note">
+                  Ajustá tu stock con − y +. No marcan el vino como tomado.
+                </p>
+              )}
             </div>
 
             {/* ── QUÉ ES ESTE VINO, ANTES QUE QUÉ HACER CON ÉL ────────────────
@@ -674,6 +684,37 @@ export default function WineDetailPage() {
               onRetry={() => loadDescription(true)}
               wine={wine}
             />
+
+            {/* ── QUÉ HACER CON ELLA: TEMPERATURA, MÚSICA Y UN PLATO ──────────
+                Pegado a la descripción, porque son la misma pregunta en dos
+                tiempos: qué es este vino y qué hacés con eso. Vivía cinco
+                bloques más abajo, del otro lado de tu puntuación, tus notas y
+                los datos de compra — o sea que para pasar de "es un tinto
+                tánico" a "servila a 16-18 °C" había que cruzar media ficha de
+                cosas tuyas que no tenían nada que ver.
+
+                Sigue costando cero: la temperatura sale de la ficha ya cargada y
+                la playlist de una lista fija; sólo la receta llama al server, y
+                sólo si la pedís.
+
+                Se muestra siempre, también sin stock: el plan es de la noche, no
+                del inventario. Una botella que se terminó es una que vas a
+                reponer, y saber qué cocinar con ella es parte de decidirlo. */}
+            <WinePlan wine={wine} info={aiInfo} />
+
+            {/* ── LO TUYO ────────────────────────────────────────────────────
+                Lo que puntuaste, escribiste y viviste con esta botella.
+
+                La ficha son once bloques y hasta ahora todos pesaban igual: la
+                misma caja, el mismo borde, el mismo aire entre uno y otro. Para
+                encontrar tus momentos había que leerlos todos —y tus momentos
+                son lo único de esta pantalla que no existe en ninguna otra app.
+
+                Tres zonas en vez de once cajas: el vino (arriba), lo tuyo (acá)
+                y lo de afuera (al final). El rótulo va en voz baja a propósito:
+                no es un título que compita con los de los bloques, es un cartel
+                de calle para saber en qué parte de la ficha estás. */}
+            <h2 className="wine-zone">Lo tuyo</h2>
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
@@ -739,75 +780,9 @@ export default function WineDetailPage() {
               </div>
             )}
 
-            {/* ── QUÉ HACER CON ELLA: TEMPERATURA, MÚSICA Y UN PLATO ──────────
-                Bajó de segundo a acá, y el motivo es el orden de las preguntas.
-                El plan es la continuación de "voy a abrir esta botella", pero eso
-                pasa DESPUÉS de saber qué es el vino y qué opinás: arriba estaba
-                empujando la descripción —lo que más se lee— casi una pantalla
-                hacia abajo, con una tira de chips, una playlist y una receta.
-
-                Cierra lo tuyo y da paso a lo de afuera (opiniones, precio), que
-                es material de consulta. Sigue costando cero: la temperatura sale
-                de la ficha ya cargada y la playlist de una lista fija; sólo la
-                receta llama al server, y sólo si la pedís.
-
-                Se muestra siempre, también sin stock: el plan es de la noche, no
-                del inventario. Una botella que se terminó es una que vas a
-                reponer, y saber qué cocinar con ella es parte de decidirlo. */}
-            <WinePlan wine={wine} info={aiInfo} />
-
-            {/* De acá para abajo, lo que no es tuyo. Material de consulta: se
-                mira cuando se busca, no cuando se abre la ficha.
-
-                Las opiniones NO se envuelven en una sección plegable, aunque la
-                lista sea larga: `WineReviews` ya se pliega solo y deja el
-                promedio a la vista. Meterlo adentro de otro plegable sería
-                obligar a dos toques para llegar a lo mismo. */}
-            <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
-
-            {/* El precio SÍ se pliega, y el resumen viaja en el encabezado. Es
-                el caso exacto para el que sirve plegar: un bloque de dos partes
-                —el promedio comunitario y el link a MercadoLibre— del que casi
-                siempre alcanza con el número. Quien lo necesita entero lo abre;
-                el resto se ahorra media pantalla al final de cada ficha. */}
-            <CollapsibleSection
-              id="wine-price"
-              title="Precio"
-              icon="tag"
-              hint={
-                priceLoading
-                  ? "Buscando…"
-                  : communityPrice
-                    ? `~$${communityPrice.avg.toLocaleString("es-AR")}`
-                    : "Sin datos todavía"
-              }
-            >
-            <div className="wine-price">
-              <div className="wine-price__row">
-                <div className="wine-price__info">
-                  <span className="wine-price__label">Precio de referencia</span>
-                  {priceLoading ? (
-                    <span className="wine-price__empty">Buscando precios…</span>
-                  ) : communityPrice ? (
-                    <span className="wine-price__value">
-                      ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
-                      <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
-                    </span>
-                  ) : (
-                    <span className="wine-price__empty">Sin datos todavía</span>
-                  )}
-                </div>
-              </div>
-              <a
-                className="wine-price__meli"
-                href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
-              </a>
-            </div>
-            </CollapsibleSection>
+            {/* Las opiniones de otros y el precio de referencia se fueron al
+                final de la ficha, después de tus momentos: ver "LO DE AFUERA"
+                abajo del diario. */}
           </>
         ) : (
           <div className="scan-edit-grid">
@@ -974,6 +949,11 @@ export default function WineDetailPage() {
         )}
 
 
+        {/* El diario cierra "lo tuyo", y por eso ahora se esconde mientras
+            editás: sin el rótulo de la zona —que vive del otro lado del
+            formulario— quedaba flotando abajo de los campos, como si fuera
+            parte de lo que estás cambiando. */}
+        {!editing && (
         <section className="wine-moments" ref={momentsRef}>
           <div className="wine-moments__header">
             {/* "Privado" dicho con todas las letras, y no por prolijidad: en la
@@ -1172,6 +1152,70 @@ export default function WineDetailPage() {
             </ul>
           )}
         </section>
+        )}
+
+        {/* ── LO DE AFUERA ──────────────────────────────────────────────────
+            Lo que no es tuyo: lo que opinaron otros y lo que sale en el
+            mercado. Material de consulta —se mira cuando se busca, no cuando se
+            abre la ficha— y por eso va último, después de tu diario.
+
+            Estaba al revés: tus momentos, que son lo único que esta app tiene y
+            ninguna otra, quedaban abajo de un link a MercadoLibre. */}
+        {!editing && (
+          <>
+            <h2 className="wine-zone">Lo de afuera</h2>
+
+            {/* Las opiniones NO se envuelven en una sección plegable, aunque la
+                lista sea larga: `WineReviews` ya se pliega solo y deja el
+                promedio a la vista. Meterlo adentro de otro plegable sería
+                obligar a dos toques para llegar a lo mismo. */}
+            <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
+
+            {/* El precio SÍ se pliega, y el resumen viaja en el encabezado. Es
+                el caso exacto para el que sirve plegar: un bloque de dos partes
+                —el promedio comunitario y el link a MercadoLibre— del que casi
+                siempre alcanza con el número. Quien lo necesita entero lo abre;
+                el resto se ahorra media pantalla al final de cada ficha. */}
+            <CollapsibleSection
+              id="wine-price"
+              title="Precio"
+              icon="tag"
+              hint={
+                priceLoading
+                  ? "Buscando…"
+                  : communityPrice
+                    ? `~$${communityPrice.avg.toLocaleString("es-AR")}`
+                    : "Sin datos todavía"
+              }
+            >
+              <div className="wine-price">
+                <div className="wine-price__row">
+                  <div className="wine-price__info">
+                    <span className="wine-price__label">Precio de referencia</span>
+                    {priceLoading ? (
+                      <span className="wine-price__empty">Buscando precios…</span>
+                    ) : communityPrice ? (
+                      <span className="wine-price__value">
+                        ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
+                        <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
+                      </span>
+                    ) : (
+                      <span className="wine-price__empty">Sin datos todavía</span>
+                    )}
+                  </div>
+                </div>
+                <a
+                  className="wine-price__meli"
+                  href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
+                </a>
+              </div>
+            </CollapsibleSection>
+          </>
+        )}
 
         {/* Eliminar, al final y en voz baja: estaba a un centímetro de "favorito"
             y "probado", que se tocan todos los días. */}

@@ -533,16 +533,11 @@ select:disabled {
   animation: rincon-pop var(--transition-smooth) var(--ease-spring) both;
 }
 
-/* Qué cuenta el stepper. Sin rótulo, "− 2 +" es un número suelto al lado de un
-   botón que también mueve botellas: hay que acordarse de cuál es cuál. */
-.wine-qty-controls__label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-right: 2px;
-}
+/* Acá vivía `.wine-qty-controls__label`, el rótulo "AJUSTÁ TU STOCK" adentro
+   del stepper. Se fue al pasar el stepper a compartir renglón con los chips de
+   estado: el rótulo empujaba a los tres controles a apilarse, y lo que decía ya
+   lo dice la línea de abajo ("Ajustá tu stock con − y +") una sola vez, para
+   los tres. El detalle de qué NO hace sigue en el aria-label de cada botón. */
 
 /* ============================================================
    Shared edit form + action buttons

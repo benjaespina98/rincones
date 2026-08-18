@@ -146,13 +146,11 @@ export default function CatalogWinePage() {
             un vino del catálogo no se edita, se agrega a la bodega. */}
         <WineIdentity wine={wine} />
 
-        {/* El plan de la noche también acá, y esto NO es un extra: para un vino
-            que todavía no comprás, saber qué se cocina con él y con qué suena es
-            justamente lo que ayuda a decidir si lo querés. La botella no hace
-            falta tenerla para planear la noche en que la vas a abrir. */}
-        <WinePlan wine={wine} info={aiInfo} />
-
-        {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje. */}
+        {/* Ficha del vino (estilo Vivino): descripción, aromas, maridaje.
+            Antes del plan, igual que en la ficha de un vino tuyo: primero qué es
+            este vino, después qué hacer con él. Las dos pantallas muestran los
+            mismos dos bloques y no puede ser que los muestren en orden distinto
+            —es la misma pregunta y se contesta igual, tengas la botella o no. */}
         <WineAbout
           loading={aiLoading}
           failed={aiFailed}
@@ -160,6 +158,12 @@ export default function CatalogWinePage() {
           onRetry={loadDescription}
           wine={wine}
         />
+
+        {/* El plan también acá, y esto NO es un extra: para un vino que todavía
+            no comprás, saber qué se cocina con él y con qué suena es justamente
+            lo que ayuda a decidir si lo querés. La botella no hace falta tenerla
+            para planear la noche en que la vas a abrir. */}
+        <WinePlan wine={wine} info={aiInfo} />
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
             la ficha de un vino que todavía no tiene. */}
