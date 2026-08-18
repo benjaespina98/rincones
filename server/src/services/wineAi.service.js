@@ -386,9 +386,12 @@ Devolvé:
   de cualquier botella. Que suene a alguien que lo tomó y sabe de dónde sale, no a una
   contraetiqueta. Si no conocés la botella puntual, hablá del estilo con la misma
   profundidad: la región y la uva alcanzan para llenar seis oraciones ciertas.
-- body: 2 o 3 oraciones sobre CÓMO tomarlo: si conviene decantarlo y cuánto, si gana
-  con el aire, en qué copa, a qué temperatura se arruina, cuánto aguanta abierto, para
-  qué momento va. NO repitas cuerpo, taninos ni acidez: eso ya va en structure y la app
+- body: 2 o 3 oraciones de contexto para tomarlo: en qué copa, cuánto aguanta abierto,
+  para qué momento va, con qué compañía, cuánto conviene esperarlo todavía.
+  PROHIBIDO hablar de temperatura de servicio, de grados, de heladera, de decantar o
+  de airear: eso va en el campo "serve" y la app lo muestra aparte como instrucción,
+  arriba de este texto — dicho acá, la misma frase aparece dos veces en la misma
+  pantalla. Tampoco repitas cuerpo, taninos ni acidez: eso ya va en structure y la app
   lo muestra en barras justo arriba.
 - profile: 3 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Frutado"). Solo el atributo, sin explicación.
 - structure: la estructura en números del 1 al 5, para poder compararla con otros vinos:

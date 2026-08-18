@@ -57,6 +57,20 @@ export default function CollapsibleSection({
       {abierto && (
         <div className="collapsible__panel" id={panelId}>
           {children}
+
+          {/* El camino de vuelta, al final de lo que se abrió.
+              El encabezado también cierra, pero con la sección abierta queda
+              arriba del contenido: hay que scrollear hacia atrás para encontrar
+              el mismo botón que se acaba de tocar. Cerrar tiene que costar lo
+              mismo que abrir, y desde donde quedaste. */}
+          <button
+            type="button"
+            className="collapsible__close"
+            onClick={() => setAbierto(false)}
+          >
+            <Icon name="chevron-up" size={15} />
+            Cerrar {String(title).toLowerCase()}
+          </button>
         </div>
       )}
     </section>

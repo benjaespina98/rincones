@@ -56,13 +56,19 @@ const PLAYLISTS = {
 };
 
 /**
- * Los planes. El orden es el de la barra de chips, y va de la mesa más chica a
- * la más grande: eso hace que la fila se lea sola.
+ * Los planes que se ofrecen en la ficha. El orden va de la mesa más chica a la
+ * más grande: eso hace que la fila se lea sola.
  *
- * Se sumaron dos que faltaban y que no eran variantes de los otros: comer en
- * familia no es una cena de a dos ni un asado (mesa larga, mediodía, sin
- * ceremonia), y "copas y charla" es el único plan donde NO hay comida de por
- * medio, que es justo el más común a la tardecita.
+ * ── POR QUÉ SON CUATRO Y NO SEIS ───────────────────────────────────────────
+ * Seis chips ocupaban tres renglones y media pantalla de una ficha que ya es
+ * larga, y dos de ellos casi no se elegían: "copas y charla" y "tranqui, solo"
+ * son los únicos sin comida de por medio, y el premio del plan —la receta— no
+ * tiene nada que ofrecerles. Un chip cuya recompensa no aplica es un chip que
+ * decepciona al tocarlo.
+ *
+ * Quedaron las cuatro mesas de verdad. `PLANES` sigue teniendo las seis: la
+ * home nombra momentos ("Copas y charla", "Tranqui, solo") con las mismas
+ * palabras, y sacarlos de la tabla dejaría esas playlists sin plan.
  *
  * Los valores viajan al server para la receta: cualquier plan que se agregue acá
  * tiene que existir también en `PLANS` de server/src/services/wineAi.service.js,
@@ -70,11 +76,9 @@ const PLAYLISTS = {
  */
 export const NIGHT_PLANS = [
   { value: "cena",    label: "Cena de a dos" },
-  { value: "copas",   label: "Copas y charla" },
   { value: "familia", label: "En familia" },
   { value: "amigos",  label: "Con amigos" },
   { value: "asado",   label: "Asado" },
-  { value: "solo",    label: "Tranqui, solo" },
 ];
 
 const FRESCOS = new Set(["sparkling", "white", "rosé"]);

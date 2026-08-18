@@ -30,11 +30,40 @@ import ErrorState from "./ErrorState";
  * detrás de un botón, ese vistazo no existe.
  *
  * Arriba, siempre visible: el resumen, el perfil en barras, los aromas y la
- * graduación. Detrás del botón: cómo tomarlo y el "¿sabías que?" — los dos
+ * graduación. Detrás del botón: el contexto y el "¿sabías que?" — los dos
  * párrafos, que se leen una vez y después sólo cuestan scroll.
+ *
+ * ── LO QUE NO SE DICE DOS VECES ─────────────────────────────────────────────
+ * La temperatura y el aireado son del Plan, no de acá: ver `sinRepetirElPlan`.
  */
 
 const MAX_CHIPS = 4;
+
+/**
+ * Lo que el Plan ya dice, dicho otra vez acá.
+ *
+ * El modelo escribe `body` como "cómo tomarlo", y ahí adentro entraban la
+ * temperatura y el aireado — que son exactamente las dos frases que el Plan
+ * pone arriba, en la misma pantalla y como instrucción. El resultado: "abrila
+ * media hora antes" a la vista, y cuatro dedos más abajo, detrás de un botón,
+ * "conviene decantarlo unos treinta minutos".
+ *
+ * El prompt ya no las pide (ver `wineAi.service.js`), pero las fichas generadas
+ * antes siguen guardadas y se muestran tal cual vinieron: sin este filtro, la
+ * repetición se arreglaba sólo para los vinos que se cargaran de acá en
+ * adelante. Se corta por oración, así que de un párrafo de tres frases se
+ * pierde la que repite y se conservan las otras dos.
+ */
+const LO_DICE_EL_PLAN =
+  /(\d\s*°|grados|temperatura|decant|airea|aire|abrila|abrirla|media hora antes|heladera)/i;
+
+const sinRepetirElPlan = (texto) => {
+  const frases = String(texto || "").match(/[^.!?]+[.!?]*/g) || [];
+  return frases
+    .filter((f) => f.trim() && !LO_DICE_EL_PLAN.test(f))
+    .join(" ")
+    .trim();
+};
 
 export default function WineAbout({ loading, failed, info, onRetry, wine }) {
   // Plegado por defecto, pero ahora esconde bastante menos: sólo lo que se
@@ -43,10 +72,13 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
 
   if (!loading && !failed && !info) return null;
 
+  // Lo que queda del "cómo tomarlo" una vez sacado lo que el Plan ya dijo.
+  const detalle = sinRepetirElPlan(info?.body);
+
   // Si no hay nada detrás de lo que ya se ve, no se ofrece abrir nada. La
   // graduación salió de esta cuenta al subir a la parte visible: si no, un vino
   // con alcohol y nada más ofrecía un botón que abría en blanco.
-  const hayDetalle = Boolean(info && (info.body || info.funFact));
+  const hayDetalle = Boolean(info && (detalle || info.funFact));
 
   return (
     <div className="wine-about">
@@ -131,14 +163,18 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
               onClick={() => setAbierto((v) => !v)}
               aria-expanded={abierto}
             >
-              {abierto ? "Ocultar el detalle" : "Cómo tomarlo"}
+              {/* Se llamaba "Cómo tomarlo" y prometía justo lo que el Plan ya
+                  había contestado dos bloques más arriba. Lo que queda adentro
+                  es contexto: en qué copa, cuánto aguanta abierta, para qué
+                  momento va, y la curiosidad. */}
+              {abierto ? "Ocultar" : "Más sobre este vino"}
               <Icon name={abierto ? "minus" : "plus"} size={14} />
             </button>
           )}
 
           {abierto && (
             <>
-              {info.body && <p className="wine-about__body">{info.body}</p>}
+              {detalle && <p className="wine-about__body">{detalle}</p>}
 
               {/* Los chips de maridaje no están más. Desde que dicen platos
                   concretos ("ojo de bife a la parrilla") se pisan con el plato

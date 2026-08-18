@@ -130,36 +130,37 @@ export default function WinePlan({ wine, info }) {
         {!plan && <span className="wine-plan__hint">{planHint()}</span>}
       </div>
 
-      {/* La temperatura, siempre visible: es el dato que cambia cómo sabe el
-          vino y no depende del plan. Vivía además en "Sobre este vino" como
-          "16-18 °C servir" — el mismo dato dos veces en la misma pantalla, una
-          como ficha técnica y otra como instrucción. Quedó la instrucción. */}
+      {/* ── LA TEMPERATURA, EN DOS PASTILLAS Y NO EN UN PÁRRAFO ─────────────
+          Era una oración de tres renglones que mezclaba dos instrucciones y una
+          explicación ("Servila a 16-18 °C — abrila media hora antes: el aire le
+          baja el tanino"), con dos palabras subrayadas en el medio. Se leía como
+          un texto y son dos datos: cada uno en su pastilla, cada uno tocable, y
+          el porqué adentro de la tarjeta que ya lo explica bien.
+
+          Es lo único que se ve sin elegir plan, porque no depende del plan. */}
       {temperatura && (
-        <p className="wine-plan__line">
-          <Icon name="bottle" size={14} />
-          {/* Dos conceptos en una línea, cada uno en su palabra: la temperatura
-              en el número y el aireado en la instrucción. Son las dos preguntas
-              que se hacen con la botella en la mano. */}
-          <span>
+        <div className="wine-plan__serve">
+          <span className="wine-plan__pill">
+            <Icon name="bottle" size={13} />
             Servila a{" "}
-            <strong>
-              <ConceptTerm id="temperatura" ctx={{ wine, info, serve: temperatura }}>
-                {temperatura}
-              </ConceptTerm>
-            </strong>
-            {airear && (
-              <>
-                {" — "}
-                <ConceptTerm id="decantar" ctx={{ wine, info }}>
-                  abrila media hora antes
-                </ConceptTerm>
-                : el aire le baja el tanino
-              </>
-            )}
+            <ConceptTerm id="temperatura" ctx={{ wine, info, serve: temperatura }}>
+              {temperatura}
+            </ConceptTerm>
           </span>
-        </p>
+          {airear && (
+            <span className="wine-plan__pill">
+              <ConceptTerm id="decantar" ctx={{ wine, info }}>
+                Abrila 30 min antes
+              </ConceptTerm>
+            </span>
+          )}
+        </div>
       )}
 
+      {/* Una sola fila que se desliza, no tres que se apilan: cuatro planes
+          entran casi enteros en un teléfono y los que no, se alcanzan
+          arrastrando. Antes eran seis chips en tres renglones, media pantalla
+          para elegir una palabra. */}
       <div className="wine-plan__chips" role="group" aria-label="Elegí el plan">
         {NIGHT_PLANS.map(({ value, label }) => (
           <button
@@ -170,6 +171,11 @@ export default function WinePlan({ wine, info }) {
             aria-pressed={plan === value}
           >
             {label}
+            {/* La cruz en el chip elegido: volver a tocarlo siempre cerró el
+                plan, pero eso había que descubrirlo. Con la × el camino de
+                vuelta se ve, que es lo que se le pide a cualquier cosa que se
+                abre. */}
+            {plan === value && <Icon name="x" size={12} className="wine-plan__chip-x" />}
           </button>
         ))}
       </div>
@@ -299,6 +305,18 @@ export default function WinePlan({ wine, info }) {
                   Pensada para esta botella. Ajustá las cantidades a tu gusto y los
                   tiempos a tu horno.
                 </p>
+
+                {/* La salida abajo, además de la × de arriba. Una receta se lee
+                    scrolleando hasta el final, y ahí el cierre queda tres
+                    pantallas atrás: pedirle a alguien que suba para poder salir
+                    es hacerle deshacer todo el camino que acaba de recorrer. */}
+                <button
+                  type="button"
+                  className="wine-recipe__done"
+                  onClick={() => setSheetOpen(false)}
+                >
+                  Listo, cerrar
+                </button>
               </div>
             </div>
           </div>
