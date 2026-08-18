@@ -24,7 +24,31 @@ const search = async (req, res, next) => {
     const { results, degraded } = await catalogService.searchWines(q);
     // Pegamos las fotos "stock" que otros usuarios hayan subido.
     const withImages = await wineImages.enrichWithImages(results);
-    return res.status(200).json({ data: withImages, degraded });
+
+    /**
+     * Con foto primero, y no sólo con foto. Mismo criterio que `featured` (ver
+     * más abajo en este archivo): la tarjeta de un vino es casi toda imagen, y
+     * el placeholder genérico —la misma botella dibujada para cualquier vino—
+     * no distingue nada. Es un ORDEN, no un filtro: nunca se descarta un
+     * resultado por no tener foto, sólo se lo pospone. Estable dentro de cada
+     * grupo, así que la relevancia de la búsqueda se conserva adentro de "con
+     * foto" y adentro de "sin foto".
+     *
+     * Este endpoint alimenta dos pantallas: el buscador de Descubrí y el
+     * "Para descubrir" del Sommelier (que hace varias búsquedas, una por uva, y
+     * las intercala). Arreglarlo acá alcanza para las dos.
+     */
+    const data = withImages
+      .map((wine, i) => ({ wine, i }))
+      .sort((a, b) => {
+        const fotoA = Boolean(a.wine.image);
+        const fotoB = Boolean(b.wine.image);
+        if (fotoA !== fotoB) return fotoA ? -1 : 1;
+        return a.i - b.i;
+      })
+      .map(({ wine }) => wine);
+
+    return res.status(200).json({ data, degraded });
   } catch (error) {
     return next(error);
   }

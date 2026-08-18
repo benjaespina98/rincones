@@ -179,9 +179,17 @@ export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${pl
  * El momento sale de la misma decisión que ya elige la playlist (la hora y el
  * día), así que no se inventa nada: si a las nueve de la noche de un sábado
  * suena Viva Latino es porque estamos suponiendo una juntada, y eso es
- * exactamente lo que conviene decir en voz alta. Son los mismos planes que los
- * chips de la ficha (`NIGHT_PLANS`), para que la app nombre los momentos de una
- * sola manera.
+ * exactamente lo que conviene decir en voz alta.
+ *
+ * ── POR QUÉ EL VOCABULARIO ES MÁS ANCHO QUE `NIGHT_PLANS` ───────────────────
+ * `NIGHT_PLANS` (los chips de la ficha) son sólo cuatro: cada uno tiene que
+ * poder ofrecer una receta, y "Copas y charla" o "Tranqui, solo" no tienen
+ * plato que ofrecer, así que se sacaron de ahí. Acá no hace falta esa
+ * condición —esto es música, no un chip que promete una receta— así que estos
+ * dos momentos siguen existiendo como lo que son: la forma más honesta de
+ * describir una copa a solas o una juntada sin comida de por medio. No es un
+ * vocabulario roto, es uno más grande para un uso que no tiene la misma
+ * restricción.
  */
 const con = (playlist, momento) => ({ ...playlist, momento });
 
