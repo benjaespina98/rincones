@@ -1,5 +1,6 @@
 import Icon from "./Icon";
 import ConceptTerm from "./ConceptTerm";
+import { grapeConceptId } from "../data/wineConcepts";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus, cellarSourceNote } from "../utils/cellarStatus";
 import { enCavaDesde, tiempoEnCava, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
@@ -14,7 +15,8 @@ import "./WineIdentity.css";
  *
  * Ahora: rótulo → valor, la bodega primero, y la guarda aparte porque es una
  * recomendación y no un hecho. Los datos que no están no ocupan lugar, salvo la
- * bodega: ahí el hueco es información y se ofrece el atajo para completarla.
+ * bodega y la cosecha: ahí el hueco es información —son los dos que hacen que
+ * la ficha entera se lea distinto— y se ofrece el atajo para completarlos.
  */
 
 const SIN_DATO = "—";
@@ -93,10 +95,20 @@ export default function WineIdentity({ wine, onEdit }) {
     },
     // La región no está acá: la dice el encabezado, debajo del nombre. Repetirla
     // sería el mismo dato dos veces con dos pesos distintos.
-    // La uva abre "las uvas argentinas": qué esperar de un Malbec, un Cabernet
-    // o un Torrontés, dicho en una línea cada uno.
-    { rotulo: "Uva", valor: wine.varietal, concepto: "uvas" },
-    { rotulo: "Cosecha", valor: wine.vintage ? String(wine.vintage) : "" },
+    // La uva abre la tarjeta de ESA uva: qué esperar de un Cabernet Franc, no un
+    // repaso de las cinco uvas argentinas de las que cuatro no tenés en la mano.
+    { rotulo: "Uva", valor: wine.varietal, concepto: grapeConceptId(wine.varietal) },
+    {
+      rotulo: "Cosecha",
+      valor: wine.vintage ? String(wine.vintage) : "",
+      // El segundo campo que se muestra vacío, y por el mismo motivo que la
+      // bodega: sin el año no se sabe si el vino está para tomar o para esperar,
+      // no se puede leer la guarda y la ficha queda hablando de un estilo en
+      // abstracto. Ocultar la fila hacía que el dato faltante fuera invisible —
+      // no se veía que faltaba, así que nadie lo completaba.
+      obligatorio: true,
+      concepto: "anada",
+    },
     { rotulo: "Tipo", valor: tipo },
   ].filter((f) => f.valor || f.obligatorio);
 

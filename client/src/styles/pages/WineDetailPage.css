@@ -703,8 +703,26 @@
   cursor: default;
 }
 
-.wine-detail-actions .wine-qty-controls {
+/* ── Stock y estados, un solo renglón ──────────────────────────────────────
+   El stepper y los dos chips eran tres bloques apilados de ancho completo: casi
+   media caja de acciones para tres controles que no se tocan casi nunca. En
+   fila entran los tres en un teléfono de 360px, y si no entran, el que sobra
+   baja solo. */
+.wine-detail-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.wine-detail-row .wine-qty-controls {
+  flex: 0 0 auto;
+}
+
+.wine-detail-row .toggle-chip {
   flex: 1;
+  min-width: 108px;
   justify-content: center;
 }
 
@@ -720,17 +738,33 @@
   color: var(--text-muted);
 }
 
-/* Los dos chips de estado comparten renglón y se estiran a la mitad cada uno:
-   son hermanos y del mismo peso, y así se ve. */
-.wine-detail-toggles {
+/* `.wine-detail-toggles` ya no existe: los dos chips de estado se mudaron al
+   renglón del stepper (ver `.wine-detail-row`), que es donde se entiende que
+   los tres son ajustes del mismo vino y no acciones nuevas. */
+
+/* ── El cartel de calle entre zonas ────────────────────────────────────────
+   La ficha son once bloques con la misma caja y el mismo peso. Estos rótulos
+   la parten en tres —el vino, lo tuyo, lo de afuera— y por eso NO pueden verse
+   como un título más: van chicos, en mayúsculas, en gris, con una línea que
+   cruza el ancho. Se leen cuando los buscás y desaparecen cuando no. */
+.wine-zone {
   display: flex;
-  gap: 8px;
-  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 -4px;
+  font-family: var(--font-family);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.wine-detail-toggles .toggle-chip {
+.wine-zone::after {
+  content: "";
   flex: 1;
-  justify-content: center;
+  height: 1px;
+  background: var(--line);
 }
 
 /* ── Eliminar ────────────────────────────────────────────────────────────────

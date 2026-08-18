@@ -9,8 +9,8 @@
 .wine-plan {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 13px 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line-accent);
   background:
@@ -31,8 +31,9 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 800;
+  letter-spacing: 0.01em;
   color: var(--text);
 }
 
@@ -45,23 +46,70 @@
   color: var(--text-secondary);
 }
 
-/* ── Los cuatro planes ─────────────────────────────────────────────────────
-   Un solo toque y aparece todo. No hay paso siguiente, ni "continuar": elegir el
-   plan ES la interacción. */
-.wine-plan__chips {
+/* ── La temperatura, en pastillas ──────────────────────────────────────────
+   Dos datos cortos que se leen de un vistazo y no una oración con dos palabras
+   subrayadas en el medio. */
+.wine-plan__serve {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+}
+
+.wine-plan__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.wine-plan__pill .icon {
+  color: var(--accent-soft);
+}
+
+/* ── Los cuatro planes ─────────────────────────────────────────────────────
+   Un solo toque y aparece todo. No hay paso siguiente, ni "continuar": elegir el
+   plan ES la interacción.
+
+   Una fila que se desliza en vez de una grilla que se apila: con seis chips en
+   tres renglones, elegir un plan costaba media pantalla de una ficha que ya
+   pide scroll. La barra se oculta —el corte del último chip ya avisa que hay
+   más— y cada chip se engancha al arrastrar. */
+.wine-plan__chips {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /* El borde de foco de un chip no se corta contra el borde del contenedor. */
+  padding: 2px 1px;
+  margin: -2px -1px;
+}
+
+.wine-plan__chips::-webkit-scrollbar {
+  display: none;
 }
 
 .wine-plan__chip {
-  padding: 8px 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  padding: 7px 13px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast),
     border-color var(--transition-fast);
@@ -71,6 +119,10 @@
   border-color: var(--line-accent);
   background: rgba(167, 130, 239, 0.16);
   color: #fff;
+}
+
+.wine-plan__chip-x {
+  color: var(--accent-soft);
 }
 
 .wine-plan__body {
@@ -83,27 +135,6 @@
 @keyframes wine-plan-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
-}
-
-/* ── Temperatura ─────────────────────────────────────────────────────────── */
-.wine-plan__line {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.wine-plan__line .icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--accent-soft);
-}
-
-.wine-plan__line strong {
-  color: var(--text);
-  font-weight: 700;
 }
 
 /* ── Música ────────────────────────────────────────────────────────────────
@@ -303,6 +334,20 @@
   margin: 0;
   font-size: var(--text-2xs);
   color: var(--text-muted);
+}
+
+/* La salida del final: discreta, del ancho de la hoja, para no competir con el
+   link a otras versiones del plato que está justo arriba. */
+.wine-recipe__done {
+  min-height: 44px;
+  margin-top: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 @media (prefers-reduced-motion: reduce) {

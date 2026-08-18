@@ -75,6 +75,29 @@
   padding: 0 14px 14px;
 }
 
+/* La salida del final. Discreta a propósito: es una ayuda, no una acción de la
+   ficha, y no puede pesar más que lo que la sección vino a mostrar. */
+.collapsible__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.collapsible__close:hover {
+  color: var(--text-secondary);
+}
+
 /* Los bloques que van adentro ya traen su propia caja (WineReviews, el precio):
    adentro de la sección sobra, porque la caja ya la puso la sección. */
 .collapsible__panel > .wine-reviews,

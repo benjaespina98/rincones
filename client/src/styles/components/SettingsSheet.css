@@ -1,3 +1,9 @@
+/* ── LA HOJA NO PUEDE METERSE ABAJO DE LA BARRA DE ESTADO ──────────────────
+   El padding era 20px fijo y `100dvh` incluye la franja del reloj y la señal.
+   Con una hoja alta —una receta entera— el panel llegaba hasta arriba de todo y
+   el título quedaba abajo de la hora y la batería: se leía "0:51 🛏 …traña a la
+   plancha". Los insets del dispositivo se suman al margen, así que la hoja
+   arranca donde termina el sistema operativo. */
 .settings-sheet {
   position: fixed;
   inset: 0;
@@ -5,7 +11,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding:
+    calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+    calc(20px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
   background: rgba(6, 8, 14, 0.72);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -15,7 +23,9 @@
 .settings-sheet__panel {
   width: 100%;
   max-width: 440px;
-  max-height: calc(100dvh - 40px);
+  max-height: calc(
+    100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -26,20 +36,33 @@
   animation: rincon-enter-up 240ms var(--ease-out) both;
 }
 
+/* Arriba y no al centro: un título de tres renglones —los nombres de plato lo
+   son casi siempre— empujaba la × hacia el medio del bloque, lejos de la
+   esquina donde la mano la busca. */
 .settings-sheet__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--line);
 }
 
 .settings-sheet__head h2 {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-family-serif);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
+  line-height: 1.25;
   font-weight: 700;
   color: var(--text);
+  /* Un nombre largo de plato tiene que poder partirse; sin esto, en una hoja
+     angosta empujaba el ancho del panel y la × se salía. */
+  overflow-wrap: anywhere;
+}
+
+.settings-sheet__close {
+  flex-shrink: 0;
 }
 
 /* 40px: es el botón de cerrar de TODAS las hojas de la app (filtros,

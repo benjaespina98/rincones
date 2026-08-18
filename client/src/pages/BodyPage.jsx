@@ -319,6 +319,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
         // devolvía nada, aunque son de las primeras cosas que uno escribe.
         wine.vintage,
         WINE_TYPE_LABELS[wine.type],
+        // Y estos tres tampoco estaban. Son las otras tres maneras en que uno se
+        // acuerda de una botella cuando no le viene el nombre: dónde la guardó
+        // ("heladera"), dónde la compró ("carrefour") y en qué estante la dejó.
+        wine.cellar?.location,
+        wine.purchase?.store,
       ]
         .map(normalizeSearchText)
         .join(" ");
@@ -357,10 +362,35 @@ export default function BodyPage({ initialFilter = "instock" }) {
     [soloFavoritos, probado, soloListos]
   );
 
-  const filteredWines = useMemo(
-    () => wines.filter((w) => enLaVista(w) && pasaFiltros(w) && pasaBusqueda(w)),
-    [wines, enLaVista, pasaFiltros, pasaBusqueda]
-  );
+  /**
+   * ── BUSCAR MIRA TODA TU BODEGA, NO LA PESTAÑA QUE TENÉS ABIERTA ──────────
+   *
+   * Reportado desde la app: cargás un Piatelli, escribís "piatelli" y la
+   * búsqueda no lo trae. El vino estaba y el texto coincidía; lo que pasaba es
+   * que la pestaña abierta era "En stock" y ese vino no tenía botellas. La
+   * búsqueda quedaba encerrada adentro de la vista, así que buscar un vino
+   * exigía adivinar antes en qué pestaña estaba — que es exactamente lo que uno
+   * viene a averiguar.
+   *
+   * La regla nueva: si estás buscando y en esta vista no hay nada, pero en tu
+   * bodega sí, se muestran ésos y se dice que se amplió (ver el aviso arriba de
+   * la lista). Nunca en silencio: cambiar lo que muestra una pantalla sin
+   * avisar es la otra forma de que la lista mienta.
+   *
+   * Los filtros no se amplían: un filtro puesto es una decisión explícita y
+   * visible —tiene su ficha con la × al lado— y pasarlo por alto sería
+   * desobedecer. La vista, en cambio, casi siempre es la que quedó de antes.
+   */
+  const resultados = useMemo(() => {
+    const conFiltros = wines.filter((w) => pasaFiltros(w) && pasaBusqueda(w));
+    const enVista = conFiltros.filter(enLaVista);
+    if (terms.length > 0 && enVista.length === 0 && conFiltros.length > 0) {
+      return { lista: conFiltros, ampliada: true };
+    }
+    return { lista: enVista, ampliada: false };
+  }, [wines, enLaVista, pasaFiltros, pasaBusqueda, terms]);
+
+  const filteredWines = resultados.lista;
 
   /**
    * Agrupación: el eje con el que se corta la lista.
@@ -997,6 +1027,22 @@ export default function BodyPage({ initialFilter = "instock" }) {
         />
       )}
 
+      {/* Se amplió la búsqueda a toda la bodega: se dice, y se ofrece quedarse
+          del otro lado. Sin este renglón, la lista mostraría vinos sin stock
+          bajo la pestaña "En stock" y parecería un error de la app. */}
+      {!loading && !error && resultados.ampliada && (
+        <p className="wines-widened">
+          <Icon name="search" size={14} />
+          <span>
+            En <strong>{vista === "instock" ? "En stock" : "Probados"}</strong> no hay
+            ninguno. Esto es lo que encontramos en toda tu bodega.
+          </span>
+          <button type="button" onClick={() => setVista("all")}>
+            Ver en Todos
+          </button>
+        </p>
+      )}
+
       {!loading && !error && sortedWines.length > 0 && (
         <div
           className={`wines-list wines-list--${viewMode} ${
@@ -1252,6 +1298,47 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
                 {expanded && !esGrilla && (
                   <div className="wine-row__expand">
+                    {/* ── LO QUE LA FILA DESPLEGADA TIENE PARA MOSTRAR ────────
+                        Desplegar una fila daba un botón, un renglón en gris y
+                        dos íconos: mucho aire alrededor de casi nada, y ninguna
+                        razón para volver a desplegarla. Lo que falta ahí es lo
+                        obvio —qué vino es— y son datos que la app ya tiene
+                        cargados: no cuestan una consulta ni un segundo de
+                        espera.
+
+                        Cada dato aparece sólo si existe y sólo si el nombre no
+                        lo dijo ya (misma regla que la fila compacta, ver
+                        `yaLoDice`): repetir "Malbec" abajo de un título que
+                        dice "Malbec" es la clase de relleno que hace que una
+                        tarjeta se vea llena y siga sin decir nada. */}
+                    {(() => {
+                      const datos = [
+                        ["Uva", yaLoDice(wine.varietal) ? "" : wine.varietal],
+                        ["Cosecha", yaLoDice(wine.vintage) ? "" : wine.vintage],
+                        ["Región", wine.region],
+                        ["Bodega", bodega],
+                        ["Guardado en", wine.cellar?.location],
+                        [
+                          "Pagaste",
+                          wine.purchase?.price > 0
+                            ? `$${Number(wine.purchase.price).toLocaleString("es-AR")}`
+                            : "",
+                        ],
+                      ].filter(([, valor]) => valor);
+
+                      if (datos.length === 0) return null;
+                      return (
+                        <dl className="wine-row__facts">
+                          {datos.map(([rotulo, valor]) => (
+                            <div key={rotulo}>
+                              <dt>{rotulo}</dt>
+                              <dd>{valor}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      );
+                    })()}
+
                     <div className="wine-row__controls">
                       {/* ── EL STOCK SE AJUSTA EN LA FICHA, Y SÓLO AHÍ ────────
                           Acá vivía un stepper igual al de la ficha del vino. Era

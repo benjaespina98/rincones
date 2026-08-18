@@ -11,6 +11,12 @@ export const normalizeSearchText = (value = "") =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    // Los signos se vuelven espacio, no desaparecen: una etiqueta escribe
+    // "Cabernet-Franc", "D.O.C.", "Zuccardi Q" o "Piatelli's", y quien busca
+    // escribe la palabra sola. Pegar los pedazos ("cabernetfranc") ser\u00eda peor
+    // que dejarlos separados, porque entonces "franc" ya no encontrar\u00eda nada.
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
     .trim();
 
 /** Clave laxa para reconocer el mismo vino entre distintas fuentes. */
