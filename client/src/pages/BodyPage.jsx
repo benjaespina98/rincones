@@ -1055,7 +1055,16 @@ export default function BodyPage({ initialFilter = "instock" }) {
             const elegido = seleccion.has(wine._id);
             // La vitrina muestra más de cada vino porque son pocos y son los que
             // podés abrir hoy: el tipo, la uva, el puntaje y una foto que se ve.
-            const esVitrina = vista === "instock";
+            //
+            // Se agrega `quantity > 0` y no sólo la pestaña: cuando la búsqueda
+            // se amplía a toda la bodega (ver `resultados.ampliada` más arriba),
+            // la lista que se dibuja bajo "En stock" puede traer vinos SIN
+            // stock —es justo lo que la ampliación existe para mostrar—, y sin
+            // este chequeo esas filas se dibujaban en modo vitrina: foto grande
+            // y una cantidad "×0" que no tiene sentido ahí. En la pestaña
+            // "En stock" normal esto no cambia nada, porque ahí todo lo que
+            // llega ya tiene stock por construcción (`pasaVista`).
+            const esVitrina = vista === "instock" && Number(wine.quantity) > 0;
             const expanded = expandedId === wine._id;
             // Uva y año en una línea, bodega en otra.
             //
