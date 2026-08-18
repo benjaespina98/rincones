@@ -31,6 +31,8 @@
  * estaba en tu cocina.
  */
 
+const { gamaDe } = require("../data/wineTiers");
+
 const norm = (valor) => String(valor || "").trim().toLowerCase();
 
 /** La identidad de un vino a los fines de "esto ya lo tengo". */
@@ -179,6 +181,21 @@ const desempate = (wine, semilla) => {
 const TOPE_POR_UVA = 2;
 
 /**
+ * Cuántos de la misma gama de precio se toleran en un set de ocho.
+ *
+ * Tres de ocho fuerza a que aparezcan las tres gamas, que es la mezcla que
+ * haría cualquiera que sepa: un accesible para el martes, uno de gama alta para
+ * cuando la ocasión lo pida. Sin este tope el set se llenaba solo de una punta
+ * —la afinidad tira a lo que ya tomás, y quien toma barato recibe barato para
+ * siempre— y la home dejaba de mostrarle a nadie el escalón de arriba.
+ *
+ * Es un cupo blando: si con él no se llega a completar el set, se afloja antes
+ * que devolver menos tarjetas (ver `tomarDe`). Un cupo que achica la home es
+ * peor que un set desbalanceado.
+ */
+const TOPE_POR_GAMA = 3;
+
+/**
  * Arma la lista final: intercala afinidad y descubrimiento, sin repetir bodega
  * y sin cargar el set de una sola uva.
  *
@@ -206,9 +223,10 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
   const elegidos = [];
   const bodegas = new Set();
   const uvas = new Map();
+  const gamas = new Map();
   const yaElegido = new Set();
 
-  const tomarDe = (lista) => {
+  const tomarDe = (lista, respetarGama = true) => {
     for (const candidato of lista) {
       const k = clave(candidato.wine);
       if (yaElegido.has(k)) continue;
@@ -219,9 +237,13 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
       const uva = norm(candidato.wine.varietal);
       if (uva && (uvas.get(uva) || 0) >= TOPE_POR_UVA) continue;
 
+      const gama = gamaDe(candidato.wine);
+      if (respetarGama && (gamas.get(gama) || 0) >= TOPE_POR_GAMA) continue;
+
       yaElegido.add(k);
       if (bodega) bodegas.add(bodega);
       if (uva) uvas.set(uva, (uvas.get(uva) || 0) + 1);
+      gamas.set(gama, (gamas.get(gama) || 0) + 1);
       elegidos.push(candidato.wine);
       return true;
     }
@@ -238,7 +260,15 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
     // Si la lista de turno ya no tiene nada admisible, se prueba con la otra
     // antes de darse por vencido: es preferible un set completo aunque quede
     // desbalanceado a devolver menos tarjetas de las que la home espera.
-    if (!listas.some(tomarDe)) break;
+    //
+    // Y si con ninguna de las dos entra nada, lo primero que se afloja es el
+    // cupo de gama: es el más nuevo y el menos importante de los tres. El tope
+    // por uva y el de bodega se sostienen hasta el final —cuatro Malbec de la
+    // misma bodega arruinan el set mucho más que cuatro botellas del mismo
+    // rango de precio—.
+    if (!listas.some((lista) => tomarDe(lista, true))) {
+      if (!listas.some((lista) => tomarDe(lista, false))) break;
+    }
     turnoDeAfinidad = !turnoDeAfinidad;
   }
 
