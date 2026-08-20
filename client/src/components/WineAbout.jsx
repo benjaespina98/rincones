@@ -172,8 +172,15 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
             </button>
           )}
 
-          {abierto && (
-            <>
+          {/* Mismo gesto que el resto de la app (ver CollapsibleSection): se
+              anima con grid-template-rows en vez de aparecer de golpe. El
+              contenido queda montado siempre —ya vino con la respuesta de la
+              IA, no cuesta nada tenerlo ahí— así que hay altura real para
+              animar. Sólo existe si hay algo que mostrar (mismo criterio que
+              el botón que la abre). */}
+          {hayDetalle && (
+          <div className="wine-about__more" aria-hidden={!abierto}>
+            <div className="wine-about__more-inner">
               {detalle && <p className="wine-about__body">{detalle}</p>}
 
               {/* Los chips de maridaje no están más. Desde que dicen platos
@@ -192,7 +199,8 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
                   <span>{info.funFact}</span>
                 </p>
               )}
-            </>
+            </div>
+          </div>
           )}
         </>
       )}

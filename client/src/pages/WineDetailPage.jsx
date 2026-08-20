@@ -255,7 +255,7 @@ export default function WineDetailPage() {
   const handleToggleTasted = () =>
     applyUpdate(
       { tasted: !wine.tasted },
-      wine.tasted ? "Marcado como no probado" : "Vino marcado como probado"
+      wine.tasted ? "Quitada la marca de probada" : "Marcada como que ya la probaste"
     );
 
   const handleAdjustQuantity = async (delta) => {
@@ -640,9 +640,23 @@ export default function WineDetailPage() {
                   disabled={pending}
                   onClick={handleToggleTasted}
                   aria-pressed={wine.tasted}
+                  // El texto del chip ("Probado") ya no alcanza para decir de qué
+                  // se trata: tiene sentido para quien lo tildó, no para quien lo
+                  // lee después. El título explica el dato en una frase, al pasar
+                  // el mouse o mantener tocado.
+                  title={
+                    wine.tasted
+                      ? "Ya la tomaste alguna vez. Tocá para destildarlo."
+                      : "Todavía no la tomaste. Tocá para marcarla como probada."
+                  }
+                  aria-label={
+                    wine.tasted
+                      ? "Ya la probaste. Tocá para quitar la marca de probada."
+                      : "Todavía no la probaste. Tocá para marcarla como probada."
+                  }
                 >
                   <Icon name={wine.tasted ? "check" : "circle"} size={14} />
-                  {wine.tasted ? "Probado" : "Sin probar"}
+                  {wine.tasted ? "Ya la probé" : "Sin probar"}
                 </button>
 
                 <button
@@ -660,7 +674,8 @@ export default function WineDetailPage() {
 
               {!noEsTuyo && (
                 <p className="wine-detail-actions__note">
-                  Ajustá tu stock con − y +. No marcan el vino como tomado.
+                  Ajustá tu stock con − y +. "Ya la probé" es aparte: decí si
+                  alguna vez la tomaste, sin que eso mueva tu stock.
                 </p>
               )}
             </div>

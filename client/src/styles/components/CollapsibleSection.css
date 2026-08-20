@@ -71,6 +71,31 @@
   }
 }
 
+/* El truco de la fila que crece: 0fr no tiene altura, 1fr toma la del
+   contenido. Es lo único que permite animar hasta "el alto que haga falta"
+   sin conocerlo de antemano (max-height fijo se queda corto o sobra, según el
+   contenido de cada sección). */
+.collapsible__panel-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+
+.collapsible.is-open .collapsible__panel-wrap {
+  grid-template-rows: 1fr;
+}
+
+.collapsible__panel-wrap > .collapsible__panel {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible__panel-wrap {
+    transition: none;
+  }
+}
+
 .collapsible__panel {
   padding: 0 14px 14px;
 }

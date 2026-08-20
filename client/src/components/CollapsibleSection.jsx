@@ -54,7 +54,13 @@ export default function CollapsibleSection({
         />
       </button>
 
-      {abierto && (
+      {/* Se anima con grid-template-rows (0fr → 1fr) en vez de aparecer de
+          golpe: es el mismo gesto de abrir/cerrar en toda la app (ver también
+          WineAbout), y sin él plegar una sección se sentía como un salto, no
+          como un movimiento. El contenido queda siempre montado —no cuesta
+          nada, lo que hay adentro ya se pidió antes de llegar acá— así que la
+          altura real existe para que el navegador la pueda animar. */}
+      <div className="collapsible__panel-wrap" aria-hidden={!abierto}>
         <div className="collapsible__panel" id={panelId}>
           {children}
 
@@ -66,13 +72,14 @@ export default function CollapsibleSection({
           <button
             type="button"
             className="collapsible__close"
+            tabIndex={abierto ? 0 : -1}
             onClick={() => setAbierto(false)}
           >
             <Icon name="chevron-up" size={15} />
             Cerrar {String(title).toLowerCase()}
           </button>
         </div>
-      )}
+      </div>
     </section>
   );
 }

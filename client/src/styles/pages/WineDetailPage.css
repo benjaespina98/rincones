@@ -591,6 +591,33 @@
   color: #fff;
 }
 
+/* Mismo truco que .collapsible__panel-wrap: 0fr no ocupa alto, 1fr toma el
+   del contenido. Es lo que hace que "Más sobre este vino" se abra con el
+   mismo movimiento que el resto de las secciones plegables de la ficha, en
+   vez de aparecer de un salto. */
+.wine-about__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+
+.wine-about__more[aria-hidden="false"] {
+  grid-template-rows: 1fr;
+}
+
+.wine-about__more-inner {
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-about__more {
+    transition: none;
+  }
+}
+
 .wine-about__body {
   margin: 0;
   color: var(--text-secondary);
