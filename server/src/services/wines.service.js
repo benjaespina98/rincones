@@ -575,6 +575,13 @@ async function updateWine(userId, id, payload) {
   if (cellarLocation !== undefined) wine.cellar = { ...wine.cellar, location: cellarLocation?.trim() || undefined };
   if (drinkFrom !== undefined) wine.cellar = { ...wine.cellar, drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined };
   if (drinkUntil !== undefined) wine.cellar = { ...wine.cellar, drinkUntil: drinkUntil ? parseInt(drinkUntil) : undefined };
+  // Lo que pagaste ANTES de tocarlo: hace falta para saber, después de
+  // guardar, si esta edición sumó o cambió un precio y así avisarle al pool
+  // comunitario. Sin esto, "Precio" en la ficha sólo aprendía en el alta: quien
+  // cargaba el vino sin precio y lo completaba después —el camino más común,
+  // porque en el escaneo no siempre se tiene el ticket a mano— nunca aportaba
+  // nada, y su propio precio tampoco se le mostraba a él mismo.
+  const precioAnterior = wine.purchase?.price;
   if (price !== undefined) wine.purchase = { ...wine.purchase, price: price !== "" ? parseFloat(price) : undefined };
   if (currency !== undefined) wine.purchase = { ...wine.purchase, currency };
   if (store !== undefined) wine.purchase = { ...wine.purchase, store: store?.trim() || undefined };
@@ -722,6 +729,19 @@ async function updateWine(userId, id, payload) {
       varietal: updatedWine.varietal,
       image: fotoNueva,
       userId,
+    });
+  }
+
+  // Mismo criterio que la foto: si esta edición dejó un precio nuevo o
+  // distinto del que había, alimenta el promedio comunitario. Editar a un
+  // precio igual al que ya estaba no vuelve a sumar (sería contarte dos veces).
+  if (price !== undefined && updatedWine.purchase?.price > 0 && updatedWine.purchase.price !== precioAnterior) {
+    await winePrices.contribute({
+      name: updatedWine.name,
+      winery: updatedWine.winery,
+      varietal: updatedWine.varietal,
+      price: updatedWine.purchase.price,
+      currency: updatedWine.purchase.currency,
     });
   }
 
