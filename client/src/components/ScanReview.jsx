@@ -375,7 +375,18 @@ export default function ScanReview({
    * formulario (`revelarDatos`).
    */
   const sinIdentificar = !isManual && verdict === "doubtful" && issues.length === 0;
-  const bloqueado = verdict === "doubtful";
+  /**
+   * ── YA NO SE BLOQUEA EL GUARDADO POR CONFIANZA BAJA ─────────────────────
+   * Antes "doubtful" apagaba el botón entero: un vino con un dato dudoso no
+   * se podía guardar hasta corregirlo, así que una lectura floja terminaba en
+   * un formulario que no cedía. La decisión de producto es la contraria:
+   * priorizar que la botella entre a la bodega SIEMPRE que haya con qué
+   * nombrarla, y dejar que lo que salió mal se corrija después, editando el
+   * vino ya guardado — no antes de guardarlo. El único caso que sigue sin
+   * salida es no tener nombre (ver `sinIdentificar` y la validación en
+   * ScanWinePage), porque ahí no hay ninguna botella que agregar todavía.
+   */
+  const bloqueado = false;
 
   /**
    * Un candado que cierra en el mismo tick, no en el próximo render.

@@ -4,22 +4,27 @@ import { toUploadableDataUrl, toUploadableLogo } from "../utils/image";
 import "./ImagePicker.css";
 
 /**
- * Elegir una imagen: subiendo un archivo o pegando un enlace.
+ * Elegir una imagen: con la cámara, desde la galería, o pegando un enlace.
  *
- * ── POR QUÉ LAS DOS COSAS Y NO SÓLO UN ENLACE ───────────────────────────────
- * Porque una imagen llega como archivo. La bodega te manda el logo por WhatsApp;
- * nadie tiene una URL a mano. Pedir un enlace obliga a subir el archivo a algún
- * otro lado primero, y a que ese otro lado siga existiendo el año que viene —o la
- * tarjeta se rompe sola, sin que nadie se entere hasta que un usuario la vea—.
+ * ── POR QUÉ DOS BOTONES Y NO UNO SOLO ────────────────────────────────────────
+ * "Subir imagen" era una sola puerta para dos gestos distintos: sacarle una
+ * foto a la botella que tenés en la mano, o elegir una que ya está en el
+ * teléfono. En el diálogo genérico del navegador esa elección queda escondida
+ * dos toques adentro (y en algunos Android ni aparece la cámara), así que acá
+ * se separan de entrada: cada botón abre directo lo que promete.
  *
- * El enlace igual queda, porque el caso existe: el anunciante que te pasa la URL de
- * su propio sitio.
+ * ── POR QUÉ EL ENLACE SIGUE EXISTIENDO ───────────────────────────────────────
+ * Porque el caso existe: alguien que ya tiene la foto alojada en otro lado y
+ * sólo quiere pegar la URL. Pero se esconde en cuanto hay una imagen puesta —ver
+ * más abajo por qué— y sólo vuelve si se lo pide con el enlace de "pegar un
+ * enlace en cambio".
  *
- * ── POR QUÉ SE VE LO QUE SE ELIGIÓ ──────────────────────────────────────────
- * Un campo de imagen sin miniatura no dice si lo que pegaste funciona. Un enlace
- * roto se ve idéntico a uno bueno hasta que la campaña sale al aire. Acá la
- * miniatura ES la validación: si no aparece, el enlace no sirve, y eso se descubre
- * cargando y no publicando.
+ * ── POR QUÉ NO SE MUESTRA EL ENLACE DE UNA IMAGEN YA CARGADA ─────────────────
+ * Una foto guardada llega acá como la URL de Cloudinary donde vive (no como el
+ * archivo original), y esa URL es un detalle de implementación: un texto de
+ * cien caracteres que no dice nada y que además invita a "corregirlo" a mano,
+ * rompiendo el enlace. La miniatura ya prueba que la imagen está puesta; el
+ * campo de texto no suma nada ahí y sólo confunde.
  */
 
 /** Lo que el navegador ofrece en el diálogo de archivos. */
@@ -34,9 +39,13 @@ export default function ImagePicker({
   variant = "wide",
   disabled = false,
 }) {
-  const archivoRef = useRef(null);
+  const camaraRef = useRef(null);
+  const galeriaRef = useRef(null);
   const [cargando, setCargando] = useState(false);
   const [falla, setFalla] = useState(false);
+  // El enlace se pide aparte y arranca cerrado en cuanto ya hay una imagen: no
+  // tiene sentido mostrar un campo para reemplazar algo que ya se ve bien.
+  const [pegarEnlace, setPegarEnlace] = useState(false);
   const inputId = useId();
 
   const elegirArchivo = async (evento) => {
@@ -54,6 +63,7 @@ export default function ImagePicker({
       const dataUrl =
         variant === "logo" ? await toUploadableLogo(archivo) : await toUploadableDataUrl(archivo);
       onChange(dataUrl);
+      setPegarEnlace(false);
     } catch {
       setFalla(true);
     } finally {
@@ -61,7 +71,9 @@ export default function ImagePicker({
     }
   };
 
-  const esArchivo = /^data:image\//i.test(String(value || ""));
+  // Mostrar el campo de enlace en crudo: sólo si no hay nada puesto todavía, o
+  // si la persona lo pidió explícitamente con "pegar un enlace en cambio".
+  const mostrarEnlace = !value || pegarEnlace;
 
   return (
     <div className={`imgpick imgpick--${variant}`}>
@@ -81,11 +93,21 @@ export default function ImagePicker({
           <button
             type="button"
             className="imgpick__btn"
-            onClick={() => archivoRef.current?.click()}
+            onClick={() => camaraRef.current?.click()}
             disabled={disabled || cargando}
           >
             <Icon name="camera" size={15} />
-            {cargando ? "Preparando…" : value ? "Cambiar" : "Subir imagen"}
+            {cargando ? "Preparando…" : value ? "Sacar otra foto" : "Sacar foto"}
+          </button>
+
+          <button
+            type="button"
+            className="imgpick__btn imgpick__btn--ghost"
+            onClick={() => galeriaRef.current?.click()}
+            disabled={disabled || cargando}
+          >
+            <Icon name="image" size={15} />
+            {value ? "Elegir otra" : "Elegir de la galería"}
           </button>
 
           {value && (
@@ -94,6 +116,7 @@ export default function ImagePicker({
               className="imgpick__btn imgpick__btn--ghost"
               onClick={() => {
                 setFalla(false);
+                setPegarEnlace(false);
                 onChange("");
               }}
               disabled={disabled}
@@ -102,8 +125,23 @@ export default function ImagePicker({
             </button>
           )}
 
+          {/* Dos inputs nativos, uno por gesto. `capture="environment"` es lo que
+              abre la cámara trasera directo en los celulares que lo soportan, en
+              vez del diálogo genérico "Cámara o Galería" donde la mitad de las
+              veces se termina tocando el botón equivocado. Sin ese atributo, el
+              segundo input abre el selector de archivos/galería de siempre. */}
           <input
-            ref={archivoRef}
+            ref={camaraRef}
+            className="imgpick__file"
+            type="file"
+            accept={ACEPTA}
+            capture="environment"
+            onChange={elegirArchivo}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+          <input
+            ref={galeriaRef}
             id={inputId}
             className="imgpick__file"
             type="file"
@@ -115,14 +153,7 @@ export default function ImagePicker({
         </div>
       </div>
 
-      {/* El enlace, para cuando el anunciante pasa una URL. Se oculta cuando ya hay
-          un archivo subido: mostrar un data URL de 40.000 caracteres en un input no
-          le sirve a nadie y hace parecer que algo se rompió. */}
-      {esArchivo ? (
-        <small className="imgpick__uploaded">
-          <Icon name="check" size={12} /> Imagen subida. Se guarda al guardar la campaña.
-        </small>
-      ) : (
+      {mostrarEnlace ? (
         <label className="imgpick__url">
           <span>o pegá un enlace</span>
           <input
@@ -136,6 +167,13 @@ export default function ImagePicker({
             disabled={disabled}
           />
         </label>
+      ) : (
+        <small className="imgpick__uploaded">
+          <Icon name="check" size={12} /> Imagen cargada.{" "}
+          <button type="button" className="imgpick__link" onClick={() => setPegarEnlace(true)}>
+            Pegar un enlace en cambio
+          </button>
+        </small>
       )}
 
       {falla && value && (

@@ -80,15 +80,19 @@ export default function WineIdentity({ wine, onEdit }) {
   const guarda = getCellarStatus(wine);
   const tengo = tenencia(wine);
 
-  // "Bodegas Salentein" y la línea "Portillo": cuando el nombre del vino ya ES el
-  // de la bodega, repetirlo abajo no agrega nada.
+  // Antes se ocultaba la bodega cuando coincidía con el nombre del vino (el
+  // caso Norton, El Enemigo, Durigutti): la idea era no repetir el mismo dato
+  // dos veces. Pero eso hacía que completar la bodega a mano, en un vino cuyo
+  // nombre YA es el de su bodega, no se viera reflejado en ningún lado — la
+  // persona editaba, guardaba, y la ficha seguía mostrando "—" como si nada
+  // hubiera pasado. Confirmar un dato dos veces vale más que un campo que
+  // parece no haberse guardado.
   const bodega = String(wine.winery || "").trim();
-  const mismaCosa = bodega && bodega.toLowerCase() === String(wine.name || "").trim().toLowerCase();
 
   const filas = [
     {
       rotulo: "Bodega",
-      valor: bodega && !mismaCosa ? bodega : "",
+      valor: bodega,
       // Único campo que se muestra vacío: sin la bodega la ficha está incompleta y
       // conviene que se vea, con la salida al lado.
       obligatorio: true,
