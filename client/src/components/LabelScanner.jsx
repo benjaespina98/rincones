@@ -133,9 +133,17 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
     let uploadBlob = file;
     let dataUrl;
     try {
-      const paraLeer = await resizeImage(file, SCAN_MAX_DIM, SCAN_QUALITY);
+      // Las dos reducciones son independientes —cada una parte de `file`, no
+      // una de la otra— y antes se esperaban una atrás de la otra. En un
+      // celular mid-range, redimensionar una foto de 12MP a 2000px no es
+      // gratis, y hacerlo dos veces en fila sumaba ese trabajo dos veces al
+      // camino crítico del escaneo antes de que la foto siquiera saliera a la
+      // red. `Promise.all` los corre a la vez.
+      const [paraLeer, paraGuardar] = await Promise.all([
+        resizeImage(file, SCAN_MAX_DIM, SCAN_QUALITY),
+        resizeImage(file, STORE_MAX_DIM, STORE_QUALITY),
+      ]);
       uploadBlob = paraLeer.blob;
-      const paraGuardar = await resizeImage(file, STORE_MAX_DIM, STORE_QUALITY);
       dataUrl = paraGuardar.dataUrl;
     } catch {
       try {

@@ -9,6 +9,13 @@ import SplashScreen from "./components/SplashScreen";
 import { initAnalytics } from "./services/analyticsApi";
 import { initPromoTracking } from "./services/promotionsApi";
 import "./App.css";
+// WineDetailPage y CatalogWinePage son dos rutas cargadas por separado (lazy)
+// que comparten la misma hoja de estilos de la ficha. Cada una la importaba
+// por su cuenta, y Rollup no puede compartir un CSS entre dos chunks
+// independientes: lo duplicaba entero en los dos, así que alguien que visitara
+// las dos pantallas en una sesión bajaba el mismo CSS dos veces. Importarla acá,
+// en el bundle principal que ya se carga siempre, la deja en un solo lugar.
+import "./styles/pages/WineDetailPage.css";
 
 // Páginas cargadas de forma diferida para achicar el bundle inicial.
 const LoginPage = lazy(() => import("./pages/LoginPage"));

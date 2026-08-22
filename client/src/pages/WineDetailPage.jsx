@@ -35,7 +35,9 @@ import WinePhoto from "../components/WinePhoto";
 import PhotoLightbox from "../components/PhotoLightbox";
 import ImagePicker from "../components/ImagePicker";
 import Dropdown from "../components/Dropdown";
-import "../styles/pages/WineDetailPage.css";
+// El CSS de esta ficha se importa una sola vez, desde App.jsx: ver el
+// comentario ahí sobre por qué (la comparte CatalogWinePage y Rollup la
+// duplicaba entre los dos chunks lazy).
 
 const EMPTY_MOMENT = {
   occasion: "",

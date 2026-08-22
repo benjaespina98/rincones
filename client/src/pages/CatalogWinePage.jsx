@@ -11,7 +11,8 @@ import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { shareWine } from "../utils/share";
-import "../styles/pages/WineDetailPage.css";
+// El CSS de esta ficha (compartido con WineDetailPage) se importa una sola vez,
+// desde App.jsx — ver el comentario ahí.
 
 // Detalle de un vino del CATÁLOGO (recomendados / descubrir) que todavía no está
 // en la bodega del usuario. Reusa la ficha de WineDetailPage (descripción IA,
