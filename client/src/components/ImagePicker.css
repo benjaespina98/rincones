@@ -150,6 +150,17 @@
 
 .imgpick__uploaded {
   color: var(--success-text);
+  flex-wrap: wrap;
+}
+
+.imgpick__link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .imgpick__error {

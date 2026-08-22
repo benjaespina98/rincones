@@ -813,6 +813,17 @@ export default function WineDetailPage() {
               onChange={(v) => updateDraftField("image", v)}
               disabled={saving}
             />
+            {/*
+              Los cuatro atributos de abajo (autoComplete/autoCorrect/
+              autoCapitalize/spellCheck en "off") van en todo el texto libre de
+              este formulario. Sin ellos, el teclado predictivo del celular
+              puede "completar" una palabra a mitad de tipeo y comerse el
+              espacio que se acababa de tocar, o autocorregir un nombre de
+              bodega a otra palabra que no es — que es justo el síntoma de
+              "no me deja escribir bien" que reportaron sobre esta pantalla.
+              Nombres de vinos y bodegas no son texto de idioma: no hay nada
+              que autocompletar ni que corregir.
+            */}
             <input
               type="text"
               className="scan-edit-input"
@@ -820,6 +831,10 @@ export default function WineDetailPage() {
                 aria-label="Nombre del vino"
               value={draft.name}
               onChange={(event) => updateDraftField("name", event.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <input
               type="text"
@@ -829,6 +844,10 @@ export default function WineDetailPage() {
               list="wine-wineries"
               value={draft.winery}
               onChange={(event) => updateDraftField("winery", event.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <input
               type="text"
@@ -838,6 +857,10 @@ export default function WineDetailPage() {
               list="wine-regions"
               value={draft.region}
               onChange={(event) => updateDraftField("region", event.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <input
               type="text"
@@ -847,6 +870,10 @@ export default function WineDetailPage() {
               list="wine-varietals"
               value={draft.varietal}
               onChange={(event) => updateDraftField("varietal", event.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <input
               type="number"
@@ -874,6 +901,8 @@ export default function WineDetailPage() {
                 aria-label="Notas"
               value={draft.notes}
               onChange={(event) => updateDraftField("notes", event.target.value)}
+              autoCorrect="off"
+              spellCheck="false"
             />
 
             <div className="scan-section-divider">
@@ -885,6 +914,10 @@ export default function WineDetailPage() {
               placeholder="Ubicación (ej: Estante A, Heladera)"
               value={draft.cellarLocation}
               onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <div className="scan-edit-grid scan-edit-grid--two">
               <input
@@ -930,6 +963,10 @@ export default function WineDetailPage() {
               list="detail-stores"
               value={draft.store}
               onChange={(e) => updateDraftField("store", e.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <input
               type="date"
