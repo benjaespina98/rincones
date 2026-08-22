@@ -407,10 +407,11 @@
    contenido no arranque pegado al borde nuevo. */
 .wine-row__expand {
   display: grid;
-  gap: 10px;
-  padding: 12px 12px 14px;
+  gap: 12px;
+  padding: 14px 12px 14px;
   border-top: 1px solid var(--line);
-  animation: rincon-enter-down 200ms var(--ease-out);
+  background: linear-gradient(180deg, var(--surface-2), transparent 60%);
+  animation: rincon-enter-down 220ms var(--ease-spring);
 }
 
 /* ── Los datos del vino, adentro de la fila desplegada ─────────────────────
@@ -425,7 +426,8 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: var(--surface-2);
+  border: 1px solid var(--line);
+  background: var(--elevated);
 }
 
 .wine-row__facts dt {
@@ -482,12 +484,16 @@
   font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform 120ms var(--ease-out);
 }
 
 .wine-action-btn:hover:not(:disabled) {
   border-color: rgba(47, 182, 123, 0.4);
   color: var(--success-text);
+}
+
+.wine-action-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .wine-action-btn.is-active {
@@ -664,12 +670,16 @@
   background: var(--surface-2);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform 120ms var(--ease-out);
 }
 
 .wine-row__icon-btn:hover:not(:disabled) {
   border-color: var(--line-accent);
   color: var(--wine);
+}
+
+.wine-row__icon-btn:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .wine-row__icon-btn--danger:hover:not(:disabled) {

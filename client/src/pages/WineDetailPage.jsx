@@ -1245,7 +1245,6 @@ export default function WineDetailPage() {
               <div className="wine-price">
                 <div className="wine-price__row">
                   <div className="wine-price__info">
-                    <span className="wine-price__label">Precio de referencia</span>
                     {priceLoading ? (
                       <span className="wine-price__empty">Buscando precios…</span>
                     ) : communityPrice ? (
@@ -1272,16 +1271,20 @@ export default function WineDetailPage() {
         )}
 
         {/* Eliminar, al final y en voz baja: estaba a un centímetro de "favorito"
-            y "probado", que se tocan todos los días. */}
+            y "probado", que se tocan todos los días. Ahora es sólo el ícono,
+            mismo lenguaje que el tacho de la fila desplegada en Mi Bodega —
+            ahí ya no hace falta el texto al lado, el ícono solo alcanza y pesa
+            menos en una pantalla que ya cerró con las acciones de todos los días. */}
         {!editing && (
           <div className="wine-detail-danger">
             <button
               type="button"
               className="wine-detail-danger__btn"
               onClick={() => setShowDeleteConfirm(true)}
+              title={noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
+              aria-label={noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
             >
-              <Icon name="trash" size={15} />
-              {noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
+              <Icon name="trash" size={16} />
             </button>
           </div>
         )}

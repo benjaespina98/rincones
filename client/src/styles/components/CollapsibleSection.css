@@ -23,11 +23,15 @@
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform 120ms var(--ease-out);
 }
 
 .collapsible__head:hover {
   background: var(--surface-hover);
+}
+
+.collapsible__head:active {
+  transform: scale(0.995);
 }
 
 .collapsible__title {
@@ -97,7 +101,8 @@
 }
 
 .collapsible__panel {
-  padding: 0 14px 14px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line);
 }
 
 /* La salida del final. Discreta a propósito: es una ayuda, no una acción de la
