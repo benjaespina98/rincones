@@ -379,10 +379,30 @@
   color: var(--text-muted);
 }
 
+/* Sigue en uso en la ficha del catálogo (CatalogWinePage), que comparte esta
+   hoja: ahí un vino sin promedio no tiene chip de "lo que pagaste" con el que
+   contradecirse, así que decirlo está bien. */
 .wine-price__empty {
   font-size: var(--text-base);
   color: var(--text-secondary);
   line-height: 1.45;
+}
+
+/* Lo que pagaste vos, contra el promedio. En voz baja: el número grande es el
+   de mercado —es el dato que uno vino a buscar— y esto lo pone en contexto. */
+.wine-price__yours {
+  margin: -4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* El link a MercadoLibre cuando NO hay promedio y va suelto, sin el plegable ni
+   la caja del bloque de precio alrededor. Ocupa el ancho como cualquier otra
+   sección de la ficha para que no se lea como un botón perdido. */
+.wine-price__meli--solo {
+  display: flex;
+  width: 100%;
 }
 
 .wine-price__meli {

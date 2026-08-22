@@ -441,11 +441,14 @@ async function createWine(userId, payload) {
   }
 
   // Si registró lo que pagó, alimenta el precio comunitario (promedio).
+  // Va con el `userId` para que el aporte tenga dueño: así se corrige al editar
+  // y se retira al borrar, en vez de quedarse en el promedio para siempre.
   if (savedWine.purchase?.price > 0) {
     await winePrices.contribute({
       name, winery, varietal,
       price: savedWine.purchase.price,
       currency: savedWine.purchase.currency,
+      userId,
     });
   }
 
@@ -732,16 +735,50 @@ async function updateWine(userId, id, payload) {
     });
   }
 
-  // Mismo criterio que la foto: si esta edición dejó un precio nuevo o
-  // distinto del que había, alimenta el promedio comunitario. Editar a un
-  // precio igual al que ya estaba no vuelve a sumar (sería contarte dos veces).
-  if (price !== undefined && updatedWine.purchase?.price > 0 && updatedWine.purchase.price !== precioAnterior) {
-    await winePrices.contribute({
+  /**
+   * ── EL PRECIO SIGUE AL VINO, EN LOS TRES SENTIDOS ─────────────────────────
+   *
+   * Tu aporte al promedio comunitario es TU muestra, y esta edición puede
+   * hacerle tres cosas distintas:
+   *
+   * — Cambiar el número: se pisa tu muestra. Antes se sumaba una nueva y el pool
+   *   te contaba dos veces, así que corregir un precio mal tipeado ensuciaba el
+   *   promedio en vez de arreglarlo. Por eso la condición de "distinto del que
+   *   había" ya no hace falta acá: `contribute` ignora solo el reaporte idéntico.
+   * — Vaciarlo: se retira. Borrar lo que pagaste tiene que borrarlo de todos
+   *   lados, no sólo de tu ficha.
+   * — Cambiar la identidad del vino: el aporte se MUDA. La muestra vive bajo la
+   *   clave nombre+uva+bodega, así que corregir la etiqueta sin esto dejaba tu
+   *   precio colgado del vino equivocado —el que acabás de desmentir— y no
+   *   aparecía nunca bajo el correcto. Mismo movimiento que hace el catálogo
+   *   comunitario unas líneas más arriba: retirar de la vieja, aportar a la nueva.
+   */
+  if (cambioIdentidad && precioAnterior > 0) {
+    await winePrices.retract({
+      name: identidadPrevia.name,
+      winery: identidadPrevia.winery,
+      varietal: identidadPrevia.varietal,
+      userId,
+    });
+  }
+
+  if (updatedWine.purchase?.price > 0) {
+    if (price !== undefined || cambioIdentidad) {
+      await winePrices.contribute({
+        name: updatedWine.name,
+        winery: updatedWine.winery,
+        varietal: updatedWine.varietal,
+        price: updatedWine.purchase.price,
+        currency: updatedWine.purchase.currency,
+        userId,
+      });
+    }
+  } else if (price !== undefined && precioAnterior > 0) {
+    await winePrices.retract({
       name: updatedWine.name,
       winery: updatedWine.winery,
       varietal: updatedWine.varietal,
-      price: updatedWine.purchase.price,
-      currency: updatedWine.purchase.currency,
+      userId,
     });
   }
 
@@ -1277,6 +1314,25 @@ async function deleteWine(userId, id) {
    * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
    * hayas terminado.
    */
+
+  /**
+   * El PRECIO sí se retira, y no contradice lo de arriba.
+   *
+   * Son dos pools con dos preguntas distintas. El catálogo contesta "¿este vino
+   * existe?", y eso no deja de ser cierto porque te lo hayas tomado. El promedio
+   * contesta "¿cuánto lo paga la gente?", y ahí tu muestra es un dato tuyo
+   * pegado a un vino que ya no está en tu bodega: sin nada que la sostenga ni
+   * forma de corregirla, envejece sola dentro de un promedio que nadie puede
+   * arreglar. Se va con el vino.
+   */
+  if (wine.purchase?.price > 0) {
+    await winePrices.retract({
+      name: wine.name,
+      winery: wine.winery,
+      varietal: wine.varietal,
+      userId,
+    });
+  }
 
   const user = await User.findById(userId);
   user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - 1);

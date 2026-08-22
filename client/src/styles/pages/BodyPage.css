@@ -415,19 +415,18 @@
 }
 
 /* ── Los datos del vino, adentro de la fila desplegada ─────────────────────
-   Dos columnas de rótulo → valor. En dos columnas seis datos ocupan tres
-   renglones y se barren de un vistazo; en una, la tarjeta volvía a ser una
-   columna larga con aire de sobra a la derecha, que es justamente lo que se
-   estaba arreglando. */
+   Un renglón de rótulo → valor, sin caja propia.
+   Tenía borde y fondo elevado: una tarjeta adentro de otra tarjeta, para tres
+   datos. Ese marco es lo que hacía que abrir una fila se viera pesado —dos
+   rectángulos y un botón, todos compitiendo por el mismo ancho— y no aportaba
+   nada: el `border-top` del desplegable ya separa esto de la cabecera.
+   Sin la caja, los datos flotan sobre el fondo del desplegable y el botón queda
+   como lo único enmarcado, que es lo que uno vino a tocar. */
 .wine-row__facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
-  gap: 8px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
   margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--elevated);
 }
 
 .wine-row__facts dt {
@@ -530,8 +529,10 @@
    la pantalla que se alcanza desde las dos vistas (en grilla la tarjeta no se
    despliega). La aclaración sigue existiendo allá, una sola vez. */
 
+/* Abre el desplegable, así que ya no se tira hacia arriba con un margen
+   negativo para pegarse al botón que tenía encima. */
 .wine-row__state-line {
-  margin: -4px 0 0;
+  margin: 0;
   font-size: var(--text-2xs);
   line-height: 1.3;
   color: var(--text-secondary);
