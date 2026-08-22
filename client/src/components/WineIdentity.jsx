@@ -77,7 +77,11 @@ export default function WineIdentity({ wine, onEdit }) {
   if (!wine) return null;
 
   const tipo = WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown;
-  const guarda = getCellarStatus(wine);
+  // Si ya lo tomaste, "Mejor a partir de X" o "Listo para tomar" no tienen
+  // destinatario: es una recomendación sobre CUÁNDO abrirlo, y esa decisión ya
+  // pasó. Mostrarla igual —sobre todo "Pasó su mejor momento" en un vino que
+  // acabás de disfrutar— lee como que la app no se enteró de lo que hiciste.
+  const guarda = wine.tasted ? { status: "unknown", label: "" } : getCellarStatus(wine);
   const tengo = tenencia(wine);
 
   // Antes se ocultaba la bodega cuando coincidía con el nombre del vino (el

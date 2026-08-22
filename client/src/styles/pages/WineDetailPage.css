@@ -344,14 +344,19 @@
   background: var(--elevated);
 }
 
-.wine-price__label {
-  display: block;
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-  margin-bottom: 4px;
+.wine-price__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.wine-price__heading .icon {
+  color: var(--accent-light);
 }
 
 .wine-price__value {
@@ -799,28 +804,28 @@
    barra: es lo único de esta pantalla que no se puede deshacer del todo. */
 .wine-detail-danger {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   padding-top: 6px;
 }
 
 .wine-detail-danger__btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-full);
-  border: 1px solid transparent;
-  background: none;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .wine-detail-danger__btn:hover {
-  border-color: rgba(198, 70, 95, 0.45);
+  background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.34);
   color: #ff8fa3;
 }
 

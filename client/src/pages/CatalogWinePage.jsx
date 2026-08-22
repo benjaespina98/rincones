@@ -170,11 +170,15 @@ export default function CatalogWinePage() {
             la ficha de un vino que todavía no tiene. */}
         <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
-        {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual). */}
+        {/* Precio: comunitario (promedio) + link a MercadoLibre (siempre actual).
+            Sin CollapsibleSection acá (a diferencia de la ficha propia) porque
+            no hay nada más arriba que ya diga "Precio": el título va en un
+            encabezado real, igual que "Sobre este vino" y las reseñas, en vez
+            de una leyenda chica que repetía lo que el número ya dice. */}
         <div className="wine-price">
+          <h3 className="wine-price__heading"><Icon name="tag" size={16} /> Precio</h3>
           <div className="wine-price__row">
             <div className="wine-price__info">
-              <span className="wine-price__label">Precio de referencia</span>
               {priceLoading ? (
                 <span className="wine-price__empty">Buscando precios…</span>
               ) : communityPrice ? (
