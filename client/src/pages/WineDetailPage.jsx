@@ -66,8 +66,48 @@ export default function WineDetailPage() {
   );
   const { addToast, removeToast, showSuccess, showError } = useToast();
 
-  const [wine, setWine] = useState(null);
-  const [loading, setLoading] = useState(true);
+  /**
+   * ── LA FICHA ARRANCA CON LO QUE LA LISTA YA SABÍA ──────────────────────────
+   * Quien te trajo hasta acá —Mi Bodega, "Listos para abrir", el Sommelier, la
+   * búsqueda— tenía el vino ENTERO en memoria y navegaba con la mano vacía. La
+   * ficha se montaba sin nada, tapaba la pantalla con un esqueleto y volvía a
+   * pedir por red un objeto que estaba a un puntero de distancia. La espera no
+   * era de datos, era de ida y vuelta.
+   *
+   * Ahora el vino viaja en el state de navegación y la ficha pinta en el primer
+   * frame: foto, nombre, bodega, uva, cosecha, stock. Lo que la lista NO trae es
+   * `description` —la ficha de IA, que es lo más pesado que guarda un vino y por
+   * eso se recorta del listado (ver FUERA_DE_LA_LISTA en el server)—, así que eso
+   * y sólo eso sigue esperando, con su propio esqueleto y sin bloquear nada.
+   *
+   * Se compara el `_id` a propósito: el state de navegación sobrevive a un
+   * refresh, y sembrar la ficha del vino A cuando la URL dice B sería mostrar
+   * otra botella. Si no coinciden, se ignora y se carga como siempre.
+   */
+  const sembrado =
+    location.state?.wine?._id === id ? location.state.wine : null;
+
+  const [wine, setWine] = useState(sembrado);
+  const [loading, setLoading] = useState(!sembrado);
+  /**
+   * ¿Llegó ya el vino COMPLETO del servidor?
+   *
+   * Lo sembrado alcanza para dibujar, pero no para decidir si hay que pedirle la
+   * descripción al modelo: la lista recorta `description`, así que un vino que
+   * SÍ tiene su ficha guardada parece no tenerla. Sin esta bandera, entrar desde
+   * Mi Bodega disparaba una llamada a la IA por cada apertura para terminar
+   * usando la que ya estaba en la base.
+   */
+  const [wineCompleto, setWineCompleto] = useState(false);
+  /**
+   * Espejo de `wine` para que `loadWine` pueda preguntar "¿ya hay algo en
+   * pantalla?" sin depender del estado: ponerlo en las dependencias recrearía la
+   * función en cada respuesta y el efecto volvería a pedir el vino en bucle.
+   */
+  const wineRef = useRef(sembrado);
+  useEffect(() => {
+    wineRef.current = wine;
+  }, [wine]);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -109,23 +149,35 @@ export default function WineDetailPage() {
   const [priceLoading, setPriceLoading] = useState(true);
 
   const loadWine = useCallback(async () => {
+    /**
+     * Con algo ya dibujado, esto es una REVALIDACIÓN y tiene que ser invisible.
+     *
+     * Encender `loading` acá borraría la ficha que la persona ya está mirando
+     * para poner un esqueleto en su lugar — el parpadeo que justamente se vino a
+     * sacar. Lo mismo con el error: si la revalidación falla pero tenemos datos
+     * buenos en pantalla, no hay nada que avisar; se sigue mostrando lo que hay.
+     */
+    const revalidando = Boolean(wineRef.current);
     try {
-      setLoading(true);
+      if (!revalidando) setLoading(true);
       setLoadFailed(false);
       const data = await getWineById(id);
       if (!data) {
         setNotFound(true);
       } else {
         setWine(data);
+        setWineCompleto(true);
       }
     } catch (err) {
       // Un 404 sí es "no existe"; cualquier otra cosa (red caída, 500) es un
       // fallo de carga. Antes todo caía en "puede que ya lo hayas eliminado",
       // que es una atribución alarmante y falsa.
+      // Un 404 sí importa aunque estemos revalidando: el vino se borró en otro
+      // lado y seguir mostrándolo sería mentir.
       if (err?.response?.status === 404) setNotFound(true);
-      else setLoadFailed(true);
+      else if (!revalidando) setLoadFailed(true);
     } finally {
-      setLoading(false);
+      if (!revalidando) setLoading(false);
     }
   }, [id]);
 
@@ -181,6 +233,24 @@ export default function WineDetailPage() {
   const loadDescription = useCallback((force = false) => {
     if (!wineName) return undefined;
 
+    /**
+     * Se espera al vino completo antes de decidir.
+     *
+     * La ficha puede estar dibujada con lo que trajo la lista, y la lista recorta
+     * `description` para no arrastrar un kilobyte por botella. O sea que "no
+     * tiene descripción" y "todavía no sabemos si la tiene" se ven exactamente
+     * igual desde acá — y confundirlos costaba una llamada al modelo por cada
+     * apertura, para terminar mostrando la que ya estaba guardada.
+     *
+     * Mientras tanto se deja el esqueleto encendido: es la parte de la ficha que
+     * legítimamente tarda, y anunciarlo es justamente lo que le permite al resto
+     * aparecer de una.
+     */
+    if (!force && !wineCompleto) {
+      setAiLoading(true);
+      return undefined;
+    }
+
     // Si el vino ya trae la ficha persistida (se genera al crearlo), la usamos
     // y no gastamos una llamada por cada apertura del detalle.
     if (!force && wine?.description?.generatedAt) {
@@ -213,9 +283,10 @@ export default function WineDetailPage() {
     return () => {
       active = false;
     };
-    // Sólo depende del vino (nombre+bodega); el resto son datos estables del mismo.
+    // Sólo depende del vino (nombre+bodega) y de si ya llegó entero; el resto
+    // son datos estables del mismo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wineName, wineWinery, wine?.description?.generatedAt]);
+  }, [wineName, wineWinery, wineCompleto, wine?.description?.generatedAt]);
 
   useEffect(() => loadDescription(), [loadDescription]);
 
@@ -674,12 +745,13 @@ export default function WineDetailPage() {
                 </button>
               </div>
 
-              {!noEsTuyo && (
-                <p className="wine-detail-actions__note">
-                  Ajustá tu stock con − y +. "Ya la probé" es aparte: decí si
-                  alguna vez la tomaste, sin que eso mueva tu stock.
-                </p>
-              )}
+              {/* Acá vivía un renglón que explicaba qué hace el "−" y qué no.
+                  Un control que necesita un instructivo debajo está mal
+                  dibujado, y el instructivo lo empeora: le da a la barra de
+                  acciones el aire de un formulario con ayuda contextual. Los
+                  botones ya dicen lo suyo por su forma, y la aclaración completa
+                  sigue donde de verdad hace falta —los `aria-label` de cada uno,
+                  que es lo que escucha quien no ve la pantalla—. */}
             </div>
 
             {/* ── QUÉ ES ESTE VINO, ANTES QUE QUÉ HACER CON ÉL ────────────────

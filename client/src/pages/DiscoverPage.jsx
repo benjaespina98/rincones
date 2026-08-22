@@ -365,12 +365,23 @@ export default function DiscoverPage() {
           {searchResults.length > 0 && (
             <ul className="wine-search__results">
               {searchResults.map((r) => (
-                <li key={r.id} className="wine-result-card">
+                <li key={r.id} className={`wine-result-card ${r.owned ? "is-owned" : ""}`}>
                   <button
                     type="button"
                     className="wine-result-card__open"
-                    onClick={() => navigate("/descubrir/vino", { state: { wine: r } })}
-                    aria-label={`Ver detalle de ${r.name}`}
+                    /* Si el vino ya es tuyo, la búsqueda te lleva a TU ficha y no
+                       a la del catálogo: son el mismo vino y la tuya es la que
+                       tiene tu añada, tu foto, tus notas y tus momentos. Mandar a
+                       la genérica era ofrecerle a alguien la versión de vitrina de
+                       algo que ya tiene en su casa. */
+                    onClick={() =>
+                      r.owned
+                        ? navigate(`/vino/${r.owned.id}`)
+                        : navigate("/descubrir/vino", { state: { wine: r } })
+                    }
+                    aria-label={
+                      r.owned ? `Ver ${r.name} en mi bodega` : `Ver detalle de ${r.name}`
+                    }
                   >
                     <div className="wine-result-card__media">
                       <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} fit="contain" />
@@ -391,7 +402,17 @@ export default function DiscoverPage() {
                           <span className="chip chip--type">{WINE_TYPE_LABELS[r.type]}</span>
                         )}
                         {r.varietal && <span className="chip">{r.varietal}</span>}
-                        {r.vintage && <span className="chip">{r.vintage}</span>}
+                        {/* La cosecha del catálogo casi siempre viene vacía, y no
+                            es un olvido: una fila del catálogo es el VINO, no la
+                            botella, y no puede tener un año sin mentirle a quien
+                            tiene otra añada en la mano. La que sí es cierta es la
+                            tuya, así que cuando el vino ya está en tu bodega se
+                            muestra ésa —las dos si tenés dos añadas—. */}
+                        {r.owned?.vintages?.length > 0
+                          ? r.owned.vintages.map((v) => (
+                              <span key={v} className="chip">{v}</span>
+                            ))
+                          : r.vintage && <span className="chip">{r.vintage}</span>}
                         {r.region && (
                           <span className="chip">
                             <Icon name="map-pin" size={13} />
@@ -423,19 +444,36 @@ export default function DiscoverPage() {
                     </div>
                   </button>
 
+                  {/* ── LA ACCIÓN DEPENDE DE SI YA LO TENÉS ──────────────────
+                      "Quiero probar" sobre un vino que está en tu cava es la
+                      app contestando otra cosa de la que se le preguntó. Con
+                      botellas, lo útil es entrar a la ficha; sin botellas pero
+                      ya probado, el dato es que lo tomaste y sigue en tu
+                      historial. Recién si no es tuyo aparece la lista de deseos. */}
                   <div className="wine-result-card__actions">
-                    <button
-                      type="button"
-                      className={`wine-result-card__want ${addedIds.has(r.id) ? "is-wished" : ""}`}
-                      onClick={() => handleWant(r, "search")}
-                      disabled={addingId === r.id || addedIds.has(r.id)}
-                    >
-                      {addedIds.has(r.id) ? (
-                        <><Icon name="check" size={16} /> Guardado</>
-                      ) : (
-                        <><Icon name="heart" size={16} /> Quiero probar</>
-                      )}
-                    </button>
+                    {r.owned ? (
+                      <span className="wine-result-card__owned">
+                        <Icon name="check" size={15} />
+                        {r.owned.bottles > 0
+                          ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
+                          : r.owned.tasted
+                            ? "Ya lo probaste"
+                            : "Ya está en tu bodega"}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`wine-result-card__want ${addedIds.has(r.id) ? "is-wished" : ""}`}
+                        onClick={() => handleWant(r, "search")}
+                        disabled={addingId === r.id || addedIds.has(r.id)}
+                      >
+                        {addedIds.has(r.id) ? (
+                          <><Icon name="check" size={16} /> Guardado</>
+                        ) : (
+                          <><Icon name="heart" size={16} /> Quiero probar</>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

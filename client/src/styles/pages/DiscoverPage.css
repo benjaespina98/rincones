@@ -682,6 +682,32 @@
   cursor: default;
 }
 
+/* Ya es tuyo: un estado, no un botón. Nada que tocar acá —la acción es entrar a
+   la ficha, y para eso ya se toca la tarjeta entera—, así que se dibuja plano y
+   sin sombra para no competir con el "Quiero probar" de las tarjetas vecinas,
+   que sí son una invitación a hacer algo. */
+.wine-result-card__owned {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(47, 182, 123, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(47, 182, 123, 0.1);
+  color: var(--success-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* El borde del que ya tenés, apenas insinuado: alcanza para reconocerlo
+   barriendo la lista sin que la grilla se vuelva un semáforo. */
+.wine-result-card.is-owned {
+  border-color: rgba(47, 182, 123, 0.26);
+}
+
 @media (min-width: 720px) {
   .wine-search__results {
     grid-template-columns: repeat(3, 1fr);

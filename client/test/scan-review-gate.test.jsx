@@ -91,7 +91,20 @@ describe("ScanReview", () => {
     expect(draft.name).toBe("Saint Felicien");
   });
 
-  it("con el nombre igual a la bodega no deja guardar", () => {
+  /**
+   * ── EL ESCANEO AVISA, PERO NO FRENA ─────────────────────────────────────────
+   * Estas pruebas fijaban lo contrario: que una lectura dudosa APAGABA el botón
+   * de guardar hasta corregirla. La decisión de producto se dio vuelta a
+   * propósito —priorizar que la botella entre a la bodega siempre que haya con
+   * qué nombrarla, y que lo que salió mal se corrija después editando el vino ya
+   * guardado, no antes de guardarlo (ver `bloqueado` en ScanReview.jsx)—.
+   *
+   * Lo que sigue siendo cierto, y es lo que se prueba ahora: el problema se
+   * SEÑALA, el campo para arreglarlo está a la vista, y corregirlo hace
+   * desaparecer el aviso. El único caso sin salida es no tener nombre, porque
+   * ahí todavía no hay ninguna botella que agregar.
+   */
+  it("con el nombre igual a la bodega avisa, pero deja guardar igual", () => {
     const onConfirm = vi.fn();
     const rota = lectura(
       { winery: "Pispi", line: "Pispi", varietal: "Blend", type: "red" },
@@ -100,12 +113,16 @@ describe("ScanReview", () => {
 
     render(<ScanReview reading={rota} onConfirm={onConfirm} />);
 
-    expect(screen.getByText(/no lo pudimos leer bien/i)).toBeTruthy();
+    // El problema se dice: nombre y bodega salieron iguales, y eso casi siempre
+    // es un error de lectura.
+    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
+
+    // Pero no se frena: hay nombre, así que hay botella que agregar.
     const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
-    expect(guardar).toBeDisabled();
+    expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
-    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
   it("corregir la bodega desbloquea el guardado, sin pedir nada más", () => {
@@ -123,7 +140,9 @@ describe("ScanReview", () => {
     const bodega = screen.getByPlaceholderText("Bodega");
     fireEvent.change(bodega, { target: { value: "Mosquita Muerta" } });
 
-    expect(screen.queryByText(/no lo pudimos leer bien/i)).toBeNull();
+    // Corregir lo señalado hace desaparecer el aviso: es lo que confirma que el
+    // aviso hablaba de ESE campo y no de un estado difuso de "algo anda mal".
+    expect(screen.queryByText(/revisá esto antes de guardar/i)).toBeNull();
 
     const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
     expect(guardar).not.toBeDisabled();
@@ -136,9 +155,14 @@ describe("ScanReview", () => {
     expect(draft.identEditedFields).toContain("winery");
   });
 
-  it("sin nombre pide escribirlo antes de guardar", () => {
+  it("sin nombre lo señala y deja el campo a mano para escribirlo", () => {
     // Es el caso que apareció al sacar el fallback a la bodega: una etiqueta de
     // la que sólo se leyó quién la hace.
+    //
+    // El botón ya no se apaga —el escaneo no frena— y la validación del nombre
+    // vacío la hace ScanWinePage al confirmar, con un error que dice qué falta
+    // ("Escribí la línea o el nombre del vino"). Lo que le toca a esta pantalla,
+    // y es lo que se prueba, es señalar el problema y tener el campo al lado.
     const onConfirm = vi.fn();
     const sinNombre = lectura(
       { winery: "Bodegas Salentein", varietal: "Blend", type: "sparkling" },
@@ -148,15 +172,18 @@ describe("ScanReview", () => {
     render(<ScanReview reading={sinNombre} onConfirm={onConfirm} />);
 
     expect(screen.getByText(/no pudimos leer cómo se llama/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /agregar a mi bodega/i })).toBeDisabled();
 
     // El campo para arreglarlo tiene que estar a la vista, no detrás de "editar
     // todos los datos": un aviso sin el campo al lado es un callejón sin salida.
-    fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
-      target: { value: "Cuvée Exceptionnelle" },
-    });
+    const campo = screen.getByPlaceholderText(/lo que dice grande/i);
+    fireEvent.change(campo, { target: { value: "Cuvée Exceptionnelle" } });
 
-    expect(screen.getByRole("button", { name: /agregar a mi bodega/i })).not.toBeDisabled();
+    // Y una vez escrito, el aviso se va: hablaba de ese campo.
+    expect(screen.queryByText(/no pudimos leer cómo se llama/i)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][0].name).toBe("Cuvée Exceptionnelle");
   });
 
   /**
@@ -236,11 +263,13 @@ describe("ScanReview", () => {
     );
 
     render(<ScanReview reading={igual} onConfirm={onConfirm} />);
-    expect(screen.getByRole("button", { name: /agregar a mi bodega/i })).toBeDisabled();
+    // Se avisa, porque nombre = bodega casi siempre es un error de lectura…
+    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
 
+    // …y confirmarlo saca el aviso, que es la salida para Norton y compañía.
     fireEvent.click(screen.getByRole("button", { name: /se llama igual que la bodega/i }));
 
-    expect(screen.queryByText(/no lo pudimos leer bien/i)).toBeNull();
+    expect(screen.queryByText(/revisá esto antes de guardar/i)).toBeNull();
     const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
     expect(guardar).not.toBeDisabled();
 
@@ -291,10 +320,11 @@ describe("ScanReview", () => {
     render(<ScanReview reading={floja} onConfirm={onConfirm} />);
     fireEvent.click(screen.getByRole("button", { name: /completar los datos a mano/i }));
 
-    // Ahora sí aparece el formulario de siempre, con el guardado bloqueado
-    // hasta que se toque algo — mismo criterio que "el nombre igual a la bodega".
+    // Insistir abre el formulario de siempre. Ya no arranca bloqueado —el
+    // escaneo no frena— pero sigue siendo el mismo formulario editable, que es
+    // lo que la salida promete.
     const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
-    expect(guardar).toBeDisabled();
+    expect(guardar).not.toBeDisabled();
 
     // Un valor DISTINTO del que ya tenía el campo: si se deja el mismo texto,
     // React no dispara el cambio (no hay nada que actualizar) y el test no
@@ -302,10 +332,14 @@ describe("ScanReview", () => {
     fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
       target: { value: "Pispi Reserva" },
     });
-    expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
     expect(onConfirm).toHaveBeenCalledTimes(1);
+    // Lo que se escribió a mano es lo que se guarda, y queda anotado como
+    // editado para que el servidor sepa que no es una lectura cruda.
+    const draft = onConfirm.mock.calls[0][0];
+    expect(draft.name).toBe("Pispi Reserva");
+    expect(draft.identEditedFields).toContain("line");
   });
 
   it("una identificación con problemas (no sólo floja) muestra el formulario, no el estado de 'sin identificar'", () => {
@@ -321,7 +355,7 @@ describe("ScanReview", () => {
 
     render(<ScanReview reading={rota} onConfirm={onConfirm} />);
     expect(screen.queryByText(/no pudimos identificar el vino con suficiente seguridad/i)).toBeNull();
-    expect(screen.getByText(/no lo pudimos leer bien/i)).toBeTruthy();
+    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
   });
 
   it("una uva rara se muestra editable en vez de esconderse en un chip", () => {

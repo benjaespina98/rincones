@@ -334,10 +334,14 @@ export default function SuggestionsPage() {
                 <li
                   key={wine._id}
                   className="suggestion-card"
-                  onClick={() => navigate(`/vino/${wine._id}`)}
+                  /* El vino viaja con la navegación para que la ficha pinte de
+                     una, sin volver a pedir lo que esta lista ya tiene. */
+                  onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && navigate(`/vino/${wine._id}`)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && navigate(`/vino/${wine._id}`, { state: { wine } })
+                  }
                 >
                   <div className="suggestion-card__image">
                     <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} />

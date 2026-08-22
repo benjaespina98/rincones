@@ -82,19 +82,80 @@ describe("WineIdentity", () => {
   });
 
   it("cuando falta la bodega deja el hueco a la vista y ofrece completarla", () => {
-    // Es el único campo que se muestra vacío: sin la bodega la ficha está
-    // incompleta, y esconderlo haría que el usuario nunca se enterara.
+    // Es uno de los dos campos que se muestran vacíos: sin la bodega la ficha
+    // está incompleta, y esconderlo haría que el usuario nunca se enterara.
+    // Se le pone cosecha para que el único hueco sea el de la bodega — con los
+    // dos vacíos hay dos botones "Completar", que es correcto pero no es lo que
+    // esta prueba mira.
     const onEdit = vi.fn();
-    render(<WineIdentity wine={{ name: "Un vino escaneado", type: "red" }} onEdit={onEdit} />);
+    render(
+      <WineIdentity wine={{ name: "Un vino escaneado", vintage: 2021, type: "red" }} onEdit={onEdit} />
+    );
 
     expect(screen.getByText("Bodega")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Completar" })).toBeInTheDocument();
   });
 
-  it("no repite la bodega cuando el vino se llama igual que ella", () => {
-    render(<WineIdentity wine={{ name: "Rutini", winery: "Rutini", type: "red" }} />);
-    // El nombre ya lo dice el encabezado: decirlo de nuevo con rótulo de bodega es
-    // ocupar una fila para no agregar nada.
-    expect(screen.queryByText("Rutini")).not.toBeInTheDocument();
+  it("muestra la bodega aunque el vino se llame igual que ella", () => {
+    // Antes se ocultaba por no repetir el dato. Se cambió a propósito: hay
+    // decenas de vinos cuyo nombre ES el de su bodega (Norton, El Enemigo,
+    // Durigutti), y ocultarla hacía que completar ese campo a mano no se viera
+    // reflejado en ningún lado — la persona editaba, guardaba, y la ficha seguía
+    // mostrando "—". Confirmar un dato dos veces vale más que un campo que
+    // parece no haberse guardado.
+    render(<WineIdentity wine={{ name: "Rutini", winery: "Rutini", vintage: 2020, type: "red" }} />);
+
+    expect(screen.getByText("Bodega")).toBeInTheDocument();
+    expect(screen.getByText("Rutini")).toBeInTheDocument();
+  });
+});
+
+/**
+ * ── CUÁNDO SE DICE "CUÁNDO TOMARLO" ─────────────────────────────────────────
+ * Sólo si tenés botellas. Es una instrucción sobre una botella que está
+ * esperando en algún lado: sin botella no le habla a nadie.
+ *
+ * Se reportó al revés: entrar desde Probados a un vino ya tomado y encontrarse
+ * con "mejor tomar en tal fecha". La misma ficha se dibuja en cuatro
+ * situaciones y en tres de ellas no hay nada que decidir.
+ */
+describe("la recomendación de cuándo tomarlo, según el contexto", () => {
+  const malbec = { name: "Portillo", winery: "Salentein", varietal: "Malbec", vintage: 2019, type: "red" };
+
+  it("con botellas en la cava, la dice", () => {
+    enElAño(2026);
+    render(<WineIdentity wine={{ ...malbec, quantity: 3 }} />);
+    expect(screen.getByText("Listo para tomar")).toBeInTheDocument();
+  });
+
+  it("sin stock no la dice: ya no hay nada que guardar", () => {
+    enElAño(2026);
+    render(<WineIdentity wine={{ ...malbec, quantity: 0 }} />);
+    expect(screen.queryByText("Listo para tomar")).not.toBeInTheDocument();
+  });
+
+  it("desde Probados y sin stock, no la dice", () => {
+    enElAño(2026);
+    render(<WineIdentity wine={{ ...malbec, quantity: 0, tasted: true }} />);
+    expect(screen.queryByText("Listo para tomar")).not.toBeInTheDocument();
+    // Y tampoco la versión que peor caía: "pasó su mejor momento" sobre un vino
+    // que la persona disfrutó anoche.
+    expect(screen.queryByText("Pasó su mejor momento")).not.toBeInTheDocument();
+  });
+
+  it("probado pero con botellas todavía, sí la dice", () => {
+    // Probado y en stock son dos hechos independientes (ver utils/cellarViews.js):
+    // que ya lo hayas tomado no borra que te queden tres esperando.
+    enElAño(2026);
+    render(<WineIdentity wine={{ ...malbec, quantity: 3, tasted: true }} />);
+    expect(screen.getByText("Listo para tomar")).toBeInTheDocument();
+  });
+
+  it("en un vino del catálogo —que no tenés— no la dice", () => {
+    // Un resultado de búsqueda no trae `quantity`: la misma condición lo cubre
+    // sin preguntar por la ruta ni por quién montó el componente.
+    enElAño(2026);
+    render(<WineIdentity wine={malbec} />);
+    expect(screen.queryByText("Listo para tomar")).not.toBeInTheDocument();
   });
 });

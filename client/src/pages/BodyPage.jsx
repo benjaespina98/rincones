@@ -800,7 +800,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           removeToast(toastId);
           // A la ficha, con el formulario de momentos ya abierto: el momento
           // pertenece al vino y ahí es donde vive su historia.
-          navigate(`/vino/${wine._id}`, { state: { abrirMomento: true } });
+          navigate(`/vino/${wine._id}`, { state: { abrirMomento: true, wine } });
         },
         secondary: {
           label: "Deshacer",
@@ -1154,8 +1154,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     className="wine-row__main"
                     onClick={() => {
                       if (modoSeleccion) return alternarSeleccion(wine._id);
+                      // El vino viaja con la navegación: la ficha lo tiene
+                      // entero en memoria y puede pintar en el primer frame en
+                      // vez de tapar la pantalla con un esqueleto para volver a
+                      // pedir lo que esta lista ya bajó (ver WineDetailPage).
                       return esGrilla
-                        ? navigate(`/vino/${wine._id}`)
+                        ? navigate(`/vino/${wine._id}`, { state: { wine } })
                         : setExpandedId(expanded ? null : wine._id);
                     }}
                     aria-expanded={modoSeleccion || esGrilla ? undefined : expanded}
@@ -1420,7 +1424,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     </p>
 
                     <div className="wine-row__links">
-                      <button type="button" className="wine-row__detail" onClick={() => navigate(`/vino/${wine._id}`)}>
+                      <button type="button" className="wine-row__detail" onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}>
                         Ver ficha completa <Icon name="arrow-right" size={15} />
                       </button>
                       <button
