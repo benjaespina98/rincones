@@ -108,7 +108,9 @@ export default function CellarReady({ enabled = true }) {
                 className="cellar-ready__card"
                 onClick={() => {
                   tapHaptic();
-                  navigate(`/vino/${wine._id}`);
+                  // Con el vino puesto: la ficha ya lo tiene y no necesita
+                  // volver a pedirlo para dibujarse (ver WineDetailPage).
+                  navigate(`/vino/${wine._id}`, { state: { wine } });
                 }}
               >
                 <span className="cellar-ready__art">

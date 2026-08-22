@@ -2,20 +2,31 @@
    La tarjeta que convierte una botella en un plan: a qué temperatura, qué poner
    de música y qué cocinar.
 
-   Comparte el aire de WineOpinion (acento tenue en la esquina) porque son las
-   dos cosas que se HACEN en la ficha; el resto de los bloques son consulta.
+   Compartía el acento violeta con WineOpinion, con el argumento de que son las
+   dos cosas que se HACEN en la ficha. El argumento era cierto y el resultado no
+   servía: dos bloques marcados igual no jerarquizan nada, se disputan el ojo. El
+   acento quedó en uno solo —puntuar, que es lo único de esta pantalla que no
+   existe en ninguna otra app— y acá se fue. Ver el detalle abajo.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── POR QUÉ DEJÓ DE TENER EL BORDE DE ACENTO ───────────────────────────────
+   Tenía borde violeta y un degradado radial en la esquina: era el contenedor
+   más decorado de la ficha. Y es el bloque MENOS esencial de todos —música, un
+   plato, una temperatura: cosas para explorar cuando ya sabés qué vino tenés—,
+   así que la jerarquía estaba dada vuelta. Lo complementario brillaba más que
+   el párrafo que explica a qué sabe la botella.
+
+   Sigue siendo una tarjeta, porque acá SÍ se toca (se elige un plan, se pide una
+   receta) y eso lo distingue del texto que ahora fluye sobre la página. Lo que se
+   fue es el brillo, no la caja. */
 .wine-plan {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 13px 14px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--line-accent);
-  background:
-    radial-gradient(120% 120% at 100% 0%, rgba(167, 130, 239, 0.12), transparent 60%),
-    var(--elevated);
+  border: 1px solid var(--line);
+  background: var(--elevated);
 }
 
 .wine-plan__head {

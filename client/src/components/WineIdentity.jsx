@@ -77,11 +77,31 @@ export default function WineIdentity({ wine, onEdit }) {
   if (!wine) return null;
 
   const tipo = WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown;
-  // Si ya lo tomaste, "Mejor a partir de X" o "Listo para tomar" no tienen
-  // destinatario: es una recomendación sobre CUÁNDO abrirlo, y esa decisión ya
-  // pasó. Mostrarla igual —sobre todo "Pasó su mejor momento" en un vino que
-  // acabás de disfrutar— lee como que la app no se enteró de lo que hiciste.
-  const guarda = wine.tasted ? { status: "unknown", label: "" } : getCellarStatus(wine);
+
+  /**
+   * ── CUÁNDO SE DICE CUÁNDO TOMARLO ──────────────────────────────────────────
+   * Sólo si tenés botellas. "Mejor a partir de 2028" es una instrucción sobre
+   * una botella que está esperando en algún lado: sin botella no le habla a
+   * nadie, y en tres de los cuatro lugares donde esta ficha se dibuja no había
+   * ninguna.
+   *
+   * Las cuatro situaciones, con la misma condición resolviéndolas:
+   *
+   *   en stock            → se dice. Es la única donde hay algo que decidir.
+   *   en Probados, sin stock → no. La decisión ya la tomaste; "pasó su mejor
+   *                         momento" sobre un vino que disfrutaste anoche lee
+   *                         como que la app no se enteró.
+   *   buscando / del catálogo → no. Un resultado de búsqueda no tiene `quantity`,
+   *                         así que la misma condición lo cubre sin preguntar por
+   *                         la ruta ni por quién nos montó.
+   *   se te terminó       → no. Ya no hay nada que guardar.
+   *
+   * Se mira el STOCK y no `tasted` a propósito: son dos hechos independientes
+   * (ver utils/cellarViews.js). Un vino que ya tomaste y del que te quedan tres
+   * botellas sigue necesitando saber hasta cuándo aguantan.
+   */
+  const enStock = Number(wine.quantity) > 0;
+  const guarda = enStock ? getCellarStatus(wine) : { status: "unknown", label: "" };
   const tengo = tenencia(wine);
 
   // Antes se ocultaba la bodega cuando coincidía con el nombre del vino (el

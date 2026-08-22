@@ -1210,11 +1210,23 @@ async function suggestWines(userId, context = {}) {
   }));
 }
 
+/**
+ * Los vinos con botellas que están dentro de su ventana de guarda.
+ *
+ * Devuelve el vino y nada más. Antes le pegaba un `cellarStatus` que NADIE leía:
+ * el cliente lo descartaba y recalculaba la ventana con su propia redacción (ver
+ * el comentario en services/cellar.service.js sobre por qué se separaron), así
+ * que era un objeto de más por vino en cada carga de la home.
+ *
+ * `-description` sale por lo mismo que en la lista de la bodega: la tarjeta de
+ * "Listos para abrir" muestra nombre, bodega, foto y cantidad, y la ficha de IA
+ * es lo más pesado que guarda un vino.
+ */
 async function getCellarReady(userId) {
-  const wines = await Wine.find({ userId, quantity: { $gt: 0 } }).select("-rawText");
-  return wines
-    .filter((w) => getCellarStatus(w).status === "peak")
-    .map((w) => ({ ...w.toObject(), cellarStatus: getCellarStatus(w) }));
+  const wines = await Wine.find({ userId, quantity: { $gt: 0 } })
+    .select("-rawText -description")
+    .lean();
+  return wines.filter((w) => getCellarStatus(w).status === "peak");
 }
 
 /**

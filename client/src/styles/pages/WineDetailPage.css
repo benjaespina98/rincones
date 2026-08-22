@@ -319,13 +319,18 @@
   gap: 8px;
 }
 
+/* Dónde lo guardás, cuánto pagaste, en qué tienda. Iban con fondo violeta, o
+   sea con el color que en esta app significa "acento": tres datos de archivo
+   pintados como si fueran lo destacado del bloque. En gris neutro —el mismo chip
+   que usan los aromas— dicen lo mismo y dejan el acento para lo que de verdad lo
+   necesita. */
 .wine-meta-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 7px 12px;
   border-radius: var(--radius-md);
-  background: rgba(126, 89, 201, 0.12);
+  background: var(--surface);
   border: 1px solid var(--line);
   color: var(--text-secondary);
   font-size: var(--text-sm);
@@ -419,6 +424,10 @@
   background: linear-gradient(180deg, var(--accent-light), var(--wine));
 }
 
+/* El rótulo en gris y no en violeta: el bloque ya lleva la barra de acento a la
+   izquierda, que es la que dice "esto lo escribiste vos". Con las dos cosas, un
+   recuadro de tres palabras usaba dos marcas de acento — mismo criterio que
+   `.wine-about__label`, que se bajó a gris por competir con su propio título. */
 .wine-detail-notes h3 {
   margin: 0 0 6px;
   font-family: var(--font-family-sans);
@@ -426,7 +435,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent-soft);
+  color: var(--text-muted);
 }
 
 .wine-detail-notes p {
@@ -436,14 +445,25 @@
   white-space: pre-wrap;
 }
 
-/* ── Sobre este vino (ficha generada por IA) ── */
+/* ── Sobre este vino (ficha generada por IA) ─────────────────────────────────
+   ── POR QUÉ ESTE BLOQUE NO ES UNA TARJETA ──────────────────────────────────
+   Era una caja igual a las otras ocho: mismo fondo elevado, mismo borde, mismo
+   radio. Con todo encajonado y todo del mismo peso, la ficha se leía como un
+   tablero de widgets — nada sobresalía porque nada podía sobresalir, y lo que
+   más importa de esta pantalla (qué es este vino, a qué sabe) tenía exactamente
+   la misma presencia que el link a MercadoLibre.
+
+   Una caja sirve para agrupar cosas que se TOCAN: la barra de acciones, una
+   sección que se pliega, el formulario de un momento. Esto es texto para leer.
+   Sacándole el marco pasa a apoyar sobre la página, como el cuerpo de una nota,
+   y el aire de arriba —más una línea de un pixel— alcanza de sobra para separarlo
+   de lo anterior. Menos contenedores, más jerarquía: el contenido queda al frente
+   sin tener que gritar más fuerte que sus vecinos. */
 .wine-about {
   display: grid;
-  gap: 12px;
-  padding: var(--card-pad);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
+  gap: 14px;
+  padding: 18px 2px 4px;
+  border-top: 1px solid var(--line);
 }
 
 .wine-about__head {
@@ -478,10 +498,15 @@
   font-weight: 700;
 }
 
+/* El párrafo que dice a qué sabe: es EL texto de la ficha y ahora se lee como
+   tal. Un punto más grande y más interlínea —medidas de cuerpo de nota, no de
+   dato de tarjeta—, porque es lo único de esta pantalla que se lee en renglones
+   seguidos y no de un vistazo. */
 .wine-about__summary {
   margin: 0;
   color: var(--text);
-  line-height: 1.6;
+  font-size: var(--text-lg);
+  line-height: 1.72;
 }
 
 /* ── Bienvenida del vino recién guardado ────────────────────────────────────
@@ -666,25 +691,27 @@
   font-weight: 500;
 }
 
+/* La graduación. Era una caja con borde y fondo propio para mostrar un número
+   de tres caracteres: un contenedor entero alrededor de "13.5% alcohol", al lado
+   de los chips de aromas, que ya son cajitas. Es un dato suelto y se dice como
+   un dato suelto — el número en el color del texto principal, la palabra en
+   gris. Sin marco no se pierde nada: nada más de esta zona compite con él. */
 .wine-about__facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 16px;
+  padding-top: 2px;
 }
 
 .wine-about__fact {
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  background: var(--glass);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--text-sm);
 }
 
 .wine-about__fact strong {
   color: var(--text);
   font-size: var(--text-lg);
+  font-weight: 700;
 }
 
 .wine-about__failed {
@@ -761,14 +788,8 @@
 /* Qué hace el +/− y qué no. Mismo texto que en Mi Bodega: la aclaración vivía
    en un `title=`, que en un teléfono no existe. Ocupa su propia fila completa
    para quedar debajo del stepper que explica. */
-.wine-detail-actions__note {
-  flex: 1 0 100%;
-  margin: -2px 0 0;
-  text-align: center;
-  font-size: var(--text-2xs);
-  line-height: 1.35;
-  color: var(--text-muted);
-}
+/* `.wine-detail-actions__note` se fue con el renglón que explicaba el "−": ver
+   el comentario en WineDetailPage.jsx. */
 
 /* `.wine-detail-toggles` ya no existe: los dos chips de estado se mudaron al
    renglón del stepper (ver `.wine-detail-row`), que es donde se entiende que

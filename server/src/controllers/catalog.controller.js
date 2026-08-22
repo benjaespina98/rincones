@@ -13,6 +13,96 @@ const { poolKey } = require("../data/wineIdentity");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
 
+/**
+ * Le pega a cada resultado lo que VOS ya tenés de ese vino.
+ *
+ * ── EL PROBLEMA QUE RESUELVE ────────────────────────────────────────────────
+ * Se reportó como "guardo un vino con cosecha 2023 y en la búsqueda no aparece
+ * la cosecha". El síntoma era ése; la causa es más de fondo y explicaba varias
+ * rarezas a la vez: la búsqueda no sabía qué vinos ya son tuyos.
+ *
+ * La fila comunitaria NO tiene cosecha, y está bien que no la tenga: su clave es
+ * nombre + uva + bodega (ver `poolKey`), o sea que representa al VINO, no a la
+ * botella. Si guardara un año, el 2023 que cargaste vos aparecería en la
+ * búsqueda de otra persona que está mirando el 2019 — un dato peor que ninguno.
+ * Por eso `communityWines.search` devuelve `vintage: ""` y por eso `findMatch`
+ * dice, textual, que la cosecha nunca se adopta del catálogo: es de la botella.
+ *
+ * Entonces la cosecha correcta existe, pero no en el catálogo: está en TU vino.
+ * Cruzar las dos cosas es lo que hace que el mismo vino se represente igual en
+ * los dos lados, que era la regla. Y de paso arregla la clase entera, no el
+ * campo: el resultado pasa a saber tu añada, tu stock y si ya lo probaste, así
+ * que la tarjeta puede dejar de ofrecerte "Quiero probar" un vino que tenés
+ * hace un año en la cava.
+ *
+ * ── POR QUÉ ACÁ Y NO EN EL CLIENTE ──────────────────────────────────────────
+ * Porque la ruta ya está autenticada y esto es UNA consulta indexada por
+ * usuario, contra un puñado de campos. Hacerlo del otro lado obligaría a que la
+ * home se bajara la colección entera para pintar una chip.
+ *
+ * Nunca lanza: si esto falla, la búsqueda devuelve lo de siempre.
+ */
+/**
+ * La parte pura: cruzar resultados contra tus vinos. Se exporta para poder
+ * probarla sin base, que es donde vive la regla que importa.
+ */
+const anotarLoQueTenes = (results, mios) => {
+  // Un vino tuyo por clave de identidad. Puede haber VARIOS: el 2019 y el 2021
+  // del mismo vino son dos filas en tu bodega y una sola acá, así que se
+  // agrupan en vez de que el último pise al primero.
+  const porClave = new Map();
+  for (const w of mios || []) {
+    const clave = poolKey(w.name, w.winery, w.varietal);
+    if (!clave) continue;
+    if (!porClave.has(clave)) porClave.set(clave, []);
+    porClave.get(clave).push(w);
+  }
+
+  return results.map((r) => {
+    const clave = poolKey(r.name, r.winery, r.varietal);
+    const tuyos = clave ? porClave.get(clave) : null;
+    if (!tuyos?.length) return r;
+
+    // A cuál se entra al tocar: el que tiene botellas, y entre ésos el de la
+    // añada más nueva. Si no queda ninguno, el más reciente que tuviste — que
+    // es el que guarda tus notas y tus momentos.
+    const conStock = tuyos.filter((w) => Number(w.quantity) > 0);
+    const preferidos = conStock.length > 0 ? conStock : tuyos;
+    const elegido = [...preferidos].sort(
+      (a, b) => (Number(b.vintage) || 0) - (Number(a.vintage) || 0)
+    )[0];
+
+    return {
+      ...r,
+      owned: {
+        id: String(elegido._id),
+        // Las añadas que tenés, de la más nueva a la más vieja. Es lo que la
+        // tarjeta muestra en lugar de la cosecha vacía del catálogo.
+        vintages: [...new Set(tuyos.map((w) => w.vintage).filter(Boolean))].sort(
+          (a, b) => b - a
+        ),
+        bottles: tuyos.reduce((n, w) => n + (Number(w.quantity) || 0), 0),
+        tasted: tuyos.some((w) => w.tasted === true),
+        entries: tuyos.length,
+      },
+    };
+  });
+};
+
+const conLoQueYaTenes = async (userId, results) => {
+  if (!userId || !results?.length) return results;
+
+  try {
+    const mios = await Wine.find({ userId })
+      .select("name winery varietal vintage quantity tasted")
+      .lean();
+    return anotarLoQueTenes(results, mios);
+  } catch {
+    // Saber qué tenés es una mejora sobre una búsqueda que ya funciona.
+    return results;
+  }
+};
+
 // GET /api/catalog/search?q=...
 const search = async (req, res, next) => {
   try {
@@ -23,7 +113,9 @@ const search = async (req, res, next) => {
 
     const { results, degraded } = await catalogService.searchWines(q);
     // Pegamos las fotos "stock" que otros usuarios hayan subido.
-    const withImages = await wineImages.enrichWithImages(results);
+    const conImagenes = await wineImages.enrichWithImages(results);
+    // …y lo que ya tenés de cada uno, que es de dónde sale la cosecha.
+    const withImages = await conLoQueYaTenes(req.user?.id, conImagenes);
 
     /**
      * Con foto primero, y no sólo con foto. Mismo criterio que `featured` (ver
@@ -387,4 +479,18 @@ const removeReview = async (req, res, next) => {
   }
 };
 
-module.exports = { search, describe, recipe, pairing, featured, price, reviews, myReviews, publishReview, removeReview };
+module.exports = {
+  search,
+  describe,
+  recipe,
+  pairing,
+  featured,
+  price,
+  reviews,
+  myReviews,
+  publishReview,
+  removeReview,
+  // Se exporta para el test: es la regla de "este vino ya es tuyo", y conviene
+  // que esté fijada sin depender de una base.
+  anotarLoQueTenes,
+};

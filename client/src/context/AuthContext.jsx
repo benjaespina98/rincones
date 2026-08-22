@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMe, login as loginRequest, logout as logoutRequest } from "../services/authApi";
+import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
 
 export const AuthContext = createContext(null);
 
@@ -180,6 +181,17 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     } finally {
+      /**
+       * La bodega cacheada se va con la sesión.
+       *
+       * `useWineCollection` guarda la colección en el módulo para que volver a
+       * Mi Bodega no cueste un esqueleto. Ese caché sobrevive al desmontaje —es
+       * su razón de ser— así que también sobreviviría al logout: la persona que
+       * entrara después en este mismo navegador vería los vinos de la anterior
+       * hasta que terminara la revalidación. Es una filtración de datos
+       * privados, no una molestia de rendimiento, y se corta acá.
+       */
+      limpiarCacheDeBodega();
       escribir(turno, { estado: ANONIMO, user: null });
     }
   }, [tomarTurno, escribir]);

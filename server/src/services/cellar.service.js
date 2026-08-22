@@ -1,3 +1,31 @@
+/**
+ * ¿En qué punto de su ventana de guarda está este vino?
+ *
+ * ── ESTE MÓDULO CLASIFICA; NO REDACTA ───────────────────────────────────────
+ * Devolvía además la frase que veía la persona ("Esperá 2 años", "Óptimo —
+ * quedan 4 años") y esa mitad se borró, porque era una segunda redacción que
+ * había quedado vieja. La que se usa hoy vive en client/src/utils/cellarStatus.js
+ * y dice otra cosa: "Mejor a partir de 2028", con la ventana en años.
+ *
+ * No eran dos formas de decir lo mismo, eran dos textos distintos para el mismo
+ * dato, y se notó en pantalla: `getCellarReady` mandaba su `cellarStatus` en cada
+ * respuesta y la tarjeta de la home no mostraba nada, porque esperaba un campo
+ * (`detail`) que esta mitad de la app no tenía. El cliente terminó recalculando
+ * todo y el campo viajaba para que nadie lo leyera.
+ *
+ * El reparto que queda es el que corresponde: el servidor decide QUIÉNES entran
+ * a la lista y cuánto puntúan (necesita `status`, nada más); cómo se le dice a
+ * la persona lo decide el cliente, que es donde vive la redacción que ya usan
+ * todas las pantallas.
+ *
+ * ── LOS RANGOS ESTÁN EN DOS LADOS ───────────────────────────────────────────
+ * Esta tabla es igual a la de client/src/utils/cellarStatus.js y tiene que
+ * seguir siéndolo: si se toca una, se toca la otra. No se comparte en un módulo
+ * porque el cliente y el servidor son dos workspaces sin paquete común, y armar
+ * uno para trece renglones de datos costaría más de lo que arregla. Si algún día
+ * hay un paquete compartido, esto es lo primero que debería mudarse.
+ */
+
 const OPTIMAL_RANGES = {
   red: {
     default:              [3, 8],
@@ -25,61 +53,44 @@ const OPTIMAL_RANGES = {
   fortified: { default: [5, 20] },
 };
 
+/**
+ * Devuelve `{ status, from, until }`.
+ *
+ * `status` es "early" | "peak" | "past" | "unknown", y es lo único que mira el
+ * servidor. `from`/`until` viajan por si hace falta ordenar o explicar una
+ * decisión del ranking; no son texto para mostrar.
+ */
 function getCellarStatus(wine) {
   const currentYear = new Date().getFullYear();
 
-  // Override manual tiene prioridad
-  const manualFrom  = wine.cellar?.drinkFrom;
+  // Lo que cargó el usuario manda sobre cualquier estimación.
+  const manualFrom = wine.cellar?.drinkFrom;
   const manualUntil = wine.cellar?.drinkUntil;
 
   if (manualFrom || manualUntil) {
-    const from  = manualFrom  || currentYear;
-    const until = manualUntil || currentYear + 50;
-    return buildResult(currentYear, from, until);
+    return buildResult(currentYear, manualFrom || currentYear, manualUntil || currentYear + 50);
   }
 
-  // Sin añada no se puede calcular
-  if (!wine.vintage) return { status: "unknown", label: "" };
+  // Sin añada no se puede calcular.
+  if (!wine.vintage) return { status: "unknown" };
 
   const typeRanges = OPTIMAL_RANGES[wine.type];
-  if (!typeRanges) return { status: "unknown", label: "" };
+  if (!typeRanges) return { status: "unknown" };
 
-  // Buscar por varietal (coincidencia parcial, case-insensitive)
+  // Por varietal (coincidencia parcial, sin distinguir mayúsculas).
   const varietal = wine.varietal || "";
   const rangeKey = Object.keys(typeRanges).find(
     (k) => k !== "default" && varietal.toLowerCase().includes(k.toLowerCase())
   );
   const [minYears, maxYears] = typeRanges[rangeKey] || typeRanges.default;
 
-  const from  = wine.vintage + minYears;
-  const until = wine.vintage + maxYears;
-
-  return buildResult(currentYear, from, until);
+  return buildResult(currentYear, wine.vintage + minYears, wine.vintage + maxYears);
 }
 
 function buildResult(currentYear, from, until) {
-  if (currentYear < from) {
-    const yearsLeft = from - currentYear;
-    return {
-      status: "early",
-      label: `Esperá ${yearsLeft} ${yearsLeft === 1 ? "año" : "años"}`,
-      yearsLeft,
-    };
-  }
-  if (currentYear > until) {
-    const yearsOver = currentYear - until;
-    return {
-      status: "past",
-      label: `Pasó su mejor momento hace ${yearsOver} ${yearsOver === 1 ? "año" : "años"}`,
-      yearsOver,
-    };
-  }
-  const yearsLeft = until - currentYear;
-  return {
-    status: "peak",
-    label: yearsLeft === 0 ? "Último año óptimo" : `Óptimo — queda${yearsLeft === 1 ? "" : "n"} ${yearsLeft} ${yearsLeft === 1 ? "año" : "años"}`,
-    yearsLeft,
-  };
+  if (currentYear < from) return { status: "early", from, until };
+  if (currentYear > until) return { status: "past", from, until };
+  return { status: "peak", from, until };
 }
 
 module.exports = { getCellarStatus };
