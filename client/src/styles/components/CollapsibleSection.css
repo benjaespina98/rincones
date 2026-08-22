@@ -89,9 +89,23 @@
   grid-template-rows: 1fr;
 }
 
+/* ── POR QUÉ EL PANEL NO PUEDE TENER PADDING ────────────────────────────────
+   Éste es el elemento que el grid encoge a cero, y para que llegue a cero de
+   verdad tiene que ser una caja VACÍA: sin padding, sin borde. Un border-box con
+   26px de padding y un borde de 1px mide 27px por más que la fila valga `0fr` y
+   por más `overflow: hidden` que tenga — la altura se colapsa, el relleno no.
+
+   Y eso no se veía como "sobra un espacio": se veía como texto recortado
+   asomando por debajo del encabezado de la sección cerrada, pisando el borde de
+   la tarjeta. Fue exactamente el síntoma reportado.
+
+   El relleno vive en `__panel-inner`, que es contenido y puede medir lo que
+   quiera: el grid lo encoge junto con el resto. */
 .collapsible__panel-wrap > .collapsible__panel {
   overflow: hidden;
   min-height: 0;
+  padding: 0;
+  border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -100,7 +114,7 @@
   }
 }
 
-.collapsible__panel {
+.collapsible__panel-inner {
   padding: 12px 14px 14px;
   border-top: 1px solid var(--line);
 }
@@ -130,8 +144,8 @@
 
 /* Los bloques que van adentro ya traen su propia caja (WineReviews, el precio):
    adentro de la sección sobra, porque la caja ya la puso la sección. */
-.collapsible__panel > .wine-reviews,
-.collapsible__panel > .wine-price {
+.collapsible__panel-inner > .wine-reviews,
+.collapsible__panel-inner > .wine-price {
   background: none;
   border: 0;
   border-radius: 0;

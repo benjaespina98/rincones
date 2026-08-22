@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import { useToast } from "../context/ToastContext";
 import { getWineReviews, publishWineReview, deleteWineReview } from "../services/reviewApi";
@@ -41,10 +41,26 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
   const [writing, setWriting] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  /**
+   * ── LA CARGA INICIAL NO PUEDE PISAR LO QUE YA TOCASTE ──────────────────────
+   * Este efecto trae tu reseña previa y escribe `rating`. Si la respuesta llega
+   * DESPUÉS de que tocaste una estrella —una red lenta, o un toque rápido apenas
+   * abre la ficha— la sobreescribe con lo que había antes: normalmente 0.
+   *
+   * El resultado era la peor versión posible del problema que se reportó: la
+   * reseña quedaba publicada en el servidor y la pantalla mostraba cero
+   * estrellas. O sea, puntuabas, se guardaba, y la app te decía que no.
+   *
+   * `tocado` corta eso: a partir del primer toque, la respuesta de la carga
+   * inicial ya no manda sobre lo que hizo la persona.
+   */
+  const tocado = useRef(false);
+
   const load = useCallback(async () => {
     if (!name) return;
     try {
       const data = await getWineReviews(name, winery, varietal);
+      if (tocado.current) return;
       setMine(data.mine || null);
       setRating(data.mine?.rating || 0);
       setText(data.mine?.text || "");
@@ -55,9 +71,25 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
 
   useEffect(() => { load(); }, [load]);
 
-  // Tocar una estrella publica al instante: el gesto más común no debería
-  // requerir un botón de guardar.
+  /**
+   * Tocar una estrella publica al instante: el gesto más común no debería
+   * requerir un botón de guardar.
+   *
+   * ── POR QUÉ ANTES PARECÍA QUE NO PUBLICABA ─────────────────────────────────
+   * Se reportó así: "si sólo pongo las estrellas no me deja publicar, sí o sí
+   * tengo que entrar a comentar y ahí publicar". Y publicaba — esta función
+   * llama a `publishWineReview` desde siempre y el servidor acepta reseñas sin
+   * texto (ver `upsertReview`).
+   *
+   * Lo que faltaba era decirlo. Puntuar guardaba EN SILENCIO, mientras que el
+   * camino largo —escribir la reseña y tocar "Publicar"— terminaba en un toast
+   * de confirmación. Dos acciones que hacen lo mismo, una muda y otra que
+   * avisa: cualquiera concluye que la muda no hizo nada y que hay que pasar por
+   * la otra. El bug no estaba en el guardado, estaba en la falta de acuse.
+   */
   const rate = async (value) => {
+    // Desde acá, lo que decidió la persona manda sobre la carga en vuelo.
+    tocado.current = true;
     const next = rating === value ? 0 : value;
     setRating(next);
 
@@ -68,8 +100,12 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
         setMine(null);
         setText("");
         onRated?.(0);
+        showSuccess("Quitamos tu puntuación");
       } catch {
         showError("No se pudo quitar tu puntuación");
+        // El estado local tiene que volver a lo que de verdad quedó guardado: si
+        // no, la estrella queda apagada sobre una reseña que sigue publicada.
+        setRating(mine?.rating || 0);
       }
       return;
     }
@@ -79,6 +115,9 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
       const saved = await publishWineReview({ name, winery, varietal, vintage, rating: next, text });
       setMine(saved);
       onRated?.(next);
+      // El acuse que faltaba. Nombra la escala en vez de decir "guardado" a
+      // secas, así confirma DOS cosas de una: que se publicó y qué se publicó.
+      showSuccess(`Publicaste tu puntuación: ${VEREDICTOS[next - 1]}`);
     } catch {
       showError("No se pudo guardar tu puntuación");
       setRating(mine?.rating || 0);
@@ -147,6 +186,19 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
         {shown > 0 ? (
           <>
             <strong>{VEREDICTOS[shown - 1]}</strong>
+            {/* La confirmación que queda EN LA PANTALLA.
+                El toast avisa y se va; esto responde "¿quedó publicado?" cinco
+                minutos después, que es cuando la duda aparece de verdad. Mira a
+                `mine` —lo que el servidor devolvió— y no a `rating`, así que
+                dice la verdad de lo guardado y no la del dedo: mientras el
+                puntero pasa por encima de otra estrella, `shown` cambia pero
+                esto no miente sobre lo que hay publicado. */}
+            {mine && rating > 0 && !saving && (
+              <span className="wine-opinion__saved">
+                <Icon name="check" size={12} /> Publicada
+              </span>
+            )}
+            {saving && <span className="wine-opinion__saved">Publicando…</span>}
             {rating > 0 && (
               <button
                 type="button"
@@ -175,8 +227,11 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
               </button>
             </p>
           ) : (
+            /* "Escribir una reseña" sonaba al paso que faltaba para que la
+               puntuación contara. Con la puntuación ya publicada arriba, esto es
+               lo que es: algo más, si tenés ganas. */
             <button type="button" className="wine-opinion__add" onClick={() => setWriting(true)}>
-              <Icon name="pencil" size={14} /> Escribir una reseña
+              <Icon name="pencil" size={14} /> Contá a qué te supo (opcional)
             </button>
           )}
         </>

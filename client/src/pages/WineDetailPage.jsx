@@ -1315,20 +1315,29 @@ export default function WineDetailPage() {
               }
             >
               <div className="wine-price">
-                <div className="wine-price__row">
-                  <div className="wine-price__info">
-                    {priceLoading ? (
-                      <span className="wine-price__empty">Buscando precios…</span>
-                    ) : communityPrice ? (
+                {/* El adentro dice lo que el encabezado NO dice.
+                    Repetía textual el resumen que ya viaja arriba —"Sin datos
+                    todavía" dos veces, a cuatro centímetros— así que abrir la
+                    sección no mostraba nada nuevo. Con precio se despliega el
+                    detalle (moneda y de cuánta gente sale); sin precio se explica
+                    por qué está vacío y qué lo llena, que es lo único que agrega
+                    valor a un bloque sin datos. */}
+                {communityPrice && (
+                  <div className="wine-price__row">
+                    <div className="wine-price__info">
                       <span className="wine-price__value">
                         ${communityPrice.avg.toLocaleString("es-AR")} {communityPrice.currency}
                         <em> · promedio de {communityPrice.count} {communityPrice.count === 1 ? "persona" : "personas"}</em>
                       </span>
-                    ) : (
-                      <span className="wine-price__empty">Sin datos todavía</span>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
+                {!priceLoading && !communityPrice && (
+                  <p className="wine-price__empty">
+                    El promedio sale de lo que pagó la gente. Cargá lo que pagaste
+                    vos al editar el vino y empieza a haber uno.
+                  </p>
+                )}
                 <a
                   className="wine-price__meli"
                   href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
