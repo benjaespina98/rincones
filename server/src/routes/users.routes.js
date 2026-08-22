@@ -30,6 +30,7 @@ router.get("/profile", authenticate, async (req, res) => {
         country: user.country || "",
         bio: user.bio || "",
         avatar: user.avatar || "",
+        avatarPhoto: user.avatarPhoto || "",
         birthDate: user.birthDate || null,
         age: calculateAge(user.birthDate),
         onboarded: Boolean(user.onboardedAt),
@@ -47,7 +48,7 @@ router.get("/profile", authenticate, async (req, res) => {
 router.put("/profile", authenticate, async (req, res) => {
   try {
     const {
-      firstName, lastName, city, country, bio, avatar, birthDate,
+      firstName, lastName, city, country, bio, avatar, avatarPhoto, birthDate,
       theme, language, notifications,
       favoriteTypes, favoriteVarietals, onboarded,
     } = req.body;
@@ -86,6 +87,14 @@ router.put("/profile", authenticate, async (req, res) => {
     if (country !== undefined) user.country = country.trim();
     if (bio !== undefined) user.bio = bio.trim();
     if (avatar !== undefined) user.avatar = avatar;
+    // Vacío es una decisión válida acá: es "sacame la foto de Google, uso el
+    // emoji". Se recuerda con `avatarPhotoRemoved` para que el próximo login
+    // con Google no la vuelva a pegar sola (ver auth.controller.js).
+    if (avatarPhoto !== undefined) {
+      const limpia = String(avatarPhoto || "").trim();
+      user.avatarPhoto = limpia;
+      user.avatarPhotoRemoved = !limpia;
+    }
 
     // Actualizar preferencias
     if (theme !== undefined) user.preferences.theme = theme;
@@ -112,6 +121,7 @@ router.put("/profile", authenticate, async (req, res) => {
         country: user.country,
         bio: user.bio,
         avatar: user.avatar,
+        avatarPhoto: user.avatarPhoto || "",
         birthDate: user.birthDate || null,
         age: calculateAge(user.birthDate),
         onboarded: Boolean(user.onboardedAt),

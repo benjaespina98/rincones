@@ -21,6 +21,9 @@ const getInitial = (data) => ({
   bio: data?.bio || "",
   birthDate: toDateInput(data?.birthDate),
   avatar: data?.avatar || "👤",
+  // La foto de Google, si la cuenta la trae. Viaja aparte del emoji: son dos
+  // formas de mostrar el perfil y no las dos a la vez (ver el bloque de abajo).
+  avatarPhoto: data?.avatarPhoto || "",
 });
 
 /**
@@ -110,24 +113,45 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
 
           <div className="profile-editor__scroll">
             <section className="profile-editor__avatar-section">
-              <div className="profile-editor__avatar">{form.avatar}</div>
-              <p className="profile-editor__avatar-label">Elegí tu avatar</p>
-              <div className="profile-editor__avatar-options">
-                {AVATAR_OPTIONS.map((emoji) => (
+              {/* Con foto de Google puesta, ES el avatar: mostrar el emoji al
+                  lado sería tener dos fotos de perfil diciendo cosas distintas.
+                  El picker de emojis vuelve recién si la sacás con "Usar un
+                  emoji en su lugar" — la misma idea que "Pegar un enlace en
+                  cambio" de ImagePicker, aplicada acá. */}
+              {form.avatarPhoto ? (
+                <>
+                  <img className="profile-editor__avatar-photo" src={form.avatarPhoto} alt="" />
+                  <p className="profile-editor__avatar-label">Tu foto de Google</p>
                   <button
-                    key={emoji}
                     type="button"
-                    className={`profile-editor__avatar-chip ${
-                      form.avatar === emoji ? "is-selected" : ""
-                    }`}
-                    onClick={() => setField("avatar", emoji)}
-                    aria-label={`Avatar ${emoji}`}
-                    aria-pressed={form.avatar === emoji}
+                    className="profile-editor__avatar-swap"
+                    onClick={() => setField("avatarPhoto", "")}
                   >
-                    {emoji}
+                    Usar un emoji en su lugar
                   </button>
-                ))}
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="profile-editor__avatar">{form.avatar}</div>
+                  <p className="profile-editor__avatar-label">Elegí tu avatar</p>
+                  <div className="profile-editor__avatar-options">
+                    {AVATAR_OPTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className={`profile-editor__avatar-chip ${
+                          form.avatar === emoji ? "is-selected" : ""
+                        }`}
+                        onClick={() => setField("avatar", emoji)}
+                        aria-label={`Avatar ${emoji}`}
+                        aria-pressed={form.avatar === emoji}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
 
             <section className="profile-editor__group">

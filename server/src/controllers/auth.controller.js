@@ -515,6 +515,10 @@ const googleAuth = async (req, res, next) => {
 
     const email = String(payload.email).trim().toLowerCase();
     const googleId = String(payload.sub);
+    // La foto de la cuenta de Google, si el token la trae. Se guarda aparte del
+    // `avatar` (el emoji del editor de perfil, ver el modelo): son dos cosas
+    // distintas y una no debería pisar a la otra.
+    const avatarPhoto = String(payload.picture || "").trim();
 
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
@@ -525,6 +529,7 @@ const googleAuth = async (req, res, next) => {
         firstName: String(payload.given_name || payload.name || "").trim() || "Cuenta nueva",
         role: "user",
         emailVerified: true,
+        avatarPhoto,
       });
     } else {
       // Cuenta existente (creada con mail+contraseña) que ahora entra por
@@ -534,6 +539,15 @@ const googleAuth = async (req, res, next) => {
       let dirty = false;
       if (!user.googleId) { user.googleId = googleId; dirty = true; }
       if (!user.emailVerified) { user.emailVerified = true; dirty = true; }
+      // Se sincroniza en CADA login, no sólo la primera vez: si cambiás la
+      // foto en Google, la próxima vez que entrés acá se actualiza sola, en
+      // vez de quedar pegada a la que tenías el día que vinculaste la cuenta.
+      // Salvo que la persona la haya sacado a propósito (`avatarPhotoRemoved`):
+      // ahí gana su decisión, no la sincronización.
+      if (avatarPhoto && !user.avatarPhotoRemoved && user.avatarPhoto !== avatarPhoto) {
+        user.avatarPhoto = avatarPhoto;
+        dirty = true;
+      }
       if (dirty) await user.save();
     }
 

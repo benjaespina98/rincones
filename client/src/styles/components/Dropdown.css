@@ -62,7 +62,7 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--line-strong);
   background: var(--elevated, #16142c);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
   animation: dropdownIn 150ms var(--ease-out) both;
 }
 
