@@ -138,7 +138,20 @@ export default function WineIdentity({ wine, onEdit }) {
       concepto: "anada",
     },
     { rotulo: "Tipo", valor: tipo },
-  ].filter((f) => f.valor || f.obligatorio);
+    /**
+     * ── UN HUECO SÓLO ES INFORMACIÓN SI SE PUEDE LLENAR ────────────────────
+     * `obligatorio` existe para que un dato que falta en TU vino se vea y se
+     * complete: por eso el hueco viene con el botón "Completar" al lado.
+     *
+     * Sin `onEdit` no hay nada que completar —es la ficha de un vino del
+     * catálogo, que no es tuyo y no se edita— y la fila quedaba mostrando un
+     * "Cosecha —" muerto. Peor todavía en ese caso puntual: una fila del
+     * catálogo NUNCA tiene cosecha, porque identifica al vino y no a la botella
+     * (ver `poolKey`). O sea que anunciábamos como dato faltante algo que por
+     * diseño no va a estar nunca, en la única pantalla donde no se puede hacer
+     * nada al respecto.
+     */
+  ].filter((f) => f.valor || (f.obligatorio && onEdit));
 
   return (
     <section className="wine-id" aria-label="Datos del vino">

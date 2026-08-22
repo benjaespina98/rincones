@@ -60,8 +60,13 @@ export default function CollapsibleSection({
           como un movimiento. El contenido queda siempre montado —no cuesta
           nada, lo que hay adentro ya se pidió antes de llegar acá— así que la
           altura real existe para que el navegador la pueda animar. */}
+      {/* Tres capas y no dos, y la del medio no es decorativa: `__panel` es lo
+          que el grid encoge a cero y por eso tiene que ser una caja vacía —el
+          relleno va en `__panel-inner`, o queda asomando por debajo del
+          encabezado cuando la sección está cerrada. Ver CollapsibleSection.css. */}
       <div className="collapsible__panel-wrap" aria-hidden={!abierto}>
         <div className="collapsible__panel" id={panelId}>
+          <div className="collapsible__panel-inner">
           {children}
 
           {/* El camino de vuelta, al final de lo que se abrió.
@@ -78,6 +83,7 @@ export default function CollapsibleSection({
             <Icon name="chevron-up" size={15} />
             Cerrar {String(title).toLowerCase()}
           </button>
+          </div>
         </div>
       </div>
     </section>
