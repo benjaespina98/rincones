@@ -14,6 +14,7 @@
     "migrate:promos": "node scripts/migratePromotions.js",
     "migrate:catalogo": "node scripts/migrateCommunityCatalog.js",
     "migrate:verify-existing": "node scripts/grandfatherVerifiedUsers.js",
+    "migrate:precios": "node scripts/backfillWinePrices.js",
     "mail:test": "node scripts/testEmail.js",
     "backup:drill": "node scripts/backupRestoreDrill.js",
     "import:images": "node scripts/importWineImages.js"

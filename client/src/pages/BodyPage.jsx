@@ -1311,6 +1311,21 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
                 {expanded && !esGrilla && (
                   <div className="wine-row__expand">
+                    {/* Estado primero, y no colgado abajo del botón.
+                        "Última botella" es la razón por la que uno duda antes de
+                        abrir: leerlo DESPUÉS de tocar el botón llega tarde, y
+                        suelto entre dos bloques de acciones quedaba como un
+                        renglón huérfano. Acá abre el desplegable y le da contexto
+                        a todo lo que sigue. */}
+                    <p className="wine-row__state-line">
+                      {/* "Sin stock" es cierto pero incompleto para un vino que
+                          nunca fue tuyo: no te quedaste sin botellas, nunca las
+                          tuviste, y ésa es la única lectura que explica por qué
+                          la fila no ofrece abrir una. */}
+                      {nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
+                      {enCava && ` · en tu cava hace ${enCava}`}
+                    </p>
+
                     {/* ── LO QUE LA FILA DESPLEGADA TIENE PARA MOSTRAR ────────
                         Desplegar una fila daba un botón, un renglón en gris y
                         dos íconos: mucho aire alrededor de casi nada, y ninguna
@@ -1319,17 +1334,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         cargados: no cuestan una consulta ni un segundo de
                         espera.
 
-                        Cada dato aparece sólo si existe y sólo si el nombre no
-                        lo dijo ya (misma regla que la fila compacta, ver
-                        `yaLoDice`): repetir "Malbec" abajo de un título que
-                        dice "Malbec" es la clase de relleno que hace que una
-                        tarjeta se vea llena y siga sin decir nada. */}
+                        Pero sólo lo que la CABECERA NO DIJO. Antes el filtro era
+                        contra el nombre (`yaLoDice`) y nada más, así que un vino
+                        que arriba mostraba "Tinto · Malbec · 2025" abría un panel
+                        que repetía "UVA Malbec / COSECHA 2025" tres centímetros
+                        más abajo: el desplegable se veía lleno y no agregaba un
+                        solo dato.
+
+                        Uva, cosecha y bodega ya no están acá por eso: o las dice
+                        el renglón de arriba (`uvaYAño`, `bodega`) o las dice el
+                        nombre del vino, y no hay un tercer caso. Queda lo que de
+                        verdad sólo se ve al abrir. */}
                     {(() => {
                       const datos = [
-                        ["Uva", yaLoDice(wine.varietal) ? "" : wine.varietal],
-                        ["Cosecha", yaLoDice(wine.vintage) ? "" : wine.vintage],
                         ["Región", wine.region],
-                        ["Bodega", bodega],
                         ["Guardado en", wine.cellar?.location],
                         [
                           "Pagaste",
@@ -1406,23 +1424,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       )}
                     </div>
 
-                    {/* Las dos cosas juntas, que es de donde salía la confusión:
-                        haberlo tomado y que te queden botellas no se contradicen. */}
-                    {/* Stock y antigüedad. Si lo probaste ya lo dice el chip de la
-                        cabecera, que además se puede tocar: decirlo en los dos
-                        lados era repetir el mismo dato a dos centímetros.
-                        El "en cava hace…" bajó acá desde la fila compacta —una
-                        cava se mide en años y eso vale, pero no cuando competía
-                        por ancho con el nombre del vino—. */}
-                    <p className="wine-row__state-line">
-                      {/* "Sin stock" es cierto pero incompleto para un vino que
-                          nunca fue tuyo: no te quedaste sin botellas, nunca las
-                          tuviste, y ésa es la única lectura que explica por qué
-                          la fila no ofrece abrir una. */}
-                      {nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
-                      {enCava && ` · en tu cava hace ${enCava}`}
-                    </p>
-
+                    {/* Stock y antigüedad se leen arriba de todo, no acá: ver el
+                        `wine-row__state-line` al abrir el desplegable. Si lo
+                        probaste ya lo dice el chip de la cabecera, que además se
+                        puede tocar. */}
                     <div className="wine-row__links">
                       <button type="button" className="wine-row__detail" onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}>
                         Ver ficha completa <Icon name="arrow-right" size={15} />

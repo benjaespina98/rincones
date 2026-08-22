@@ -377,12 +377,18 @@ const featured = async (req, res, next) => {
 // GET /api/catalog/price?name=&winery=&varietal= - precio comunitario (promedio).
 // La uva va en la clave: el nombre visible ya no la incluye y sin ella dos uvas
 // de la misma línea compartirían precio.
+//
+// Tu propio precio no cuenta para tu promedio: lo que este endpoint contesta es
+// "cuánto lo paga la gente", y devolverte lo que pagaste vos disfrazado de
+// promedio de la comunidad es la única respuesta que no sirve para nada. Ver
+// `getPrice` en winePrices.service.js.
 const price = async (req, res, next) => {
   try {
     const data = await winePrices.getPrice(
       String(req.query.name || ""),
       String(req.query.winery || ""),
-      String(req.query.varietal || "")
+      String(req.query.varietal || ""),
+      req.user?.id || ""
     );
     return res.status(200).json({ data });
   } catch (error) {

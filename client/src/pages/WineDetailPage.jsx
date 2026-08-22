@@ -1297,32 +1297,34 @@ export default function WineDetailPage() {
                 obligar a dos toques para llegar a lo mismo. */}
             <WineReviews name={wine.name} winery={wine.winery} varietal={wine.varietal} />
 
-            {/* El precio SÍ se pliega, y el resumen viaja en el encabezado. Es
-                el caso exacto para el que sirve plegar: un bloque de dos partes
-                —el promedio comunitario y el link a MercadoLibre— del que casi
-                siempre alcanza con el número. Quien lo necesita entero lo abre;
-                el resto se ahorra media pantalla al final de cada ficha. */}
-            <CollapsibleSection
-              id="wine-price"
-              title="Precio"
-              icon="tag"
-              hint={
-                priceLoading
-                  ? "Buscando…"
-                  : communityPrice
-                    ? `~$${communityPrice.avg.toLocaleString("es-AR")}`
-                    : "Sin datos todavía"
-              }
-            >
-              <div className="wine-price">
-                {/* El adentro dice lo que el encabezado NO dice.
-                    Repetía textual el resumen que ya viaja arriba —"Sin datos
-                    todavía" dos veces, a cuatro centímetros— así que abrir la
-                    sección no mostraba nada nuevo. Con precio se despliega el
-                    detalle (moneda y de cuánta gente sale); sin precio se explica
-                    por qué está vacío y qué lo llena, que es lo único que agrega
-                    valor a un bloque sin datos. */}
-                {communityPrice && (
+            {/* ── PRECIO: SÓLO EXISTE LA SECCIÓN SI HAY UN PRECIO ────────────
+                Esto era siempre un plegable "Precio · Sin datos todavía", y en
+                una ficha donde arriba se lee el chip "$9.800" de lo que pagaste,
+                ese renglón se contradecía con la pantalla: el precio está a la
+                vista y abajo dice que no hay datos. Sin caer en la cuenta de que
+                uno es TU precio y el otro el de la gente, se lee como un error.
+
+                Dos arreglos, y ninguno es explicar mejor:
+                — El rótulo deja de ser "Precio" a secas y dice de quién es el
+                  número: "Precio de mercado". Ya no compite con tu chip.
+                — Sin promedio no hay plegable. Lo único que quedaba adentro era
+                  el link a MercadoLibre, así que el link va solo, en un renglón:
+                  contesta la misma pregunta sin pedir un toque ni anunciar un
+                  vacío. Un plegable que se abre para mostrar una disculpa es
+                  ruido con bisagra.
+
+                Con promedio sí se pliega —el resumen viaja en el encabezado y
+                casi siempre alcanza con el número— y adentro aparece lo que sólo
+                acá se puede saber: cómo te fue a vos contra lo que paga el
+                resto. */}
+            {communityPrice ? (
+              <CollapsibleSection
+                id="wine-price"
+                title="Precio de mercado"
+                icon="tag"
+                hint={`~$${communityPrice.avg.toLocaleString("es-AR")}`}
+              >
+                <div className="wine-price">
                   <div className="wine-price__row">
                     <div className="wine-price__info">
                       <span className="wine-price__value">
@@ -1331,23 +1333,51 @@ export default function WineDetailPage() {
                       </span>
                     </div>
                   </div>
-                )}
-                {!priceLoading && !communityPrice && (
-                  <p className="wine-price__empty">
-                    El promedio sale de lo que pagó la gente. Cargá lo que pagaste
-                    vos al editar el vino y empieza a haber uno.
-                  </p>
-                )}
-                <a
-                  className="wine-price__meli"
-                  href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
-                </a>
-              </div>
-            </CollapsibleSection>
+
+                  {/* La comparación es la razón por la que uno abre esto. El
+                      número pelado no dice nada —¿$12.000 es caro?— y el chip de
+                      arriba tampoco: recién puestos uno al lado del otro
+                      contestan "¿lo compré bien?". Con una banda del 10% para no
+                      celebrar una diferencia de cien pesos como un hallazgo. */}
+                  {wine.purchase?.price > 0 && (() => {
+                    const tuyo = Number(wine.purchase.price);
+                    const brecha = (tuyo - communityPrice.avg) / communityPrice.avg;
+                    const veredicto =
+                      Math.abs(brecha) < 0.1
+                        ? "en línea con lo que paga el resto"
+                        : brecha < 0
+                          ? `${Math.round(-brecha * 100)}% por debajo del promedio`
+                          : `${Math.round(brecha * 100)}% por encima del promedio`;
+                    return (
+                      <p className="wine-price__yours">
+                        Vos pagaste ${tuyo.toLocaleString("es-AR")} — {veredicto}.
+                      </p>
+                    );
+                  })()}
+
+                  <a
+                    className="wine-price__meli"
+                    href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver precios en MercadoLibre <Icon name="arrow-right" size={15} />
+                  </a>
+                </div>
+              </CollapsibleSection>
+            ) : priceLoading ? null : (
+              /* Nada mientras se busca: dibujar el link solo y reemplazarlo un
+                 segundo después por el plegable del promedio es un salto de
+                 layout al final de cada ficha. Se espera y se pinta una vez. */
+              <a
+                className="wine-price__meli wine-price__meli--solo"
+                href={mercadoLibreUrl(wine.name, wine.winery, wine.varietal)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icon name="tag" size={15} /> Ver precios en MercadoLibre
+              </a>
+            )}
           </>
         )}
 
