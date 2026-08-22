@@ -41,6 +41,7 @@ export default function ProfilePage() {
     country: "",
     birthDate: "",
     avatar: user?.avatar || "👤",
+    avatarPhoto: "",
   });
 
   const age = calculateAge(profileData.birthDate);
@@ -109,7 +110,13 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <section className="profile-header">
-        <div className="avatar-large">{profileData.avatar || "👤"}</div>
+        {/* La foto de Google, si la tenés, manda sobre el emoji: es la foto de
+            perfil de verdad, no un símbolo elegido a mano. */}
+        {profileData.avatarPhoto ? (
+          <img className="avatar-large avatar-large--photo" src={profileData.avatarPhoto} alt="" />
+        ) : (
+          <div className="avatar-large">{profileData.avatar || "👤"}</div>
+        )}
         <div className="profile-info">
           <span className="profile-kicker">Tu cuenta</span>
           <h2>{profileData.firstName} {profileData.lastName}</h2>

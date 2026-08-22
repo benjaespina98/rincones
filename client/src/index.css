@@ -64,21 +64,32 @@
   --card-pad: 16px;
   --card-pad-compact: 12px;
 
-  /* Border Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 26px;
+  /* Border Radius
+     Bajado un escalón entero (era 8/12/16/20/26): las tarjetas y los popups
+     quedaban con curvas grandes que, sumadas a sombras largas, daban un aire
+     de "flotando" sobre el fondo. Sigue siendo redondeado —no es la variante
+     recta— pero contenido: se nota la curva sin que compita con el contenido
+     de adentro. `--radius-full` no se toca: es para lo circular (avatares,
+     chips), no para esta escala.
+     Cada valor que usa `var(--radius-*)` en el resto de la app hereda el
+     cambio solo: es la razón de que exista el token. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
   --radius-full: 999px;
-  
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
-  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.38);
-  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 28px 56px rgba(0, 0, 0, 0.6);
-  --shadow-accent: 0 12px 32px rgba(126, 89, 201, 0.28);
-  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 14px 40px rgba(90, 60, 170, 0.24);
+
+  /* Shadows
+     Mismo motivo que arriba: menos alcance (blur) y menos opacidad, para que
+     lo que flota lo haga apenas — una separación del fondo, no un salto. El
+     color de cada sombra no cambió, sólo cuánto se nota. */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 22px rgba(0, 0, 0, 0.38);
+  --shadow-xl: 0 14px 30px rgba(0, 0, 0, 0.46);
+  --shadow-accent: 0 6px 16px rgba(126, 89, 201, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 8px 22px rgba(90, 60, 170, 0.2);
   
   /* Safe Area (for notched phones) */
   --safe-area-inset-top: env(safe-area-inset-top, 0);
@@ -138,7 +149,7 @@
 
   /* Anillo de foco: estaba copiado 11 veces con 5 alfas y 2 colores distintos. */
   --focus-ring: 0 0 0 3px rgba(167, 130, 239, 0.35);
-  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --shadow-modal: 0 14px 32px rgba(0, 0, 0, 0.42);
 }
 
 * {

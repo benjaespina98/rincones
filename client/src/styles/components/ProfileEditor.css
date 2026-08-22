@@ -114,6 +114,25 @@
   box-shadow: var(--shadow-md);
 }
 
+.profile-editor__avatar-photo {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1px solid var(--line-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-editor__avatar-swap {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .profile-editor__avatar-label {
   margin: 0;
   font-size: var(--text-xs);

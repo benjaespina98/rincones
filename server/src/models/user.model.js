@@ -71,8 +71,29 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
+    // Un emoji, elegido a mano en el editor de perfil (ver ProfileEditor.jsx).
+    // El comentario decía "URL de foto de perfil" desde antes de que existiera
+    // el selector de emojis: quedó desactualizado y ahora es directamente falso
+    // — nada de lo que hay guardado acá es una URL.
     avatar: {
-      type: String, // URL de foto de perfil
+      type: String,
+    },
+    // La foto de perfil DE VERDAD, la de la cuenta de Google con la que
+    // entraste. A diferencia de `avatar` (el emoji, elegido a mano) ésta es una
+    // URL — la sincroniza `googleAuth` en cada login con Google, y vive aparte
+    // para no romper los lugares que muestran `avatar` como texto (reseñas,
+    // catálogo): meterle una URL ahí las haría imprimir el link entero.
+    avatarPhoto: {
+      type: String,
+      trim: true,
+    },
+    // Se prende cuando la persona toca "Quitar foto" en el editor de perfil.
+    // Sin esto, `googleAuth` volvería a pegarla sola en el próximo login —
+    // Google no sabe que acá alguien decidió no usarla, y "la saqué" tiene que
+    // ganarle a "la sincronizás en cada entrada", no al revés.
+    avatarPhotoRemoved: {
+      type: Boolean,
+      default: false,
     },
 
     // Preferencias
