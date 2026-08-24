@@ -4,6 +4,7 @@ import { useToast } from "../context/ToastContext";
 import ConfirmModal from "../components/ConfirmModal";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
+import AdminPager from "../components/AdminPager";
 import Icon from "../components/Icon";
 import "./styles/AdminUsersPage.css";
 
@@ -206,26 +207,28 @@ const AdminUsersPage = () => {
         </select>
       </div>
 
-      {selectableIds.length > 0 && (
+      {/* La barra de lote aparece SÓLO con algo seleccionado.
+          Antes estaba siempre a la vista (con "Seleccionar todos" adentro), así
+          que la pantalla llevaba permanentemente una barra de acciones en masa
+          sobre cuentas de usuarios reales, apuntando a nada. La casilla de
+          "todos" se mudó al encabezado de su columna, que es donde se la
+          busca; acá queda lo que de verdad es una acción. */}
+      {selected.size > 0 && (
         <div className="admin-bulkbar">
-          <label className="admin-checkbox">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-            <span>{selected.size > 0 ? `${selected.size} seleccionados` : "Seleccionar todos"}</span>
-          </label>
-          {selected.size > 0 && (
-            <button
-              type="button"
-              className="admin-btn admin-btn--danger"
-              onClick={() => setConfirmBulkDelete(true)}
-              disabled={bulkBusy}
-            >
-              <Icon name="trash" size={14} /> Eliminar {selected.size} cuentas
-            </button>
-          )}
+          <span>{selected.size} {selected.size === 1 ? "cuenta seleccionada" : "cuentas seleccionadas"}</span>
+          <button type="button" className="admin-btn" onClick={() => setSelected(new Set())}>
+            Deseleccionar
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn--danger"
+            onClick={() => setConfirmBulkDelete(true)}
+            disabled={bulkBusy}
+          >
+            <Icon name="trash" size={14} /> Eliminar
+          </button>
         </div>
       )}
-
-      {loading && <p className="admin-users__loading">Cargando usuarios…</p>}
 
       {!loading && error && (
         <ErrorState title="No se pudieron cargar los usuarios" onRetry={loadUsers} compact />
@@ -240,98 +243,134 @@ const AdminUsersPage = () => {
         />
       )}
 
-      {!loading && !error && users.length > 0 && (
-        <ul className="admin-user-list">
-          {users.map((u) => {
-            const busy = busyId === u._id || bulkBusy;
-            // Sin otro admin, quitarse el rol dejaría la app sin panel.
-            const lastAdmin = u.role === "admin" && admins <= 1;
-            const selectable = !u.isSelf && !lastAdmin;
-            return (
-              <li key={u._id} className={`admin-user ${busy ? "is-busy" : ""}`}>
-                <div className="admin-user__main">
-                  {selectable && (
-                    <label className="admin-checkbox admin-checkbox--row">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(u._id)}
-                        onChange={() => toggleOne(u._id)}
-                        aria-label={`Seleccionar ${u.email}`}
-                      />
-                    </label>
-                  )}
-                  <div className="admin-user__id">
-                    <span className="admin-user__name">
-                      {displayName(u)}
-                      {u.isSelf && <span className="admin-user__you">vos</span>}
-                      {isTestAccount(u) && <span className="admin-user__test">prueba</span>}
-                    </span>
-                    <span className="admin-user__email">{u.email}</span>
-                  </div>
-                  <span className={`admin-role admin-role--${u.role || "user"}`}>
-                    {u.role === "admin" ? "Admin" : "Usuario"}
-                  </span>
-                </div>
+      {/* ── TABLA, NO TARJETAS ──────────────────────────────────────────────
+          Cada usuario ocupaba tres renglones apilados y dos botones de texto
+          de ancho completo: con veinte por página eran sesenta renglones de
+          scroll y cuarenta botones a la vista, y comparar dos cuentas —cuál
+          tiene más vinos, cuál se dio de alta antes— obligaba a leer las dos
+          enteras porque cada dato caía en un lugar distinto de su caja.
 
-                <div className="admin-user__meta">
-                  <span>{u.wineCount} {u.wineCount === 1 ? "vino" : "vinos"}</span>
-                  <span>{u.reviewCount} {u.reviewCount === 1 ? "reseña" : "reseñas"}</span>
-                  <span>Alta {formatDate(u.createdAt)}</span>
-                </div>
-
-                <div className="admin-user__actions">
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    onClick={() => handleRoleChange(u)}
-                    disabled={busy || u.isSelf || lastAdmin}
-                    title={
-                      u.isSelf
-                        ? "No podés cambiarte el rol a vos mismo"
-                        : lastAdmin
-                          ? "Es el único admin: promové a otro primero"
-                          : undefined
-                    }
-                  >
-                    {u.role === "admin" ? "Quitar admin" : "Hacer admin"}
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn--danger"
-                    onClick={() => setConfirmDelete(u)}
-                    disabled={busy || u.isSelf || lastAdmin}
-                    title={u.isSelf ? "No podés eliminar tu propia cuenta" : undefined}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {pagination.pages > 1 && (
-        <div className="admin-users__pagination">
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-          >
-            Anterior
-          </button>
-          <span>Página {page} de {pagination.pages} · {pagination.total} en total</span>
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-            disabled={page >= pagination.pages}
-          >
-            Siguiente
-          </button>
+          En columnas, el mismo dato queda siempre en el mismo eje vertical y
+          se compara de un vistazo. Ver el comentario de `.admin-table` en
+          styles/AdminLayout.css. */}
+      {!error && (loading || users.length > 0) && (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                {/* La casilla de "todos" vive en el encabezado de su columna,
+                    que es donde se la busca. Antes estaba en una barra aparte
+                    arriba de la lista, desconectada de las filas que marca. */}
+                <th scope="col">
+                  <label className="admin-checkbox" title="Seleccionar todos">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      disabled={selectableIds.length === 0}
+                      aria-label="Seleccionar todos los de esta página"
+                    />
+                  </label>
+                </th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Rol</th>
+                <th scope="col" className="admin-table__num">Vinos</th>
+                <th scope="col" className="admin-table__num">Reseñas</th>
+                <th scope="col">Alta</th>
+                <th scope="col"><span className="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 8 }, (_, i) => (
+                    <tr key={`skel-${i}`} className="admin-table__skel">
+                      <td colSpan={7}><span /></td>
+                    </tr>
+                  ))
+                : users.map((u) => {
+                    const busy = busyId === u._id || bulkBusy;
+                    // Sin otro admin, quitarse el rol dejaría la app sin panel.
+                    const lastAdmin = u.role === "admin" && admins <= 1;
+                    const selectable = !u.isSelf && !lastAdmin;
+                    return (
+                      <tr key={u._id} className={busy ? "is-busy" : ""}>
+                        <td>
+                          {selectable && (
+                            <label className="admin-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={selected.has(u._id)}
+                                onChange={() => toggleOne(u._id)}
+                                aria-label={`Seleccionar ${u.email}`}
+                              />
+                            </label>
+                          )}
+                        </td>
+                        <td className="admin-table__id">
+                          {displayName(u)}
+                          {u.isSelf && <span className="admin-user__you">vos</span>}
+                          {isTestAccount(u) && <span className="admin-user__test">prueba</span>}
+                          <span className="admin-table__sub">{u.email}</span>
+                        </td>
+                        <td>
+                          <span className={`admin-role admin-role--${u.role || "user"}`}>
+                            {u.role === "admin" ? "Admin" : "Usuario"}
+                          </span>
+                        </td>
+                        <td className="admin-table__num">{u.wineCount}</td>
+                        <td className="admin-table__num">{u.reviewCount}</td>
+                        <td>{formatDate(u.createdAt)}</td>
+                        <td>
+                          <div className="admin-table__actions">
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              onClick={() => handleRoleChange(u)}
+                              disabled={busy || u.isSelf || lastAdmin}
+                              title={
+                                u.isSelf
+                                  ? "No podés cambiarte el rol a vos mismo"
+                                  : lastAdmin
+                                    ? "Es el único admin: promové a otro primero"
+                                    : undefined
+                              }
+                            >
+                              {u.role === "admin" ? "Quitar admin" : "Hacer admin"}
+                            </button>
+                            {/* Sólo el ícono: "Eliminar" escrito veinte veces en
+                                columna es una fila de invitaciones a borrar. El
+                                nombre de la acción vive en el aria-label y en el
+                                tooltip, y la confirmación dice exactamente qué
+                                se va a borrar. */}
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--danger admin-btn--icon"
+                              onClick={() => setConfirmDelete(u)}
+                              disabled={busy || u.isSelf || lastAdmin}
+                              aria-label={`Eliminar la cuenta de ${u.email}`}
+                              title={
+                                u.isSelf ? "No podés eliminar tu propia cuenta" : "Eliminar cuenta"
+                              }
+                            >
+                              <Icon name="trash" size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <AdminPager
+        page={page}
+        pages={pagination.pages}
+        total={pagination.total}
+        onChange={setPage}
+        label="cuentas"
+      />
 
       <ConfirmModal
         isOpen={confirmDelete !== null}

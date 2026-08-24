@@ -697,14 +697,11 @@
 }
 
 .wine-row__icon-btn.is-fav .icon {
-  animation: heartPop 340ms var(--ease-spring);
-}
-
-@keyframes heartPop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.35); }
-  70% { transform: scale(0.92); }
-  100% { transform: scale(1); }
+  /* `rincon-pop`, el rebote compartido de la app: el mismo que hace el chip de
+     "Probado" y el contador de botellas. Acá había una copia propia con otra
+     amplitud, así que marcar favorito desde la bodega y marcarlo desde la ficha
+     del vino se sentían distinto. */
+  animation: rincon-pop 340ms var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: reduce) {

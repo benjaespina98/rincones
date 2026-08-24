@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext";
 import Icon from "./Icon";
 import "../styles/components/SettingsSheet.css";
 import Portal from "./Portal";
+import { useSheet } from "../hooks/useSheet";
 
 const POPULAR_VARIETALS = [
   "Malbec", "Cabernet Sauvignon", "Merlot", "Syrah", "Pinot Noir",
@@ -22,6 +23,9 @@ export default function PreferencesEditor({ initialTypes = [], initialVarietals 
   const [varietals, setVarietals] = useState(initialVarietals || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Escape, bloqueo del scroll de atrás y foco: ver hooks/useSheet. Mientras
+  // guarda no cierra, para no dejar a medias lo que se está mandando.
+  const panelRef = useSheet(onClose, { enabled: !saving });
 
   const nothingSelected = types.length === 0 && varietals.length === 0;
 
@@ -52,7 +56,7 @@ export default function PreferencesEditor({ initialTypes = [], initialVarietals 
   return (
     <Portal>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="prefs-editor-title">
-        <div className="settings-sheet__panel">
+        <div ref={panelRef} tabIndex={-1} className="settings-sheet__panel">
           <div className="settings-sheet__head">
             <h2 id="prefs-editor-title">Preferencias de gusto</h2>
             <button
@@ -114,7 +118,10 @@ export default function PreferencesEditor({ initialTypes = [], initialVarietals 
               })}
             </div>
 
-            <p className="settings-hint">Con esto afinamos lo que te recomendamos. Podés cambiarlo cuando quieras.</p>
+            {/* Acá iba "Con esto afinamos lo que te recomendamos. Podés
+                cambiarlo cuando quieras": lo primero lo dice el título de la
+                pantalla (Preferencias de gusto) y lo segundo vale para todo lo
+                que hay en Ajustes. */}
 
             {error && (
               <p className="settings-error" role="alert">

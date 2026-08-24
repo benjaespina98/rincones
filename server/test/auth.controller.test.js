@@ -104,6 +104,10 @@ test("auth login sets cookie and returns token", async () => {
       emailVerified: false,
       onboarded: false,
       hasBirthDate: false,
+      // Vacío para una cuenta que no entró por Google. Va igual en la
+      // respuesta: el header lo lee de acá, y si el campo faltara mostraría
+      // las iniciales aunque la persona tenga foto (ver buildAuthResponse).
+      avatarPhoto: "",
     });
   } finally {
     sesiones.restore();
@@ -160,6 +164,7 @@ test("auth register sets cookie and returns token", async () => {
       emailVerified: false,
       onboarded: false,
       hasBirthDate: false,
+      avatarPhoto: "",
     });
 
     // El registro deja emitido (y guardado, hasheado) un token de verificación:

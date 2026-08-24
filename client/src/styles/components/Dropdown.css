@@ -63,12 +63,7 @@
   border: 1px solid var(--line-strong);
   background: var(--elevated, #16142c);
   box-shadow: var(--shadow-lg);
-  animation: dropdownIn 150ms var(--ease-out) both;
-}
-
-@keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: rincon-enter-down 150ms var(--ease-out) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

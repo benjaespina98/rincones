@@ -29,14 +29,12 @@ export default function WineShops({ shops = [] }) {
 
   return (
     <section className="dsec" aria-label="Dónde comprar">
-      {/* "Dónde comprar" era el rótulo de una categoría; "Dónde conseguirlo"
-          contesta la pregunta que deja la recomendación de arriba, que es para
-          lo que esta sección existe. El pronombre la ata a la botella. */}
+      {/* Título y nada más. El subtítulo ("Vinotecas que valen el viaje") era
+          una opinión de la app sobre su propio contenido, y salía en las cuatro
+          secciones de Descubrí: cuatro renglones de relleno en la pantalla que
+          más se abre. */}
       <div className="dsec__head">
         <h2 className="dsec__title">Dónde conseguirlo</h2>
-        <span className="dsec__hint">
-          {shops.length === 1 ? "Una vinoteca para tener a mano" : "Vinotecas que valen el viaje"}
-        </span>
       </div>
 
       {/* Grilla: en celular una columna, en pantalla ancha dos. Es la única

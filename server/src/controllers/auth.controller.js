@@ -45,6 +45,12 @@ const buildAuthResponse = (user, token) => ({
       firstName: user.firstName || "",
       emailVerified: Boolean(user.emailVerified),
       onboarded: Boolean(user.onboardedAt),
+      // La foto de Google. Va acá por el mismo motivo que `firstName`: el
+      // header la muestra en TODAS las pantallas y arma su `user` con esta
+      // respuesta, no con `/users/me` —que es la que consulta el perfil—.
+      // Sin esto, quien entra con Google veía su foto en el perfil y sus
+      // iniciales en el header, como si fueran dos cuentas distintas.
+      avatarPhoto: user.avatarPhoto || "",
       // Cuentas de Google entran sin haber pasado por el formulario que pide
       // fecha de nacimiento (validación de mayoría de edad). `AppGate` usa
       // esto para exigirla en una pantalla propia antes de dejar pasar, en
@@ -143,6 +149,9 @@ const me = async (req, res, next) => {
         firstName: user.firstName || "",
         emailVerified: Boolean(user.emailVerified),
         hasBirthDate: Boolean(user.birthDate),
+        // Ver el mismo campo en `buildAuthResponse`: las cinco respuestas de
+        // auth tienen que decir lo mismo.
+        avatarPhoto: user.avatarPhoto || "",
       },
     });
   } catch (error) {
@@ -520,7 +529,18 @@ const googleAuth = async (req, res, next) => {
     // distintas y una no debería pisar a la otra.
     const avatarPhoto = String(payload.picture || "").trim();
 
-    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    /**
+     * `+googleId` no es opcional acá.
+     *
+     * En el modelo el campo va con `select: false`, así que la consulta lo
+     * ENCUENTRA (el filtro corre en la base) pero el documento vuelve sin él.
+     * O sea que `user.googleId` era siempre `undefined` y el `if (!user.googleId)`
+     * de más abajo daba verdadero en todos los logins: se reasignaba el mismo
+     * valor, `dirty` quedaba en true y se hacía un `save()` por cada entrada
+     * con Google. La guarda decía "vinculá esta cuenta la primera vez" y en los
+     * hechos corría siempre.
+     */
+    let user = await User.findOne({ $or: [{ googleId }, { email }] }).select("+googleId");
 
     if (!user) {
       user = await User.create({

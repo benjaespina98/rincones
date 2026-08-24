@@ -300,7 +300,7 @@ describe("ScanReview", () => {
 
     render(<ScanReview reading={floja} onConfirm={onConfirm} onRescan={onRescan} onManual={onManual} />);
 
-    expect(screen.getByText(/no pudimos identificar el vino con suficiente seguridad/i)).toBeTruthy();
+    expect(screen.getByText(/no se pudo identificar el vino/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /agregar a mi bodega/i })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /intentar nuevamente/i }));

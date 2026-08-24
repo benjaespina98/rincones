@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getAdminSummary } from "../services/adminApi";
+import ErrorState from "../components/ErrorState";
 
 /**
  * El Resumen: los números que responden "¿cuánto está creciendo esto?" antes
@@ -11,17 +13,47 @@ import { getAdminSummary } from "../services/adminApi";
 const AdminDashboardPage = () => {
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(true);
+  /**
+   * Sin este estado, un fallo de red se veía como una app sin nadie adentro.
+   *
+   * El `catch` dejaba `resumen` en null y el render caía a un objeto de ceros,
+   * así que la pantalla mostraba "0 usuarios · 0 vinos · 0 reseñas" con la
+   * misma cara con la que muestra los números de verdad. En un panel de
+   * administración eso no es un detalle estético: es la pantalla que se mira
+   * para saber si algo se rompió, informando exactamente lo que informaría si
+   * se hubiera roto TODO.
+   */
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    let vivo = true;
+  /* La consulta, sin tocar `loading`/`error`: eso lo decide cada llamador.
+     `vivo` es la bandera de "el componente sigue montado", y la pasa quien
+     llama porque sólo el efecto sabe cuándo dejó de estarlo. */
+  const pedir = (vivo = () => true) =>
     getAdminSummary(24)
-      .then((data) => vivo && setResumen(data))
-      .catch(() => vivo && setResumen(null))
-      .finally(() => vivo && setLoading(false));
+      .then((data) => vivo() && setResumen(data))
+      .catch(() => vivo() && setError(true))
+      .finally(() => vivo() && setLoading(false));
+
+  /* En el montaje no se toca el estado antes de pedir: `loading` ya arranca en
+     true y `error` en false, así que volver a ponerlos sólo dispara un render
+     de más — y es lo que marca la regla de hooks sobre setState sincrónico
+     dentro de un efecto. */
+  useEffect(() => {
+    let montado = true;
+    pedir(() => montado);
     return () => {
-      vivo = false;
+      montado = false;
     };
+    // Sólo al montar: la consulta no depende de ningún estado.
   }, []);
+
+  /* Reintentar sí necesita limpiar lo anterior: venimos de la pantalla de
+     error y hay que volver al estado de carga. */
+  const reintentar = () => {
+    setLoading(true);
+    setError(false);
+    pedir();
+  };
 
   const metrics = resumen || {
     users: 0,
@@ -35,11 +67,23 @@ const AdminDashboardPage = () => {
     <section>
       <div className="admin-section-head">
         <h1>Resumen</h1>
-        <p>Cómo está la app hoy, de un vistazo.</p>
       </div>
 
-      {loading ? (
-        <p className="admin-empty-state">Cargando el resumen…</p>
+      {error ? (
+        <ErrorState
+          title="No se pudieron cargar los números"
+          hint="Es un problema de conexión con la API, no de los datos."
+          onRetry={reintentar}
+          compact
+        />
+      ) : loading ? (
+        // Las mismas seis tarjetas en gris: la grilla no salta cuando llegan
+        // los datos, y se ve de entrada cuánto viene en camino.
+        <div className="admin-dashboard-grid" aria-hidden="true">
+          {Array.from({ length: 6 }, (_, i) => (
+            <article key={i} className="admin-metric-card admin-metric-card--skel" />
+          ))}
+        </div>
       ) : (
         <div className="admin-dashboard-grid">
           <article className="admin-metric-card">
@@ -72,12 +116,22 @@ const AdminDashboardPage = () => {
             <small>Con acceso a este panel</small>
           </article>
 
+          {/* El desglose lleva al registro, que es lo que se busca después de
+              verlo: un número en un panel sólo sirve si se puede ir a mirar de
+              qué está hecho. Cada chapa abre Actividad ya filtrada por esa
+              acción. */}
           <article className="admin-wide-card">
-            <h2>Qué pasó en las últimas 24 horas</h2>
+            <h2>Últimas 24 horas</h2>
             <div className="admin-chip-row">
-              <span className="admin-chip">Se creó: {metrics.activity.create}</span>
-              <span className="admin-chip">Se editó: {metrics.activity.update}</span>
-              <span className="admin-chip">Se eliminó: {metrics.activity.delete}</span>
+              <Link className="admin-chip" to="/admin/panel/actividad?accion=create">
+                Altas: {metrics.activity.create}
+              </Link>
+              <Link className="admin-chip" to="/admin/panel/actividad?accion=update">
+                Ediciones: {metrics.activity.update}
+              </Link>
+              <Link className="admin-chip" to="/admin/panel/actividad?accion=delete">
+                Bajas: {metrics.activity.delete}
+              </Link>
             </div>
           </article>
         </div>

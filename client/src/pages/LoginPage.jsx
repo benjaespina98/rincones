@@ -35,7 +35,7 @@ const LoginPage = () => {
       // "Bienvenido" le pone género a alguien de quien no sabemos el género, y
       // la app le habla de vos a todo el mundo: la mitad de los usuarios leían
       // un saludo que no era para ellos. Esto saluda igual de bien sin suponer.
-      showSuccess("Qué bueno tenerte de vuelta");
+      showSuccess("Sesión iniciada");
       navigate("/");
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo iniciar sesión. Revisá tus datos.";
@@ -57,7 +57,7 @@ const LoginPage = () => {
             <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Rincones</h1>
-          <p className="auth-brand__subtitle">Tu bodega personal, siempre en el bolsillo.</p>
+          <p className="auth-brand__subtitle">Tu bodega, en el bolsillo.</p>
         </div>
 
         {error && (

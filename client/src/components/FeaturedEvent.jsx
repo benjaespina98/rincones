@@ -31,8 +31,7 @@ export default function FeaturedEvent({ event }) {
   return (
     <section className="dsec" aria-label="Evento destacado">
       <div className="dsec__head">
-        <h2 className="dsec__title">Para agendar</h2>
-        <span className="dsec__hint">Lo que se viene</span>
+        <h2 className="dsec__title">Eventos</h2>
       </div>
 
       <TrackedCard item={event} variant="hero" />

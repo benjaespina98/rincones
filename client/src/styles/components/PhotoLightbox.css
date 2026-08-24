@@ -14,12 +14,7 @@
   background: rgba(6, 7, 12, 0.94);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: photo-lightbox-in 180ms var(--ease-out);
-}
-
-@keyframes photo-lightbox-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: rincon-fade 180ms var(--ease-out);
 }
 
 .photo-lightbox__img {

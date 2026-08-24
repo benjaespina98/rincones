@@ -2,15 +2,14 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: var(--bg, #0b0d14);
+  /* Overlay opaco a pantalla completa: repite el fondo porque tiene que tapar
+     el perfil de atrás. Era un color plano, así que abrir "Editar perfil"
+     apagaba los dos halos y se sentía como haber salido de la app. */
+  background-color: var(--bg);
+  background-image: var(--app-bg);
   display: flex;
   justify-content: center;
-  animation: profileEditorIn 220ms var(--ease-out) both;
-}
-
-@keyframes profileEditorIn {
-  from { opacity: 0; transform: translateY(2%); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: rincon-enter-up 220ms var(--ease-out) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -71,7 +70,7 @@
 .profile-editor__bar-btn--primary {
   justify-self: end;
   padding: 0 20px;
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-weight: 700;
   box-shadow: var(--shadow-accent);

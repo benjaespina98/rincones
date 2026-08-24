@@ -24,7 +24,24 @@ export default function Logo({ size = 40, animated = false, className = "" }) {
       className={`logo ${animated ? "logo--animated" : ""} ${className}`}
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      /**
+       * ── EL viewBox NO ARRANCA EN 0 0, Y ES A PROPÓSITO ────────────────────
+       *
+       * El dibujo nunca estuvo centrado dentro de su caja. Medido en el
+       * navegador (`getBBox()` más los 2.5 que sobresale el trazo de 5 con
+       * punta redonda), ocupa x[18.5, 74.5] e y[19.5, 86.5]: su centro real es
+       * (46.5, 53), no (50, 50). O sea que colgaba 3.5 a la derecha y 3 arriba.
+       *
+       * Se notaba poco mientras el logo era un ícono chico con aire alrededor,
+       * pero saltaba a la vista al recortarlo en círculo —un avatar— o al
+       * ponerlo dentro de una caja de color: la copa quedaba pegada a un lado.
+       *
+       * Correrle el origen al viewBox lo centra SIN tocar un solo trazo y sin
+       * cambiar la escala: la caja sigue midiendo 100×100, sólo se mueve.
+       * Cualquier otra forma —envolver en un <g transform>, reescribir los
+       * paths— hace lo mismo con más piezas para mantener.
+       */
+      viewBox="-3.5 3 100 100"
       role="img"
       aria-label="Rincones"
     >

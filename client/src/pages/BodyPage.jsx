@@ -610,8 +610,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (vista === "probados") {
       return {
         icon: "check",
-        title: "Tu historial empieza con la primera botella",
-        hint: "Cuando abrís una, el vino queda acá solo — con lo que puntuaste y lo que escribiste.",
+        title: "Todavía no abriste ninguna botella",
+        hint: "Los vinos que tomes van a aparecer acá.",
         actionLabel: "Ver lo que tenés",
         onAction: () => setVista("instock"),
       };
@@ -624,7 +624,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         // evita pensar que la app borró algo, y ahora además se puede ir de un
         // toque en vez de tener que descubrir la pestaña.
         hint: "Los vinos que tomaste siguen en Probados.",
-        actionLabel: "Escanear un vino",
+        actionLabel: "Escanear una etiqueta",
         onAction: () => navigate("/agregar"),
         secondaryLabel: conteoPorVista.probados > 0 ? "Ver los que probaste" : "",
         onSecondary: () => setVista("probados"),
@@ -1290,11 +1290,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     // toque equivocado.
                     disabled={isPending || modoSeleccion}
                     aria-pressed={wine.tasted}
-                    title={
-                      wine.tasted
-                        ? "Ya lo probaste — tocá para desmarcarlo"
-                        : "Todavía no lo probaste — tocá para marcarlo"
-                    }
+                    // El tooltip dice el ESTADO; que se pueda tocar lo dice que
+                    // sea un botón. "Tocá para desmarcarlo" es la app narrando
+                    // una interacción que el control ya ofrece.
+                    title={wine.tasted ? "Probado" : "Sin probar"}
                     aria-label={
                       wine.tasted
                         ? `Marcar ${wineDisplayName(wine)} como no probado`
@@ -1472,22 +1471,21 @@ export default function BodyPage({ initialFilter = "instock" }) {
             Ver más
             <span className="wines-more__n">{restantes} sin mostrar</span>
           </button>
-          <p className="wines-more__hint">O buscá por nombre, bodega o uva para ir directo.</p>
+          {/* Acá iba "O buscá por nombre, bodega o uva para ir directo": el
+              buscador está arriba, con su lupa y su placeholder. */}
         </div>
       )}
 
-      {/* La primera pantalla que ve alguien que se acaba de registrar. "Tu
-          bodega está vacía" era un diagnóstico correcto y desalentador: dice lo
-          que falta, no lo que puede pasar. Y ofrecía una sola puerta —escanear—
-          para alguien que quizá todavía no tiene la botella en la mano. */}
+      {/* La primera pantalla que ve alguien que se acaba de registrar. Dos
+          puertas, porque no todo el mundo llega con la botella en la mano. */}
       {!loading && !error && wines.length === 0 && (
         <EmptyState
           icon="bottle"
-          title="Tu bodega espera su primera botella"
-          hint="Sacale una foto a la etiqueta: la cargamos con su uva, su región y su ficha."
-          actionLabel="Escanear mi primer vino"
+          title="Todavía no cargaste ningún vino"
+          hint="Escaneá la etiqueta y completamos los datos."
+          actionLabel="Escanear una etiqueta"
           onAction={() => navigate("/agregar")}
-          secondaryLabel="Explorá vinos para probar"
+          secondaryLabel="Explorar vinos"
           onSecondary={() => navigate("/")}
         />
       )}

@@ -31,9 +31,72 @@
   overflow: hidden;
   border-radius: var(--radius-2xl);
   border: 1px solid var(--line-accent);
-  background: linear-gradient(180deg, rgba(30, 24, 52, 0.98), rgba(14, 17, 30, 0.99));
+  /* Plano y del color de las superficies elevadas. Era el único panel de la app
+     con un degradado violeta propio, que lo hacía parecer de otro producto que
+     el resto de las tarjetas. */
+  background: var(--surface-2);
   box-shadow: var(--shadow-modal);
   animation: rincon-enter-up 240ms var(--ease-out) both;
+}
+
+/* ══ EN TELÉFONO, LA HOJA SUBE DESDE ABAJO ════════════════════════════════
+   Era un cuadro flotando en el medio de la pantalla, con 16px de aire a cada
+   lado: la forma de un diálogo de escritorio, en el dispositivo donde vive la
+   app. Y el borde superior quedaba a media pantalla de altura, o sea que el
+   contenido más importante —el título— nacía lejos del pulgar y el botón de
+   cerrar, arriba a la derecha, en la esquina menos alcanzable de todas.
+
+   Anclada abajo se resuelve solo: aparece desde donde está la mano, ocupa el
+   ancho completo (más lugar para el texto) y el gesto de cerrarla es hacia
+   abajo, que es de donde vino. Es lo que hacen Vivino, Uber y el propio
+   sistema operativo, y por eso no hay que aprenderlo.
+
+   La barrita de arriba (`::before`) es la señal universal de "esto es una hoja
+   y se puede bajar". No arrastra —eso pide gestos y física, y sería mentirle a
+   quien lo intente—: está para que se lea como hoja y no como cuadro pegado al
+   borde de abajo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .settings-sheet {
+    align-items: flex-end;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 0 0;
+  }
+
+  .settings-sheet__panel {
+    max-width: none;
+    /* Sólo arriba: abajo se apoya contra el borde de la pantalla. */
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border-bottom: 0;
+    /* El safe area del teléfono va ADENTRO del panel, no como margen: si fuera
+       margen se vería una franja del fondo entre la hoja y el borde, y dejaría
+       de leerse como apoyada. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100dvh - 20px - env(safe-area-inset-top, 0px));
+    animation: rincon-sheet-up 260ms var(--ease-out) both;
+  }
+
+  .settings-sheet__panel::before {
+    content: "";
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: var(--radius-full);
+    background: var(--line-strong);
+  }
+
+  /* Sin el borde superior del encabezado pegado a la barrita: son dos líneas
+     horizontales a 12px una de otra y se leen como un error de dibujo. */
+  .settings-sheet__head {
+    padding-top: 10px;
+  }
+}
+
+/* Sube entera desde el borde, sin escalar: una hoja anclada abajo que además
+   crece desde el centro se ve como dos animaciones peleando. */
+@keyframes rincon-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 /* Arriba y no al centro: un título de tres renglones —los nombres de plato lo
@@ -227,7 +290,7 @@
 }
 
 .settings-sheet__save {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: var(--shadow-accent);
 }

@@ -69,7 +69,7 @@ const RegisterPage = () => {
         showError("Creamos tu cuenta, pero no pudimos mandarte el mail de confirmación. Pedí que te lo reenvíen desde la próxima pantalla.");
       } else {
         // Sin género: ver la nota en LoginPage.
-        showSuccess("¡Cuenta creada! Te damos la bienvenida a Rincones 🍷");
+        showSuccess("Cuenta creada");
       }
       // A Bodega, no a Descubrí: recién nacida, la bodega está vacía y ahí
       // vive el cartel con el botón directo a escanear el primer vino. Mandar
@@ -94,7 +94,7 @@ const RegisterPage = () => {
             <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Creá tu cuenta</h1>
-          <p className="auth-brand__subtitle">Empezá a coleccionar y a descubrir tu próximo vino favorito.</p>
+          <p className="auth-brand__subtitle">Guardá tus vinos y descubrí nuevos.</p>
         </div>
 
         {error && (

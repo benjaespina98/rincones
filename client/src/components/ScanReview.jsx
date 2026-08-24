@@ -429,12 +429,12 @@ export default function ScanReview({
   const kicker = isManual
     ? "Cargar a mano"
     : sinIdentificar
-      ? "No pudimos identificarlo"
+      ? "Sin identificar"
       : verdict === "trusted"
         ? "Vino encontrado"
         : verdict === "unverified"
           ? "¿Este es tu vino?"
-          : "Esto leímos de la etiqueta";
+          : "Datos leídos de la etiqueta";
 
   return (
     <form className="scan-review" onSubmit={submit}>
@@ -461,11 +461,11 @@ export default function ScanReview({
         <div className="scan-review__unidentified" role="status">
           <Icon name="alert-triangle" size={20} className="scan-review__unidentified-icon" />
           <p className="scan-review__unidentified-title">
-            No pudimos identificar el vino con suficiente seguridad.
+            No se pudo identificar el vino
           </p>
-          <p className="scan-review__unidentified-hint">
-            Preferimos avisarte antes que guardar datos que capaz no son ciertos.
-          </p>
+          {/* Acá iba "Preferimos avisarte antes que guardar datos que capaz no
+              son ciertos": la app explicando su propia política. Los dos botones
+              de abajo ya dicen qué se puede hacer. */}
           <div className="scan-review__unidentified-actions">
             {onRescan && (
               <button type="button" className="scan-review__btn-primary" onClick={onRescan}>
@@ -664,8 +664,8 @@ export default function ScanReview({
           {!showAll && needsReview.length > 0 && issues.length === 0 && (
             <p className="scan-review__hint">
               {isManual
-                ? "Con el nombre y la bodega alcanza. El resto lo completás cuando quieras."
-                : "Revisá estos datos: no los pudimos leer con seguridad."}
+                ? "Con el nombre y la bodega alcanza."
+                : "Revisá estos datos: no se leyeron con seguridad."}
             </p>
           )}
           {visible.map((field) => {
@@ -827,7 +827,7 @@ export default function ScanReview({
             Sin esto, un botón deshabilitado es un callejón sin salida. */}
         {bloqueado && !saving && (
           <p className="scan-review__blocked-hint">
-            Corregí lo de arriba y ya lo agregamos.
+            Corregí los datos marcados arriba.
           </p>
         )}
         {/* Guardarlo en la lista es privado: no toca el catálogo público, así que

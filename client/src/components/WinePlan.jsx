@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Icon from "./Icon";
 import Portal from "./Portal";
 import ConceptTerm from "./ConceptTerm";
+import { useSheet } from "../hooks/useSheet";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
-import { planTitle, planHint } from "../utils/momentCopy";
+import { planTitle } from "../utils/momentCopy";
 import { getWineRecipe } from "../services/wineSearchApi";
 import "../styles/components/SettingsSheet.css";
 import "../styles/components/WinePlan.css";
@@ -63,14 +64,9 @@ export default function WinePlan({ wine, info }) {
   const [failed, setFailed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  useEffect(() => {
-    if (!sheetOpen) return undefined;
-    const alTeclear = (e) => {
-      if (e.key === "Escape") setSheetOpen(false);
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, [sheetOpen]);
+  // Escape, bloqueo del scroll de atrás y foco: ver hooks/useSheet.
+  const cerrarHoja = useCallback(() => setSheetOpen(false), []);
+  const panelRef = useSheet(cerrarHoja, { enabled: sheetOpen });
 
   const temperatura = info?.serve || TEMPERATURAS[wine.type] || "";
 
@@ -116,9 +112,6 @@ export default function WinePlan({ wine, info }) {
     }
   };
 
-  // Se calculan una vez por render y no cambian mientras la ficha está abierta:
-  // nadie tiene una ficha de vino abierta el tiempo suficiente como para cruzar
-  // una franja horaria, y si pasa, se acomoda solo en la próxima visita.
   const titulo = planTitle();
 
   return (
@@ -127,7 +120,10 @@ export default function WinePlan({ wine, info }) {
         <h3>
           <Icon name="sparkles" size={15} /> {titulo}
         </h3>
-        {!plan && <span className="wine-plan__hint">{planHint()}</span>}
+        {/* Acá iba `planHint()`: "¿Cómo viene la noche?", "¿Cómo viene la
+            tarde?". Una pregunta retórica al lado de un título no agrega nada
+            —las opciones de abajo ya son la pregunta— y encima cambiaba cada
+            pocas horas. */}
       </div>
 
       {/* ── LA TEMPERATURA, EN DOS PASTILLAS Y NO EN UN PÁRRAFO ─────────────
@@ -231,8 +227,10 @@ export default function WinePlan({ wine, info }) {
 
       {sheetOpen && receta && (
         <Portal>
-          <div className="settings-sheet" onClick={() => setSheetOpen(false)} role="presentation">
+          <div className="settings-sheet" onClick={cerrarHoja} role="presentation">
             <div
+              ref={panelRef}
+              tabIndex={-1}
               className="settings-sheet__panel wine-recipe-sheet"
               role="dialog"
               aria-modal="true"

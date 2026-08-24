@@ -152,7 +152,7 @@
   min-height: 50px;
   border: 0;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-size: var(--text-lg);
   font-weight: 700;

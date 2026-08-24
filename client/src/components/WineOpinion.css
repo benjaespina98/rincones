@@ -202,7 +202,7 @@
 }
 
 .wine-opinion__save {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: var(--shadow-accent);
 }

@@ -79,13 +79,19 @@ describe("puntuar sin escribir nada", () => {
     await waitFor(() => expect(screen.getByText("Publicada")).toBeTruthy());
   });
 
-  it("escribir la reseña es opcional y el botón lo dice", async () => {
+  it("escribir la reseña se ofrece recién con la puntuación ya publicada", async () => {
+    // El botón decía "Contá a qué te supo (opcional)": la aclaración estaba ahí
+    // porque sin ella se leía como el paso que faltaba para que la puntuación
+    // contara. Quien lo resuelve ahora es la confirmación de al lado
+    // ("Publicada"), que dice que lo importante YA pasó — así el botón puede
+    // llamarse por lo que hace y no cargar la aclaración encima.
     publishWineReview.mockResolvedValue({ rating: 4, text: "" });
     render(<WineOpinion {...vino} />);
 
     fireEvent.click(screen.getByRole("button", { name: "4 estrellas" }));
 
-    await waitFor(() => expect(screen.getByText(/opcional/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Publicada")).toBeTruthy());
+    expect(screen.getByRole("button", { name: /Escribir una reseña/i })).toBeTruthy();
   });
 
   it("la carga inicial no pisa la estrella que ya tocaste", async () => {

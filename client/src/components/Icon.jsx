@@ -39,6 +39,16 @@ const PATHS = {
       <path d="m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3 5.3-2.2Z" />
     </>
   ),
+  // Dos flechas en círculo: "traeme otro". Es el ícono que todas las apps usan
+  // para pedir el siguiente resultado. Antes acá iba la brújula, que promete
+  // explorar —otra cosa— y por eso no se leía como lo que el botón hace.
+  refresh: (
+    <>
+      <path d="M20 11a8 8 0 0 0-13.7-5.2L3.5 8.5" />
+      <path d="M4 13a8 8 0 0 0 13.7 5.2l2.8-2.7" />
+      <path d="M3.5 4v4.5H8M20.5 20v-4.5H16" />
+    </>
+  ),
   play: <path d="M7 5v14l11-7-11-7Z" />,
   // Nota musical. Las playlists podrían usar `play`, pero es el mismo ícono que
   // los videos: en una lista donde los dos grupos conviven, el color no alcanza

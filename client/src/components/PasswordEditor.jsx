@@ -5,6 +5,7 @@ import { passwordStrength, meetsPasswordPolicy } from "../utils/passwordStrength
 import Icon from "./Icon";
 import "../styles/components/SettingsSheet.css";
 import Portal from "./Portal";
+import { useSheet } from "../hooks/useSheet";
 
 /**
  * Cambiar contraseña.
@@ -20,6 +21,9 @@ export default function PasswordEditor({ onClose }) {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  // Escape no cierra mientras guarda: interrumpir a mitad de un cambio de
+  // contraseña deja a la persona sin saber si quedó hecho.
+  const panelRef = useSheet(onClose, { enabled: !saving });
 
   const strength = passwordStrength(next);
 
@@ -52,7 +56,10 @@ export default function PasswordEditor({ onClose }) {
   return (
     <Portal>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="pwd-editor-title">
-        <form className="settings-sheet__panel" onSubmit={submit}>
+        {/* Sin `useSheet` esta hoja no cerraba con Escape, dejaba scrollear la
+            página de atrás y el foco arrancaba fuera del formulario: la única
+            salida era encontrar la × con el mouse. */}
+        <form ref={panelRef} tabIndex={-1} className="settings-sheet__panel" onSubmit={submit}>
           <div className="settings-sheet__head">
             <h2 id="pwd-editor-title">Cambiar contraseña</h2>
             <button

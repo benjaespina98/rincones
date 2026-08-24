@@ -12,12 +12,57 @@
   --glass: rgba(20, 24, 40, 0.72);
   --elevated: linear-gradient(160deg, rgba(30, 34, 56, 0.94), rgba(16, 19, 33, 0.94));
 
+  /* ── EL FONDO DE LA APP, EN UN SOLO LUGAR ─────────────────────────────────
+     Éste es el fondo de Descubrí, y ahora es el de todas las pantallas.
+
+     Antes había SEIS declaraciones de fondo a pantalla completa, cada una con
+     su propio degradado: `body`, `#root`, `.app-layout`, `.auth-screen`,
+     `.splash`, `.profile-editor` (más las dos del panel de admin). Tres de
+     ellas se tapaban entre sí —la de `body`, la más elaborada, no se veía
+     NUNCA, porque `#root` la cubría entera con un color plano— y las que sí se
+     veían no coincidían: el violeta del login estaba más arriba y más fuerte
+     que el de la app, el splash no tenía el tinte vino de abajo, y el editor
+     de perfil era un plano liso. O sea que entrar a la app, abrir el perfil o
+     que apareciera el splash cambiaba el color de la pantalla, sin que ese
+     cambio significara nada.
+
+     Ahora lo pinta `body` y nadie más: todo lo que va encima
+     (`#root`, `.app-layout`, `.auth-screen`) va transparente y lo deja pasar.
+     Lo que es un overlay opaco de verdad —splash, editor de perfil— lo repite
+     a propósito, porque tiene que tapar lo de atrás.
+
+     Si mañana cambia el fondo, se cambia acá y en ningún otro lado. */
+  --app-bg:
+    radial-gradient(circle at 86% 0%, rgba(167, 130, 239, 0.22), transparent 38%),
+    radial-gradient(circle at 0% 100%, rgba(198, 70, 95, 0.14), transparent 32%),
+    linear-gradient(180deg, #090b13 0%, #111626 100%);
+
   /* Accent Colors */
   --accent: #7e59c9;
   --accent-light: #a782ef;
   --accent-strong: #6c48b4;
   --accent-soft: #cbb5f7;
   --accent-muted: rgba(126, 89, 201, 0.18);
+
+  /* ── EL RELLENO DE TODO LO PRIMARIO ───────────────────────────────────────
+     Un color plano, y en un solo lugar.
+
+     Antes cada botón primario de la app declaraba, textualmente,
+     `linear-gradient(135deg, var(--accent-light), var(--accent))`. Diecinueve
+     copias de la misma línea en quince archivos: cambiar "el violeta de los
+     botones" era una cacería, y bastaba con que a uno se le pasara el ángulo
+     para que dos botones de la misma pantalla se vieran distintos.
+
+     Pero el problema no era sólo la repetición. Un degradado en cada botón es
+     el gesto que delata a una interfaz armada por acumulación: le pone brillo
+     a un elemento cuyo trabajo es que se entienda dónde tocar. Las apps con
+     las que se compara ésta —Vivino, Uber, Cabify— resuelven la jerarquía con
+     un color lleno, un color tenue y un contorno. El degradado se guarda para
+     cuando de verdad hay algo que iluminar: una foto, un encabezado, la marca.
+
+     El color no cambia: es el mismo violeta de siempre, lleno en vez de
+     estirado. */
+  --accent-fill: var(--accent);
   --wine: #c6465f;
   --wine-soft: rgba(198, 70, 95, 0.16);
   --success: #2fb67b;
@@ -88,8 +133,12 @@
   --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 22px rgba(0, 0, 0, 0.38);
   --shadow-xl: 0 14px 30px rgba(0, 0, 0, 0.46);
-  --shadow-accent: 0 6px 16px rgba(126, 89, 201, 0.22);
-  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 8px 22px rgba(90, 60, 170, 0.2);
+  /* La sombra de lo primario. Era violeta —un halo del color del propio botón—
+     y eso es luz que no viene de ningún lado: sólo existe para que el botón
+     parezca importante. Una sombra dice a qué altura está algo, así que es
+     oscura, como todas las demás de esta lista. */
+  --shadow-accent: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 8px 22px rgba(0, 0, 0, 0.3);
   
   /* Safe Area (for notched phones) */
   --safe-area-inset-top: env(safe-area-inset-top, 0);
@@ -168,11 +217,9 @@ body {
   min-width: 320px;
   font-family: var(--font-family-base);
   color: var(--text);
-  background:
-    radial-gradient(circle at 88% 4%, rgba(167, 130, 239, 0.28) 0%, transparent 36%),
-    radial-gradient(circle at 10% 92%, rgba(198, 70, 95, 0.16) 0%, transparent 34%),
-    linear-gradient(180deg, #090b13 0%, #101423 100%),
-    var(--bg);
+  /* El único que pinta el fondo. Ver --app-bg. */
+  background-color: var(--bg);
+  background-image: var(--app-bg);
   overflow-x: hidden;
   /* Se hereda a todo el texto. Sin esto, una palabra larga sin espacios —el
      nombre de una bodega alemana, un mail, una URL pegada en las notas— estira

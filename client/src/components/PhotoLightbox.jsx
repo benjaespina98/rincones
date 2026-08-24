@@ -28,14 +28,20 @@ export default function PhotoLightbox({ src, alt = "", caption = "", onClose }) 
     };
     document.addEventListener("keydown", onKey);
 
-    // Sin esto, el fondo scrollea detrás de la foto: se cierra el visor y la
-    // ficha quedó en otro lugar del que se dejó.
-    const overflowPrevio = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    /* Sin esto, el fondo scrollea detrás de la foto: se cierra el visor y la
+       ficha quedó en otro lugar del que se dejó.
+
+       Se bloquea `.app-content` y no `body`: en esta app el body NO scrollea
+       (ver App.css), así que ponerle `overflow: hidden` —que es lo que hacía
+       acá— no impedía absolutamente nada. El bug seguía pasando con el
+       arreglo puesto. */
+    const scroller = document.querySelector(".app-content") || document.documentElement;
+    const overflowPrevio = scroller.style.overflow;
+    scroller.style.overflow = "hidden";
 
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflowPrevio;
+      scroller.style.overflow = overflowPrevio;
     };
   }, [src, onClose]);
 

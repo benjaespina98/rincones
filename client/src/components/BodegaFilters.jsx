@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import Icon from "./Icon";
 import Portal from "./Portal";
 import Dropdown from "./Dropdown";
+import { useSheet } from "../hooks/useSheet";
 import "../styles/components/SettingsSheet.css";
 import "./BodegaFilters.css";
 
@@ -82,16 +82,9 @@ export default function BodegaFilters({
   hayFiltros,
   onLimpiar,
 }) {
-  // Escape cierra, como cualquier diálogo del sistema. Sin esto, en un teclado la
-  // única salida es encontrar la X con el mouse.
-  useEffect(() => {
-    if (!abierto) return undefined;
-    const alTeclear = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, [abierto, onClose]);
+  // Escape, bloqueo del scroll de atrás y foco: ver hooks/useSheet. Acá vivía
+  // sólo el Escape, escrito a mano — igual que en las otras cuatro hojas.
+  const panelRef = useSheet(onClose, { enabled: abierto });
 
   if (!abierto) return null;
 
@@ -107,6 +100,8 @@ export default function BodegaFilters({
       {/* Tocar afuera cierra: es lo que espera cualquiera que abrió una hoja. */}
       <div className="settings-sheet" onClick={onClose} role="presentation">
         <div
+          ref={panelRef}
+          tabIndex={-1}
           className="settings-sheet__panel bfilters"
           role="dialog"
           aria-modal="true"

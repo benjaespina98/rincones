@@ -85,11 +85,12 @@ export default function OnboardingPage() {
             <span className="onb__mark"><Logo size={34} /></span>
             {/* Sin género: es el título más visible de la app y le ponía sexo a
                 quien lo estaba leyendo. Ver la nota en LoginPage. */}
-            {/* El emoji va pegado al nombre con un espacio duro: en un teléfono
-                el título entra en dos líneas y la copa quedaba sola en la
-                segunda, como si se hubiera caído del renglón. */}
-            <h1 className="onb__title">Te damos la bienvenida a Rincones&nbsp;🍷</h1>
-            <p className="onb__sub">Para arrancar, ¿qué estilos de vino te gustan más?</p>
+            {/* Sin el 🍷: la marca ya tiene su logo arriba, dibujado. Un emoji
+                al lado del nombre es el gesto de una app que quiere caer bien.
+                Y sin género —"Bienvenido/a" le pone sexo a quien lo lee—, que es
+                por lo que antes decía "Te damos la bienvenida". */}
+            <h1 className="onb__title">Empecemos</h1>
+            <p className="onb__sub">¿Qué estilos tomás?</p>
 
             <div className="onb__grid">
               {WINE_TYPES.map(({ value, label }) => (
@@ -111,8 +112,10 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="onb__step">
             <span className="onb__mark"><Icon name="sparkle" filled size={28} /></span>
-            <h1 className="onb__title">¿Y tus varietales?</h1>
-            <p className="onb__sub">Elegí los que más disfrutás (podés cambiarlos después).</p>
+            {/* Sin el "(podés cambiarlos después)": es una promesa que ninguna
+                app hace falta que haga, y el paso ya tiene "Omitir". */}
+            <h1 className="onb__title">¿Y qué uvas?</h1>
+            <p className="onb__sub">Elegí las que más tomás.</p>
 
             <div className="onb__grid onb__grid--wrap">
               {POPULAR_VARIETALS.map((v) => (
@@ -149,7 +152,7 @@ export default function OnboardingPage() {
             vacías y marca `onboardedAt`). No es una forma de posponerlo: es la
             respuesta "no tengo preferencia todavía", y cuenta como completado. */}
         <button type="button" className="onb__skip" onClick={finish} disabled={saving}>
-          Omitir por ahora
+          Omitir
         </button>
       </div>
     </div>

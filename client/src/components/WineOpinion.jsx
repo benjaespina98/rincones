@@ -211,7 +211,7 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
             )}
           </>
         ) : (
-          "Tocá una estrella para puntuarlo"
+          "Todavía no lo puntuaste"
         )}
       </p>
 
@@ -231,7 +231,7 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
                puntuación contara. Con la puntuación ya publicada arriba, esto es
                lo que es: algo más, si tenés ganas. */
             <button type="button" className="wine-opinion__add" onClick={() => setWriting(true)}>
-              <Icon name="pencil" size={14} /> Contá a qué te supo (opcional)
+              <Icon name="pencil" size={14} /> Escribir una reseña
             </button>
           )}
         </>
@@ -241,7 +241,7 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
         <div className="wine-opinion__form">
           <textarea
             className="wine-opinion__input"
-            placeholder="¿A qué te supo?"
+            placeholder="¿Qué te pareció?"
             aria-label="Tu reseña"
             value={text}
             onChange={(e) => setText(e.target.value)}

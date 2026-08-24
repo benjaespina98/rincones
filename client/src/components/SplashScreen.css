@@ -7,9 +7,15 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background:
+  /* Repite el fondo a propósito: es un overlay fijo que tiene que TAPAR lo que
+     hay atrás mientras la app arranca. Al usar el mismo --app-bg, el pase del
+     splash a la pantalla ya no se ve como un cambio de color — antes el splash
+     no tenía el tinte vino de abajo y el fondo "saltaba" al desaparecer.
+     El halo de arriba es propio: acompaña a la marca, que sólo vive acá. */
+  background-color: var(--bg);
+  background-image:
     radial-gradient(120% 80% at 50% 30%, rgba(167, 130, 239, 0.16), transparent 60%),
-    linear-gradient(180deg, #0b0d14 0%, #07080f 100%);
+    var(--app-bg);
   animation: rincon-fade 260ms var(--ease-out) both;
 }
 
