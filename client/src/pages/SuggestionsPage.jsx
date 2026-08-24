@@ -46,7 +46,7 @@ const FOOD_DESTACADAS = ["asado", "carne", "pasta", "pizza", "pescado", "picada"
  * son la misma lista.
  */
 const NO_ENTENDIMOS_EL_PLATO =
-  "No pudimos interpretar ese plato. Probá con alguno de los de abajo.";
+  "No se pudo interpretar ese plato. Elegí uno de los de abajo.";
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
@@ -219,9 +219,12 @@ export default function SuggestionsPage() {
 
   return (
     <div className="suggestions-page">
+      {/* El encabezado era "¿Qué descorchamos?" con el subtítulo "Contame qué
+          vas a comer y te digo cuál abrir": una pregunta que la app se hace a
+          sí misma, más una instrucción que el campo de abajo —con su ícono de
+          cubiertos y su placeholder— ya da. Un título nombra la pantalla. */}
       <header className="sommelier-header">
-        <h1>¿Qué descorchamos?</h1>
-        <p>Contame qué vas a comer y te digo cuál abrir.</p>
+        <h1>Maridaje</h1>
       </header>
 
       <section className="context-selector">
@@ -233,7 +236,7 @@ export default function SuggestionsPage() {
           <input
             type="text"
             className="dish-field__input"
-            placeholder="Milanesas, sushi, lo que estés por cocinar…"
+            placeholder="¿Qué vas a comer? Milanesas, sushi…"
             aria-label="Qué vas a comer"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -243,7 +246,7 @@ export default function SuggestionsPage() {
             type="submit"
             className="dish-field__go"
             disabled={query.trim().length < 3 || resolving}
-            aria-label="Buscar el vino para ese plato"
+            aria-label="Buscar vinos para ese plato"
           >
             {resolving ? <span className="dish-field__spin" aria-hidden="true" /> : <Icon name="arrow-right" size={17} />}
           </button>
@@ -256,8 +259,7 @@ export default function SuggestionsPage() {
           <p className="dish-reading">
             <Icon name="sparkles" size={13} />
             <span>
-              <em>{reading.text}</em> — para eso vamos a{" "}
-              <strong>{FOOD_LABELS[reading.food] || reading.food}</strong>
+              <em>{reading.text}</em> → <strong>{FOOD_LABELS[reading.food] || reading.food}</strong>
               {reading.note && <span className="dish-reading__note">{reading.note}</span>}
             </span>
           </p>
@@ -307,11 +309,10 @@ export default function SuggestionsPage() {
         {!hasContext && (
           <EmptyState
             icon="wine-glass"
-            // No repite el subtítulo del encabezado, que está tres centímetros
-            // más arriba diciendo exactamente eso: acá se explica qué va a pasar
-            // después de contestar, que es lo que el encabezado no dice.
-            title="Elegí arriba y te armo la respuesta"
-            hint="Te digo qué abrir de lo que ya tenés, y qué buscar si todavía no lo tenés."
+            // Sin `hint`: el estado vacío de una pantalla que todavía no
+            // preguntó nada no tiene que explicar el producto. El campo y los
+            // atajos están arriba, a la vista.
+            title="Elegí un plato para ver los vinos que le van"
             compact
           />
         )}
@@ -382,19 +383,19 @@ export default function SuggestionsPage() {
             {!discoverLoading && discover.length === 0 && cellarWines.length === 0 && !error && (
               <EmptyState
                 icon="search"
-                title="Para ese plato no tengo nada que ofrecerte"
-                hint="Probá con otra comida, o buscá una botella puntual desde Agregar."
+                title="No encontramos vinos para ese plato"
+                hint="Probá con otra comida."
                 compact
               />
             )}
 
             {!discoverLoading && discover.length > 0 && (
               <>
-                <p className="suggestions-results__label">
-                  {cellarWines.length > 0
-                    ? "Para descubrir — argentinos que te irían"
-                    : "Para descubrir — no lo tenés, pero le va"}
-                </p>
+                {/* Un rótulo, no una frase. Los dos textos que había —"argentinos
+                    que te irían", "no lo tenés, pero le va"— decían lo mismo que
+                    la sección de arriba ya distingue por contraste: ésa es "De
+                    tu bodega", ésta no. */}
+                <p className="suggestions-results__label">Para descubrir</p>
                 <ul className="discover-list">
                   {discover.map((wine) => (
                     <li key={wine.id} className="discover-card">
@@ -450,7 +451,7 @@ export default function SuggestionsPage() {
                           onClick={() => handleWantDiscover(wine)}
                           disabled={addingId === wine.id || addedIds.has(wine.id)}
                           aria-label={`Guardar ${wine.name} en tu lista`}
-                          title="Quiero probar"
+                          title="Guardar"
                         >
                           {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="heart" size={16} />}
                         </button>

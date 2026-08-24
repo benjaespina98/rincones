@@ -42,13 +42,18 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
   const [error, setError] = useState("");
   const firstFieldRef = useRef(null);
 
-  // Bloquea el scroll del fondo y da foco al primer campo al abrir.
+  /* Bloquea el scroll del fondo y da foco al primer campo al abrir.
+
+     El bloqueo va sobre `.app-content`, que es lo que scrollea de verdad en
+     esta app; sobre `body` —como estaba— no hacía nada, porque el body no
+     scrollea (ver App.css). */
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scroller = document.querySelector(".app-content") || document.documentElement;
+    const previous = scroller.style.overflow;
+    scroller.style.overflow = "hidden";
     const timer = setTimeout(() => firstFieldRef.current?.focus(), 120);
     return () => {
-      document.body.style.overflow = previous;
+      scroller.style.overflow = previous;
       clearTimeout(timer);
     };
   }, []);

@@ -134,7 +134,7 @@
   justify-content: center;
   border: none;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
@@ -306,28 +306,38 @@
   flex-wrap: wrap;
 }
 
+/* ── LA FORMA DICE QUÉ ES ──────────────────────────────────────────────────
+   Estos dos eran cápsulas (`--radius-full`), igual que los chips de tipo y
+   uva que están tres centímetros más arriba en la misma tarjeta, igual que el
+   segmentado de la bodega e igual que las pastillas de filtro. Cinco cosas
+   distintas con la misma silueta: la forma no distinguía nada y había que leer
+   cada una para saber si era un dato, un filtro o un botón.
+
+   Ahora la app tiene dos siluetas y una regla: **cápsula = estado** (chip,
+   filtro, segmentado — algo que describe o alterna) y **rectángulo redondeado
+   = acción** (algo que pasa cuando lo tocás). Es lo que hace Vivino, y es la
+   razón por la que ahí nunca dudás de qué es tocable.
+   ─────────────────────────────────────────────────────────────────────────── */
 .spotlight__add {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: var(--control-md);
+  padding: 0 18px;
   border: 0;
-  border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  border-radius: var(--radius-md);
+  background: var(--accent-fill);
   color: #fff;
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-accent);
-  transition: filter var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.spotlight__add:hover:not(:disabled) { filter: brightness(1.08); }
+.spotlight__add:hover:not(:disabled) { background: var(--accent-light); }
 .spotlight__add.is-added {
   background: rgba(47, 182, 123, 0.18);
   color: var(--success-text);
-  box-shadow: none;
 }
 
 .spotlight__surprise {
@@ -336,13 +346,13 @@
   /* El ícono reemplazó al emoji del dado: como es un SVG y no un glifo, el aire
      entre ícono y texto hay que ponerlo acá (el emoji lo traía puesto). */
   gap: 7px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--line-accent);
-  border-radius: var(--radius-full);
-  background: var(--glass);
+  min-height: var(--control-md);
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
   transition: border-color var(--transition-fast), color var(--transition-fast),
@@ -656,7 +666,7 @@
   padding: 10px;
   border: 1px solid rgba(167, 130, 239, 0.3);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-size: var(--text-base);
   font-weight: 700;

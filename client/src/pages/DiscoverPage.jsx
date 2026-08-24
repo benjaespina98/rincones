@@ -16,10 +16,9 @@ import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto, razonDelSalto } from "../utils/discovery";
+import { elegirOtroDistinto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import WinePhoto from "../components/WinePhoto";
-import DailyLesson from "../components/DailyLesson";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -67,21 +66,15 @@ export default function DiscoverPage() {
   // usuario tenga que tocar el texto del buscador.
   const [retryToken, setRetryToken] = useState(0);
   const [addedIds, setAddedIds] = useState(() => new Set());
-  // La recomendación en foco. El server rota el set por día; acá se entra por
-  // uno cualquiera del set en vez de siempre por el primero, así abrir la app
-  // dos veces el mismo día no da exactamente la misma tarjeta.
-  // "Sorprendeme" sigue moviéndose por el resto.
+  // La recomendación en foco: el índice dentro del set que devuelve el server,
+  // que ya viene rankeado (la mejor primero). "Ver otro" recorre el resto.
   const [spotlightIdx, setSpotlightIdx] = useState(0);
-  const [surprised, setSurprised] = useState(false);
-  // De qué botella venimos al tocar "Mostrame otra": sin esto el salto no se
-  // puede contar y la tarjeta nueva aparece sin ninguna razón, que es
-  // exactamente lo que hacía sentir al botón un random con nombre lindo.
-  const [saltoDesde, setSaltoDesde] = useState(null);
 
-  /* Semilla de la sesión: decide con cuál de las redacciones se cuentan el
-     título y el motivo (ver utils/momentCopy.js). Se calcula una sola vez al
-     montar — si cambiara en cada render, el texto parpadearía mientras lo
-     estás leyendo. */
+  /* Semilla de la sesión. Ya no la usan el título ni el motivo —eso era el
+     generador de redacciones que se fue con el cambio de tono—, pero sí la
+     lección del día, que elige entre conceptos que son todos igual de válidos.
+     Se calcula una vez al montar: si cambiara en cada render, la tarjeta
+     cambiaría de tema mientras la estás leyendo. */
   const [seed] = useState(() => Math.floor(Math.random() * 997));
 
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
@@ -106,12 +99,10 @@ export default function DiscoverPage() {
          * ocho de ser la que veías.
          *
          * La variedad no se pierde, cambia de lugar: el set entero rota todos
-         * los días y "Mostrame otra" recorre el resto, que es exactamente para
-         * lo que está.
+         * los días y "Ver otro" recorre el resto, que es exactamente para lo
+         * que está.
          */
         setSpotlightIdx(0);
-        setSurprised(false);
-        setSaltoDesde(null);
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
@@ -163,6 +154,7 @@ export default function DiscoverPage() {
   }, [query, retryToken]);
 
   const name = displayName(user);
+  const estadoBodega = homeTitle({ stats });
 
   /**
    * ── EL REPARTO DEL CONTENIDO DEL PANEL ────────────────────────────────────
@@ -210,6 +202,8 @@ export default function DiscoverPage() {
   const buscando = query.trim().length >= 2;
 
   const spotlight = featured[spotlightIdx] || null;
+  // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
+  const motivo = whyThisWine(spotlight, stats);
 
   /*
    * Acá estaba `railWines`, la fila "Más para descubrir".
@@ -226,7 +220,7 @@ export default function DiscoverPage() {
    */
 
   /**
-   * "Mostrame otra": el salto más grande que permita el set, no un sorteo.
+   * "Ver otro": el salto más grande que permita el set, no un sorteo.
    *
    * El sorteo devolvía otro Malbec de Mendoza la mayoría de las veces —las
    * recomendaciones se parecen entre sí porque salen de tus gustos—, así que el
@@ -237,12 +231,7 @@ export default function DiscoverPage() {
     const proximo = elegirOtroDistinto(featured, spotlightIdx);
     if (proximo === null) return;
     tapHaptic();
-    // Se guarda de dónde venimos para poder contar el salto ("si te gustó el
-    // Malbec, probá qué hace un Cabernet"), que es lo que lo vuelve una
-    // recomendación y no un cambio de tarjeta.
-    setSaltoDesde(featured[spotlightIdx] || null);
     setSpotlightIdx(proximo);
-    setSurprised(true);
   };
 
   // "Quiero probar": guarda el vino en Guardados (no en la bodega). La bodega
@@ -280,14 +269,17 @@ export default function DiscoverPage() {
     <div className="discover-page">
       <header className="discover-hero">
         {/* El saludo es el h1: es lo primero y lo más grande que se lee al
-            abrir la app, así que la semántica tiene que acompañar eso. */}
+            abrir la app, así que la semántica tiene que acompañar eso.
+            Sin el 👋: un emoji saludando es el gesto que ponen las apps que
+            quieren caer bien, y no sobrevive a verlo dos veces. */}
         <h1 className="discover-hero__greeting">
-          {greeting()}{name ? `, ${name}` : ""}{" "}
-          <span className="discover-hero__greeting-wave" aria-hidden="true">👋</span>
+          {greeting()}{name ? `, ${name}` : ""}
         </h1>
-        {/* La frase sale del estado real de la bodega: si no hay nada que
-            contar cae a la pregunta neutra. Ver utils/momentCopy.js. */}
-        <p className="discover-hero__title">{homeTitle({ stats, seed })}</p>
+        {/* Sólo aparece cuando hay algo accionable que decir —bodega sin cargar,
+            o sin botellas—. Con la bodega andando no hay renglón y el buscador
+            sube: era una pregunta retórica rotativa en el lugar más visible de
+            la app. Ver utils/momentCopy.js. */}
+        {estadoBodega && <p className="discover-hero__title">{estadoBodega}</p>}
 
         {/* Sin submit: busca sola mientras escribís. El botón de la derecha
             limpia, que es lo único que hace falta cuando el resultado ya está
@@ -299,7 +291,7 @@ export default function DiscoverPage() {
           <input
             type="search"
             className="discover-search__input"
-            placeholder="Buscá un vino: Catena, Rutini, Torrontés…"
+            placeholder="Buscar vinos, bodegas, uvas"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Buscar un vino"
@@ -318,10 +310,12 @@ export default function DiscoverPage() {
 
         {/* Atajos por varietal: para el que abre la app sin un nombre en la
             cabeza y quiere empezar por algún lado. Van dentro del header para
-            quedar pegados al buscador, que es a lo que pertenecen. */}
+            quedar pegados al buscador, que es a lo que pertenecen.
+
+            Sin el rótulo "Buscá por varietal": tres pastillas debajo de un
+            buscador, con nombres de uva escritos adentro, ya dicen qué son. */}
         {!buscando && !searched && (
           <div className="wine-search__chips">
-            <span className="wine-search__chips-label">Buscá por varietal</span>
             <div className="wine-search__chips-row">
               {QUICK_VARIETALS.map((v) => (
                 <button
@@ -355,7 +349,7 @@ export default function DiscoverPage() {
             <EmptyState
               icon="search"
               title={`Sin resultados para “${query.trim()}”`}
-              hint="Probá con el nombre de la bodega. Si ya la tenés en la mano, sacale una foto a la etiqueta."
+              hint="Probá con el nombre de la bodega."
               actionLabel="Escanear etiqueta"
               onAction={() => navigate("/agregar")}
               compact
@@ -470,7 +464,7 @@ export default function DiscoverPage() {
                         {addedIds.has(r.id) ? (
                           <><Icon name="check" size={16} /> Guardado</>
                         ) : (
-                          <><Icon name="heart" size={16} /> Quiero probar</>
+                          <><Icon name="heart" size={16} /> Guardar</>
                         )}
                       </button>
                     )}
@@ -530,9 +524,9 @@ export default function DiscoverPage() {
         stats?.totals?.total === 0 ? (
           <EmptyState
             icon="bottle"
-            title="Empecemos por tu primer vino"
-            hint="Sacale una foto a la etiqueta y te empezamos a recomendar en base a lo que tomás."
-            actionLabel="Escanear mi primer vino"
+            title="Todavía no cargaste ningún vino"
+            hint="Con los primeros, las recomendaciones se ajustan a lo que tomás."
+            actionLabel="Escanear una etiqueta"
             onAction={() => navigate("/agregar")}
             compact
           />
@@ -540,7 +534,7 @@ export default function DiscoverPage() {
           <EmptyState
             icon="search"
             title="No hay recomendaciones ahora"
-            hint="Volvé más tarde o buscá un vino que tengas en mente."
+            hint="Probá buscando un vino."
             compact
           />
         )
@@ -559,36 +553,20 @@ export default function DiscoverPage() {
               <WinePhoto src={spotlight.image} type={spotlight.type} alt={spotlight.name} artSize={150} fit="contain" priority />
             </div>
             <div className="spotlight__body">
-              {/* Dos renglones con trabajos distintos: el primero dice QUÉ es
-                  este bloque, el segundo POR QUÉ te tocó este vino. Antes había
-                  uno solo que hacía las dos cosas mal y terminaba en "Elegido
-                  para hoy", que no dice nada.
+              {/* El rótulo dice qué es este bloque; el renglón de abajo, por qué
+                  te tocó este vino. Los dos son etiquetas cortas, no frases: la
+                  app no habla en primera persona ("Hoy te recomiendo", "Te sirvo
+                  otra"), rotula.
 
                   El motivo sale del momento cruzado con tu propia bodega (ver
                   utils/momentCopy.js), no de un modelo: es instantáneo, gratis
-                  y siempre verificable. */}
-              {/* "Tu recomendación de hoy" era correcto y sonaba a sistema: lo
-                  dice una app, no alguien. "Hoy te recomiendo" pone a alguien
-                  del otro lado, que es lo que el motivo de abajo ya venía
-                  haciendo ("Hace frío y todavía no tenés Malbec"). */}
-              {/* "Al azar" era la peor palabra posible acá: le avisaba a la
-                  persona que lo que está mirando no fue elegido. Y el motivo se
-                  reemplazaba por una frase fija ("Salgamos un rato de la
-                  rutina"), justo cuando MÁS falta hace una razón. Ahora el salto
-                  se nombra —de qué uva a cuál— y si el set no daba para saltar,
-                  se cae al motivo de siempre en vez de inventar uno. */}
-              {/* "Algo distinto" nombraba la mecánica del botón (te di otra
-                  cosa), no lo que estás mirando. "Te sirvo otra" es lo que dice
-                  alguien que está del otro lado de la barra, y es además lo que
-                  el botón promete con esas mismas palabras. */}
+                  y siempre verificable. Si no hay nada verificable que decir,
+                  `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
-                <Icon name={surprised ? "compass" : "sparkle"} size={12} />
-                {surprised ? "Te sirvo otra" : "Hoy te recomiendo"}
+                <Icon name="sparkle" size={12} />
+                Recomendado para vos
               </span>
-              <span className="spotlight__kicker">
-                {(surprised && razonDelSalto(saltoDesde, spotlight)) ||
-                  whyThisWine(spotlight, stats, seed)}
-              </span>
+              {motivo && <span className="spotlight__kicker">{motivo}</span>}
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
                 {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
@@ -613,22 +591,14 @@ export default function DiscoverPage() {
               {addedIds.has(spotlight.id) ? (
                 <><Icon name="check" size={16} /> Guardado</>
               ) : (
-                <><Icon name="heart" size={16} /> Quiero probar</>
+                <><Icon name="heart" size={16} /> Guardar</>
               )}
             </button>
-            {/* El dado decía "esto es un random" con un dibujo, que es
-                justamente lo que el botón NO tiene que parecer. La brújula dice
-                lo que hace: llevarte a otro lado. Se esconde si no hay a dónde
-                ir — ofrecer otra botella cuando no hay otra es prometer algo que
-                no va a pasar. */}
-            {/* "Mostrame otra" era una orden a un catálogo: pedía otra ficha.
-                Lo que de verdad pasa del otro lado es que alguien te sirve otra
-                copa y te cuenta por qué — que es lo que dice ahora el motivo
-                (ver razonDelSalto). El botón y la frase tienen que hablar el
-                mismo idioma. */}
+            {/* Se esconde si no hay a dónde ir: ofrecer otra botella cuando no
+                hay otra es prometer algo que no va a pasar. */}
             {featured.length > 1 && (
               <button type="button" className="spotlight__surprise" onClick={mostrarOtra}>
-                <Icon name="compass" size={15} /> Servime otra
+                <Icon name="refresh" size={15} /> Ver otro
               </button>
             )}
           </div>

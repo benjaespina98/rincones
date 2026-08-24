@@ -53,14 +53,11 @@ export default function DailyLesson({ stats, seed = 0 }) {
             <Icon name="graduation" size={18} />
           </span>
           <span className="lesson-card__heads">
-            {/* El rótulo pasó por tres versiones y las dos primeras fallaban por
-                el mismo lado. "Para aprender hoy" sonaba a tarea escolar. "Para
-                entender mejor" era peor de lo que parecía: da por sentado que no
-                entendías, y el contenido dejó de ser el de un principiante — hoy
-                explica qué significa "Reserva" en Argentina o por qué dos Malbec
-                cuestan diez veces distinto. Prometer novedad en vez de remedio es
-                lo que corresponde a lo que hay adentro. */}
-            <span className="lesson-card__eyebrow">Algo que quizá no sabías</span>
+            {/* Un rótulo de sección, no una promesa. Las versiones anteriores
+                —"Para aprender hoy", "Para entender mejor", "Algo que quizá no
+                sabías"— le hablaban al lector sobre su propio conocimiento. Lo
+                que hay adentro es una nota sobre vino: eso es lo que dice. */}
+            <span className="lesson-card__eyebrow">Aprendé sobre vino</span>
             <span className="lesson-card__title">{concepto.title}</span>
           </span>
         </span>

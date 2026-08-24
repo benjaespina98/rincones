@@ -140,12 +140,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  animation: wine-plan-in 200ms var(--ease-out);
-}
-
-@keyframes wine-plan-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: none; }
+  animation: rincon-enter-down 200ms var(--ease-out);
 }
 
 /* ── Música ────────────────────────────────────────────────────────────────
@@ -237,11 +232,7 @@
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
-  animation: wine-plan-spin 700ms linear infinite;
-}
-
-@keyframes wine-plan-spin {
-  to { transform: rotate(360deg); }
+  animation: rincon-spin 700ms linear infinite;
 }
 
 .wine-plan__failed {

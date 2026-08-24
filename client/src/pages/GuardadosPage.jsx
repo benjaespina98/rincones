@@ -68,14 +68,16 @@ export default function GuardadosPage() {
       {/* El topbar ya dice "Guardados": repetirlo acá gastaba la línea más
           visible de la pantalla en información que el usuario ya tiene. Las
           otras pestañas usan ese lugar para decir algo útil, ésta no. */}
-      <header className="guardados-header">
-        <h1>
-          {wishes.length === 0
-            ? "Tu lista de pendientes"
-            : `${wishes.length} ${wishes.length === 1 ? "vino anotado" : "vinos anotados"}`}
-        </h1>
-        <p>Los que querés probar. Cuando consigas uno, escaneálo para sumarlo a tu bodega.</p>
-      </header>
+      {/* Sólo el número. El subtítulo explicaba el mecanismo completo de la
+          pantalla ("cuando consigas uno, escaneálo para sumarlo a tu bodega") y
+          eso ya lo dice el botón "Ya lo tengo" que hay en cada fila. Con la
+          lista vacía el número no aporta, así que ahí no hay encabezado: el
+          estado vacío de abajo es el que habla. */}
+      {wishes.length > 0 && (
+        <header className="guardados-header">
+          <h1>{wishes.length} {wishes.length === 1 ? "vino guardado" : "vinos guardados"}</h1>
+        </header>
+      )}
 
       <Segmented
         ariaLabel="Qué guardados ver"
@@ -108,23 +110,25 @@ export default function GuardadosPage() {
       {!loading && !error && visible.length === 0 && (
         <EmptyState
           icon="heart"
-          // "Sin vinos guardados" es un diagnóstico; esto es para qué sirve la
-          // pantalla. Mismo criterio que el vacío de Mi Bodega.
           title={
             filter === "favorites"
               ? "Todavía no marcaste favoritos"
-              : "Tu lista de pendientes está esperando"
+              : "Todavía no guardaste ningún vino"
           }
+          // Una línea, y sólo la que dice qué hacer. El texto largo explicaba
+          // el producto entero ("cuando veas uno en Descubrí o en el Sommelier,
+          // tocá 'Quiero probar' y aparece acá"): eso lo tiene que resolver el
+          // botón de abajo, que lleva justo ahí.
           hint={
             filter === "favorites"
-              ? "Tocá el corazón de un vino guardado para tenerlo a mano acá."
-              : "Los vinos que querés probar, anotados: cuando veas uno en Descubrí o en el Sommelier, tocá “Quiero probar” y aparece acá."
+              ? "Marcá con el corazón los que quieras tener a mano."
+              : "Guardá los vinos que quieras probar y quedan acá."
           }
           actionLabel={filter === "favorites" ? undefined : "Descubrir vinos"}
           onAction={filter === "favorites" ? undefined : () => navigate("/")}
           // La otra puerta: quien ya tiene la botella en la mano no viene a
           // anotarla, viene a cargarla.
-          secondaryLabel={filter === "favorites" ? "Ver todos los guardados" : "Ya tengo uno: escanearlo"}
+          secondaryLabel={filter === "favorites" ? "Ver todos los guardados" : "Escanear una etiqueta"}
           onSecondary={
             filter === "favorites" ? () => setFilter("all") : () => navigate("/agregar")
           }
@@ -168,7 +172,7 @@ export default function GuardadosPage() {
                   type="button"
                   className="guardados-have"
                   onClick={() => navigate("/agregar")}
-                  title="Ya lo tengo: escaneálo para sumarlo a tu bodega"
+                  title="Escanear la etiqueta y sumarlo a tu bodega"
                 >
                   <Icon name="camera" size={15} /> Ya lo tengo
                 </button>

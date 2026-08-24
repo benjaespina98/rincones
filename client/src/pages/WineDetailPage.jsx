@@ -674,7 +674,7 @@ export default function WineDetailPage() {
                   onClick={() => handleAdjustQuantity(1)}
                 >
                   <Icon name="plus" size={17} />
-                  Ahora lo tengo: sumarlo a mi bodega
+                  Sumar a mi bodega
                 </button>
               ) : null}
 
@@ -713,23 +713,15 @@ export default function WineDetailPage() {
                   disabled={pending}
                   onClick={handleToggleTasted}
                   aria-pressed={wine.tasted}
-                  // El texto del chip ("Probado") ya no alcanza para decir de qué
-                  // se trata: tiene sentido para quien lo tildó, no para quien lo
-                  // lee después. El título explica el dato en una frase, al pasar
-                  // el mouse o mantener tocado.
-                  title={
-                    wine.tasted
-                      ? "Ya la tomaste alguna vez. Tocá para destildarlo."
-                      : "Todavía no la tomaste. Tocá para marcarla como probada."
-                  }
+                  // El chip ya dice el estado con su texto y su color; el
+                  // aria-label dice la ACCIÓN, que es lo que un lector de
+                  // pantalla necesita y lo único que no está a la vista.
                   aria-label={
-                    wine.tasted
-                      ? "Ya la probaste. Tocá para quitar la marca de probada."
-                      : "Todavía no la probaste. Tocá para marcarla como probada."
+                    wine.tasted ? "Quitar la marca de probada" : "Marcar como probada"
                   }
                 >
                   <Icon name={wine.tasted ? "check" : "circle"} size={14} />
-                  {wine.tasted ? "Ya la probé" : "Sin probar"}
+                  {wine.tasted ? "Probado" : "Sin probar"}
                 </button>
 
                 <button
@@ -882,7 +874,7 @@ export default function WineDetailPage() {
                 aprender en el alta. */}
             <ImagePicker
               label="Foto de la botella"
-              hint="La tuya sirve para todos: si nadie subió una de este vino, va a ser la que vean los demás."
+              hint="Si nadie subió una de este vino, va a ser la que vean los demás."
               value={draft.image}
               onChange={(v) => updateDraftField("image", v)}
               disabled={saving}
@@ -1229,8 +1221,7 @@ export default function WineDetailPage() {
               <EmptyState
                 icon="calendar"
                 title="Sin momentos todavía"
-                hint="Con quién y dónde lo tomaste."
-                actionLabel="Registrar el primero"
+                actionLabel="Registrar un momento"
                 onAction={() => setShowMomentForm(true)}
                 compact
               />

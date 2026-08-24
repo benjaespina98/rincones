@@ -85,9 +85,13 @@
   width: 100%;
   min-height: 108px;
   padding: 20px 18px;
-  border: 1px solid rgba(167, 130, 239, 0.34);
+  border: 0;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(143, 96, 255, 0.92) 0%, rgba(92, 67, 218, 0.92) 100%);
+  /* Plano, como el resto de lo primario. El degradado diagonal que tenía era
+     el único de la app que no coincidía con el de los demás botones —dos
+     violetas distintos— así que la acción más importante del producto era
+     también la que menos se parecía a sí misma en otras pantallas. */
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: var(--shadow-accent);
   display: grid;

@@ -1,25 +1,28 @@
-// Textos que cambian por CONTEXTO, no al azar.
-//
-// La idea es que la app se sienta viva sin volverse un generador de frases: si
-// hay algo real que decir (tenés tintos listos para abrir, hace calor, tomás
-// mucho Malbec) lo decimos; si no, cae a una línea neutra. Un texto aleatorio
-// que no responde a nada se nota enseguida y cansa.
-//
-// ── POR QUÉ AHORA CADA RAZÓN TIENE VARIAS FORMAS DE DECIRSE ─────────────────
-// Cada regla devolvía UNA frase fija. Como las señales que las disparan cambian
-// despacio —la estación dura tres meses, tu bodega no se mueve todos los días—,
-// en la práctica la home saludaba con el mismo renglón durante semanas: "Hace
-// frío y todavía no tenés Malbec". La regla era correcta y aun así la app se
-// sentía muerta.
-//
-// La regla sigue eligiendo QUÉ decir (eso no puede ser al azar, es lo que hace
-// que la frase sea verdad). Lo que cambia es CÓMO se dice: cada razón tiene dos
-// o tres redacciones y se elige una con una semilla. Nadie va a leer las tres,
-// pero abrir la app dos días seguidos deja de dar exactamente la misma pantalla.
+/* ── Textos que dependen del contexto ──────────────────────────────────────
+   Acá vivía un generador de frases: cada razón tenía dos o tres redacciones y
+   una semilla elegía cuál salía, para que la home "no se sintiera muerta". El
+   resultado era el contrario del buscado: la app hablaba todo el tiempo, en
+   primera persona y con voz de barra ("Hace frío y todavía no tenés Malbec",
+   "Es viernes. Un espumante no necesita más excusa"), y eso es exactamente lo
+   que hace que un producto se lea como escrito por una máquina que quiere caer
+   bien.
+
+   Las apps con las que se compara ésta —Vivino, Uber, Cabify— no conversan:
+   rotulan. Dicen "Recomendado para vos" y muestran el vino. La calidez sale de
+   que la pantalla sea obvia, no de que tenga onda.
+
+   Reglas de este archivo:
+   · una razón, una forma de decirla (se fue el `pick` y la semilla);
+   · frases cortas pero ENTERAS. Recortarlas hasta el telegrama —"Tomás
+     Malbec", "Tinto para el frío"— no es sobriedad, es sequedad: se lee como
+     un campo de base de datos y no como algo que alguien escribió. El molde es
+     el de Vivino ("Porque te gusta el Malbec"): una línea que se pueda leer en
+     voz alta sin que suene a etiqueta;
+   · si no hay nada concreto que decir, se devuelve `null` y no se dibuja nada.
+     Un renglón de relleno cuesta más que el silencio. */
 
 const hour = () => new Date().getHours();
 const month = () => new Date().getMonth(); // 0-11
-const weekday = () => new Date().getDay(); // 0 domingo - 6 sábado
 
 /** Verano en el hemisferio sur: diciembre a marzo. */
 const isHot = () => {
@@ -33,15 +36,10 @@ const isCold = () => {
   return m >= 5 && m <= 7;
 };
 
-/** Viernes, sábado y domingo: los días en que se abre una botella sin motivo. */
-const isWeekend = () => [5, 6, 0].includes(weekday());
-
 /* ── La hora del día, en cinco franjas ──────────────────────────────────────
-   Antes el único corte era `hour >= 19` ("isEvening"), y con eso la app hablaba
-   de la noche durante las otras diecinueve horas: abrirla a las 8:35 de la
-   mañana te ofrecía un vino "para abrir esta noche". Las franjas son las que
-   usa cualquiera para ubicarse en el día, y son las mismas que consumen el
-   saludo, el título de la home y el plan de la ficha. */
+   La consumen el saludo y el plan de la ficha. Antes el único corte era
+   `hour >= 19`, y con eso la app hablaba de la noche durante las otras
+   diecinueve horas del día. */
 export const dayPart = (h = hour()) => {
   if (h < 6) return "madrugada";
   if (h < 12) return "mañana";
@@ -53,24 +51,10 @@ export const dayPart = (h = hour()) => {
 /** Desde el mediodía en adelante: cuando servir un vino ya no es raro. */
 const esHoraDeVino = () => ["mediodia", "tarde", "noche"].includes(dayPart());
 
-/* ── Elegir entre redacciones ───────────────────────────────────────────────
-   `seed` es un número que el llamador mantiene estable mientras la pantalla
-   está abierta (ver DiscoverPage): si cambiara en cada render, el texto
-   parpadearía mientras lo estás leyendo. */
-const hashText = (text) => {
-  let h = 0;
-  for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) | 0;
-  return h;
-};
-
-const pick = (opciones, seed = 0) => {
-  if (opciones.length === 1) return opciones[0];
-  return opciones[Math.abs(seed) % opciones.length];
-};
-
+/** El saludo del encabezado. "Todavía despierto" a las 3 AM era un chiste que
+    la app no tiene por qué hacer: a esa hora también es de noche. */
 export const greeting = () => {
   switch (dayPart()) {
-    case "madrugada": return "Todavía despierto";
     case "mañana": return "Buen día";
     case "mediodia":
     case "tarde": return "Buenas tardes";
@@ -79,60 +63,25 @@ export const greeting = () => {
 };
 
 /**
- * Título de la home. Deriva del estado real de la bodega; sólo si no hay nada
- * que contar usa la pregunta genérica.
+ * El renglón de estado bajo el saludo.
+ *
+ * Sólo aparece cuando dice algo ACCIONABLE. Antes era una pregunta retórica
+ * rotativa ("¿Qué abrimos esta noche?", "¿Con qué cerramos el día?") que salía
+ * siempre, ocupaba el lugar más visible de la app y no llevaba a ningún lado.
+ * Ahora, con la bodega andando, no hay renglón: el buscador y la recomendación
+ * arrancan más arriba.
  */
-export const homeTitle = ({ stats, seed = 0 } = {}) => {
-  // `stats` es null mientras useWineStats todavía no respondió (o si la
-  // consulta falla). `?? 0` lo confundía con "bodega en cero" y por un
-  // instante —a veces más, si el pedido falla en silencio— la home le decía
-  // "Empecemos tu bodega" a alguien con vinos cargados. Sin dato todavía, no
-  // se afirma nada: cae a la pregunta neutra, igual que cuando no hay nada
-  // más específico para decir.
-  if (!stats) return "¿Qué vino descubrimos hoy?";
+export const homeTitle = ({ stats } = {}) => {
+  // `stats` en null es "la consulta todavía no respondió", no "bodega en cero":
+  // sin el dato no se afirma nada.
+  if (!stats) return null;
 
   const total = stats?.totals?.total || 0;
-  // Vinos con botellas vs. botellas sueltas: no son lo mismo y cada texto
-  // necesita el suyo. `bottles` puede no venir (server anterior a este cambio):
-  // sin el dato se cae a `stock`, que al menos no miente sobre si hay algo.
   const stock = stats?.totals?.stock || 0;
-  const botellas = stats?.totals?.bottles ?? stock;
 
-  if (total === 0) return "Empecemos tu bodega";
-
-  const top = stats?.topVarietals?.[0];
-  const franja = dayPart();
-
-  // "vacía" describe cero vinos cargados (el caso de arriba). Acá hay al menos
-  // uno: se probó y no quedó stock, que es distinto y el texto tiene que
-  // notarlo — si no, suena a que la carga se perdió.
-  if (stock === 0) return "Ya no te queda nada en stock";
-
-  if (isHot() && esHoraDeVino()) {
-    return pick(
-      ["¿Un blanco fresco para hoy?", "¿Algo bien frío para este calor?", "Día de descorchar algo fresco"],
-      seed
-    );
-  }
-
-  if (franja === "noche") {
-    return pick(["¿Qué abrimos esta noche?", "¿Con qué cerramos el día?", "Es hora de elegir una botella"], seed);
-  }
-
-  if (botellas === 1) return "Te queda una botella";
-
-  if (top?.count >= 3) {
-    return pick(
-      [`¿Seguimos con ${top.varietal} o cambiamos?`, `Tenés mano de ${top.varietal}, ¿probamos otra cosa?`],
-      seed
-    );
-  }
-
-  if (franja === "mañana") {
-    return pick(["¿Qué vino descubrimos hoy?", "Buen momento para elegir la de esta noche"], seed);
-  }
-
-  return pick(["¿Qué vino descubrimos hoy?", "¿Qué te dan ganas de tomar?", "Veamos qué hay para descorchar"], seed);
+  if (total === 0) return "Todavía no cargaste ningún vino";
+  if (stock === 0) return "No te quedan botellas en stock";
+  return null;
 };
 
 /* ── Vocabulario de tipos ──────────────────────────────────────────────────
@@ -158,164 +107,53 @@ const leFaltaLaUva = (varietals, uva) =>
   Boolean(uva) && varietals.length < LIMITE_VARIETALES && !tieneUva(varietals, uva);
 
 /**
- * Por qué le mostramos ESTE vino.
+ * Por qué le mostramos ESTE vino: una etiqueta corta, no una frase.
  *
- * Sale del momento (hora, día, estación) cruzado con los datos del propio
- * usuario, así que es instantáneo, gratis y siempre cierto — a diferencia de
- * pedírselo a un modelo, que tardaría, gastaría cuota y podría inventar un
- * gusto que no tenés.
+ * Sale del momento (hora, estación) cruzado con los datos del propio usuario,
+ * así que es instantáneo, gratis y siempre cierto — a diferencia de pedírselo a
+ * un modelo, que tardaría, gastaría cuota y podría inventar un gusto que no
+ * tenés.
  *
- * El orden es por ESPECIFICIDAD, no por importancia: primero las razones que
- * cruzan dos señales ("hace frío" + "no tenés esta uva"), porque son las que se
- * leen como escritas para vos. Las que dependen de una sola señal van después.
- * Nunca se afirma algo que no se pueda verificar con los datos que tenemos.
- *
- * `seed` sólo decide con cuál de las redacciones de la razón elegida se cuenta;
- * se mezcla con el id del vino para que dos botellas distintas en la misma
- * sesión no salgan siempre con la misma variante.
+ * El orden es por especificidad: primero lo que sale de tu bodega (es lo único
+ * que no podría decir cualquier app), después el momento. Si no hay nada
+ * verificable, devuelve `null` y la tarjeta no muestra el renglón.
  */
-export const whyThisWine = (wine, stats, seed = 0) => {
+export const whyThisWine = (wine, stats) => {
   if (!wine) return null;
 
   const varietals = stats?.topVarietals || [];
   const regions = stats?.topRegions || [];
-  const types = stats?.countsByType || [];
   const total = stats?.totals?.total || 0;
 
   const uva = wine.varietal || "";
   const esTinto = TINTOS.has(wine.type);
   const esFresco = FRESCOS.has(wine.type);
-  const franja = dayPart();
-  const s = seed + hashText(String(wine.id || wine.name || ""));
 
-  // ── Nivel 1: el momento + algo tuyo ─────────────────────────────────────
-  // Dos señales cruzadas. Es el único nivel que se lee como si alguien hubiera
-  // mirado tu bodega y la ventana al mismo tiempo.
-  if (isCold() && esTinto && leFaltaLaUva(varietals, uva)) {
-    return pick([
-      `Hace frío y todavía no tenés ${uva} en tu bodega`,
-      `${uva} para el invierno, que es la uva que te falta`,
-      `El frío pide tinto y ${uva} no lo tenés probado`,
-    ], s);
-  }
-
-  if (isHot() && esFresco && leFaltaLaUva(varietals, uva)) {
-    return pick([
-      `Con este calor entra solo, y ${uva} te falta`,
-      `${uva} bien frío: no tenés ninguno todavía`,
-      `Para el verano, y encima ${uva} no está en tu bodega`,
-    ], s);
-  }
-
-  if (isWeekend() && esTinto && (franja === "mediodia" || franja === "tarde")) {
-    return pick([
-      "Para el asado del finde: un tinto que se banca la parrilla",
-      "Finde y parrilla: este aguanta el humo",
-      "Un tinto de fin de semana, para la mesa larga",
-    ], s);
-  }
-
-  // ── Nivel 2: algo tuyo, verificable y concreto ──────────────────────────
+  // ── Lo que sale de tu bodega ────────────────────────────────────────────
   const mismaUva = varietals.find((v) => v.varietal && uva && norm(v.varietal) === norm(uva));
-  if (mismaUva?.count >= 2) {
-    return pick([
-      `Porque ya tenés ${mismaUva.count} ${mismaUva.varietal} en tu bodega`,
-      `Va por donde venís: tenés ${mismaUva.count} ${mismaUva.varietal}`,
-      `${mismaUva.varietal} otra vez, que es lo que más juntás`,
-    ], s);
-  }
+  if (mismaUva?.count >= 2) return `Porque tomás ${mismaUva.varietal}`;
 
   const mismaRegion = regions.find(
     (r) => r.region && wine.region && norm(wine.region).includes(norm(r.region))
   );
-  if (mismaRegion?.count >= 2) {
-    return pick([
-      `De ${mismaRegion.region}, como varios de los tuyos`,
-      `${mismaRegion.region} de nuevo: es la zona que más te gusta`,
-    ], s);
-  }
+  if (mismaRegion?.count >= 2) return `De ${mismaRegion.region}, como varios de los tuyos`;
 
-  // ── Nivel 3: el momento solo ────────────────────────────────────────────
-  if (isCold() && esTinto) {
-    if (franja === "noche") {
-      return pick(["Para una noche fría como esta", "Frío afuera: este entra en calor"], s);
-    }
-    if (franja === "tarde" || franja === "mediodia") {
-      return pick(["Para una tarde de frío", "Un tinto para el mediodía de invierno"], s);
-    }
-  }
+  if (total >= 3 && leFaltaLaUva(varietals, uva)) return `Todavía no tenés ningún ${uva}`;
 
-  if (isHot() && esFresco && esHoraDeVino()) {
-    return pick([
-      "Con este calor, se toma bien frío",
-      "Directo de la heladera, para el calor de hoy",
-    ], s);
-  }
+  // ── El momento ──────────────────────────────────────────────────────────
+  if (isCold() && esTinto) return "Un tinto para los días de frío";
+  if (isHot() && esFresco && esHoraDeVino()) return "Se toma bien frío, para este calor";
 
-  if (wine.type === "sparkling" && weekday() === 5) {
-    return pick([
-      "Es viernes. Un espumante no necesita más excusa",
-      "Viernes: las burbujas se justifican solas",
-    ], s);
-  }
-
-  // ── Nivel 4: tu perfil, en voz más baja ─────────────────────────────────
-  if (total >= 3 && leFaltaLaUva(varietals, uva)) {
-    return pick([
-      `${uva} para salir de lo de siempre`,
-      `Todavía no probaste ${uva}`,
-      `${uva}: algo distinto a lo que venís tomando`,
-    ], s);
-  }
-
-  const tipoHabitual = types[0];
-  if (tipoHabitual && wine.type && tipoHabitual.type !== wine.type && tipoHabitual.count >= 3) {
-    return pick([
-      "Para variar un poco de lo que solés tomar",
-      "Sale de tu línea habitual, a propósito",
-    ], s);
-  }
-
-  // ── Piso: contextual, nunca genérico ────────────────────────────────────
-  // "Elegido para hoy" no dice nada: es el rótulo que pone una app cuando no
-  // tiene nada para decir. Estas son verdad siempre y al menos ubican al vino
-  // en un momento — el del reloj de quien está mirando, no el de la noche por
-  // defecto.
-  if (esFresco) return pick(["Un fresco para tener a mano", "Para tener en la heladera"], s);
-
-  switch (franja) {
-    case "madrugada": return "Anotalo para mañana";
-    case "mañana": return pick(["Para tenerlo en el radar hoy", "Para la botella de más tarde"], s);
-    case "mediodia": return pick(["Para la mesa de hoy", "Va bien con el almuerzo"], s);
-    case "tarde": return pick(["Para abrir al caer la tarde", "Para más tarde, sin apuro"], s);
-    default: return pick(["Para abrir esta noche", "Buena candidata para hoy"], s);
-  }
+  return null;
 };
 
 /**
- * El encabezado del plan de la ficha, según la hora del reloj.
+ * Encabezado del plan de la ficha.
  *
- * Decía "Plan de la noche" siempre, y la app se abre a las nueve de la mañana o
- * a las tres de la tarde tanto como a las diez de la noche. Una copa a la
- * tardecita es un plan igual de válido; el rótulo era el único que no se había
- * enterado.
+ * Fijo. Era "Plan para esta noche / la tarde / el mediodía / esta madrugada",
+ * o sea cuatro títulos para la misma sección: quien vuelve a la ficha del
+ * mismo vino a otra hora la encuentra con otro nombre y tiene que releerla para
+ * entender que es la de siempre. Un rótulo identifica una sección; no es el
+ * lugar para mostrar la hora.
  */
-export const planTitle = () => {
-  switch (dayPart()) {
-    case "madrugada": return "Plan para esta madrugada";
-    case "mañana": return "El plan para esta botella";
-    case "mediodia": return "Plan para el mediodía";
-    case "tarde": return "Plan para la tarde";
-    default: return "Plan para esta noche";
-  }
-};
-
-/** La pregunta que acompaña al título del plan, en la misma franja. */
-export const planHint = () => {
-  switch (dayPart()) {
-    case "mañana": return "¿Para qué momento la guardás?";
-    case "mediodia": return "¿Cómo viene el mediodía?";
-    case "tarde": return "¿Cómo viene la tarde?";
-    default: return "¿Cómo viene la noche?";
-  }
-};
+export const planTitle = () => "Con qué acompañarla";

@@ -74,11 +74,12 @@ export default function CellarReady({ enabled = true }) {
   return (
     <section className="cellar-ready" aria-labelledby="cellar-ready-title">
       <header className="cellar-ready__head">
+        {/* "De tu bodega" entra en el título y se ahorra el subtítulo: era el
+            único trabajo que hacía, distinguir esta fila de una recomendación
+            de vinos que no tenés. */}
         <h2 id="cellar-ready-title" className="cellar-ready__title">
-          <Icon name="bottle" size={16} /> Listos para abrir
+          <Icon name="bottle" size={16} /> De tu bodega, listos para abrir
         </h2>
-        {/* El renglón que lo separa de una recomendación: estos ya son tuyos. */}
-        <p className="cellar-ready__hint">De tu bodega, en su mejor momento</p>
       </header>
 
       <ul className="cellar-ready__row">

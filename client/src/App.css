@@ -3,10 +3,14 @@
    Component/page-specific styles live in their own CSS files.
    ============================================================ */
 
+/* Transparentes a propósito: el fondo lo pinta `body` con --app-bg (index.css).
+   `#root` lo tapaba entero con un color plano, así que el degradado del body no
+   se veía nunca — y quien quisiera cambiar "el fondo" editando body no veía
+   ningún cambio. */
 #root,
 html {
   min-height: 100%;
-  background: var(--bg);
+  background: transparent;
 }
 
 #root {
@@ -51,8 +55,13 @@ html {
     background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+/* El hover NO levanta el botón.
+   `translateY(-1px)` sobre todo lo clickeable hace que la pantalla se mueva
+   sola mientras pasás el mouse, y es un efecto que en un teléfono no existe:
+   sólo lo ve quien abre la app en una computadora, y ahí lo que ve es una
+   interfaz nerviosa. El estado de hover se dice con color, que es lo que hacen
+   las variantes de abajo. */
 .button:hover {
-  transform: translateY(-1px);
   filter: brightness(1.06);
 }
 
@@ -77,15 +86,17 @@ html {
 }
 
 .button--primary {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   border-color: rgba(160, 130, 250, 0.16);
   color: #fff;
   box-shadow: var(--shadow-accent);
 }
 
+/* El hover aclara y nada más. El halo violeta de 28px que había acá hacía que
+   el botón se encendiera al pasarle el mouse: es el gesto que vuelve barata a
+   una interfaz, y encima en un teléfono —donde vive esta app— no existe. */
 .button--primary:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 12px 28px rgba(126, 89, 201, 0.4);
+  background: var(--accent-light);
 }
 
 .button--secondary {
@@ -180,7 +191,10 @@ html {
   border-radius: 50%;
   font-size: 40px;
   color: var(--accent-soft);
-  background: radial-gradient(circle at 50% 35%, rgba(167, 130, 239, 0.28), rgba(18, 22, 36, 0.6));
+  /* Un círculo teñido, no una esfera. El radial con la luz arriba a la
+     izquierda le daba volumen a un ícono plano: dos lenguajes distintos en el
+     mismo elemento. */
+  background: var(--accent-muted);
   border: 1px solid var(--line-accent);
 }
 
@@ -209,7 +223,7 @@ html {
   padding: 12px 24px;
   border: 1px solid rgba(167, 130, 239, 0.3);
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-weight: 700;
   font-size: var(--text-md);
@@ -219,8 +233,7 @@ html {
 }
 
 .empty-cta:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 16px 40px rgba(126, 89, 201, 0.4);
+  background: var(--accent-light);
 }
 
 .empty-cta:active {
@@ -441,6 +454,42 @@ textarea::placeholder {
   color: var(--text-muted);
 }
 
+/* ── EL CAMPO AUTOCOMPLETADO NO SE PINTA DE BLANCO ────────────────────────
+   Chrome le pone a todo campo que autocompleta un fondo claro propio
+   (`-webkit-autofill`), y lo hace con tanta prioridad que ni `!important` en
+   `background-color` lo tumba. O sea: en el login —la primera pantalla de la
+   app, y la única donde el navegador guarda datos— el campo del mail aparecía
+   blanco con letra oscura, en el medio de una interfaz oscura. Un solo campo
+   fuera de la paleta alcanza para que todo se vea sin terminar.
+
+   Los dos trucos que sí funcionan: un `box-shadow` interior enorme, que tapa
+   el fondo del navegador porque se dibuja encima, y `-webkit-text-fill-color`,
+   que es lo único que gana sobre el color de texto del autocompletado.
+
+   La transición de 9999s es el tercer truco conocido: Chrome anima la entrada
+   del color de fondo, y una transición absurdamente larga hace que nunca
+   llegue a verse. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset;
+  box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset;
+  caret-color: var(--text);
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* El foco vuelve a mostrar su anillo: el box-shadow de arriba ocupa la misma
+   propiedad, así que sin esto un campo autocompletado era el único de la app
+   que no se marcaba al enfocarse. */
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset, var(--focus-ring);
+  box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset, var(--focus-ring);
+}
+
 input[type="checkbox"],
 input[type="radio"] {
   width: 20px;
@@ -484,12 +533,11 @@ select:disabled {
   }
 }
 
-/* Lighter background on very small screens */
-@media (max-width: 520px) {
-  body {
-    background: linear-gradient(180deg, #050712 0%, #070712 100%);
-  }
-}
+/* Acá había un fondo distinto para pantallas de menos de 520px: un degradado
+   plano, sin los dos halos de color. Estaba muerto —`#root` tapaba a `body`,
+   así que no se veía— pero ahora que `body` es el que pinta, habría revivido
+   para darle a los teléfonos, que son el caso principal, un fondo diferente al
+   de todos los demás. Justo lo contrario de tener un solo fondo. */
 
 /* ── Stock stepper (used by Mi Bodega cards + Wine Detail) ── */
 .wine-qty-controls {
@@ -655,7 +703,7 @@ select:disabled {
 }
 
 .btn-add {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: var(--shadow-accent);
 }
@@ -693,83 +741,20 @@ select:disabled {
 }
 
 /* ============================================================
-   Admin panel (internal) — used by AdminLoginPage activity log
+   Acá vivía el registro de actividad del panel: `.admin-log-list`,
+   `.admin-log-item` con sus cuatro sub-elementos, y las cuatro reglas de
+   `.admin-log-badge`. Unas setenta líneas.
+
+   Dos problemas de una. El primero, que estaban DUPLICADAS: las mismas clases
+   se declaran en pages/styles/AdminLayout.css, que es la hoja del panel, con
+   otros colores. Como esa se carga después, ganaba siempre — o sea que este
+   bloque no se veía nunca y cualquiera que lo editara buscando arreglar el
+   panel no iba a ver ningún cambio.
+
+   El segundo, más caro: App.css entra en el bundle principal, el que baja
+   TODA persona que abre la app. El registro de auditoría del panel de
+   administración lo mira un puñado de gente, y lo estaban pagando todos.
    ============================================================ */
-.admin-log-list {
-  display: grid;
-  gap: 0.55rem;
-  max-height: 340px;
-  overflow-y: auto;
-}
-
-.admin-log-item {
-  display: grid;
-  gap: 0.35rem;
-  border: 1px solid #3a3157;
-  border-radius: var(--radius-sm);
-  background: rgba(20, 18, 40, 0.7);
-  padding: 0.55rem;
-}
-
-.admin-log-item__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.admin-log-item__title {
-  margin: 0;
-  color: var(--text);
-  font-size: var(--text-lg);
-}
-
-.admin-log-item__meta {
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-}
-
-.admin-log-item small {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-
-.admin-log-item__summary {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-  line-height: 1.35;
-}
-
-.admin-log-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--radius-full);
-  padding: 0.18rem 0.52rem;
-  font-weight: 700;
-  font-size: var(--text-2xs);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.admin-log-badge--create {
-  background: #193525;
-  border-color: #2d7a4c;
-  color: #9bf0be;
-}
-
-.admin-log-badge--update {
-  background: #2f2f18;
-  border-color: #8d7d28;
-  color: #f5db72;
-}
-
-.admin-log-badge--delete {
-  background: #3a1f1f;
-  border-color: #8a3f3f;
-  color: #f3a5a5;
-}
 
 /* ══ Chip de dos estados ═══════════════════════════════════════════════════
    Un dato que además se cambia tocándolo: "Probado / Sin probar", "Favorito".

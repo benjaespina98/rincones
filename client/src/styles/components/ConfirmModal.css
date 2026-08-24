@@ -87,7 +87,7 @@
 }
 
 .confirm-modal__confirm {
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  background: var(--accent-fill);
   color: white;
 }
 

@@ -53,9 +53,12 @@ export default function BirthdatePage() {
           <span className="auth-brand__mark" aria-hidden="true">
             <Icon name="calendar" size={26} />
           </span>
-          <h1 className="auth-brand__title">Un último dato</h1>
+          <h1 className="auth-brand__title">Tu fecha de nacimiento</h1>
+          {/* Acá sí va el motivo: es un dato personal y quien lo pide tiene que
+              decir para qué. La regla de "sin leyendas" no aplica a los datos
+              que la app pide, sólo a explicar sus propios controles. */}
           <p className="auth-brand__subtitle">
-            Rincones es una app de vinos: necesitamos tu fecha de nacimiento para confirmar que sos mayor de edad.
+            La necesitamos para confirmar que sos mayor de edad.
           </p>
         </div>
 

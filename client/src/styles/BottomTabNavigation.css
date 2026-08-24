@@ -60,7 +60,9 @@
   top: 0;
   width: 22px;
   height: 3px;
-  background: linear-gradient(90deg, #8f63ff 0%, #c39aff 100%);
+  /* Una barra de 22×3 px no tiene lugar para que se vea un degradado: lo único
+     que hacía era ser una excepción más al color de acento. */
+  background: var(--accent-light);
   border-radius: var(--radius-full);
 }
 
@@ -133,9 +135,12 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(126, 89, 201, 0.42);
+  /* El botón de Agregar es el único elemento flotante de la barra, así que sí
+     lleva sombra — pero oscura, para separarlo del fondo. La violeta que había
+     lo hacía brillar sobre una barra casi negra. */
+  box-shadow: var(--shadow-accent);
 }
 
 .tab-button--add .tab-icon svg {
@@ -194,9 +199,8 @@
   .sidebar-brand__mark {
     width: 26px;
     height: 26px;
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     display: block;
-    filter: drop-shadow(0 4px 10px rgba(167, 130, 239, 0.35));
   }
 
   .sidebar-brand__name {
@@ -252,6 +256,6 @@
     height: 56%;
     width: 3px;
     border-radius: var(--radius-full);
-    background: linear-gradient(180deg, #c39aff 0%, #8f63ff 100%);
+    background: var(--accent-light);
   }
 }

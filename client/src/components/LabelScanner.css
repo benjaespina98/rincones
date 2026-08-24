@@ -103,7 +103,7 @@
 
 .label-scanner__btn--primary {
   border-color: rgba(167, 130, 239, 0.4);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: var(--shadow-accent);
 }

@@ -359,7 +359,7 @@
   min-height: var(--control-lg);
   border: 0;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-size: var(--text-md);
   font-weight: 700;
@@ -450,7 +450,7 @@
   min-height: var(--control-lg);
   border: 0;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   font-size: var(--text-md);
   font-weight: 700;

@@ -22,7 +22,7 @@ import "../styles/pages/ProfilePage.css";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, refreshUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const { stats: wineStats, loading: statsLoading } = useWineStats();
   const { spending } = useSpendingStats();
@@ -87,6 +87,17 @@ export default function ProfilePage() {
       await updateProfile(updated);
       setProfileData(updated);
       setIsEditing(false);
+      /**
+       * El header vive de `user` (AuthContext), no de `profileData`.
+       *
+       * Son dos copias del mismo dato traídas de dos endpoints distintos
+       * (`/auth/me` y `/users/me`), así que guardar acá dejaba la de arriba
+       * vieja: cambiabas el nombre —o sacabas la foto de Google— y el header
+       * seguía mostrando lo anterior hasta cerrar y volver a abrir la app.
+       * Se notaba poco cuando el header sólo tenía iniciales; con la foto es
+       * evidente.
+       */
+      await refreshUser?.();
       showSuccess?.("Perfil actualizado");
     } catch (err) {
       showError?.("No se pudo actualizar el perfil");
@@ -173,7 +184,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <h2 className="profile-section-title">Tu perfil de vino</h2>
+      <h2 className="profile-section-title">Tu perfil</h2>
 
       {/* Progreso primero: es lo que más cambia y lo que da sentido al resto. */}
       {/* Sin guard, esto renderizaba "Nv 1 / 0 logros" durante la carga y después
@@ -191,7 +202,7 @@ export default function ProfilePage() {
                   <span className="level-card__title">{lvl.title}</span>
                   <span className="level-card__sub">
                     {lvl.isMax
-                      ? "¡Nivel máximo alcanzado! 🏆"
+                      ? "Nivel máximo"
                       : `${lvl.toNext} ${lvl.toNext === 1 ? "vino" : "vinos"} para ${lvl.nextTitle}`}
                   </span>
                 </div>
@@ -251,12 +262,12 @@ export default function ProfilePage() {
           cortaba sin explicar que el perfil de gusto se construye solo. */}
       {!statsLoading && (wineStats?.totals?.total || 0) === 0 && (
         <div className="profile-empty">
-          <p className="profile-empty__title">Tu perfil de gusto se arma solo</p>
+          <p className="profile-empty__title">Todavía no hay datos suficientes</p>
           <p className="profile-empty__hint">
-            A medida que cargues vinos vas a ver acá tus uvas y regiones preferidas, y cómo puntuás.
+            Cargá vinos y acá vas a ver tus uvas, tus regiones y cómo puntuás.
           </p>
           <button type="button" className="empty-cta" onClick={() => navigate("/agregar")}>
-            Escanear mi primer vino
+            Escanear una etiqueta
           </button>
         </div>
       )}

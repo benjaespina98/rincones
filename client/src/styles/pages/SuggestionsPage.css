@@ -111,7 +111,7 @@
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: #fff;
   cursor: pointer;
   transition: opacity var(--transition-fast), transform var(--transition-fast);
@@ -132,11 +132,7 @@
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
-  animation: dish-spin 700ms linear infinite;
-}
-
-@keyframes dish-spin {
-  to { transform: rotate(360deg); }
+  animation: rincon-spin 700ms linear infinite;
 }
 
 /* ── Cómo lo entendimos ─────────────────────────────────────────────────────
@@ -252,11 +248,12 @@
 }
 
 .context-chip--active {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  /* Una pastilla elegida no flota: cambia de color y listo. La sombra violeta
+     de 16px la levantaba de la fila y rompía la línea de las demás. */
+  background: var(--accent-fill);
   border-color: transparent;
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 6px 16px rgba(126, 89, 201, 0.35);
 }
 
 .clear-context-btn {

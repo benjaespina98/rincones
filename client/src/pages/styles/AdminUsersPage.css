@@ -1,93 +1,26 @@
 /* ══ Panel de usuarios y reseñas ═══════════════════════════════════════════
-   Este archivo tenía DOS diseños encima: la tabla original (`.users-table` con
-   sus celdas, su contenedor con scroll y su paginación) y la lista de tarjetas
-   que la reemplazó (`.admin-user*`, `.admin-review*`). La tabla no se dibuja en
-   ningún lado desde entonces, pero su CSS —unas veinte reglas— siguió acá.
 
-   Quedó sólo lo que se usa. El diseño viejo está en el historial de git.
+   ── ESTE ARCHIVO LE ESTABA PISANDO ESTILOS A LA APP ────────────────────────
+   Arrastraba cuatro reglas de un diseño anterior —`.spinner`, `.empty-state`,
+   `.btn-cancel` y `.pagination`— escritas con selectores GLOBALES. Ninguna se
+   usaba acá, pero tres de esos nombres sí existen en la app de verdad
+   (`.spinner` y `.empty-state` están en index.css y App.css; `.btn-cancel`, en
+   los formularios de alta y edición de vinos).
+
+   Y el CSS no se descarga: entrar una vez al panel dejaba esas reglas
+   cargadas para el resto de la sesión. Como este archivo se importa DESPUÉS
+   que App.css, ganaba él. Concretamente: alguien que abriera el panel y
+   volviera a la app se llevaba todos los estados vacíos con otro tamaño de
+   letra, otro color y sin la tarjeta —y el spinner, de 30 a 40 px—. Un bug
+   invisible para quien no es admin y desconcertante para quien sí lo es,
+   porque la app se le veía distinta que a todos los demás.
+
+   Se fueron las cuatro. Lo que queda son sólo selectores `admin-*`, que es lo
+   que corresponde a la hoja de una sección. El diseño viejo, en git.
+
+   Las tablas y el paginador del panel viven en AdminLayout.css, porque los
+   comparten Usuarios y Actividad.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(146, 129, 201, 0.35);
-  border-top: 3px solid #9b76ff;
-  border-radius: 50%;
-  animation: rincon-spin 0.8s linear infinite;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #b7aadb;
-  font-size: var(--text-xl);
-}
-
-/* Acá vivía la tabla: `.table-container`, `.users-table` con sus thead/th/td,
-   y las seis clases de celda (`.email-cell`, `.name-cell`, `.role-cell`,
-   `.stats-cell`, `.date-cell`, `.actions-cell`) más `.role-badge` y
-   `.role-select`. Todo eso lo reemplazó la lista de tarjetas `.admin-user*`,
-   que es lo que se ve hoy y lo que sí entra en un celular. */
-
-.btn-cancel {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 4px;
-  font-size: var(--text-base);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-/* `.btn-edit` era el par de `.btn-cancel` en la tabla vieja. Se fue con ella. */
-.btn-cancel {
-  background-color: rgba(255, 255, 255, 0.13);
-  color: #ece8ff;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.18);
-}
-
-.btn-cancel:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: rgba(91, 67, 164, 0.2);
-  border-radius: 8px;
-  flex-wrap: wrap;
-}
-
-/* `.pagination-btn` y `.page-info` eran los controles de página de la tabla.
-   El contenedor `.pagination` sí sigue vivo: lo reusa la lista de tarjetas. */
-
-/* Responsive.
-   Las reglas de la tabla (`.table-container`, `.users-table`, `.email-cell`,
-   `.role-badge`, `.btn-edit`) también se fueron de acá: apuntaban a lo mismo
-   que ya no existe, y una media query es el lugar donde el CSS muerto pasa más
-   desapercibido — no se lee salvo que alguien abra el archivo en el ancho justo. */
-@media (max-width: 768px) {
-  .btn-cancel {
-    padding: 0.35rem 0.6rem;
-    font-size: var(--text-sm);
-  }
-
-  .pagination {
-    padding: 1rem;
-    gap: 0.5rem;
-  }
-
-}
-
-/* ══ Panel de usuarios y reseñas (rediseño) ══════════════════════════════ */
 
 .admin-users__header {
   margin-bottom: 12px;
@@ -148,11 +81,6 @@
   cursor: pointer;
 }
 
-.admin-checkbox--row {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
 .admin-users__search {
   position: relative;
   display: flex;
@@ -182,16 +110,15 @@
   gap: 6px;
 }
 
-.admin-users__loading {
-  margin: 0;
-  padding: 18px 0;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-}
+/* `.admin-users__loading` (un "Cargando usuarios…" suelto y centrado) se fue:
+   la tabla ahora dibuja filas en gris mientras carga, así que el alto no
+   cambia al llegar los datos. Ver `.admin-table__skel` en AdminLayout.css. */
 
-/* ── Fila de usuario ── */
-.admin-user-list,
+/* ── Fila de reseña ──
+   Reseñas sigue siendo una lista de tarjetas, y está bien que lo sea: cada
+   reseña es un texto libre de largo variable, que es justo lo que una tabla no
+   sabe mostrar. Usuarios y Actividad, en cambio, son filas de datos cortos y
+   comparables entre sí — por eso ésas sí pasaron a tabla. */
 .admin-review-list {
   list-style: none;
   margin: 0;
@@ -201,7 +128,6 @@
   gap: 10px;
 }
 
-.admin-user,
 .admin-review {
   display: flex;
   flex-direction: column;
@@ -212,46 +138,20 @@
   background: var(--elevated);
 }
 
-.admin-user.is-busy,
-.admin-review.is-busy {
+/* Vale para la tarjeta de reseña y para la fila de usuario: mientras una
+   acción está en vuelo, esa fila no acepta otra. */
+.admin-review.is-busy,
+.admin-table tbody tr.is-busy {
   opacity: 0.55;
   pointer-events: none;
 }
 
-.admin-user__main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.admin-user__id {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.admin-user__name {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: var(--text-md);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.admin-user__email {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  overflow-wrap: anywhere;
-}
-
 /* Marcas: "vos" evita que te confundas de fila; "prueba" señala las cuentas
-   sembradas por los tests, que son las que conviene limpiar. */
+   sembradas por los tests, que son las que conviene limpiar. Van pegadas al
+   nombre dentro de su celda. */
 .admin-user__you,
 .admin-user__test {
+  margin-left: 6px;
   padding: 1px 7px;
   border-radius: var(--radius-full);
   font-size: var(--text-2xs);
@@ -292,15 +192,9 @@
   color: var(--text-muted);
 }
 
-.admin-user__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
+/* `.admin-user__meta` (la fila de "3 vinos · 1 reseña · Alta 4 ago") se fue:
+   esos tres datos ahora son tres columnas de la tabla. */
 
-.admin-user__actions,
 .admin-review__foot {
   display: flex;
   flex-wrap: wrap;
@@ -391,19 +285,15 @@
   font-size: var(--text-2xs);
 }
 
-.admin-users__pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 14px;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
+/* La paginación se fue a `.admin-pager` (AdminLayout.css): la tenían escrita
+   Usuarios y Actividad por separado, con el mismo markup y las mismas dos
+   limitaciones — sólo Anterior/Siguiente, y ninguna forma de saltar. */
 
-@media (max-width: 480px) {
-  .admin-users__pagination {
-    flex-direction: column;
-    gap: 8px;
-  }
+/* El botón de acción de una fila cuando lleva sólo ícono: cuadrado, para que
+   no quede un rectángulo de 40 px de ancho con un tacho de 14 adentro. */
+.admin-btn--icon {
+  min-width: var(--control-sm);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
 }

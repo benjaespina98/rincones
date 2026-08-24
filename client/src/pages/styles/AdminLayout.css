@@ -9,10 +9,11 @@
   position: relative;
   min-height: 100vh;
   display: flex;
-  background:
-    radial-gradient(circle at 90% 0%, rgba(143, 103, 255, 0.16), transparent 32%),
-    radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.14), transparent 38%),
-    var(--bg);
+  /* El mismo fondo que la app. Tenía dos halos propios, con otros violetas y en
+     otras posiciones: el panel se veía como otro producto. Lo que lo marca como
+     zona de permisos elevados es la franja de advertencia de acá abajo, que es
+     una señal deliberada — no que el color no coincida. */
+  background: var(--app-bg);
   color: var(--text);
 }
 
@@ -297,12 +298,20 @@
 }
 
 .admin-metric-card,
-.admin-wide-card,
-.admin-log-item {
-  border-radius: 14px;
+.admin-wide-card {
+  border-radius: var(--radius-xl);
   border: 1px solid var(--line);
   background: var(--elevated);
   padding: 0.85rem;
+}
+
+/* La tarjeta en gris mientras carga: mismo alto que la de verdad, para que la
+   grilla no salte cuando llegan los números. El alto sale de sumar lo que
+   ocupan el rótulo, la cifra y el pie. */
+.admin-metric-card--skel {
+  min-height: 96px;
+  background: var(--surface);
+  animation: rincon-fade 900ms var(--ease-out) infinite alternate;
 }
 
 .admin-metric-card span {
@@ -343,10 +352,19 @@
   cursor: default;
 }
 
-button.admin-chip {
+/* `a.admin-chip` además de `button`: en el Resumen, el desglose de la
+   actividad son enlaces al registro. Sin esto quedaban con `cursor: default`,
+   o sea con cara de dato y no de destino. */
+button.admin-chip,
+a.admin-chip {
   cursor: pointer;
   color: var(--text-secondary);
   transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+a.admin-chip:hover {
+  color: var(--accent-soft);
+  border-color: var(--line-accent);
 }
 
 button.admin-chip.is-active {
@@ -363,38 +381,164 @@ button.admin-chip.is-active {
   background: var(--glass);
 }
 
-.admin-log-list {
-  display: grid;
-  gap: 0.6rem;
+/* ══ LA TABLA DEL PANEL ═══════════════════════════════════════════════════
+   Usuarios y Actividad mostraban sus filas como TARJETAS: cada usuario
+   ocupaba tres renglones (identidad, métricas, dos botones de ancho completo)
+   y cada movimiento del registro, cuatro (chapa + fecha, título, autor,
+   resumen). Con veinte usuarios por página eso son sesenta renglones de
+   scroll, y con treinta movimientos, ciento veinte.
+
+   El problema no es sólo el largo. Una tarjeta pone cada dato en un lugar
+   distinto de la caja, así que para comparar dos usuarios —¿cuál tiene más
+   vinos? ¿cuál se dio de alta antes?— hay que leer los dos enteros. Una
+   tabla alinea el mismo dato en la misma columna: se compara con la vista,
+   sin leer. Eso es lo que hace que una pantalla de administración aguante
+   mil filas en vez de veinte.
+
+   La tabla scrollea horizontal DENTRO de su caja (nunca la página) y el
+   encabezado queda pegado arriba, que es lo que permite seguir sabiendo qué
+   columna estás mirando en la fila 400.
+
+   `.admin-table__num` es para las columnas de números: van a la derecha y con
+   cifras de ancho fijo, así la columna se lee como una columna y no como un
+   zigzag.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.admin-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
-.admin-log-item__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  align-items: center;
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
-.admin-log-item__head small {
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
 }
 
-.admin-log-item__title {
-  display: block;
-  margin-top: 0.4rem;
-}
-
-.admin-log-item__meta {
-  display: block;
-  color: var(--text-muted);
-  font-size: var(--text-base);
-  margin-top: 0.22rem;
-}
-
-.admin-log-item__summary {
-  margin: 0.42rem 0 0;
+.admin-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
-  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (hover: hover) {
+  .admin-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* La columna que identifica la fila: es lo que se busca con la vista al
+   recorrer, así que es la única con el color de texto pleno. */
+.admin-table__id {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-table__sub {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+}
+
+.admin-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La descripción es lo único que puede ser largo: se le permite envolver y
+   se le pone un techo, para que una fila no empuje a las demás fuera de la
+   pantalla. */
+.admin-table__desc {
+  white-space: normal;
+  min-width: 240px;
+  max-width: 460px;
+  line-height: 1.35;
+}
+
+.admin-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Separador de día en el registro: una fila entera que dice la fecha. Sin
+   esto, "hace cuánto pasó esto" había que deducirlo leyendo el timestamp
+   completo de cada fila. */
+.admin-table__day td {
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Filas en gris mientras carga: la altura de la tabla no cambia al llegar los
+   datos. Antes había un "Cargando usuarios…" suelto y la página daba un salto
+   de varias pantallas cuando respondía. */
+.admin-table__skel td {
+  padding: 14px 12px;
+}
+
+.admin-table__skel span {
+  display: block;
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  animation: rincon-fade 900ms var(--ease-out) infinite alternate;
+}
+
+/* ── Grupos de filtro con su rótulo ──
+   El registro tenía nueve pastillas en una sola fila, separadas por una línea
+   de 1px puesta con un `style` inline: dos preguntas distintas ("¿de qué?" y
+   "¿qué acción?") que se leían como una lista de nueve opciones sueltas. */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.admin-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-filter-group__label {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
 }
 
 .admin-log-badge {
@@ -425,28 +569,11 @@ button.admin-chip.is-active {
   color: var(--danger-text);
 }
 
-/* Distingue "actividad de contenido" (un vino, una reseña) de "acción
-   administrativa contra otra cuenta" (cambiar un rol, borrar un usuario) —
-   antes eran filas visualmente idénticas aunque su gravedad no lo es. */
-.admin-log-item--admin {
-  border-color: rgba(242, 183, 55, 0.35);
-  background: linear-gradient(145deg, rgba(45, 35, 12, 0.4), var(--elevated));
-}
-
-.admin-log-item__admin-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: rgba(242, 183, 55, 0.14);
-  border: 1px solid rgba(242, 183, 55, 0.4);
-  color: var(--gold-soft);
-}
+/* Acá vivían `.admin-log-item--admin` y `.admin-log-item__admin-tag`: una
+   tarjeta con borde dorado y una chapita "ACCIÓN SOBRE CUENTA" para distinguir
+   lo que se le hace a un usuario de lo que se le hace a un vino. Con la tabla
+   eso lo dice la columna "Tipo", que ahora existe y vale para las cuatro
+   entidades — no sólo para señalar una. */
 
 /* Mismo look que el buscador de Usuarios (`.admin-users__search`), pero
    definido acá porque Actividad no importa ese CSS: es el único control
@@ -476,21 +603,68 @@ button.admin-chip.is-active {
   outline: none;
 }
 
-.admin-log-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 0.8rem;
-}
+/* `.admin-log-filters` (una sola fila con las nueve pastillas seguidas) la
+   reemplazó `.admin-filters`, que las agrupa por pregunta y las rotula. */
 
-.admin-log-pagination {
+/* ── Paginador ──
+   Anterior/Siguiente y nada más obliga a tocar veinte veces para llegar a la
+   página veinte, y no deja volver al principio. Con los números, se salta. La
+   lista se recorta alrededor de la página actual para que no crezca sin
+   límite (ver `paginas()` en AdminPager.jsx). */
+.admin-pager {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
   font-size: var(--text-xs);
   color: var(--text-muted);
+}
+
+.admin-pager__total {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-pager__pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-pager__page {
+  min-width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.admin-pager__page:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.admin-pager__page.is-current {
+  background: var(--accent-muted);
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+.admin-pager__page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-pager__gap {
+  padding: 0 2px;
+  color: var(--text-subtle);
 }
 
 @media (min-width: 900px) {

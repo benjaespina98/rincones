@@ -245,10 +245,7 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
               <span className="label-scanner__scan-line" />
               <div className="label-scanner__scan-text">
                 <span className="label-scanner__spinner" aria-hidden="true" />
-                <span>
-                  Leyendo la etiqueta…
-                  <em>Vas a poder revisar lo que leímos antes de guardar</em>
-                </span>
+                <span>Leyendo la etiqueta…</span>
               </div>
             </div>
           )}
@@ -379,10 +376,14 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
         <p className="label-scanner__frame-hint">Que la etiqueta llene el recuadro</p>
       </div>
 
+      {/* Dos consejos, no tres. Son instrucciones que de verdad cambian el
+          resultado del OCR —por eso sobreviven al recorte de textos—, pero el
+          tercero ("¿No ves el año? Suele estar en el cuello o atrás") habla de
+          un dato que se completa después, en la revisión, y no de cómo sacar
+          esta foto. */}
       <ul className="label-scanner__tips">
         <li><Icon name="search" size={13} /> Acercate hasta que se lea la letra chica</li>
         <li><Icon name="sparkle" size={13} /> Evitá el reflejo: mové la botella, no la luz</li>
-        <li><Icon name="calendar" size={13} /> ¿No ves el año? Suele estar en el cuello o atrás</li>
       </ul>
 
       <div className="label-scanner__actions">
