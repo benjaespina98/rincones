@@ -4,7 +4,17 @@ import StarRating from "./StarRating";
 import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
 import { getWineReviews } from "../services/reviewApi";
+import { avatarColor } from "../utils/identity";
 import "./WineReviews.css";
+
+/**
+ * La inicial de quien firma.
+ *
+ * No usa `initials()` de utils/identity porque acá no hay un usuario: la reseña
+ * viaja con el nombre de pila y nada más (el server nunca expone apellido ni
+ * mail — ver `publishReview`). Una sola letra, entonces, y no dos.
+ */
+const inicialDe = (nombre) => String(nombre || "?").trim().charAt(0).toUpperCase() || "?";
 
 /**
  * Opiniones de OTROS usuarios sobre un vino, más el promedio.
@@ -39,6 +49,10 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Si no hay opiniones de otra gente, el puntaje no se toca: abrir una lista
+  // vacía no es una interacción, es una promesa incumplida.
+  const hayOtras = state.reviews.length > 0;
+
   const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString("es-AR", { month: "short", year: "numeric" }) : "";
 
@@ -66,19 +80,58 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
           gente que puso 3 y 4 no es el mismo vino que un 3.5 de gente que puso
           5 y 1, y hasta ahora los dos se veían igual. */}
       {state.summary && (
-        <div className="wine-score">
-          <div className="wine-score__main">
-            <strong className="wine-score__avg">
-              {state.summary.avg.toLocaleString("es-AR", { minimumFractionDigits: 1 })}
-            </strong>
-            {/* El número ya está dicho en grande al lado: las estrellas acá
-                sirven para leerlo de un vistazo, no para repetirlo. */}
-            <StarRating value={state.summary.avg} size="lg" showValue={false} />
-            <span className="wine-score__count">
-              {state.summary.count} {state.summary.count === 1 ? "opinión" : "opiniones"}
-              {state.mine && " · incluida la tuya"}
-            </span>
-          </div>
+        <div className={`wine-score ${abierto ? "is-open" : ""}`}>
+          {/* ── EL PUNTAJE ES EL BOTÓN ──────────────────────────────────────
+              Acá abajo había una barra de texto ancha, "Leer las 3 opiniones de
+              otras personas →", y cuando se abría, otra igual diciendo
+              "Ocultar las reseñas": dos botones de una línea entera para
+              plegar y desplegar algo que está justo debajo, en una ficha que ya
+              tiene sus propias acciones.
+
+              Lo que uno quiere tocar es el puntaje —es lo que está mirando— así
+              que el puntaje ES el control: se toca, se abre, se vuelve a tocar
+              y se cierra, con el chevron diciendo en qué estado está. Es el
+              acordeón que usa el sistema operativo y no hay que aprenderlo.
+
+              El <ul> del desglose queda AFUERA del botón a propósito: una lista
+              adentro de un botón no es HTML válido y rompe la navegación por
+              teclado. */}
+          {hayOtras ? (
+            <button
+              type="button"
+              className="wine-score__main wine-score__main--tap"
+              onClick={() => setAbierto((a) => !a)}
+              aria-expanded={abierto}
+              aria-label={
+                abierto
+                  ? "Ocultar las opiniones"
+                  : `Leer ${state.reviews.length === 1 ? "la opinión" : `las ${state.reviews.length} opiniones`} de otras personas`
+              }
+            >
+              <strong className="wine-score__avg">
+                {state.summary.avg.toLocaleString("es-AR", { minimumFractionDigits: 1 })}
+              </strong>
+              <StarRating value={state.summary.avg} size="lg" showValue={false} />
+              <span className="wine-score__count">
+                {state.summary.count} {state.summary.count === 1 ? "opinión" : "opiniones"}
+                {state.mine && " · incluida la tuya"}
+              </span>
+              <Icon name="chevron-down" size={20} className="wine-score__caret" />
+            </button>
+          ) : (
+            <div className="wine-score__main">
+              <strong className="wine-score__avg">
+                {state.summary.avg.toLocaleString("es-AR", { minimumFractionDigits: 1 })}
+              </strong>
+              {/* El número ya está dicho en grande al lado: las estrellas acá
+                  sirven para leerlo de un vistazo, no para repetirlo. */}
+              <StarRating value={state.summary.avg} size="lg" showValue={false} />
+              <span className="wine-score__count">
+                {state.summary.count} {state.summary.count === 1 ? "opinión" : "opiniones"}
+                {state.mine && " · incluida la tuya"}
+              </span>
+            </div>
+          )}
 
           {/* Con menos de tres opiniones el desglose no dice nada que el
               promedio no diga: son una o dos barras solas y ocupan lugar para
@@ -117,20 +170,9 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
       {!loading && !failed && (
         <>
           {/* Plegadas por defecto: el promedio y cuántas hay es lo que se mira
-              siempre —y ya está en el encabezado—; los textos se leen una vez y
-              empujaban todo lo demás una pantalla hacia abajo en cada visita. */}
-          {state.reviews.length > 0 && !abierto && (
-            <button
-              type="button"
-              className="wine-reviews__toggle"
-              onClick={() => setAbierto(true)}
-              aria-expanded={false}
-            >
-              Leer {state.reviews.length === 1 ? "la opinión" : `las ${state.reviews.length} opiniones`} de otras personas
-              <Icon name="arrow-right" size={15} />
-            </button>
-          )}
-
+              siempre; los textos se leen una vez y empujaban todo lo demás una
+              pantalla hacia abajo en cada visita. Se abren tocando el puntaje
+              —ver el botón de arriba—, no con una barra aparte. */}
           {state.reviews.length > 0 && abierto && (
             <ul className="review-list">
               {state.reviews.map((r) => (
@@ -142,7 +184,19 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
                         contesta lo que uno se pregunta leyendo: un 2019 y un
                         2024 del mismo vino no son la misma botella. */}
                     <span className="review-card__author">
-                      <span className="review-card__avatar">{r.authorAvatar || "🍷"}</span>
+                      {/* La inicial de quien escribió, sobre el color que eligió
+                          en su perfil. Antes era el emoji que había elegido, y
+                          si no había elegido ninguno una copita: o sea que la
+                          mitad de las reseñas de un vino se firmaban con el
+                          mismo dibujo, y ninguna distinguía a nadie — que es
+                          para lo único que sirve un avatar al lado de un
+                          nombre. Ver `AVATAR_COLORS` en utils/identity.js. */}
+                      <span
+                        className={`review-card__avatar avatar-color--${avatarColor(r.authorAvatar)}`}
+                        aria-hidden="true"
+                      >
+                        {inicialDe(r.authorName)}
+                      </span>
                       {r.authorName || "Alguien"}
                       {r.vintage && <span className="review-card__vintage">cosecha {r.vintage}</span>}
                     </span>
@@ -153,17 +207,6 @@ export default function WineReviews({ name, winery = "", varietal = "" }) {
                 </li>
               ))}
             </ul>
-          )}
-
-          {abierto && state.reviews.length > 0 && (
-            <button
-              type="button"
-              className="wine-reviews__toggle"
-              onClick={() => setAbierto(false)}
-              aria-expanded
-            >
-              Ocultar las reseñas
-            </button>
           )}
 
           {/* Nadie escribió todavía, o el único que escribió sos vos: son dos

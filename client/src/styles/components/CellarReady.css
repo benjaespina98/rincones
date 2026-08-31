@@ -44,12 +44,23 @@
   display: flex;
   gap: 10px;
   margin: 0;
-  padding: 0 0 4px;
+  /* El aire de la derecha es del RAIL y no de la página: sin él, la última
+     tarjeta termina pegada al borde de la pantalla cuando scrolleás hasta el
+     final, como si estuviera cortada por el marco del teléfono. */
+  padding: 0 var(--page-pad-x) 4px 0;
   list-style: none;
   overflow-x: auto;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* La tarjeta que asoma se desvanece en vez de cortarse en seco contra el
+     borde. Es la misma señal que ya usan los chips de la fila de Mi Bodega: se
+     entiende que hay más, y el corte deja de leerse como un error de
+     maquetado. La máscara se apaga al llegar al final del scroll no —eso pide
+     JS— pero con `scroll-snap` la última tarjeta queda alineada y el
+     desvanecido cae sobre el padding, no sobre contenido. */
+  mask-image: linear-gradient(90deg, #000 88%, transparent 99%);
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent 99%);
 }
 
 .cellar-ready__row::-webkit-scrollbar {

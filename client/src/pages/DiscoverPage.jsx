@@ -12,7 +12,7 @@ import WineShops from "../components/WineShops";
 import CellarReady from "../components/CellarReady";
 import FeaturedEvent from "../components/FeaturedEvent";
 import ExploreFeed from "../components/ExploreFeed";
-import { WINE_TYPE_LABELS } from "../data/wineReference";
+import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
@@ -254,7 +254,7 @@ export default function DiscoverPage() {
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
       successHaptic();
-      showSuccess(`"${wine.name}" guardado en tu lista`);
+      showSuccess(`"${wine.name}" guardado en Quiero probar`);
       // Se mide el ÉXITO y no el clic: lo que interesa saber es si Descubrí
       // termina en algo, no cuántas veces se apretó un botón que falló.
       trackEvent("wish_added", { source });
@@ -316,22 +316,34 @@ export default function DiscoverPage() {
 
             Sin el rótulo "Buscá por varietal": tres pastillas debajo de un
             buscador, con nombres de uva escritos adentro, ya dicen qué son. */}
-        {!buscando && !searched && (
-          <div className="wine-search__chips">
-            <div className="wine-search__chips-row">
-              {QUICK_VARIETALS.map((v) => (
+        {/* ── LOS ATAJOS SE QUEDAN, Y MARCAN CUÁL ESTÁ PUESTO ────────────────
+            Antes desaparecían apenas escribías: tocabas "Malbec", el rail se
+            iba y quedabas mirando resultados sin nada que dijera de dónde
+            salieron. Para pasar a "Pinot Noir" había que vaciar el campo a mano
+            para que los atajos volvieran.
+
+            Ahora se quedan y el que está puesto se enciende. Con eso el rail
+            pasa a hacer las dos cosas que hace un filtro: decir dónde estás y
+            dejarte cambiar de un toque. Y tocar el encendido lo apaga —vuelve
+            la home— que es la salida que antes no existía. */}
+        <div className="wine-search__chips">
+          <div className="wine-search__chips-row">
+            {QUICK_VARIETALS.map((v) => {
+              const activo = query.trim().toLowerCase() === v.toLowerCase();
+              return (
                 <button
                   key={v}
                   type="button"
-                  className="wine-search__chip"
-                  onClick={() => { tapHaptic(); setQuery(v); }}
+                  className={`wine-search__chip ${activo ? "is-active" : ""}`}
+                  aria-pressed={activo}
+                  onClick={() => { tapHaptic(); setQuery(activo ? "" : v); }}
                 >
                   {v}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
       </header>
 
       {buscando && (
@@ -389,37 +401,27 @@ export default function DiscoverPage() {
                         {r.winery || "Bodega no especificada"}
                       </p>
 
-                      <div className="wine-result-card__meta chip-row">
-                        {/* El tipo va acá, junto al resto de los datos, no flotando
-                            sobre la foto: con fit="contain" la botella entra entera
-                            y centrada, y un badge absoluto en la esquina le caía
-                            encima del cuello. Mismo criterio que spotlight/Guardados. */}
-                        {r.type && r.type !== "unknown" && (
-                          <span className="chip chip--type">{WINE_TYPE_LABELS[r.type]}</span>
-                        )}
-                        {r.varietal && <span className="chip">{r.varietal}</span>}
-                        {/* La cosecha del catálogo casi siempre viene vacía, y no
-                            es un olvido: una fila del catálogo es el VINO, no la
-                            botella, y no puede tener un año sin mentirle a quien
-                            tiene otra añada en la mano. La que sí es cierta es la
-                            tuya, así que cuando el vino ya está en tu bodega se
-                            muestra ésa —las dos si tenés dos añadas—. */}
-                        {r.owned?.vintages?.length > 0
-                          ? r.owned.vintages.map((v) => (
-                              <span key={v} className="chip">{v}</span>
-                            ))
-                          : r.vintage && <span className="chip">{r.vintage}</span>}
-                        {r.region && (
-                          <span className="chip">
-                            <Icon name="map-pin" size={13} />
-                            {/* El texto va en su propio span: en un contenedor
-                                flex el text-overflow no se aplica al nodo de
-                                texto suelto, y "Luján de Cuyo, Mendoza" quedaba
-                                cortado en seco contra el borde de la tarjeta. */}
-                            <span className="chip__text">{r.region}</span>
-                          </span>
-                        )}
-                      </div>
+                      {/* El tipo va acá, junto al resto de los datos, no flotando
+                          sobre la foto: con fit="contain" la botella entra entera
+                          y centrada, y un badge absoluto en la esquina le caía
+                          encima del cuello.
+                          La cosecha del catálogo casi siempre viene vacía, y no
+                          es un olvido: una fila del catálogo es el VINO, no la
+                          botella, y no puede tener un año sin mentirle a quien
+                          tiene otra añada en la mano. La que sí es cierta es la
+                          tuya, así que cuando el vino ya está en tu bodega se
+                          muestra ésa. */}
+                      <WineMeta
+                        className="wine-result-card__meta"
+                        type={r.type}
+                        varietal={r.varietal}
+                        vintage={
+                          r.owned?.vintages?.length > 0
+                            ? r.owned.vintages.join(" · ")
+                            : r.vintage
+                        }
+                        region={r.region}
+                      />
 
                       {/* Una línea sobre a qué sabe o con qué va, cuando el
                           modelo tenía algo concreto para decir de ESE vino.
@@ -573,14 +575,11 @@ export default function DiscoverPage() {
               <p className="spotlight__meta">
                 {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
               </p>
-              {(spotlight.varietal || spotlight.type) && (
-                <span className="spotlight__tags chip-row">
-                  {spotlight.type && spotlight.type !== "unknown" && (
-                    <span className="chip chip--type">{WINE_TYPE_LABELS[spotlight.type]}</span>
-                  )}
-                  {spotlight.varietal && <span className="chip chip--grape">{spotlight.varietal}</span>}
-                </span>
-              )}
+              <WineMeta
+                className="spotlight__tags"
+                type={spotlight.type}
+                varietal={spotlight.varietal}
+              />
             </div>
           </button>
           <div className="spotlight__actions">

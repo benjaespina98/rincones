@@ -10,13 +10,15 @@ import Segmented from "../components/Segmented";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
+import WishlistPanel from "../components/WishlistPanel";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { useWishlist } from "../hooks/useWishlist";
 import { normalizeSearchText } from "../utils/text";
 import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
-import { normalizarVista, pasaVista } from "../utils/cellarViews";
+import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
@@ -72,11 +74,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
     recargar,
   } = useWineCollection();
 
-  // El filtro inicial puede venir por prop o por query (?filter=favorites), que
-  // es a donde redirige la ruta vieja /favoritos.
+  /**
+   * La lista de "Quiero probar" (los vinos que NO tenés).
+   *
+   * Se carga junto con la bodega y no recién al abrir su vista, por el
+   * segmentado: el número que va adentro del botón dice de antemano qué vas a
+   * encontrar del otro lado, y eso es lo que evita el viaje de tocar para
+   * averiguar si hay algo. El costo real es cero después de la primera vez —el
+   * hook cachea en el módulo, igual que la colección (ver useWishlist).
+   */
+  const wishlist = useWishlist();
+
+  // El filtro inicial puede venir por prop o por query. `?vista=` es el nombre
+  // nuevo (a donde redirige la ruta vieja /guardados) y `?filter=` el que ya
+  // usaba /favoritos; se aceptan los dos para no romper enlaces guardados.
   const initialFromQuery =
     typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("filter")
+      ? new URLSearchParams(window.location.search).get("vista") ||
+        new URLSearchParams(window.location.search).get("filter")
       : null;
   const inicial = initialFromQuery || initialFilter;
 
@@ -108,6 +123,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [vista, setVista] = useState(() =>
     inicial === "favorites" ? "all" : normalizarVista(inicial) || "instock"
   );
+  /**
+   * "Quiero probar" no sale de la colección: sale de otra lista y se dibuja con
+   * otra fila. Todo lo que hay debajo —facetas, orden, selección múltiple,
+   * agrupación— habla de vinos que tenés, así que en esta vista no aplica y no
+   * se muestra. Un control que no puede cambiar nada es peor que uno ausente:
+   * promete una decisión y no la cumple.
+   */
+  const enDeseos = vista === VISTA_DESEOS;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
   // Filtros que se COMBINAN entre sí y con la vista.
@@ -214,7 +237,35 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const undoTimerRef = useRef(null);
   const pendingDeleteToastRef = useRef("");
 
+  /**
+   * ── EL PRIMER RENDER YA DECIDIÓ LA VISTA; ESTE EFECTO NO PUEDE PISARLA ────
+   *
+   * Este efecto existe para un caso puntual: que la prop `initialFilter` cambie
+   * con la pantalla ya montada. Pero también corría al montar, y ahí hacía
+   * daño, porque la prop tiene un valor por defecto ("instock") que gana contra
+   * lo que hubiera decidido el estado inicial.
+   *
+   * Se vio al mudar Guardados adentro de Mi Bodega: /guardados redirige a
+   * /bodega?vista=quiero-probar, el estado inicial leía bien el parámetro… y un
+   * frame después este efecto lo devolvía a "En stock". El enlace viejo
+   * aterrizaba en la pantalla correcta y en la vista equivocada, que es peor
+   * que no redirigir. Con `?filter=favorites` pasaba lo mismo desde antes.
+   *
+   * La corrección: el efecto sólo actúa si la prop CAMBIÓ de valor. Al montar
+   * manda `useState`, que ya mira la prop Y la query; después manda la prop,
+   * que es lo único que puede cambiar sin remontar.
+   *
+   * Se guarda el valor anterior y no un "ya monté", que fue el primer intento y
+   * no alcanza: en desarrollo, StrictMode monta, desmonta y vuelve a montar
+   * cada efecto a propósito, así que la segunda corrida encontraba la bandera
+   * ya encendida y pisaba la vista igual. El síntoma era desconcertante —andaba
+   * en producción y no en desarrollo—; comparar valores no depende de cuántas
+   * veces corra.
+   */
+  const filtroPrevio = useRef(initialFilter);
   useEffect(() => {
+    if (filtroPrevio.current === initialFilter) return;
+    filtroPrevio.current = initialFilter;
     if (initialFilter === "favorites") {
       setVista("all");
       return;
@@ -887,7 +938,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   return (
     <div className="body-page">
-      {(loading || wines.length > 0) && (
+      {/* La barra y el segmentado aparecen si hay ALGO que mirar, en cualquiera
+          de las cuatro vistas. Antes la condición miraba sólo la colección, y
+          desde que "Quiero probar" vive acá eso dejaba encerrado a quien
+          todavía no cargó vinos pero sí guardó alguno: sin segmentado no había
+          forma de llegar a su lista ni de volver. */}
+      {(loading || wines.length > 0 || wishlist.wishes.length > 0) && (
         <>
       {/* ── Buscador y filtros, en UNA fila ──────────────────────────────────
           Antes de llegar al primer vino había cuatrocientos cincuenta píxeles de
@@ -931,41 +987,50 @@ export default function BodyPage({ initialFilter = "instock" }) {
             Un solo botón que alterna, no dos: son dos modos y el ícono muestra
             a cuál vas a ir, igual que el botón de silencio de cualquier
             reproductor. Dos chips ocuparían el ancho que necesita el buscador. */}
-        <button
-          type="button"
-          className="bodega-modo"
-          onClick={() => {
-            tapHaptic();
-            setViewMode((m) => (m === "grid" ? "list" : "grid"));
-          }}
-          aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
-          title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
-        >
-          <Icon name={viewMode === "grid" ? "list" : "grid"} size={17} />
-        </button>
+        {/* Los dos controles hablan de la colección: cómo mirarla y cómo
+            recortarla. En "Quiero probar" no hay colección que mirar ni facetas
+            que aplicar (una lista de deseos no tiene stock, ni guarda, ni
+            cosecha propia), así que se van en vez de quedarse sin poder hacer
+            nada. El buscador se queda: buscar sí funciona en las cuatro. */}
+        {!enDeseos && (
+          <>
+            <button
+              type="button"
+              className="bodega-modo"
+              onClick={() => {
+                tapHaptic();
+                setViewMode((m) => (m === "grid" ? "list" : "grid"));
+              }}
+              aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+              title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+            >
+              <Icon name={viewMode === "grid" ? "list" : "grid"} size={17} />
+            </button>
 
-        {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
-            todas las apps del mundo, así que como botón de filtros no se lee —hay
-            que probarlo para saber qué hace—. */}
-        <button
-          type="button"
-          className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
-            filtrosActivos.length > 0 ? "has-active" : ""
-          }`}
-          onClick={() => setAdvancedOpen(true)}
-          aria-haspopup="dialog"
-          aria-label={
-            filtrosActivos.length > 0
-              ? `Filtros y orden (${filtrosActivos.length} aplicados)`
-              : "Filtros y orden"
-          }
-          title="Filtros y orden"
-        >
-          <Icon name="filter" size={17} />
-          {filtrosActivos.length > 0 && (
-            <span className="bodega-filtros__n">{filtrosActivos.length}</span>
-          )}
-        </button>
+            {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
+                todas las apps del mundo, así que como botón de filtros no se lee —hay
+                que probarlo para saber qué hace—. */}
+            <button
+              type="button"
+              className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
+                filtrosActivos.length > 0 ? "has-active" : ""
+              }`}
+              onClick={() => setAdvancedOpen(true)}
+              aria-haspopup="dialog"
+              aria-label={
+                filtrosActivos.length > 0
+                  ? `Filtros y orden (${filtrosActivos.length} aplicados)`
+                  : "Filtros y orden"
+              }
+              title="Filtros y orden"
+            >
+              <Icon name="filter" size={17} />
+              {filtrosActivos.length > 0 && (
+                <span className="bodega-filtros__n">{filtrosActivos.length}</span>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {/* La vista, con su número adentro. Los tres números que antes vivían en
@@ -981,11 +1046,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
           { id: "instock", label: "En stock", title: "Los que tenés en casa ahora", count: conteoPorVista.instock },
           { id: "all", label: "Todos", title: "Toda tu colección", count: conteoPorVista.all },
           { id: "probados", label: "Probados", title: "Los que tomaste alguna vez, tengas o no", count: conteoPorVista.probados },
+          // La cuarta: los que todavía no tenés. Era una pestaña de la barra de
+          // navegación ("Guardados") y es la misma pregunta que las otras tres
+          // —qué vinos hay en mi vida— mirada desde el otro lado del tiempo.
+          {
+            id: VISTA_DESEOS,
+            label: "Quiero probar",
+            title: "Los que anotaste para conseguir",
+            count: wishlist.wishes.length,
+          },
         ]}
       />
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
-      {filtrosActivos.length > 0 && (
+      {!enDeseos && filtrosActivos.length > 0 && (
         <div className="bodega-fichas" role="group" aria-label="Filtros aplicados">
           {filtrosActivos.map((f) => (
             <button key={f.id} type="button" className="bodega-ficha" onClick={f.quitar}>
@@ -1007,7 +1081,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           larga —el patrón del sistema— lo vuelve invisible para quien no sabe que
           existe. Aparece recién con tres vinos: con dos, tocarlos de a uno es más
           rápido que entrar y salir de un modo. */}
-      {!loading && !error && !modoSeleccion && sortedWines.length >= 3 && (
+      {!enDeseos && !loading && !error && !modoSeleccion && sortedWines.length >= 3 && (
         <div className="bodega-seleccion-entrada">
           <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>
             <Icon name="check" size={14} /> Seleccionar
@@ -1021,6 +1095,21 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </>
       )}
 
+      {/* ── EL CUERPO: LA COLECCIÓN, O LA LISTA DE DESEOS ────────────────────
+          Tres de las cuatro vistas dibujan la misma fila con distinto recorte;
+          la cuarta dibuja otra cosa, porque un vino que no tenés no ofrece
+          abrir una botella sino decir "ya lo tengo". Lo que las cuatro
+          comparten —el encabezado, el buscador, el segmentado— está arriba y
+          se escribe una sola vez, que es el punto de haberlas unido. */}
+      {enDeseos ? (
+        <WishlistPanel
+          {...wishlist}
+          terms={terms}
+          onLimpiarBusqueda={() => setSearchTerm("")}
+          onVerBodega={() => setVista("instock")}
+        />
+      ) : (
+      <>
       {loading && <LoadingSkeleton type="card" count={4} />}
 
       {!loading && error && (
@@ -1087,7 +1176,16 @@ export default function BodyPage({ initialFilter = "instock" }) {
               Boolean(valor) && nombre.includes(normalizeSearchText(String(valor)));
             const uvaYAño = [
               yaLoDice(wine.varietal) ? "" : wine.varietal,
-              yaLoDice(wine.vintage) ? "" : wine.vintage,
+              /* La cosecha se va del subtítulo SÓLO en la vitrina, porque ahí
+                 abajo está la grilla de datos y la dice con su rótulo. En el
+                 archivo se queda: esa fila no se despliega, así que si la
+                 sacáramos el año no estaría en ninguna parte.
+
+                 Es la mitad de "unificar la información": el encabezado se
+                 queda con lo que sirve para RECONOCER la botella de un vistazo
+                 (tipo y uva) y la ficha técnica completa vive en un solo lugar,
+                 en vez de repartida entre un subtítulo y unos bloques sueltos. */
+              esVitrina || yaLoDice(wine.vintage) ? "" : wine.vintage,
             ]
               .filter(Boolean)
               .join(" · ");
@@ -1135,7 +1233,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
               )}
               {sinAbrir ? null : (
               <article
-                className={`wine-row ${expanded ? "is-expanded" : ""} ${isPending ? "is-pending" : ""} ${
+                /* `wine-row--vitrina` marca la fila que SE DESPLIEGA: lista (no
+                   grilla) y con botellas. Es la única que tiene chevron, panel
+                   y por lo tanto la única que reacomoda su cabecera en dos
+                   renglones. Sin esta clase, el layout nuevo caería también
+                   sobre las filas del archivo, que son una sola línea de 38px y
+                   costaron dos tandas de trabajo dejar así. */
+                className={`wine-row ${esVitrina && !esGrilla ? "wine-row--vitrina" : ""} ${
+                  expanded ? "is-expanded" : ""
+                } ${isPending ? "is-pending" : ""} ${
                   Number(wine.quantity) <= 0 ? "is-history" : ""
                 } ${elegido ? "is-selected" : ""}`}
               >
@@ -1282,45 +1388,16 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
                         </span>
                       )}
-                      {/* Siempre la misma flecha: la fila entera navega a la
-                          ficha en los dos modos, así que dice lo mismo en los
-                          dos. */}
-                      <Icon name="arrow-right" size={15} className="wine-row__go" />
+                      {/* Un chevron y no una flecha. Las dos "van a otro lado",
+                          pero no significan lo mismo: la flecha llena es la de
+                          los botones que avanzan ("Iniciar sesión →") y pesa
+                          demasiado repetida al final de treinta filas. El
+                          chevron fino es lo que usan iOS y Android para decir
+                          "hay más adentro", y es el mismo que ahora cierra las
+                          filas del perfil y las de Quiero probar. */}
+                      <Icon name="chevron-right" size={16} className="wine-row__go" />
                     </span>
                   </button>
-
-                  {/* El chevron: la puerta a las acciones rápidas sin salir de
-                      la lista (abrir botella, favorito, eliminar, los datos
-                      que la cabecera no dijo). Sólo en la vitrina — ahí la
-                      cabecera envuelve a dos renglones y hay dónde ponerlo sin
-                      apretar nada. En el archivo (Todos/Probados) la fila es
-                      una sola línea de 38px con la uva, la cosecha, el stock y
-                      ahora la flecha a la ficha ya peleando el ancho contra el
-                      nombre: sumar un botón más ahí volvía a cortar títulos
-                      ("Cabernet Franc" → "Cabern et…"), que es exactamente lo
-                      que costó sacar la última vez que se tocó esta fila. En
-                      grilla tampoco: no hay dónde desplegarlas sin descolocar
-                      a las tarjetas vecinas, así que ahí esas acciones viven
-                      directo en la ficha. Botón hermano del de arriba y no
-                      anidado en él: dos toques posibles en la misma fila, cada
-                      uno con su propio target. */}
-                  {!esGrilla && esVitrina && (
-                    <button
-                      type="button"
-                      className="wine-row__disclosure"
-                      onClick={() => setExpandedId(expanded ? null : wine._id)}
-                      disabled={modoSeleccion}
-                      aria-expanded={expanded}
-                      aria-label={
-                        expanded
-                          ? `Ocultar acciones rápidas de ${wineDisplayName(wine)}`
-                          : `Más acciones de ${wineDisplayName(wine)}`
-                      }
-                      title={expanded ? "Ocultar acciones rápidas" : "Más acciones"}
-                    >
-                      <Icon name="chevron-down" size={18} className="wine-row__disclosure-icon" />
-                    </button>
-                  )}
 
                   {/* Probado o por probar, siempre explícito y siempre editable:
                       la ausencia de marca no se lee como "pendiente", se lee como
@@ -1357,47 +1434,101 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     </span>
                   </button>
                   )}
+
+                  {/* ── EL CHEVRON, ABAJO Y CENTRADO ──────────────────────────
+                      Abre las acciones rápidas sin salir de la lista (abrir
+                      botella, favorito, eliminar, la ficha técnica).
+
+                      Estaba en el medio de la cabecera, entre el nombre y el
+                      chip de probado, y ahí no se anclaba a nada: con un título
+                      corto quedaba pegado al texto y con uno largo aparecía
+                      flotando en cualquier lado del renglón. Abajo, ocupando el
+                      ancho completo, siempre está en el mismo lugar y encima
+                      apunta a donde va a aparecer el panel — que es lo que un
+                      chevron hacia abajo significa.
+
+                      No reemplaza a la flecha de la derecha: ésa lleva a la
+                      ficha del vino y esto despliega la fila. Son dos destinos
+                      distintos y necesitan dos controles distintos; un solo
+                      ícono para las dos cosas es la manera de que ninguna se
+                      entienda.
+
+                      Sólo en la vitrina en modo lista. En el archivo la fila es
+                      una sola línea de 38px y sumar una franja más la partiría
+                      en dos; en grilla no hay dónde desplegar sin descolocar a
+                      las tarjetas vecinas, así que ahí estas acciones viven en
+                      la ficha. Botón hermano del de arriba y no anidado: un
+                      botón adentro de otro no es HTML válido. */}
+                  {!esGrilla && esVitrina && (
+                    <button
+                      type="button"
+                      className="wine-row__disclosure"
+                      onClick={() => setExpandedId(expanded ? null : wine._id)}
+                      disabled={modoSeleccion}
+                      aria-expanded={expanded}
+                      aria-label={
+                        expanded
+                          ? `Ocultar acciones rápidas de ${wineDisplayName(wine)}`
+                          : `Más acciones de ${wineDisplayName(wine)}`
+                      }
+                      title={expanded ? "Ocultar acciones rápidas" : "Más acciones"}
+                    >
+                      <Icon name="chevron-down" size={18} className="wine-row__disclosure-icon" />
+                    </button>
+                  )}
                 </div>
 
                 {expanded && !esGrilla && esVitrina && (
                   <div className="wine-row__expand">
-                    {/* Estado primero, y no colgado abajo del botón.
-                        "Última botella" es la razón por la que uno duda antes de
-                        abrir: leerlo DESPUÉS de tocar el botón llega tarde, y
-                        suelto entre dos bloques de acciones quedaba como un
-                        renglón huérfano. Acá abre el desplegable y le da contexto
-                        a todo lo que sigue. */}
-                    <p className="wine-row__state-line">
-                      {/* "Sin stock" es cierto pero incompleto para un vino que
-                          nunca fue tuyo: no te quedaste sin botellas, nunca las
-                          tuviste, y ésa es la única lectura que explica por qué
-                          la fila no ofrece abrir una. */}
-                      {nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
-                      {enCava && ` · en tu cava hace ${enCava}`}
-                    </p>
+                    {/* ── EL RENGLÓN DE ESTADO, SIN EL STOCK ──────────────────
+                        Decía "4 botellas · en tu cava hace 8 meses". La primera
+                        mitad ya está escrita tres centímetros más arriba, en el
+                        "×4" de la cabecera, y encima con MENOS palabras: repetir
+                        el mismo número en dos formatos distintos dentro de la
+                        misma tarjeta obliga a leer dos veces para confirmar que
+                        dicen lo mismo.
 
-                    {/* ── LO QUE LA FILA DESPLEGADA TIENE PARA MOSTRAR ────────
-                        Desplegar una fila daba un botón, un renglón en gris y
-                        dos íconos: mucho aire alrededor de casi nada, y ninguna
-                        razón para volver a desplegarla. Lo que falta ahí es lo
-                        obvio —qué vino es— y son datos que la app ya tiene
-                        cargados: no cuestan una consulta ni un segundo de
-                        espera.
+                        Queda la antigüedad, que no está en ninguna otra parte, y
+                        el caso del vino que nunca fue tuyo — ahí "Lo tomaste
+                        afuera" no es redundante: es la única línea que explica
+                        por qué esta fila no ofrece abrir una botella. */}
+                    {(nuncaFueTuyo || enCava) && (
+                      <p className="wine-row__state-line">
+                        {nuncaFueTuyo && "Lo tomaste afuera"}
+                        {nuncaFueTuyo && enCava && " · "}
+                        {enCava && `En tu cava hace ${enCava}`}
+                      </p>
+                    )}
 
-                        Pero sólo lo que la CABECERA NO DIJO. Antes el filtro era
-                        contra el nombre (`yaLoDice`) y nada más, así que un vino
-                        que arriba mostraba "Tinto · Malbec · 2025" abría un panel
-                        que repetía "UVA Malbec / COSECHA 2025" tres centímetros
-                        más abajo: el desplegable se veía lleno y no agregaba un
-                        solo dato.
+                    {/* ── LA FICHA TÉCNICA, EN UNA GRILLA ─────────────────────
+                        Uva, cosecha, región, tipo y lo tuyo (dónde la guardás,
+                        qué pagaste), en pares rótulo/valor de dos columnas.
 
-                        Uva, cosecha y bodega ya no están acá por eso: o las dice
-                        el renglón de arriba (`uvaYAño`, `bodega`) o las dice el
-                        nombre del vino, y no hay un tercer caso. Queda lo que de
-                        verdad sólo se ve al abrir. */}
+                        Antes esto era una fila que envolvía, con sólo los datos
+                        que la cabecera no hubiera dicho ya. La intención era
+                        buena —no repetir— pero el resultado era una lista
+                        distinta en cada vino: uno mostraba tres datos, el de al
+                        lado uno solo y el tercero ninguno, así que el panel no
+                        tenía forma propia y los valores parecían texto suelto
+                        flotando entre el renglón gris y los botones. Sin una
+                        estructura fija, "abrir una fila" no significaba nada
+                        predecible.
+
+                        La grilla lo arregla al revés: la ficha es SIEMPRE la
+                        misma y por eso se puede aprender de memoria dónde mirar.
+                        El precio a pagar es que uva y tipo pueden repetirse con
+                        el subtítulo — y por eso el subtítulo de la vitrina
+                        adelgazó (ver `uvaYAño`): arriba queda lo que sirve para
+                        reconocer la botella, acá la ficha completa.
+
+                        Los vacíos no se dibujan: un "REGIÓN —" es una fila que
+                        hay que leer para descubrir que no dice nada. */}
                     {(() => {
                       const datos = [
+                        ["Uva", wine.varietal],
+                        ["Cosecha", wine.vintage],
                         ["Región", wine.region],
+                        ["Tipo", WINE_TYPE_LABELS[wine.type]],
                         ["Guardado en", wine.cellar?.location],
                         [
                           "Pagaste",
@@ -1411,7 +1542,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       return (
                         <dl className="wine-row__facts">
                           {datos.map(([rotulo, valor]) => (
-                            <div key={rotulo}>
+                            <div key={rotulo} className="wine-row__fact">
                               <dt>{rotulo}</dt>
                               <dd>{valor}</dd>
                             </div>
@@ -1420,7 +1551,19 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       );
                     })()}
 
-                    <div className="wine-row__controls">
+                    {/* ── UNA SOLA BOTONERA AL PIE ────────────────────────────
+                        Eran DOS contenedores hermanos: uno con el botón
+                        principal estirado a todo el ancho y otro, debajo, con el
+                        corazón y el tacho empujados contra el borde derecho.
+                        Dos filas para tres botones, sin ninguna línea de base
+                        compartida — el principal terminaba a una altura y los
+                        íconos flotaban a otra, cada uno de un tamaño distinto.
+
+                        Ahora es una fila: el principal se lleva el espacio que
+                        sobra (`flex: 1`) y los dos secundarios son cuadrados de
+                        44px, que es el mínimo con el que un pulgar acierta.
+                        Misma altura, mismo eje, un solo bloque de acciones. */}
+                    <div className="wine-row__acciones">
                       {/* ── EL STOCK SE AJUSTA EN LA FICHA, Y SÓLO AHÍ ────────
                           Acá vivía un stepper igual al de la ficha del vino. Era
                           la misma acción dibujada dos veces, y la duplicación no
@@ -1472,17 +1615,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           {wine.tasted ? "Probado" : "Marcar probado"}
                         </button>
                       )}
-                    </div>
 
-                    {/* Stock y antigüedad se leen arriba de todo, no acá: ver el
-                        `wine-row__state-line` al abrir el desplegable. Si lo
-                        probaste ya lo dice el chip de la cabecera, que además se
-                        puede tocar.
-                        Sin "Ver ficha completa": tocar la cabecera de la fila
-                        ya lleva ahí en un solo gesto, así que el link repetía,
-                        un renglón más abajo, la acción que se acaba de usar
-                        para llegar a este mismo panel. */}
-                    <div className="wine-row__links">
+                      {/* Sin "Ver ficha completa": tocar la cabecera de la fila
+                          ya lleva ahí en un solo gesto, así que el link repetía,
+                          un renglón más abajo, la acción que se acaba de usar
+                          para llegar a este mismo panel. */}
                       <button
                         type="button"
                         className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
@@ -1548,6 +1685,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
           que te quedaste sin botellas, y cada caso tiene su salida distinta. */}
       {!loading && !error && wines.length > 0 && sortedWines.length === 0 && (
         <EmptyState {...vacio} />
+      )}
+      </>
       )}
 
       <BodegaFilters

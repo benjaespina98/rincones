@@ -180,8 +180,17 @@ export default function ScanReview({
     [verification, touched]
   );
 
+  // Con la bodega: una gama genérica ("Reserva") se completa a "Norton
+  // Reserva", que es el nombre con el que se va a guardar. El título de la
+  // revisión tiene que mostrar exactamente eso — es la última pantalla donde
+  // se puede corregir antes de que el vino entre a la bodega.
   const title = useMemo(
-    () => composeDisplayName({ name: values.properName, line: values.line }),
+    () =>
+      composeDisplayName({
+        name: values.properName,
+        line: values.line,
+        winery: values.winery,
+      }),
     [values]
   );
 

@@ -737,7 +737,11 @@ const nombreDeFila = (wine = {}) =>
  */
 const resolverVerificacion = (lectura, best, level = "alta") => {
   const wine = best.wine;
-  const leido = composeDisplayName({ name: lectura.name, line: lectura.line });
+  const leido = composeDisplayName({
+    name: lectura.name,
+    line: lectura.line,
+    winery: lectura.winery,
+  });
   const oficial = nombreDeFila(wine);
   const coincide = !oficial || fold(oficial) === fold(leido);
 

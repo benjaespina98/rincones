@@ -1,318 +1,467 @@
-.suggestions-page {
-  display: grid;
-  gap: 20px;
-  padding: 16px 14px 126px;
+/* ══ EL SOMMELIER ══════════════════════════════════════════════════════════
+   Una conversación, con el campo abajo.
+
+   ── QUÉ SE FUE DE ESTA HOJA ─────────────────────────────────────────────
+   Trescientas líneas de cromo de formulario: el encabezado de pantalla, el
+   campo de "¿qué vas a comer?" arriba de todo, el rail de chips de comida, el
+   renglón de "así lo entendimos", el botón de "empezar de nuevo" y los dos
+   rótulos de sección con su tipografía propia. Todo eso existía para hacer UNA
+   pregunta —con qué acompaño esto— y para explicar cómo hacerla.
+
+   Ahora la pregunta se escribe. Lo que queda es lo que de verdad era propio de
+   esta pantalla: cómo se dibuja un vino que tenés y cómo se dibuja uno que no.
+   Esas dos tarjetas están intactas más abajo, y a propósito: son las mismas de
+   Mi Bodega y de Descubrí, y que el mismo vino se vea igual en toda la app es
+   lo que la hace sentir una sola cosa.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.somm {
+  display: flex;
+  flex-direction: column;
+  padding: 4px var(--page-pad-x) 0;
 }
 
-/* ── Desktop: una columna, no una pared ─────────────────────────────────────
-   El layout global corta en 1180px, que está bien para una grilla pero no para
-   esto: acá hay UN campo de texto y una lista, y a 1200px de ancho el input del
-   plato medía más que la pantalla de una notebook. Mismo tope que el perfil, que
-   es la otra pantalla de una sola columna. */
 @media (min-width: 768px) {
-  .suggestions-page {
-    max-width: 820px;
+  .somm {
+    max-width: 780px;
     margin: 0 auto;
     width: 100%;
   }
 }
 
-/* Header compacto: antes era un hero enorme que empujaba todo hacia abajo. */
-.sommelier-header {
-  margin: 0;
+/* ── La conversación ──────────────────────────────────────────────────────
+   El scroll es el de la página (`.app-content`), no uno propio: dos scrolls
+   anidados en un teléfono es la forma más rápida de que el dedo mueva el que
+   no era. El despeje de abajo lo pone `--somm-pie`, que es lo que mide el
+   compositor fijo. */
+.somm__feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* Lo que mide el compositor fijo (campo + fila de sugerencias), menos lo que
+     `--page-pad-bottom` ya reserva por encima de la barra. Sin esto, la última
+     respuesta nace tapada y hay que scrollear para leer lo que acaba de
+     llegar. Sobra un poco a propósito: que la respuesta termine con aire arriba
+     del campo se lee mejor que si le queda justo. */
+  padding-bottom: 72px;
 }
 
-/* h2 y no h1: la barra superior (AppLayout) ya usa un <h1> con el nombre de
-   la pestaña ("Sommelier"). Dos h1 en la misma pantalla rompen la jerarquía
-   que un lector de pantalla espera encontrar. */
-.sommelier-header h2 {
-  margin: 0 0 3px;
-  font-family: var(--font-family-serif);
+/* La entrada. Sin "¡Hola! Soy tu asistente" y sin el medallón con la copa que
+   iba arriba de todo: un ícono de 54px que no se toca, no informa y empujaba
+   las dos tarjetas media pantalla hacia abajo. La pantalla ya se llama
+   "Sommelier" en la barra de arriba.
+
+   20px entre tarjetas: son dos bloques con contorno propio y necesitan aire
+   para no leerse como una lista de dos filas. */
+.somm__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  padding: 18px 0 8px;
+}
+
+.somm__intro h2 {
+  margin: 0;
   font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ── La tarjeta de cada modo ──────────────────────────────────────────────
+   Un fondo apenas más claro que la pantalla, borde de un píxel y esquinas
+   redondeadas. La diferencia con el fondo es deliberadamente chica: alcanza
+   para que el bloque se separe, y no tanto como para competir con las
+   pastillas de adentro, que son lo único que se toca. */
+.somm__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+/* h3 y no un <p> con clase: es el encabezado de una sección de contenido, y
+   quien navega con lector de pantalla tiene derecho a saltar entre las dos
+   tarjetas. Va debajo del h2 de la pantalla, en su nivel correcto. */
+.somm__card-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-md);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 
-.sommelier-header p {
+.somm__card-titulo .icon {
+  flex-shrink: 0;
+  color: var(--accent-soft);
+}
+
+/* Lo que la respuesta va a traer, dicho una vez y en voz baja. */
+.somm__card-pie {
   margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-}
-
-/* Context selector — compacto para no comerse la pantalla. */
-.context-selector {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
-}
-
-.context-group {
-  display: grid;
-  gap: 7px;
-}
-
-/* ── Escribí qué vas a comer ────────────────────────────────────────────────
-   La vía principal de la pantalla. Los chips cubren diez comidas y la cena de
-   esta noche casi nunca es una de esas diez; escribirlo no tiene techo.
-
-   Se ve como un campo importante —alto, redondeado, con el ícono adentro y el
-   botón de enviar incorporado— porque es lo primero que hay que hacer acá. */
-.dish-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 6px 0 14px;
-  min-height: 52px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
-  background:
-    radial-gradient(120% 160% at 0% 50%, rgba(167, 130, 239, 0.14), transparent 62%),
-    var(--surface);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.dish-field:focus-within {
-  border-color: var(--accent-light);
-  box-shadow: 0 0 0 3px rgba(126, 89, 201, 0.18);
-}
-
-.dish-field__icon {
-  flex-shrink: 0;
-  color: var(--accent-soft);
-}
-
-.dish-field__input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font-size: var(--text-md);
-  outline: none;
-  /* El input global (App.css) trae padding propio y min-height: acá adentro
-     sumaba 16px a la izquierda del ícono —se veía un hueco entre el cubierto y
-     el texto— y estiraba la píldora. El alto lo pone el contenedor. */
-  padding: 0;
-  min-height: 0;
-}
-
-.dish-field__input::placeholder {
-  color: var(--text-muted);
-}
-
-.dish-field__go {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent-fill);
-  color: #fff;
-  cursor: pointer;
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-}
-
-.dish-field__go:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.dish-field__go:not(:disabled):active {
-  transform: scale(0.92);
-}
-
-.dish-field__spin {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
-  animation: rincon-spin 700ms linear infinite;
-}
-
-/* ── Cómo lo entendimos ─────────────────────────────────────────────────────
-   Traducir "risotto de hongos" a Pasta en silencio es decidir por el usuario sin
-   contarle. Acá se le devuelve lo que escribió y en qué lo convertimos: si no
-   está de acuerdo, toca otro atajo y listo. */
-.dish-reading {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.dish-reading .icon {
-  flex-shrink: 0;
-  margin-top: 3px;
-  color: var(--accent-soft);
-}
-
-.dish-reading em {
-  font-style: normal;
-  color: var(--text);
-  font-weight: 600;
-}
-
-.dish-reading strong {
-  color: var(--accent-soft);
-  font-weight: 800;
-}
-
-.dish-reading__note {
-  display: block;
-  margin-top: 2px;
   font-size: var(--text-xs);
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
-/* ── Los atajos ─────────────────────────────────────────────────────────────
-   Una sola fila que se desliza. Diez chips envueltos en tres renglones son un
-   muro; en una fila son lo que deben ser: un atajo al costado del camino. */
-.chip-rail {
+/* ══ El carrusel de pastillas ══════════════════════════════════════════════
+   Se desliza en vez de envolver: envolviendo, ocho platos ocupan tres renglones
+   y empujan la segunda tarjeta fuera de la primera pantalla.
+
+   ── LOS MÁRGENES NEGATIVOS ────────────────────────────────────────────────
+   Son los 16px de padding de la tarjeta, devueltos, y después repuestos como
+   padding de la tira. Suena a lo mismo pero no lo es: con el padding en la
+   TIRA, la primera y la última pastilla arrancan alineadas con el título de la
+   tarjeta, y al desplazar hasta el final queda ese respiro de 16px en vez de la
+   pastilla pegada al borde. Con el padding en la tarjeta, el scroll terminaría
+   en el borde exacto y la última se leería como cortada.
+
+   ── LA BARRA DE SCROLL ────────────────────────────────────────────────────
+   Oculta en las tres familias de navegador: `scrollbar-width` (Firefox),
+   `-ms-overflow-style` (Edge viejo/IE) y el pseudo-elemento de WebKit. Falta
+   una y aparece una barra gris de 8px debajo de las pastillas en ese navegador
+   solamente — el tipo de detalle que no se ve nunca en la máquina donde se
+   desarrolla. La señal de que hay más es la pastilla asomando en el borde, no
+   una barra.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.somm__rail {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
-  /* Que el primero y el último no queden pegados al borde de la tarjeta. */
-  padding: 2px 2px 4px;
-  margin: 0 -2px;
-  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -16px;
+  padding: 2px 16px;
 }
 
-.chip-rail::-webkit-scrollbar {
+.somm__rail::-webkit-scrollbar {
   display: none;
 }
 
-.chip-rail .context-chip {
+/* `flex: 0 0 auto` + `nowrap`: sin los dos, flexbox le achica el ancho a las
+   pastillas largas para que entren, y "Un tinto para regalar" se parte en dos
+   renglones adentro de una cápsula pensada para uno. */
+.somm__comida {
   flex: 0 0 auto;
-  scroll-snap-align: start;
-}
-
-.context-label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  color: var(--accent-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* 40px de alto: elegir la comida es LA acción de esta pantalla y los chips medían
-   32, por debajo del mínimo con el que un dedo acierta. En una tira de diez chips
-   pegados, esos 8px son la diferencia entre tocar "Pasta" y tocar "Pizza". El
-   tamaño del texto no cambia: crece el área, no el diseño. */
-.context-chip {
-  display: inline-flex;
-  align-items: center;
   min-height: 40px;
-  padding: 0 13px;
+  padding: 0 16px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
-  background: var(--glass);
-  color: var(--text-secondary);
+  background: var(--surface);
+  color: var(--text);
   font-size: var(--text-sm);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.context-chip:hover {
-  border-color: var(--accent-light);
-  color: var(--text);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .somm__comida:hover {
+    border-color: var(--line-accent);
+    background: var(--surface-hover);
+  }
 }
 
-.context-chip:active {
-  transform: scale(0.96);
-}
-
-/* "Más…" abre el resto de las categorías. Se distingue de una comida —borde
-   punteado y sin fondo— para que no se lea como un plato más de la fila. */
-.context-chip--more {
-  border-style: dashed;
-  background: none;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.context-chip--active {
-  /* Una pastilla elegida no flota: cambia de color y listo. La sombra violeta
-     de 16px la levantaba de la fila y rompía la línea de las demás. */
+/* ── Lo que escribís vos ─────────────────────────────────────────────────
+   Ésta SÍ va en burbuja, y es la única. La burbuja sirve para distinguir dos
+   voces; si las dos la tienen, no distingue nada y la pantalla se convierte en
+   una app de mensajería. Acá lo que necesita separarse del resto es tu
+   pregunta, porque el resto es la app hablando como habla siempre. */
+.somm__vos {
+  align-self: flex-end;
+  max-width: 82%;
+  margin: 6px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-sm) var(--radius-xl);
   background: var(--accent-fill);
-  border-color: transparent;
   color: #fff;
-  font-weight: 700;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.45;
 }
 
-.clear-context-btn {
-  align-self: start;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-}
-
-/* Hints and states */
-.suggestions-hint {
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-  text-align: center;
-  padding: 8px 0;
-}
-
-.suggestions-error {
-  color: var(--error, #f87171);
-  text-align: center;
-  font-size: var(--text-md);
-}
-
-/* Contenedor de resultados: da aire entre el selector, "De tu bodega" y
-   "Para descubrir" (antes quedaba todo pegado). */
-.suggestions-results {
-  display: grid;
+/* ── La respuesta ────────────────────────────────────────────────────────
+   Sin burbuja, sin avatar y sin nombre de asistente. Es texto de la app, del
+   mismo tamaño y color que el de cualquier otra pantalla: la guía no es un
+   personaje que vive adentro de Rincones, es Rincones contestando. */
+.somm__resp {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-/* Results label */
-.suggestions-results__label {
-  margin: 12px 0 2px;
-  font-family: var(--font-family-serif);
-  font-size: var(--text-xl);
-  font-weight: 700;
+.somm__texto {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.55;
   color: var(--text);
 }
 
-.suggestions-results__label:first-child {
-  margin-top: 0;
+.somm__resp.is-error .somm__texto {
+  color: var(--danger-text);
 }
 
-/* Results list */
-.suggestions-list {
+/* El rótulo de cada grupo de vinos. Minúscula y en gris: es una etiqueta que
+   organiza, no un título que compita con la respuesta de arriba. */
+.somm__rotulo {
+  margin: 4px 0 -4px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.somm__lista {
   list-style: none;
-  margin: 0 0 4px;
+  margin: 0;
   padding: 0;
   display: grid;
   gap: 10px;
 }
 
+/* El lugar de las tarjetas, mientras llegan. El texto se pinta apenas
+   responde el modelo y las botellas tardan un poco más (ver el comentario en
+   SuggestionsPage.jsx): sin este hueco reservado, aparecerían de golpe y
+   empujarían hacia abajo el renglón que se está leyendo. */
+.somm__vinos-cargando {
+  display: grid;
+  gap: 10px;
+}
+
+.somm__vinos-cargando span {
+  height: 68px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(
+    100deg,
+    var(--surface) 30%,
+    var(--surface-hover) 50%,
+    var(--surface) 70%
+  );
+  background-size: 240% 100%;
+  animation: somm-brillo 1.4s var(--ease-out) infinite;
+}
+
+@keyframes somm-brillo {
+  from { background-position: 140% 0; }
+  to { background-position: -40% 0; }
+}
+
+/* Pensando. Un punto que late, no tres puntitos escribiendo: lo segundo imita
+   a una persona tipeando, que es exactamente la ilusión que esta pantalla no
+   quiere vender. */
+.somm__pensando {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.somm__pensando-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  animation: somm-latido 1.3s var(--ease-out) infinite;
+}
+
+@keyframes somm-latido {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ══ El compositor ═════════════════════════════════════════════════════════
+   Fijo abajo, encima de la barra de navegación. Donde está el pulgar y donde
+   lo espera cualquiera que haya usado un teléfono; arriba —donde estaba el
+   campo de "¿qué vas a comer?"— obligaba a subir la vista para escribir y
+   bajarla para leer, en cada turno.
+
+   En esta pantalla el botón de escanear no se dibuja (ver navigation.js): este
+   lugar es de acá.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.somm__pie {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px var(--page-pad-x) 12px;
+  /* Difuminado y no un bloque opaco: la conversación tiene que verse pasar por
+     abajo, que es lo que dice que hay más contenido arriba. */
+  background: linear-gradient(180deg, rgba(9, 11, 19, 0) 0%, rgba(9, 11, 19, 0.86) 26%, rgba(9, 11, 19, 0.97) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Las sugerencias: una fila que se desliza, pegada encima del campo.
+   Son formas de SEGUIR la conversación, así que viven donde se sigue. Cambian
+   con cada respuesta; con la conversación vacía, son las preguntas de entrada. */
+/* Mismo carrusel que el de las tarjetas (ver `.somm__rail` arriba, donde está
+   el porqué de cada línea), con el padding del compositor en vez del de la
+   tarjeta: acá el borde contra el que se corta es el de la pantalla. */
+.somm__chips {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 calc(var(--page-pad-x) * -1);
+  padding: 2px var(--page-pad-x);
+}
+
+.somm__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.somm__chip {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .somm__chip:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
+}
+
+/* ── EL CAMPO Y SU BOTÓN, EN LA MISMA CÁPSULA ─────────────────────────────
+   El botón de enviar tiene que quedar ADENTRO del borde del campo, pegado a su
+   extremo derecho. Estaba afuera, y no por el layout: `.somm__campo` siempre
+   fue un flex con el borde envolviendo a los dos hijos.
+
+   Lo que pasaba es que el `<input>` dibujaba ADEMÁS su propio borde, su propio
+   fondo y sus propios 16px de padding, heredados de la regla global de
+   formularios (`input[type="text"]` en App.css). Esa regla tiene especificidad
+   0-1-1 y `.somm__input` tenía 0-1-0, así que ganaba ella: lo que se veía como
+   "el campo" era en realidad el input adentro del campo, y el botón —correcto,
+   adentro de la cápsula de verdad— quedaba a la derecha de ese borde interno,
+   pareciendo suelto.
+
+   Se arregla subiendo la especificidad a 0-2-0 (`.somm__campo .somm__input`),
+   no con `!important`: el problema era una regla más específica, no una regla
+   más fuerte.
+
+   El padding de 5px a la derecha es lo que separa al botón del borde; los 5px
+   de arriba y abajo dejan al botón de 40px centrado en la cápsula de 50. */
+.somm__campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 5px 5px 18px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  transition: border-color var(--transition-fast);
+}
+
+.somm__campo:focus-within {
+  border-color: var(--accent-light);
+}
+
+.somm__campo .somm__input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  /* 16px exactos: por debajo de eso, iOS hace zoom al enfocar un campo y deja
+     la pantalla corrida, con el compositor fuera de cuadro. */
+  font-size: 16px;
+  line-height: 1.3;
+  padding: 10px 0;
+}
+
+.somm__campo .somm__input::placeholder {
+  color: var(--text-subtle);
+}
+
+.somm__campo .somm__input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.somm__enviar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-fill);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.somm__enviar:disabled {
+  background: var(--surface-hover);
+  color: var(--text-subtle);
+}
+
+.somm__spin {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rincon-spin 0.8s linear infinite;
+}
+
+/* En escritorio la barra es un sidebar de 240px: el compositor arranca después
+   y se apoya en el borde de abajo, sin nada que despejar. */
+@media (min-width: 1024px) {
+  .somm__pie {
+    left: 240px;
+    bottom: 0;
+    padding-bottom: 20px;
+  }
+
+  .somm__pie > * {
+    max-width: 780px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+
+  .somm__chips {
+    margin: 0 auto;
+  }
+}
+
+/* ══ La tarjeta de un vino TUYO ════════════════════════════════════════════ */
 .suggestion-card {
   display: grid;
   grid-template-columns: 72px 1fr;
@@ -356,7 +505,6 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  font-size: 2rem;
   flex-shrink: 0;
 }
 
@@ -388,58 +536,43 @@
   color: var(--text-secondary);
 }
 
+/* El vino lo escribe `.wine-meta` (index.css); acá sólo conviven esa línea y
+   el stock, que se va al extremo con su `margin-left: auto`. */
 .suggestion-card__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 10px;
   align-items: center;
 }
 
+/* El stock, como en Mi Bodega: un número en negrita y sin cápsula. Era una
+   pastilla gris con el mismo dato escrito de otra forma ("x3" en vez de "×3"),
+   en la única pantalla donde conviven los vinos que tenés con los que no. */
 .suggestion-card__stock {
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--text-secondary);
   margin-left: auto;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.suggestion-card__reason {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 4px 0 0;
-  padding: 8px 12px;
   font-size: var(--text-sm);
-  line-height: 1.4;
+  font-weight: 800;
   color: var(--accent-soft);
-  background: linear-gradient(135deg, rgba(126, 89, 201, 0.16), rgba(126, 89, 201, 0.06));
-  border: 1px solid var(--line-accent);
-  border-radius: var(--radius-md);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Descubrir: vinos argentinos del catálogo ──
-   Aparece cuando la bodega no tiene nada que coincida con el contexto, para que
-   la pantalla siempre proponga algo en lugar de quedar vacía. */
-.discover-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
+/* ══ La tarjeta de un vino que NO tenés ════════════════════════════════════
+   Más chica y más baja en jerarquía que la de arriba, a propósito: primero lo
+   que podés abrir esta noche, después lo que habría que ir a comprar.
 
+   Las reglas del panel desplegable (`__detail`, `__summary`, `__aroma`,
+   `__pair`, `__ia`, `__failed`, `.is-expanded`) se borraron: la tarjeta dejó de
+   desplegarse hace dos tandas —tocarla abre la ficha— y ninguna alcanzaba ya a
+   un elemento. También se fue `__reason`, la línea de "por qué te lo
+   recomendamos": ahora eso lo dice la respuesta escrita, arriba, y decirlo dos
+   veces era el ruido que esta pantalla vino a sacar.
+   ═══════════════════════════════════════════════════════════════════════════ */
 .discover-card {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--glass);
   overflow: hidden;
   transition: border-color var(--transition-fast);
-}
-
-.discover-card.is-expanded {
-  border-color: var(--line-accent);
 }
 
 .discover-card__row {
@@ -496,93 +629,13 @@
   text-overflow: ellipsis;
 }
 
-/* La razón por la que este vino está en la lista. Mismo lenguaje que la razón de
-   los vinos de tu bodega —ícono de chispa, texto en gris— para que se lean como
-   lo que son: la misma clase de dato en las dos secciones. */
-.discover-card__reason {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 5px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  text-align: left;
-  /* Una sola línea: es un renglón de apoyo dentro de una tarjeta compacta. */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.discover-card__reason .icon {
-  flex-shrink: 0;
-  color: var(--accent-soft);
+.discover-card__meta {
+  margin-top: 2px;
 }
 
 .discover-card__caret {
   flex-shrink: 0;
-  color: var(--text-muted);
-  transition: transform var(--transition-fast);
-}
-
-.discover-card.is-expanded .discover-card__caret {
-  transform: rotate(180deg);
-}
-
-/* Detalle expandido con descripción IA */
-.discover-card__detail {
-  display: grid;
-  gap: 8px;
-  padding: 0 12px 14px 71px;
-  animation: rincon-enter-down 200ms var(--ease-out);
-}
-
-.discover-card__summary {
-  margin: 0;
-  font-size: var(--text-base);
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.discover-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.discover-card__aroma {
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  background: rgba(126, 89, 201, 0.14);
-  border: 1px solid var(--line-accent);
-  color: var(--accent-soft);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-}
-
-.discover-card__pair {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.discover-card__ia,
-.discover-card__failed {
-  margin: 0;
-  font-size: var(--text-2xs);
   color: var(--text-subtle);
-}
-
-  to { opacity: 1; transform: translateY(0); }
-
-.discover-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
 }
 
 .discover-card__add {
@@ -600,9 +653,15 @@
   transition: background 0.18s ease, color 0.18s ease;
 }
 
-.discover-card__add:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
+@media (hover: hover) {
+  .discover-card__add:hover:not(:disabled) {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .discover-card:hover {
+    border-color: var(--line-strong);
+  }
 }
 
 .discover-card__add.is-added {
@@ -610,12 +669,4 @@
   border-color: rgba(47, 182, 123, 0.34);
   color: var(--success-text);
   cursor: default;
-}
-
-.discover-card:hover {
-  border-color: var(--line-strong);
-}
-
-.discover-card:active {
-  transform: scale(0.99);
 }

@@ -79,3 +79,56 @@ describe("composeDisplayName / composeSearchName", () => {
     expect(composeSearchName({ winery: "Bodega Norton" })).toBe("Bodega Norton");
   });
 });
+
+/**
+ * ── EL VINO QUE SE GUARDÓ COMO "RESERVA" ────────────────────────────────────
+ *
+ * Reportado desde la app con una foto: un Norton Reserva escaneado entró a la
+ * bodega llamado "Reserva", a secas. La lectura no estaba mal —la gama ES
+ * "Reserva"— pero el nombre visible salía de la línea sin más, y "Reserva" sola
+ * no nombra ninguna botella: la usan Norton, Trapiche, Salentein y otras
+ * cincuenta bodegas. En la lista quedaba una fila imposible de distinguir, y
+ * ese string es además el que viaja al catálogo compartido.
+ */
+describe("las gamas genéricas se completan con la bodega", () => {
+  it("Norton Reserva no se guarda como 'Reserva'", () => {
+    expect(composeDisplayName({ line: "Reserva", winery: "Bodega Norton" }))
+      .toBe("Norton Reserva");
+  });
+
+  it("la bodega entra sin sus palabras societarias", () => {
+    expect(composeDisplayName({ line: "Gran Reserva", winery: "Bodegas y Viñedos Trapiche" }))
+      .toBe("Trapiche Gran Reserva");
+    expect(composeDisplayName({ line: "Single Vineyard", winery: "Rutini Wines" }))
+      .toBe("Rutini Single Vineyard");
+  });
+
+  it("una línea distintiva NO se toca: agregarle la bodega la diría dos veces", () => {
+    expect(composeDisplayName({ line: "Saint Felicien", winery: "Catena Zapata" }))
+      .toBe("Saint Felicien");
+    expect(composeDisplayName({ line: "Broquel", winery: "Trapiche" })).toBe("Broquel");
+  });
+
+  it("si la línea ya trae la bodega, no se repite", () => {
+    expect(composeDisplayName({ line: "Norton Reserva", winery: "Bodega Norton" }))
+      .toBe("Norton Reserva");
+  });
+
+  it("sin bodega, la gama sola es lo único que hay", () => {
+    expect(composeDisplayName({ line: "Reserva" })).toBe("Reserva");
+  });
+
+  /**
+   * Los que YA entraron mal se arreglan al dibujar, sin migración: lo que se
+   * guardó no se toca, lo que se lee sí.
+   */
+  it("un vino ya guardado como 'Reserva' se muestra con su bodega", () => {
+    expect(wineDisplayName({ name: "Reserva", winery: "Bodega Norton", varietal: "Malbec" }))
+      .toBe("Norton Reserva");
+  });
+
+  it("y uno con nombre propio se sigue mostrando tal cual", () => {
+    expect(wineDisplayName({ name: "Saint Felicien", winery: "Catena Zapata" }))
+      .toBe("Saint Felicien");
+  });
+});

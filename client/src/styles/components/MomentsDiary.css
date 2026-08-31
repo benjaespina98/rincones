@@ -170,27 +170,48 @@
 /* La invitación cuando todavía no escribiste ninguno. Es prosa y no una lista
    de features: lo que se está ofreciendo es acordarse de una noche, no usar una
    función. */
+/* Tres renglones de prosa sobre fondo oscuro: es el texto más largo del perfil
+   y estaba en `--text-secondary` a 1.6 — legible en un monitor, gris sobre gris
+   en un teléfono al sol. Sube un escalón de color y de tamaño, y el interlineado
+   a 1.65: en un párrafo que se LEE (no que se escanea) el aire entre renglones
+   es la mitad de la legibilidad. */
 .diary__invite {
   margin: 0;
-  font-size: var(--text-sm);
-  line-height: 1.6;
+  font-size: var(--text-base);
+  line-height: 1.65;
   color: var(--text-secondary);
+  /* El renglón no se estira a lo ancho de una tablet: pasados los 60 caracteres
+     el ojo pierde el salto de línea. */
+  max-width: 62ch;
 }
 
+/* ── ESTO ES UN BOTÓN Y TIENE QUE PARECERLO ───────────────────────────────
+   Era una cápsula de contorno gris con texto violeta chiquito: al lado de un
+   párrafo, y sin relleno, se leía como un enlace más del texto — o como una
+   etiqueta. Es la ÚNICA acción de la sección y la puerta al diferencial del
+   producto, así que va con el fondo del acento, el texto del tamaño del cuerpo
+   y la flecha que dice que lleva a otro lado. */
 .diary__more {
   align-self: flex-start;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
   color: var(--accent-soft);
-  font-size: var(--text-xs);
-  font-weight: 800;
+  font-size: var(--text-base);
+  font-weight: 700;
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.diary__more:hover {
-  border-color: var(--line-accent);
-  color: #fff;
+@media (hover: hover) {
+  .diary__more:hover {
+    background: var(--accent-fill);
+    border-color: transparent;
+    color: #fff;
+  }
 }

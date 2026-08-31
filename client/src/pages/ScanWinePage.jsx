@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import { useToast } from "../context/ToastContext";
 import { createWine, deleteWine } from "../services/wineApi";
-import { createWish } from "../services/wishApi";
+import { createWish, deleteWish } from "../services/wishApi";
+// Esta pantalla escribe la lista de deseos sin pasar por `useWishlist` (no la
+// muestra, así que montar el hook sería pedir la lista entera al pedo). El
+// precio es que el caché del hook queda viejo: sin esto, volver a Mi Bodega
+// después de cargar un vino que venías siguiendo mostraba el vino en "Quiero
+// probar" Y en la colección, o sea diciendo a la vez "lo quiero" y "lo tengo".
+import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
 import { trackEvent } from "../services/analyticsApi";
@@ -55,6 +61,7 @@ const toWinePayload = (draft) => ({
 
 export default function ScanWinePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast, removeToast, showSuccess, showError } = useToast();
 
   /**
@@ -70,7 +77,18 @@ export default function ScanWinePage() {
    * menos podía permitirse una consulta de más.
    */
 
-  const [showScanner, setShowScanner] = useState(false);
+  /**
+   * El escáner arranca abierto si se entró por el botón de la cámara.
+   *
+   * Es el 95% de las veces que alguien llega acá, y hasta ahora todas pagaban
+   * una pantalla intermedia con dos botones antes de poder apuntar a la
+   * etiqueta. Se decide en el primer render y no en un efecto: montar la
+   * pantalla de las dos puertas para taparla un frame después es un parpadeo
+   * que se ve.
+   */
+  const [showScanner, setShowScanner] = useState(
+    () => location.state?.modo === "camara"
+  );
   // Lectura pendiente de revisión. SIEMPRE pasamos por acá tras una foto: es lo
   // que evita que un dato mal leído entre a la bodega sin que nadie lo vea.
   const [review, setReview] = useState(null);
@@ -83,6 +101,27 @@ export default function ScanWinePage() {
   useEffect(() => {
     if (legacyQuery) navigate(`/?q=${encodeURIComponent(legacyQuery)}`, { replace: true });
   }, [legacyQuery, navigate]);
+
+  /**
+   * "Ya lo tengo", desde Guardados: la revisión se abre con el vino puesto.
+   *
+   * Antes ese botón navegaba a /agregar pelado y la pantalla no se enteraba de
+   * nada: quien ya había guardado un vino con su bodega, su uva y su región
+   * tenía que volver a escribir las tres. Ahora el vino viaja por el estado de
+   * la navegación y esto lo levanta una sola vez, al entrar.
+   */
+  const desdeGuardadoId = location.state?.desdeGuardado || "";
+  const wishPrecargado = location.state?.wish || null;
+  useEffect(() => {
+    if (wishPrecargado) startManual(wishPrecargado);
+    // Se limpia el estado para que volver atrás —o recargar— no reabra el
+    // formulario de un vino que quizá ya se guardó, ni la cámara.
+    if (wishPrecargado || location.state?.modo) {
+      navigate(".", { replace: true, state: null });
+    }
+    // Sólo al montar: las dependencias reales son estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   // Guarda el vino escaneado en la bodega y lleva directo a su ficha, que es
@@ -188,14 +227,31 @@ export default function ScanWinePage() {
 
   // Carga manual: la misma pantalla de revisión, con todo vacío. Antes "Cargar a
   // mano" sólo dejaba escribir el nombre y el vino entraba con type "unknown".
-  const startManual = () =>
+  //
+  // `previo` la abre con datos ya puestos: es el camino de "Ya lo tengo" desde
+  // Guardados, donde la app YA sabe la bodega, la uva y la región del vino que
+  // vos mismo guardaste. Mandarte a escribirlas de nuevo es pedirte un dato que
+  // está a dos pantallas de distancia.
+  const startManual = (previo = null) =>
     setReview({
-      photo: "",
+      photo: previo?.image || "",
       source: "manual",
-      values: { winery: "", line: "", properName: "", varietal: "", vintage: "", region: "", type: "unknown" },
+      values: {
+        winery: previo?.winery || "",
+        line: previo?.name || "",
+        properName: "",
+        varietal: previo?.varietal || "",
+        vintage: previo?.vintage ? String(previo.vintage) : "",
+        region: previo?.region || "",
+        type: previo?.type || "unknown",
+      },
       confidence: {},
       verification: null,
       serverIssues: [],
+      // De qué guardado vino, para poder sacarlo de la lista cuando entre a la
+      // bodega: tenerlo en las dos listas a la vez es decir dos cosas
+      // contradictorias ("lo quiero probar" y "lo tengo").
+      desdeGuardado: previo?._id || desdeGuardadoId || "",
     });
 
   const handleConfirmReview = async (draft) => {
@@ -214,6 +270,14 @@ export default function ScanWinePage() {
         // conclusión: el servidor recalcula el veredicto por su cuenta.
         identMatchedFrom: review?.verification?.source || "",
       });
+      // El vino salió de Guardados y entró a la bodega: dejarlo en las dos
+      // listas sería decir a la vez "lo quiero probar" y "lo tengo". Si el
+      // borrado falla no se avisa: el alta —que es lo que se pidió— ya salió
+      // bien, y un error sobre una lista que quedó de más sólo confundiría.
+      if (review?.desdeGuardado) {
+        await deleteWish(review.desdeGuardado).catch(() => {});
+        limpiarCacheDeDeseos();
+      }
       setReview(null);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
@@ -237,8 +301,10 @@ export default function ScanWinePage() {
         type: draft.type || "unknown",
         source: review?.source === "manual" ? "manual" : "ocr",
       });
+      // Igual que arriba: la lista cacheada quedó vieja y Mi Bodega la lee.
+      limpiarCacheDeDeseos();
       successHaptic();
-      showSuccess(`"${draft.name.trim()}" guardado en tu lista`);
+      showSuccess(`"${draft.name.trim()}" guardado en Quiero probar`);
       setReview(null);
     } catch {
       showError("No se pudo guardar el vino en tu lista");

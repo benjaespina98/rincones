@@ -136,13 +136,23 @@
   overflow: hidden;
 }
 
+/* La procedencia: "YouTube", "Spotify", "Argentina · Web oficial".
+   Es el dato de MENOR jerarquía de la tarjeta —contesta "¿de dónde sale esto?",
+   no "¿me interesa?"— y estaba en `--text-muted`, el mismo escalón que usa
+   cualquier texto secundario de la app. Con el título arriba en blanco y la
+   bajada en `--text-secondary`, los tres renglones quedaban demasiado juntos en
+   la escala y "YouTube" competía con el nombre del video.
+
+   Baja un escalón, a `--text-subtle`. Sigue por encima del mínimo de contraste
+   para texto chico sobre el fondo de la app, así que se lee — sólo deja de
+   pelear. */
 .ccard__meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
   font-size: var(--text-2xs);
-  color: var(--text-muted);
+  color: var(--text-subtle);
 }
 
 .ccard__badge {

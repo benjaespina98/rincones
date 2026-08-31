@@ -66,9 +66,11 @@
   border-radius: var(--radius-full);
 }
 
+/* 22px y no 20: con tres pestañas en vez de cinco hay ancho de sobra, y el
+   ícono es lo que se reconoce antes de leer nada. */
 .tab-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -77,8 +79,8 @@
 }
 
 .tab-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .tab-button.active .tab-icon {
@@ -86,8 +88,7 @@
 }
 
 .tab-label {
-  font-size: 10px;
-  text-transform: capitalize;
+  font-size: 11px;
   letter-spacing: 0.01em;
 }
 
@@ -130,32 +131,12 @@
   }
 }
 
-/* Primary "Agregar" action — stands out as the main CTA */
-.tab-button--add .tab-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--accent-fill);
-  color: #fff;
-  /* El botón de Agregar es el único elemento flotante de la barra, así que sí
-     lleva sombra — pero oscura, para separarlo del fondo. La violeta que había
-     lo hacía brillar sobre una barra casi negra. */
-  box-shadow: var(--shadow-accent);
-}
-
-.tab-button--add .tab-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.tab-button--add.active .tab-icon {
-  transform: none;
-  filter: none;
-}
-
-.tab-button--add.active::before {
-  display: none;
-}
+/* Las reglas de `.tab-button--add` se fueron con la pestaña.
+   "Agregar" dejó de ser una pestaña disfrazada de botón —un círculo lleno
+   metido en una fila de íconos de contorno, peleando ancho con secciones que
+   se visitan mucho menos— y pasó a ser un botón flotante, centrado y con su
+   nombre escrito, encima de la barra. Ver components/AddWineButton.jsx y su
+   hoja. */
 
 /* Brand only visible in desktop sidebar */
 .sidebar-brand {

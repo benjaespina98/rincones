@@ -1128,7 +1128,15 @@ export default function WineDetailPage() {
                 <Icon name="lock" size={12} /> Sólo vos
               </span>
             </h3>
-            {!showMomentForm && (
+            {/* El botón del encabezado sólo cuando YA hay momentos.
+                Con el diario vacío, esta acción se decía dos veces a la vez:
+                acá arriba como "+ Agregar" y ocho centímetros más abajo como
+                "Registrar un momento", los dos abriendo el mismo formulario.
+                Dos botones para una acción no dan a elegir nada, sólo hacen
+                dudar de si hacen lo mismo. Con la lista vacía manda el estado
+                vacío, que además explica qué es un momento; con la lista llena
+                el estado vacío no existe y manda éste. */}
+            {!showMomentForm && moments.length > 0 && (
               <button type="button" className="wine-moments__add-btn" onClick={() => setShowMomentForm(true)}>
                 + Agregar
               </button>
@@ -1264,6 +1272,10 @@ export default function WineDetailPage() {
               <EmptyState
                 icon="calendar"
                 title="Sin momentos todavía"
+                // La única frase de la sección que dice qué es un momento. El
+                // encabezado dice "Momentos · Sólo vos" y con eso no alcanza:
+                // se entiende que es privado, no qué se escribe adentro.
+                hint="Con quién lo tomaste, dónde y qué te pareció."
                 actionLabel="Registrar un momento"
                 onAction={() => setShowMomentForm(true)}
                 compact

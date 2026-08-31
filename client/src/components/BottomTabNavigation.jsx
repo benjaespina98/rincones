@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import Logo from "./Logo";
+import AddWineButton from "./AddWineButton";
 import { tapHaptic } from "../utils/haptics";
 import { TABS, tabForPath } from "../data/navigation";
 import "../styles/BottomTabNavigation.css";
@@ -26,16 +27,26 @@ export default function BottomTabNavigation() {
           <Logo size={26} className="sidebar-brand__mark" />
           <span className="sidebar-brand__name">Rincones</span>
         </div>
+
+        {/* La cámara está escrita adentro de la barra pero NO ocupa un lugar en
+            la fila: en teléfono se sale con `position: fixed` y se centra
+            sola, porque con tres pestañas ningún reparto de la fila cae en el
+            medio (ver su hoja de estilos). Vive en este marcado porque en
+            escritorio, donde la barra se convierte en sidebar, vuelve al flujo
+            y se acomoda como primer elemento de la columna — sin espaciadores
+            inventados ni números mágicos que mantener sincronizados. */}
+        <AddWineButton />
+
         {TABS.map((tab) => (
           <button
             key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? "active" : ""} ${tab.primary ? "tab-button--add" : ""}`}
+            className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
             onClick={() => handleTabClick(tab.path)}
             aria-label={tab.label}
             aria-current={activeTab === tab.id ? "page" : undefined}
             type="button"
           >
-            <span className="tab-icon"><Icon name={tab.icon} filled size={tab.primary ? 24 : 22} /></span>
+            <span className="tab-icon"><Icon name={tab.icon} filled size={22} /></span>
             <span className="tab-label">{tab.label}</span>
           </button>
         ))}

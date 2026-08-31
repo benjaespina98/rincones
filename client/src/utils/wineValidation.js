@@ -63,7 +63,11 @@ export const BLOCKING_ISSUES = new Set(["sin-nombre", "nombre-es-bodega"]);
 export const checkCoherence = (values = {}) => {
   const issues = [];
 
-  const nombre = composeDisplayName({ name: values.properName, line: values.line });
+  const nombre = composeDisplayName({
+    name: values.properName,
+    line: values.line,
+    winery: values.winery,
+  });
   const bodega = String(values.winery || "").trim();
   const varietal = String(values.varietal || "").trim();
 

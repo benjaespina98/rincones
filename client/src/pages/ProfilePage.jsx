@@ -7,6 +7,7 @@ import { useSpendingStats } from "../hooks/useSpendingStats";
 import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { calculateAge } from "../utils/age";
+import { initials, avatarColor } from "../utils/identity";
 import { errorHaptic } from "../utils/haptics";
 import { getLevel } from "../utils/gamification";
 import Icon from "../components/Icon";
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     city: "",
     country: "",
     birthDate: "",
-    avatar: user?.avatar || "👤",
+    avatar: user?.avatar || "",
     avatarPhoto: "",
   });
 
@@ -121,16 +122,35 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <section className="profile-header">
-        {/* La foto de Google, si la tenés, manda sobre el emoji: es la foto de
-            perfil de verdad, no un símbolo elegido a mano. */}
+        {/* La foto de Google, si la tenés, manda: es la foto de perfil de
+            verdad. Sin foto, tus iniciales sobre el color que elegiste —las
+            mismas que muestra la barra de arriba—. Acá vivía un emoji elegido
+            de una fila de ocho, que era el único lugar de la app donde la
+            cuenta se dibujaba como "una persona cualquiera" en vez de como la
+            tuya, y encima no coincidía con el avatar del topbar tres
+            centímetros más arriba. Ver `AVATAR_COLORS` en utils/identity.js. */}
         {profileData.avatarPhoto ? (
           <img className="avatar-large avatar-large--photo" src={profileData.avatarPhoto} alt="" />
         ) : (
-          <div className="avatar-large">{profileData.avatar || "👤"}</div>
+          <div className={`avatar-large avatar-color--${avatarColor(profileData.avatar)}`}>
+            {initials(user)}
+          </div>
         )}
         <div className="profile-info">
           <span className="profile-kicker">Tu cuenta</span>
-          <h2>{profileData.firstName} {profileData.lastName}</h2>
+          {/* Sin nombre cargado, el <h2> quedaba VACÍO: el bloque más
+              importante del perfil mostraba un hueco entre el rótulo y la
+              edad. Una cuenta creada con Google o desde el panel puede no
+              tener nombre todavía, y eso no es un error que haya que dibujar
+              como un espacio en blanco — es algo que se puede completar, y la
+              fila de abajo dice cómo. */}
+          <h2>
+            {[profileData.firstName, profileData.lastName].filter(Boolean).join(" ") || (
+              <button type="button" className="profile-name-cta" onClick={() => setIsEditing(true)}>
+                Poné tu nombre
+              </button>
+            )}
+          </h2>
           {age != null && (
             <span className="profile-age">
               <Icon name="cake" size={14} /> {age} años
@@ -151,26 +171,30 @@ export default function ProfilePage() {
         <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
           <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
           <span className="account-item__label">Editar perfil</span>
-          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
         </button>
 
         <button className="account-item" type="button" onClick={() => setShowPrefs(true)}>
           <span className="account-item__icon"><Icon name="sparkles" size={18} /></span>
           <span className="account-item__label">Preferencias de gusto</span>
-          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
         </button>
 
         <button className="account-item" type="button" onClick={() => setShowPassword(true)}>
           <span className="account-item__icon"><Icon name="lock" size={18} /></span>
           <span className="account-item__label">Cambiar contraseña</span>
-          <Icon name="chevron-down" size={16} className="account-item__chevron" />
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
         </button>
 
+        {/* Ícono propio: llevaba el mismo candado que "Cambiar contraseña", dos
+            filas más arriba. Dos renglones seguidos con el mismo dibujo y
+            destinos que no tienen nada que ver se leen como si fueran lo
+            mismo. */}
         {isAdmin && (
           <button className="account-item" type="button" onClick={() => navigate("/admin")}>
-            <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+            <span className="account-item__icon"><Icon name="grid" size={18} /></span>
             <span className="account-item__label">Panel de administración</span>
-            <Icon name="chevron-down" size={16} className="account-item__chevron" />
+            <Icon name="chevron-right" size={16} className="account-item__chevron" />
           </button>
         )}
 
@@ -370,7 +394,10 @@ export default function ProfilePage() {
             Tus valoraciones
             <em>{wineStats.ratedCount} {wineStats.ratedCount === 1 ? "vino puntuado" : "vinos puntuados"} · públicas</em>
           </span>
-          <Icon name="arrow-right" size={16} className="account-item__chevron" />
+          {/* El mismo chevron que las otras filas de la lista: acá era una
+              flecha distinta, así que dos filas que hacen lo mismo —llevarte a
+              otra pantalla— se señalaban con dos símbolos. */}
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
         </button>
       )}
       {/* Cuántos vinos probaste: es lo que decide si el diario vacío se muestra

@@ -2,6 +2,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMe, login as loginRequest, logout as logoutRequest } from "../services/authApi";
 import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
+import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
 
 export const AuthContext = createContext(null);
 
@@ -190,8 +191,12 @@ export const AuthProvider = ({ children }) => {
        * entrara después en este mismo navegador vería los vinos de la anterior
        * hasta que terminara la revalidación. Es una filtración de datos
        * privados, no una molestia de rendimiento, y se corta acá.
+       *
+       * Lo mismo con la lista de "Quiero probar", que desde que es una vista de
+       * Mi Bodega se cachea igual y por el mismo motivo.
        */
       limpiarCacheDeBodega();
+      limpiarCacheDeDeseos();
       escribir(turno, { estado: ANONIMO, user: null });
     }
   }, [tomarTurno, escribir]);

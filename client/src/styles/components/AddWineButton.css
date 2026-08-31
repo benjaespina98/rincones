@@ -1,0 +1,103 @@
+/* ══ El botón de escanear ══════════════════════════════════════════════════
+   Centrado sobre la barra de navegación, apoyado en su borde de arriba.
+
+   ── POR QUÉ NO ES UN LUGAR MÁS DE LA FILA ────────────────────────────────
+   Lo fue, y quedaba visiblemente corrido. La aritmética no da: con tres
+   pestañas y un cuarto lugar para el botón, la fila se reparte en cuatro
+   partes iguales y el botón cae en el 63% del ancho, no en el 50% — medido,
+   sesenta píxeles a la derecha del centro, encima de "Mi Bodega". Y no hay
+   forma de arreglarlo repartiendo distinto: para que el centro del botón caiga
+   en el medio con pestañas de ancho igual harían falta DOS pestañas de cada
+   lado, y son tres.
+
+   Entonces sale de la fila: las tres pestañas se reparten el ancho completo,
+   parejas, y el botón se centra por su cuenta con `left: 50%`. El centro es el
+   centro, independiente de cuántas secciones haya.
+
+   ── POR QUÉ APOYADO Y NO FLOTANDO ALTO ───────────────────────────────────
+   Se hunde ocho píxeles dentro de la barra, así que se lee como parte de ella
+   y no como algo suelto encima. Esos ocho píxeles son el margen vacío que la
+   barra tiene arriba de los íconos, así que no tapa nada: la pestaña del medio
+   conserva su ícono y su etiqueta enteros, debajo.
+
+   ── POR QUÉ NO LLEVA ETIQUETA ────────────────────────────────────────────
+   Las pestañas la llevan porque son lugares y hay que nombrarlos. Ésta no es
+   un lugar: es una cámara, y una cámara ya dice qué hace. Escribirle "Agregar"
+   debajo la volvería la cuarta pestaña de una barra de tres.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.add-fab {
+  position: fixed;
+  left: 50%;
+  /* Ocho píxeles metido en la barra: `--nav-height` es su alto, así que si la
+     barra cambia, el botón la sigue solo. */
+  bottom: calc(var(--nav-height) - 8px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: calc(var(--z-nav) + 1);
+
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-fill);
+  color: #fff;
+  cursor: pointer;
+  /* Tres capas. El anillo oscuro de 3px lo recorta contra la barra —sin él, un
+     círculo violeta apoyado sobre un fondo casi negro se ve pegoteado al
+     borde—; las dos sombras le dan altura sin brillar. */
+  box-shadow:
+    0 0 0 3px rgba(9, 11, 19, 0.92),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.45);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.add-fab:active {
+  /* Pisa el `scale(0.97)` global, que borraría el translateX y haría saltar el
+     botón media pantalla a la derecha en cada toque. */
+  transform: translateX(-50%) scale(0.93);
+}
+
+@media (hover: hover) {
+  .add-fab:hover {
+    background: var(--accent-light);
+  }
+}
+
+/* ── Escritorio: la barra es un sidebar y el botón, su encabezado ──────────
+   En una columna vertical "levantarse un poco" no significa nada, así que ahí
+   la jerarquía la da el ancho completo y el nombre escrito: es la primera fila
+   del sidebar, que es donde vive la acción principal en cualquier herramienta
+   de escritorio. */
+@media (min-width: 1024px) {
+  .add-fab {
+    /* Vuelve al flujo: está escrito adentro del sidebar (ver
+       BottomTabNavigation.jsx), así que apenas deja de ser `fixed` se ubica
+       solo como primer elemento de la columna, debajo de la marca. Sin números
+       mágicos que mantener sincronizados con la altura de nada. */
+    position: static;
+    order: -1;
+    width: 100%;
+    height: 46px;
+    margin: 0 0 14px;
+    box-shadow: var(--shadow-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: var(--radius-md);
+    transform: none;
+    font-size: var(--text-base);
+    font-weight: 700;
+    box-shadow: var(--shadow-accent);
+  }
+
+  .add-fab::after {
+    content: "Escanear";
+  }
+
+  .add-fab:active {
+    transform: scale(0.98);
+  }
+}

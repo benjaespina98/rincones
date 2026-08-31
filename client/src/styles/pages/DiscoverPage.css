@@ -218,11 +218,7 @@
 }
 
 .spotlight__tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* Más grande y sin marco. El borde de 1px convertía la botella en "una foto
@@ -402,10 +398,16 @@
 /* 26px estaban calculados para tres grupos de enlaces uno abajo del otro. Con
    la tarjeta de la lección arriba, ese mismo aire la dejaba flotando lejos de
    los grupos a los que encabeza. 18px la ata al resto sin apretarla. */
+/* 24px entre grupos y no 18: Videos, Cursos y Música son bloques
+   independientes —distinto tema, distinta fuente, distinto color de rótulo— y
+   con 18 la última fila de uno quedaba casi tan cerca del rótulo del siguiente
+   como de su propio grupo, así que los tres se leían como una sola lista larga
+   de nueve filas. El aire es lo único que agrupa acá: los rótulos son chiquitos
+   y no hay cajas. */
 .explore {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
 }
@@ -520,14 +522,27 @@
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
 }
 
-.wine-search__chip:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
-  background: var(--surface);
+@media (hover: hover) {
+  .wine-search__chip:hover {
+    border-color: var(--line-accent);
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 .wine-search__chip:active {
   transform: scale(0.96);
+}
+
+/* El atajo que está puesto. Mismo lenguaje que el segmentado de Mi Bodega
+   —fondo del acento tenue, borde y texto encendidos— porque es lo mismo: una
+   opción elegida entre pocas. Si acá se marcara de otra forma habría dos
+   maneras de decir "estás en ésta" en la misma app. */
+.wine-search__chip.is-active {
+  border-color: var(--line-accent);
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  font-weight: 700;
 }
 
 .wine-search__results {
@@ -631,21 +646,10 @@
   text-overflow: ellipsis;
 }
 
+/* El layout lo pone `.wine-meta` (index.css), que es el mismo en las cinco
+   pantallas donde se escribe un vino. Acá sólo el aire con lo de arriba. */
 .wine-result-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
-  min-width: 0;
-}
-
-/* "Luján de Cuyo, Mendoza" se salía de la pastilla y quedaba cortado contra el
-   borde de la tarjeta, como si faltara texto por un error. */
-.wine-result-card__meta > .chip {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 3px;
 }
 
 
