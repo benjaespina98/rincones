@@ -349,8 +349,8 @@
   flex-shrink: 0;
 }
 
-/* El chevron ocupa las dos filas, a la derecha de rating y stock. */
-.wine-row__caret {
+/* La flecha ocupa las dos filas, a la derecha de rating y stock. */
+.wine-row__go {
   grid-column: 2;
   grid-row: 1 / -1;
 }
@@ -371,32 +371,65 @@
   white-space: nowrap;
 }
 
+/* El stock ya no vive en una pastilla: es un número, y un número bien
+   contrastado se lee igual de rápido en texto llano — el fondo redondeado no
+   agregaba lectura, agregaba una forma más a la fila. El color sigue haciendo
+   el trabajo de la urgencia (última botella en dorado, sin stock en rojo). */
+.wine-row__qty {
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .wine-row__qty.is-last {
   color: var(--gold-soft);
 }
 
-.wine-row__qty {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--text-secondary);
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.05);
-  white-space: nowrap;
-}
-
 .wine-row__qty.is-empty {
-  background: var(--wine-soft);
   color: var(--danger-text);
 }
 
-.wine-row__caret {
+.wine-row__go {
   color: var(--text-muted);
+}
+
+/* El chevron de "más acciones": botón propio, hermano de la fila, a
+   continuación del chip de probado. Mismo alto táctil que el resto de los
+   controles sueltos de la fila (qty-btn, toggle-chip). */
+.wine-row__disclosure {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.wine-row__disclosure:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.wine-row__disclosure-icon {
   transition: transform var(--transition-fast);
 }
 
-.wine-row.is-expanded .wine-row__caret {
+.wine-row.is-expanded .wine-row__disclosure-icon {
   transform: rotate(180deg);
+}
+
+.wine-row__disclosure:disabled {
+  cursor: default;
 }
 
 /* Contenido expandido.
@@ -462,9 +495,14 @@
   min-width: 160px;
 }
 
+/* A la derecha, donde quedaban antes de que se fuera "Ver ficha completa"
+   (ese botón ocupaba el resto del ancho con `flex: 1` y empujaba a estos dos
+   al final; sin él, sin `justify-content` se habrían quedado pegados a la
+   izquierda). */
 .wine-row__links {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -637,28 +675,6 @@
   opacity: 0.8;
 }
 
-.wine-row__detail {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line-accent);
-  background: rgba(126, 89, 201, 0.14);
-  color: var(--accent-soft);
-  font-size: var(--text-base);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.wine-row__detail:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
 .wine-row__icon-btn {
   width: 44px;
   height: 44px;
@@ -716,10 +732,15 @@
     padding: 16px 20px 32px;
   }
 
-  /* En pantallas anchas la lista se acomoda en dos columnas de filas. */
+  /* En pantallas anchas la lista se acomoda en columnas de filas.
+     `auto-fill` con un piso de 340px y no un número fijo: con dos columnas
+     fijas, un monitor ancho dejaba cada fila estirada a más de 500px —el
+     nombre y dos chips perdidos en el medio de una tarjeta que no necesita
+     ese ancho— en vez de sumar una tercera columna. Acá el número de
+     columnas lo decide el espacio disponible, no un breakpoint adivinado. */
   .wines-list {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     align-items: start;
   }
 
@@ -736,11 +757,10 @@
 
 @media (min-width: 1024px) {
   .body-page {
-    max-width: 1100px;
+    max-width: 1280px;
     margin: 0 auto;
   }
-
-  }
+}
 
 /* ── Wishlist ──
    MUERTO. Ninguna de estas dieciocho reglas tiene un selector en el JSX: la
@@ -891,6 +911,22 @@
   height: 130px;
 }
 
+/* ── LA GRILLA GANA, SIEMPRE ─────────────────────────────────────────────────
+   El contenedor de la miniatura vuelve a declararse acá, ahora combinado con
+   protagonista/archivo (3 clases contra 2: gana por especificidad, no por
+   orden). Sin esto, la regla de la vitrina (72×90, más abajo en esta misma
+   hoja) y la del archivo (38×38) le ganaban a ÉSTA por venir después en el
+   archivo — la miniatura se achicaba a una fracción de los 130px que la
+   grilla pide, y encima el dibujo de respaldo, dimensionado para 130px
+   (ver `artSize` en BodyPage.jsx), quedaba más alto que su propio marco y se
+   recortaba contra el borde: la botella entraba cortada por arriba y por
+   abajo. En grilla la foto manda sobre cualquier otra decisión de tamaño. */
+.wines-list--grid.wines-list--protagonista .wine-row__thumb,
+.wines-list--grid.wines-list--archivo .wine-row__thumb {
+  width: 100%;
+  height: 130px;
+}
+
 .wines-list--grid .wine-row__right {
   flex-direction: row;
   justify-content: space-between;
@@ -941,6 +977,17 @@
 @media (min-width: 700px) {
   .wines-list--grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* En desktop, tantas columnas como entren, no tres fijas: a 1280px de ancho
+   tres celdas dejaban cada botella nadando en casi 400px de aire, mucho más
+   de lo que una etiqueta necesita para reconocerse. Mismo criterio que la
+   lista de arriba (auto-fill): el espacio decide, no una cifra pensada para
+   tablet. */
+@media (min-width: 1024px) {
+  .wines-list--grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 
@@ -1110,44 +1157,62 @@
    identidad. Probado en pantalla, abajo con la uva y el año partía el renglón en
    dos y estiraba la tarjeta — el dato que venía a ayudar terminaba entorpeciendo
    la lectura de toda la fila. */
+/* "En su punto" ya no es una pastilla: ícono y texto en línea, en el mismo
+   color que antes tenía el borde. Iba en su propio recuadro violeta cuando al
+   lado, en la misma fila, ya hay una pastilla de tipo y una de stock — tres
+   cápsulas por vino es la fila hablando en etiquetas. El color y el ícono ya
+   distinguen esto de un dato neutro; no hace falta además dibujarle un marco. */
 .wine-row__peak {
   /* `justify-self` y no `align-self`: la columna de info es un grid, y sin esto
-     la pastilla se estiraba a lo ancho de toda la fila —hasta meterse debajo del
-     botón de "Probado"— en vez de ocupar lo que mide su texto. */
+     el texto se estiraba a lo ancho de toda la fila —hasta meterse debajo del
+     botón de "Probado"— en vez de ocupar lo que mide. */
   justify-self: start;
   margin-top: 3px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
-  background: var(--accent-muted);
   font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--accent-soft);
   white-space: nowrap;
 }
 
+/* ── El tipo de vino ya no es una pastilla ──────────────────────────────────
+   Antes era un recuadro con borde y fondo propio, y compartía renglón con el
+   chip de stock y el de "en su punto": tres cápsulas de tres colores en la
+   misma tarjeta, más el ícono de favorito y el chip de "Probado" — la fila
+   entera hablando en etiquetas, que es exactamente el aire "hecho con IA" que
+   se pidió sacar. Vivino o Delectable resuelven esto con tipografía y color,
+   no con un botón por dato: un punto del color de la uva y el nombre en ese
+   mismo color, corriendo en la misma línea que la uva y la cosecha. La
+   diferencia sigue viéndose —tal vez más rápido que en un recuadro, porque no
+   hay que leer la palabra para saber el color— y la fila deja de verse
+   recortada en piezas. */
 .wine-row__type {
-  display: inline-block;
-  margin-right: 7px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: var(--text-2xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 6px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--text-secondary);
   vertical-align: middle;
 }
 
-.wine-row__type--red { color: #f0899d; border-color: rgba(198, 70, 95, 0.34); }
-.wine-row__type--white { color: var(--gold-soft); border-color: rgba(242, 183, 55, 0.3); }
-.wine-row__type--rosé { color: #f2a0c0; border-color: rgba(242, 160, 192, 0.3); }
-.wine-row__type--sparkling { color: #8fd8e8; border-color: rgba(143, 216, 232, 0.3); }
-.wine-row__type--fortified { color: #d0a878; border-color: rgba(208, 168, 120, 0.32); }
+.wine-row__type::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.wine-row__type--red { color: #f0899d; }
+.wine-row__type--white { color: var(--gold-soft); }
+.wine-row__type--rosé { color: #f2a0c0; }
+.wine-row__type--sparkling { color: #8fd8e8; }
+.wine-row__type--fortified { color: #d0a878; }
 
 /* Las estrellas quedan sueltas bajo la bodega: en la vitrina hay lugar y se
    comparan de un vistazo entre vinos vecinos. */
@@ -1159,24 +1224,19 @@
   font-size: var(--text-lg);
 }
 
-/* El chip de stock: el dato con el que decidís si este vino puede ser el de hoy.
-   En la vitrina es una pastilla de verdad, con el color de la app y el número en
-   grande; en el archivo vuelve a ser un dato más. */
+/* El stock: el dato con el que decidís si este vino puede ser el de hoy. En la
+   vitrina pesa más — letra más grande, color de la app — pero sigue siendo
+   texto, no una pastilla de verdad; ya hay suficientes formas en esta fila
+   (el punto del tipo, el ícono de favorito, el chip de probado). */
 .wines-list--protagonista .wine-row__qty {
-  font-size: var(--text-base);
-  font-weight: 800;
-  padding: 6px 13px;
+  font-size: var(--text-xl);
   color: var(--accent-soft);
-  background: rgba(126, 89, 201, 0.16);
-  border: 1px solid var(--line-accent);
   font-variant-numeric: tabular-nums;
 }
 
 /* Última botella: si la abrís, se termina. Vale avisarlo antes, no después. */
 .wines-list--protagonista .wine-row__qty.is-last {
   color: var(--gold-soft);
-  background: rgba(242, 183, 55, 0.14);
-  border-color: rgba(242, 183, 55, 0.32);
 }
 
 /* ── El archivo ──────────────────────────────────────────────────────────── */
@@ -1260,8 +1320,11 @@
   background: var(--accent-muted);
 }
 
-/* Mientras seleccionás, la flecha de "desplegar" miente sobre lo que va a pasar. */
-.wines-list.is-selecting .wine-row__caret {
+/* Mientras seleccionás, la flecha de "ir a la ficha" y el chevron de
+   "más acciones" mienten sobre lo que va a pasar: tocar la fila elige, no
+   navega ni despliega. */
+.wines-list.is-selecting .wine-row__go,
+.wines-list.is-selecting .wine-row__disclosure {
   opacity: 0;
 }
 

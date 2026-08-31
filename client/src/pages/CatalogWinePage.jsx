@@ -136,7 +136,9 @@ export default function CatalogWinePage() {
         </div>
 
         <div className="wine-detail-hero__overlay">
-          <h1 className="wine-detail-hero__name">{wine.name}</h1>
+          {/* h2: ver el comentario en WineDetailPage — el h1 de la pantalla ya
+              lo puso AppLayout en la barra superior. */}
+          <h2 className="wine-detail-hero__name">{wine.name}</h2>
           {wine.region && <p className="wine-detail-hero__origin">{wine.region}</p>}
         </div>
       </div>

@@ -224,7 +224,7 @@ export default function SuggestionsPage() {
           sí misma, más una instrucción que el campo de abajo —con su ícono de
           cubiertos y su placeholder— ya da. Un título nombra la pantalla. */}
       <header className="sommelier-header">
-        <h1>Maridaje</h1>
+        <h2>Maridaje</h2>
       </header>
 
       <section className="context-selector">
@@ -312,7 +312,7 @@ export default function SuggestionsPage() {
             // Sin `hint`: el estado vacío de una pantalla que todavía no
             // preguntó nada no tiene que explicar el producto. El campo y los
             // atajos están arriba, a la vista.
-            title="Elegí un plato para ver los vinos que le van"
+            title="Elegí un plato y armamos el maridaje"
             compact
           />
         )}

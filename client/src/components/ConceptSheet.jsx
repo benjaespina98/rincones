@@ -54,13 +54,27 @@ export default function ConceptSheet({ id, ctx, onClose }) {
         <div
           ref={panelRef}
           tabIndex={-1}
-          className="settings-sheet__panel concept-sheet"
+          className="settings-sheet__panel settings-sheet__panel--feature concept-sheet"
           role="dialog"
           aria-modal="true"
           aria-label={concepto.title}
         >
-          <div className="settings-sheet__head">
-            <h2>{concepto.title}</h2>
+          {/* Mismo encabezado que cualquier hoja de la app (el círculo para
+              cerrar, el alto, el borde de abajo) más el vocabulario de las
+              hojas de LECTURA (`--feature`, ver SettingsSheet.css): el
+              medallón y el rótulo son los mismos que la tarjeta "Aprendé
+              sobre vino" que la dispara, así que abrir la hoja se siente como
+              CONTINUAR esa tarjeta y no como entrar a un diálogo distinto.
+              Sin esto, esta hoja y la de "Cambiar contraseña" eran,
+              visualmente, el mismo componente con otro texto adentro. */}
+          <div className="settings-sheet__head settings-sheet__head--feature">
+            <span className="settings-sheet__icon" aria-hidden="true">
+              <Icon name="graduation" size={17} />
+            </span>
+            <div className="settings-sheet__heading">
+              <span className="settings-sheet__eyebrow">Aprendé sobre vino</span>
+              <h2>{concepto.title}</h2>
+            </div>
             <button
               type="button"
               className="settings-sheet__close"

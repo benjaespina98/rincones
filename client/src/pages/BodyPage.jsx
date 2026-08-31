@@ -239,6 +239,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
   useEffect(() => {
     setModoSeleccion(false);
     setSeleccion(new Set());
+    // Una fila desplegada en la vitrina no tiene ni sentido ni forma de
+    // cerrarse si la vista cambia y esa misma fila pasa a dibujarse como
+    // archivo (una sola línea, sin el chevron que abre y cierra el panel).
+    setExpandedId(null);
   }, [vista]);
 
   // El error de carga se muestra en la pantalla (con reintento), no en un toast
@@ -1143,12 +1147,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     que es de una palabra. Un botón adentro de otro botón no es
                     HTML válido, y por eso son hermanos y no anidados. */}
                 <div className="wine-row__head">
-                  {/* En LISTA tocar expande —ahí conviven la fila y sus acciones
-                      rápidas—; en GRILLA tocar abre la ficha.
-                      Es la misma decisión que toma Vivino y responde a para qué
-                      sirve cada modo: la grilla es para reconocer una etiqueta de
-                      un vistazo, y expandir una tarjeta adentro de una cuadrícula
-                      estira una celda y descoloca a todas sus vecinas. */}
+                  {/* Tocar la fila SIEMPRE abre la ficha, en lista y en grilla
+                      por igual — es lo que espera cualquiera que use una app
+                      hoy, y obligar a un segundo toque en "Ver ficha
+                      completa" (adentro del desplegable) no lo era. Las
+                      acciones rápidas de la lista (abrir botella, favorito,
+                      eliminar, los datos que no entran en la cabecera) siguen
+                      ahí, pero detrás de su propio control — el chevron de
+                      abajo — y no escondidas atrás del gesto más obvio de
+                      todos. */}
                   <button
                     type="button"
                     className="wine-row__main"
@@ -1158,11 +1165,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       // entero en memoria y puede pintar en el primer frame en
                       // vez de tapar la pantalla con un esqueleto para volver a
                       // pedir lo que esta lista ya bajó (ver WineDetailPage).
-                      return esGrilla
-                        ? navigate(`/vino/${wine._id}`, { state: { wine } })
-                        : setExpandedId(expanded ? null : wine._id);
+                      return navigate(`/vino/${wine._id}`, { state: { wine } });
                     }}
-                    aria-expanded={modoSeleccion || esGrilla ? undefined : expanded}
                     aria-pressed={modoSeleccion ? elegido : undefined}
                   >
                     {/* La tilde ocupa el lugar de la foto en vez de sumar una
@@ -1179,9 +1183,23 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           src={wine.image}
                           type={wine.type}
                           alt=""
-                          artSize={esVitrina ? 104 : 40}
-                          /* La vitrina presenta la botella; la fila es una miniatura
-                             de 46px, donde una botella entera no se leería. */
+                          /* El dibujo de respaldo (WineArtwork) se pide en un
+                             alto FIJO en píxeles, y el marco que lo contiene
+                             mide distinto según el modo: 130px en grilla,
+                             90px en la vitrina de lista, 38px en el archivo.
+                             Antes era un solo valor (104) para los tres, así
+                             que en dos de ellos no coincidía con su marco: en
+                             lista sobraba de más (el marco es más chico que el
+                             dibujo) y la botella se recortaba contra el borde
+                             — el mismo recorte, más grave, en grilla antes de
+                             que el fix de arriba le devolviera sus 130px de
+                             alto real. Ahora cada modo pide el tamaño que su
+                             propio marco puede mostrar entero, con aire. */
+                          artSize={esGrilla ? 112 : esVitrina ? 76 : 30}
+                          /* La vitrina y la grilla presentan la botella entera
+                             (contain); el archivo en lista es una miniatura de
+                             38px, donde lo que importa es el color y la
+                             textura de la etiqueta, no la forma completa. */
                           fit={esVitrina ? "contain" : "cover"}
                         />
                       )}
@@ -1216,7 +1234,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
                               {WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}
                             </span>
                           )}
-                          {uvaYAño}
+                          {/* El punto de color ya distingue el tipo de lo que
+                              sigue; falta el separador de texto que antes ponía
+                              el borde de la pastilla. */}
+                          {esVitrina && uvaYAño ? `· ${uvaYAño}` : uvaYAño}
                         </span>
                       )}
                       {bodega && <span className="wine-row__winery">{bodega}</span>}
@@ -1261,15 +1282,45 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
                         </span>
                       )}
-                      {/* En grilla no hay nada que desplegar: la flecha diría una
-                          mentira sobre lo que va a pasar al tocar. */}
-                      <Icon
-                        name={esGrilla ? "arrow-right" : "chevron-down"}
-                        size={esGrilla ? 15 : 18}
-                        className="wine-row__caret"
-                      />
+                      {/* Siempre la misma flecha: la fila entera navega a la
+                          ficha en los dos modos, así que dice lo mismo en los
+                          dos. */}
+                      <Icon name="arrow-right" size={15} className="wine-row__go" />
                     </span>
                   </button>
+
+                  {/* El chevron: la puerta a las acciones rápidas sin salir de
+                      la lista (abrir botella, favorito, eliminar, los datos
+                      que la cabecera no dijo). Sólo en la vitrina — ahí la
+                      cabecera envuelve a dos renglones y hay dónde ponerlo sin
+                      apretar nada. En el archivo (Todos/Probados) la fila es
+                      una sola línea de 38px con la uva, la cosecha, el stock y
+                      ahora la flecha a la ficha ya peleando el ancho contra el
+                      nombre: sumar un botón más ahí volvía a cortar títulos
+                      ("Cabernet Franc" → "Cabern et…"), que es exactamente lo
+                      que costó sacar la última vez que se tocó esta fila. En
+                      grilla tampoco: no hay dónde desplegarlas sin descolocar
+                      a las tarjetas vecinas, así que ahí esas acciones viven
+                      directo en la ficha. Botón hermano del de arriba y no
+                      anidado en él: dos toques posibles en la misma fila, cada
+                      uno con su propio target. */}
+                  {!esGrilla && esVitrina && (
+                    <button
+                      type="button"
+                      className="wine-row__disclosure"
+                      onClick={() => setExpandedId(expanded ? null : wine._id)}
+                      disabled={modoSeleccion}
+                      aria-expanded={expanded}
+                      aria-label={
+                        expanded
+                          ? `Ocultar acciones rápidas de ${wineDisplayName(wine)}`
+                          : `Más acciones de ${wineDisplayName(wine)}`
+                      }
+                      title={expanded ? "Ocultar acciones rápidas" : "Más acciones"}
+                    >
+                      <Icon name="chevron-down" size={18} className="wine-row__disclosure-icon" />
+                    </button>
+                  )}
 
                   {/* Probado o por probar, siempre explícito y siempre editable:
                       la ausencia de marca no se lee como "pendiente", se lee como
@@ -1308,7 +1359,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                   )}
                 </div>
 
-                {expanded && !esGrilla && (
+                {expanded && !esGrilla && esVitrina && (
                   <div className="wine-row__expand">
                     {/* Estado primero, y no colgado abajo del botón.
                         "Última botella" es la razón por la que uno duda antes de
@@ -1426,11 +1477,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
                     {/* Stock y antigüedad se leen arriba de todo, no acá: ver el
                         `wine-row__state-line` al abrir el desplegable. Si lo
                         probaste ya lo dice el chip de la cabecera, que además se
-                        puede tocar. */}
+                        puede tocar.
+                        Sin "Ver ficha completa": tocar la cabecera de la fila
+                        ya lleva ahí en un solo gesto, así que el link repetía,
+                        un renglón más abajo, la acción que se acaba de usar
+                        para llegar a este mismo panel. */}
                     <div className="wine-row__links">
-                      <button type="button" className="wine-row__detail" onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}>
-                        Ver ficha completa <Icon name="arrow-right" size={15} />
-                      </button>
                       <button
                         type="button"
                         className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
