@@ -27,6 +27,13 @@ const wineImageSchema = new mongoose.Schema(
     },
     name: String,
     winery: String,
+    // Puntaje 0-100 de wineImageQuality.service.js, sólo cuando Gemini pudo
+    // evaluar la imagen (data URL + Gemini configurado). Sin este campo, la
+    // foto quedó puesta sin evaluar — igual que TODAS las de antes de que
+    // existiera este puntaje. Eso es intencional: una foto nueva y bien
+    // puntuada puede desplazar a una vieja sin puntaje, así el pool viejo se
+    // va curando solo con el uso, sin necesitar una migración.
+    qualityScore: Number,
   },
   { timestamps: true }
 );
