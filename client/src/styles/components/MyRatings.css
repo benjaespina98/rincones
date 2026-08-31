@@ -19,11 +19,42 @@
 .myrat-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+/* ── LA FICHA ENTERA LLEVA AL VINO ──────────────────────────────────────────
+   El padding se mudó de la ficha al botón a propósito: si viviera afuera, el
+   marco de 12px quedaría fuera del área táctil y habría un borde de tarjeta que
+   se ve tocable y no lo es. Adentro, cualquier punto de la ficha —el nombre,
+   las estrellas, lo que escribiste— abre el vino. */
+.myrat-item__link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .myrat-item:hover {
+    border-color: var(--line-accent);
+  }
+
+  .myrat-item:hover .myrat-item__go {
+    color: var(--text);
+  }
+}
+
+.myrat-item__link:active {
+  background: var(--surface-2);
 }
 
 .myrat-item__top {
@@ -31,6 +62,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* El chevron no se achica cuando el nombre es largo: es lo que anuncia que la
+   ficha va a algún lado. */
+.myrat-item__go {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
 }
 
 /* El nombre cede espacio antes que las estrellas: las estrellas son cinco
@@ -63,7 +102,11 @@
 /* Sin recorte a dos líneas: en el perfil la ficha era una vista previa y el
    corte tenía sentido; en su propia pantalla, cortar lo que vos escribiste es
    esconder justamente aquello a lo que viniste. */
+/* `display: block` porque ahora es un span dentro del botón y no un <p>: un
+   párrafo no puede vivir adentro de un botón (HTML inválido), pero el texto
+   tiene que seguir ocupando su propio renglón. */
 .myrat-item__text {
+  display: block;
   margin: 0;
   font-size: var(--text-sm);
   line-height: 1.55;

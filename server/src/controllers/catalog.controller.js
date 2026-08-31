@@ -418,9 +418,44 @@ const reviews = async (req, res, next) => {
 };
 
 // GET /api/catalog/reviews/mine - tus reseñas, para el perfil.
+//
+// ── POR QUÉ VIAJA TAMBIÉN EL ID DEL VINO ────────────────────────────────────
+// Una reseña se guarda contra la CLAVE del vino (nombre + uva + bodega), no
+// contra una botella de tu bodega: así una puntuación tuya sigue valiendo aunque
+// borres el vino, y la misma reseña la ve cualquiera que busque ese vino. Pero
+// la lista del perfil se lee como "los vinos que valoré", y tocar uno tiene que
+// llevar al vino — para lo cual hace falta un id, que la reseña no tiene.
+//
+// Se resuelve acá y no en el cliente porque acá la respuesta cuesta una consulta
+// más, chica y del propio usuario (sólo los cuatro campos de la identidad); en
+// el cliente costaba bajar la bodega ENTERA en una pantalla que hoy no la
+// necesita para nada.
+//
+// El que no matchea no es un error: es un vino que valoraste y ya no tenés
+// —o que puntuaste desde el catálogo sin sumarlo—. Va sin `wineId`, y el
+// cliente lo manda a la ficha del catálogo, que se arma con estos mismos datos.
 const myReviews = async (req, res, next) => {
   try {
     const data = await wineReviews.listByUser(req.user.id);
+
+    if (data.length > 0) {
+      const mios = await Wine.find({ userId: req.user.id })
+        .select("name winery varietal")
+        .lean();
+      // La misma fórmula con la que se clavea la reseña: las dos formas de
+      // nombrar un vino —"Rutini" con la uva aparte, "Rutini Malbec" todo
+      // junto— caen en la misma clave y matchean igual.
+      const porClave = new Map();
+      for (const w of mios) {
+        const clave = poolKey(w.name, w.winery, w.varietal);
+        if (clave && !porClave.has(clave)) porClave.set(clave, String(w._id));
+      }
+      for (const r of data) {
+        const id = porClave.get(poolKey(r.name, r.winery, r.varietal));
+        if (id) r.wineId = id;
+      }
+    }
+
     return res.status(200).json({ data });
   } catch (error) {
     return next(error);

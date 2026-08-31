@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Icon from "./Icon";
 import StarRating from "./StarRating";
 import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
@@ -23,6 +25,7 @@ import "../styles/components/MyRatings.css";
  * cualquiera que busque ese vino.
  */
 export default function MyRatings() {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -40,6 +43,27 @@ export default function MyRatings() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /**
+   * Tocar una valoración lleva al vino que valoraste.
+   *
+   * Era una lista de vinos que no llevaba a ningún vino: leías "Rutini Malbec ·
+   * 4 estrellas", te acordabas a medias de por qué le pusiste eso, y la única
+   * salida era volver, ir a la bodega y buscarlo por nombre. Todo lo que
+   * contesta la pregunta que uno se hace acá —qué es, cuándo lo tomaste, qué
+   * escribiste, cuánto queda— ya está armado en la ficha.
+   *
+   * Dos destinos, y el server dice cuál (ver `myReviews`): si el vino sigue en
+   * tu bodega, tu ficha; si no —lo terminaste y lo borraste, o lo puntuaste
+   * desde el catálogo sin sumarlo—, la ficha pública, que se arma con los
+   * mismos datos que ya tiene la reseña. Nunca un callejón sin salida.
+   */
+  const abrirVino = (r) => {
+    if (r.wineId) return navigate(`/vino/${r.wineId}`);
+    return navigate("/descubrir/vino", {
+      state: { wine: { name: r.name, winery: r.winery, varietal: r.varietal, vintage: r.vintage } },
+    });
+  };
 
   if (loading) return <LoadingSkeleton type="inline" count={4} />;
 
@@ -61,23 +85,37 @@ export default function MyRatings() {
     <ul className="myrat__list" aria-label="Tus valoraciones">
       {reviews.map((r) => (
         <li key={r._id} className="myrat-item">
-          <div className="myrat-item__top">
-            <span className="myrat-item__wine">
-              <strong>{r.name}</strong>
-              {/* Bodega y cosecha en el mismo renglón: sin la añada, dos
-                  valoraciones tuyas del mismo vino en años distintos se ven
-                  idénticas y no se sabe cuál es cuál. */}
-              {(r.winery || r.vintage) && (
-                <em>
-                  {r.winery}
-                  {r.winery && r.vintage ? " · " : ""}
-                  {r.vintage ? `cosecha ${r.vintage}` : ""}
-                </em>
-              )}
+          {/* La ficha entera es el control, texto incluido: media tarjeta que
+              lleva al vino y media que no es la clase de blanco que uno
+              descubre tocando. Mismo criterio que la fila de Mi Bodega. */}
+          <button
+            type="button"
+            className="myrat-item__link"
+            onClick={() => abrirVino(r)}
+            aria-label={`Ver ${r.name}`}
+          >
+            <span className="myrat-item__top">
+              <span className="myrat-item__wine">
+                <strong>{r.name}</strong>
+                {/* Bodega y cosecha en el mismo renglón: sin la añada, dos
+                    valoraciones tuyas del mismo vino en años distintos se ven
+                    idénticas y no se sabe cuál es cuál. */}
+                {(r.winery || r.vintage) && (
+                  <em>
+                    {r.winery}
+                    {r.winery && r.vintage ? " · " : ""}
+                    {r.vintage ? `cosecha ${r.vintage}` : ""}
+                  </em>
+                )}
+              </span>
+              <StarRating value={r.rating} size="sm" showValue={false} />
+              {/* El mismo chevron que cierra las filas de la bodega y las del
+                  perfil: es lo que dice "esto lleva a otro lado" sin agregar
+                  una palabra más a una ficha que ya tiene cuatro datos. */}
+              <Icon name="chevron-right" size={16} className="myrat-item__go" />
             </span>
-            <StarRating value={r.rating} size="sm" showValue={false} />
-          </div>
-          {r.text && <p className="myrat-item__text">{r.text}</p>}
+            {r.text && <span className="myrat-item__text">{r.text}</span>}
+          </button>
         </li>
       ))}
     </ul>

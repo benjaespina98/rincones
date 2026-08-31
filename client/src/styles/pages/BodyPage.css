@@ -247,6 +247,7 @@
    título largo el chevron terminaba en cualquier lado, sin anclarse a nada.
    ═══════════════════════════════════════════════════════════════════════════ */
 .wine-row--vitrina .wine-row__head {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -254,14 +255,42 @@
   padding-right: 0;
 }
 
-/* El chip de probado, alineado con el TÍTULO y no con el borde de la tarjeta.
-   Los 96px son los que ocupa la columna de la izquierda del bloque de arriba:
-   el padding de la fila (12) + la foto (72) + el gap (12). Así el chip cuelga
-   del nombre, que es de lo que habla, en vez de arrancar debajo de la botella.
-   Si cambia el tamaño de la miniatura de la vitrina, cambia acá. */
+/* ── EL CHIP DE PROBADO: A LA DERECHA, Y FUERA DEL CAMINO DEL DEDO ──────────
+   Colgaba del título, indentado 96px (el ancho de la columna de la foto), y ahí
+   caía justo en el medio de la tarjeta: leído de un vistazo no se sabía si era
+   un dato del vino o un botón suelto, y era la única cosa de la fila que no
+   estaba ni a la izquierda con la identidad ni a la derecha con el estado. El
+   estado va a la derecha, que es donde ya están el stock y la flecha, y donde
+   la grilla lo pone desde siempre.
+
+   Y sale del flujo. Ocupaba un renglón entero para él, así que la mitad
+   izquierda de ese renglón era una franja muerta EN EL MEDIO de la tarjeta:
+   tocabas ahí —dentro de la card, sobre nada— y no pasaba nada. Ahora el chip
+   se apoya encima y el botón grande de abajo (`wine-row__main`, el que abre la
+   ficha) se estira con un padding para cubrir esa franja: cualquier punto de la
+   tarjeta que no sea el chip ni la flecha abre el vino.
+
+   Los 40px de abajo son lo que mide la franja del chevron (26px + 2px de
+   margen) más el padding inferior de la cabecera (10px): el chip se apoya justo
+   arriba de ella. Si cambia el alto de `.wine-row--vitrina .wine-row__disclosure`,
+   cambia acá. */
 .wine-row--vitrina .wine-row__tasted {
-  align-self: flex-start;
-  margin: 0 0 2px calc(var(--card-pad-compact) + 72px + 12px);
+  position: absolute;
+  right: var(--card-pad-compact);
+  bottom: 40px;
+  z-index: 1;
+  margin: 0;
+}
+
+/* El lugar que el chip ya no ocupa en el flujo, reservado desde adentro del
+   botón que abre la ficha. Sin esto la tarjeta se encogería 42px y el chip
+   quedaría pisando la bodega o las estrellas.
+
+   Las tres clases no son decoración: más abajo, `.wines-list--protagonista
+   .wine-row__main` declara `padding` en atajo, y con dos clases contra dos
+   ganaba por venir después — el padding de acá se perdía entero. */
+.wines-list--protagonista .wine-row--vitrina .wine-row__main {
+  padding-bottom: 46px;
 }
 
 /* En teléfonos angostos el chip se queda SIN texto por una regla general de más
