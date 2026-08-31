@@ -67,6 +67,15 @@
   opacity: 1;
 }
 
+/* Variante dorada del halo, para el puñado de lugares donde de verdad hace
+   falta marcar "esto es especial" (ver --gold en index.css) en vez del violeta
+   de siempre. Se pide explícitamente con esta clase — nada la activa sola.
+   Más chica y más tenue que la violeta: no es una medalla sobre la foto, es
+   luz que apenas se nota si no la buscás. */
+.wine-photo--gold.wine-photo--contain::after {
+  background: radial-gradient(40% 34% at 50% 56%, var(--gold-glow), transparent 60%);
+}
+
 /* Con la foto entera a la vista, el dibujo de respaldo asomaría por los costados
    de la botella real: dos botellas superpuestas. Se apaga el dibujo Y su fondo,
    para que la botella flote sobre la superficie de la tarjeta en vez de sobre un
