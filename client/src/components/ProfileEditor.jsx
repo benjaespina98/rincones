@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
+import { AVATAR_COLORS, avatarColor, initials } from "../utils/identity";
 import Icon from "./Icon";
 import "../styles/components/ProfileEditor.css";
 import Portal from "./Portal";
-
-const AVATAR_OPTIONS = ["👤", "🍷", "🍇", "🥂", "🍾", "🧑‍🌾", "😎", "🌟"];
 
 const BIO_MAX = 180;
 const NAME_MAX = 40;
@@ -20,9 +19,11 @@ const getInitial = (data) => ({
   country: data?.country || "",
   bio: data?.bio || "",
   birthDate: toDateInput(data?.birthDate),
-  avatar: data?.avatar || "👤",
-  // La foto de Google, si la cuenta la trae. Viaja aparte del emoji: son dos
-  // formas de mostrar el perfil y no las dos a la vez (ver el bloque de abajo).
+  // El color del avatar. Antes era un emoji; ver `AVATAR_COLORS` en
+  // utils/identity.js. Un valor viejo cae al primer color solo.
+  avatar: data?.avatar || "",
+  // La foto de Google, si la cuenta la trae. Viaja aparte: son dos formas de
+  // mostrar el perfil y no las dos a la vez (ver el bloque de abajo).
   avatarPhoto: data?.avatarPhoto || "",
 });
 
@@ -41,6 +42,11 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
   const [form, setForm] = useState(() => getInitial(initialData));
   const [error, setError] = useState("");
   const firstFieldRef = useRef(null);
+
+  // En vivo, con lo que se está tipeando: el avatar es el nombre, así que tiene
+  // que cambiar mientras se escribe y no recién al guardar. El mail entra como
+  // último recurso, igual que en el resto de la app (ver utils/identity.js).
+  const iniciales = initials({ firstName: form.firstName, lastName: form.lastName, email });
 
   /* Bloquea el scroll del fondo y da foco al primer campo al abrir.
 
@@ -118,11 +124,11 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
 
           <div className="profile-editor__scroll">
             <section className="profile-editor__avatar-section">
-              {/* Con foto de Google puesta, ES el avatar: mostrar el emoji al
-                  lado sería tener dos fotos de perfil diciendo cosas distintas.
-                  El picker de emojis vuelve recién si la sacás con "Usar un
-                  emoji en su lugar" — la misma idea que "Pegar un enlace en
-                  cambio" de ImagePicker, aplicada acá. */}
+              {/* Con foto de Google puesta, ÉSA es el avatar: mostrar las
+                  iniciales al lado sería tener dos identidades diciendo cosas
+                  distintas. El selector de color vuelve recién si la sacás —la
+                  misma idea que "Pegar un enlace en cambio" de ImagePicker,
+                  aplicada acá. */}
               {form.avatarPhoto ? (
                 <>
                   <img className="profile-editor__avatar-photo" src={form.avatarPhoto} alt="" />
@@ -132,27 +138,35 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
                     className="profile-editor__avatar-swap"
                     onClick={() => setField("avatarPhoto", "")}
                   >
-                    Usar un emoji en su lugar
+                    Usar mis iniciales
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="profile-editor__avatar">{form.avatar}</div>
-                  <p className="profile-editor__avatar-label">Elegí tu avatar</p>
+                  {/* Las iniciales se arman con lo que se está escribiendo en el
+                      formulario, no con lo que estaba guardado: quien entra a
+                      poner su nombre por primera vez ve cambiar su avatar
+                      mientras escribe, en vez de una letra que no tiene nada que
+                      ver hasta que guarde. */}
+                  <div
+                    className={`profile-editor__avatar avatar-color--${avatarColor(form.avatar)}`}
+                  >
+                    {iniciales}
+                  </div>
+                  <p className="profile-editor__avatar-label">Color de tu avatar</p>
                   <div className="profile-editor__avatar-options">
-                    {AVATAR_OPTIONS.map((emoji) => (
+                    {AVATAR_COLORS.map((color) => (
                       <button
-                        key={emoji}
+                        key={color.id}
                         type="button"
-                        className={`profile-editor__avatar-chip ${
-                          form.avatar === emoji ? "is-selected" : ""
+                        className={`profile-editor__avatar-chip avatar-color--${color.id} ${
+                          avatarColor(form.avatar) === color.id ? "is-selected" : ""
                         }`}
-                        onClick={() => setField("avatar", emoji)}
-                        aria-label={`Avatar ${emoji}`}
-                        aria-pressed={form.avatar === emoji}
-                      >
-                        {emoji}
-                      </button>
+                        onClick={() => setField("avatar", color.id)}
+                        aria-label={color.label}
+                        aria-pressed={avatarColor(form.avatar) === color.id}
+                        title={color.label}
+                      />
                     ))}
                   </div>
                 </>

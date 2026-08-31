@@ -232,6 +232,35 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
     setModo(puedeUsarCamaraEnVivo() ? "eligiendo" : "archivo");
   };
 
+  /**
+   * Los dos selectores de archivo, ocultos.
+   *
+   * Se dibujan en TODOS los modos y no sólo en el de archivo. El de galería lo
+   * necesita también la cámara viva: su botón de abajo a la izquierda abría la
+   * pantalla del selector —o sea, apagaba la cámara para mostrar otra pantalla
+   * con dos botones más— cuando lo que la persona pidió fue elegir una foto.
+   * Ahora abre la galería del sistema de una, que es lo que dice el ícono.
+   */
+  const selectores = (
+    <>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleInputChange}
+        className="label-scanner__input"
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleInputChange}
+        className="label-scanner__input"
+      />
+    </>
+  );
+
   // ── Con foto ya tomada: la vista previa, analizando o el error. Es la misma
   // para los dos modos —cámara viva o selector— porque desde acá en adelante
   // ya no importa de dónde salió la imagen. ──────────────────────────────────
@@ -278,6 +307,7 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
   if (modo === "viva") {
     return (
       <div className="label-scanner label-scanner--viva">
+        {selectores}
         <div className="label-scanner__viewport">
           <video ref={videoRef} autoPlay playsInline muted className="label-scanner__video" />
           <div className="label-scanner__frame label-scanner__frame--overlay" aria-hidden="true">
@@ -293,8 +323,8 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
           <button
             type="button"
             className="label-scanner__viva-secondary"
-            onClick={() => { detenerCamara(); setModo("archivo"); }}
-            aria-label="Elegir de la galería"
+            onClick={() => galleryInputRef.current?.click()}
+            aria-label="Elegir una foto de la galería"
             title="Galería"
           >
             <Icon name="image" size={20} />
@@ -351,21 +381,7 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
   // propósito (el botón de galería en el modo vivo cae acá). ─────────────────
   return (
     <div className="label-scanner">
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleInputChange}
-        className="label-scanner__input"
-      />
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleInputChange}
-        className="label-scanner__input"
-      />
+      {selectores}
 
       <div className="label-scanner__frame" aria-hidden="true">
         <span className="label-scanner__frame-corner label-scanner__frame-corner--tl" />

@@ -259,7 +259,9 @@ const verifyWineWithAi = async (lectura = {}) => {
     // La misma forma que una fila del catálogo, para que el match no tenga que
     // saber de dónde vino cada candidato.
     id: `verif-${slug(`${clean(parsed.winery)}-${line || properName}`)}`,
-    name: composeDisplayName({ name: properName, line }),
+    // Con la bodega: una gama genérica ("Reserva") se completa a "Norton
+    // Reserva". Ver GENERIC_LINES en data/wineIdentity.js.
+    name: composeDisplayName({ name: properName, line, winery: clean(parsed.winery) }),
     line,
     properName,
     winery: clean(parsed.winery),

@@ -29,17 +29,24 @@
   overflow: hidden;
 }
 
+/* Tus iniciales sobre el color elegido (ver `.avatar-color--*` en index.css).
+   Medía 38px de fuente porque adentro iba un emoji; las iniciales son texto y
+   con dos letras en 38px la caja queda apretada. Sin el fondo blanco
+   translúcido que había: ahora el color lo pone la clase, y un velo encima se
+   lo lavaría a los siete por igual. */
 .avatar-large {
   width: 76px;
   height: 76px;
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 20px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
   flex-shrink: 0;
 }
 
@@ -68,6 +75,27 @@
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+/* Cuando todavía no hay nombre: en vez del hueco que quedaba, la invitación a
+   ponerlo. Va con el tamaño del nombre que reemplaza —es lo que va a ocupar ese
+   lugar— pero subrayada y en voz más baja, porque es una acción y no un dato. */
+.profile-name-cta {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .profile-name-cta:hover {
+    color: #fff;
+  }
 }
 
 .profile-info p {
@@ -225,25 +253,41 @@
 }
 
 /* Lista de acciones de cuenta (patrón app real: filas tocables). */
+/* ── La lista de ajustes ───────────────────────────────────────────────────
+   Cinco filas del mismo tipo, en una sola caja.
+
+   Antes flotaban separadas por dos píxeles de nada, cada una con su propio
+   redondeo: cinco tarjetitas apiladas en vez de una lista, y sin ninguna línea
+   que dijera dónde termina una fila y empieza la otra. Ahora es lo que hacen
+   los ajustes de iOS y de Android: una caja, filas del mismo alto, y un
+   separador de un píxel entre ellas.
+
+   El separador arranca DESPUÉS del ícono (`margin-left`) y no de punta a
+   punta: alineado con el texto, la lista se lee como una columna; de borde a
+   borde, cada fila vuelve a parecer una fila de tabla. */
 .account-list {
-  display: grid;
-  gap: 2px;
-  padding: 6px;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--elevated);
   overflow: hidden;
 }
 
+/* `space-between` con el rótulo estirándose: el chevron queda pegado al margen
+   derecho de la caja en TODAS las filas, largo el texto o corto. */
 .account-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
-  padding: 0 12px;
+  /* Mismo aire vertical arriba y abajo en las cinco: era `min-height: 52px`
+     sin padding, así que una fila que llegara a dos renglones se apretaba
+     contra los bordes mientras las demás respiraban. */
+  padding: 14px 16px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   font-size: var(--text-md);
@@ -253,8 +297,14 @@
   transition: background var(--transition-fast);
 }
 
-.account-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+.account-item + .account-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (hover: hover) {
+  .account-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .account-item__icon {
@@ -274,20 +324,26 @@
   min-width: 0;
 }
 
+/* Sin la rotación de -90° que había: el ícono era `chevron-down` girado a mano
+   desde acá, o sea un dibujo pensado para abrir un acordeón puesto de costado
+   con CSS. Ahora existe `chevron-right` en el set (ver Icon.jsx) y es el mismo
+   que cierra las filas de Mi Bodega y las de Quiero probar. */
 .account-item__chevron {
   color: var(--text-subtle);
-  transform: rotate(-90deg); /* chevron-down → apunta a la derecha */
 }
 
 /* ── La fila que lleva a una pantalla de contenido ─────────────────────────
    Misma anatomía que las filas de cuenta, pero con caja propia y un subtítulo:
    no es un ajuste, es una puerta a algo tuyo, y tiene que verse que hay algo
    del otro lado. */
+/* Ésta vive SUELTA, fuera de `.account-list`, así que se devuelve el redondeo
+   que la fila base perdió al volverse parte de una lista continua. */
 .account-item--feature {
   border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--elevated);
   align-items: center;
-  min-height: 62px;
+  padding: 16px;
 }
 
 .account-item--feature .account-item__icon {
@@ -339,7 +395,7 @@
   }
 
   .profile-header { padding: 24px; }
-  .avatar-large { width: 92px; height: 92px; font-size: 44px; border-radius: var(--radius-xl); }
+  .avatar-large { width: 92px; height: 92px; font-size: 33px; border-radius: var(--radius-xl); }
   .stats-grid { gap: 16px; }
   .profile-card { padding: 18px; }
 }

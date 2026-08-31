@@ -36,7 +36,6 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const RatingsPage = lazy(() => import("./pages/RatingsPage"));
 const WineDetailPage = lazy(() => import("./pages/WineDetailPage"));
 const CatalogWinePage = lazy(() => import("./pages/CatalogWinePage"));
-const GuardadosPage = lazy(() => import("./pages/GuardadosPage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 const AdminLayout = lazy(() => import("./pages/AdminLayout"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
@@ -169,10 +168,12 @@ function App() {
         {/* Home = Descubrí (recomendaciones + contenido) */}
         <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />
 
-        {/* Mi bodega (antes era "/") — solo stock real (escaneado) */}
+        {/* Mi bodega: las cuatro vistas de tu colección, incluida "Quiero
+            probar" (los que todavía no tenés). */}
         <Route path="/bodega" element={withLayout("Mi Bodega", <BodyPage />)} />
-        {/* Guardados = vinos que querés probar / favoritos (no los tenés) */}
-        <Route path="/guardados" element={withLayout("Guardados", <GuardadosPage />)} />
+        {/* "Guardados" era una pestaña propia y hoy es una vista de la bodega.
+            Quien tenga el enlace en favoritos aterriza donde esperaba. */}
+        <Route path="/guardados" element={<Navigate to="/bodega?vista=quiero-probar" replace />} />
         {/* Rutas viejas de favoritos → filtro dentro de bodega */}
         <Route path="/favoritos" element={<Navigate to="/bodega?filter=favorites" replace />} />
 

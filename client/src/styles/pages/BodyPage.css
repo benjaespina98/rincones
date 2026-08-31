@@ -238,6 +238,69 @@
   flex-shrink: 0;
 }
 
+/* ══ La cabecera de la fila que SE DESPLIEGA ═══════════════════════════════
+   Sólo la vitrina en modo lista (ver `wine-row--vitrina` en BodyPage.jsx). El
+   archivo sigue siendo una fila de una línea y no entra acá.
+
+   Tres renglones en vez de uno: el vino, su estado, y la puerta al panel.
+   Antes los tres peleaban el mismo renglón —nombre, chevron, chip— y con un
+   título largo el chevron terminaba en cualquier lado, sin anclarse a nada.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.wine-row--vitrina .wine-row__head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-right: 0;
+}
+
+/* El chip de probado, alineado con el TÍTULO y no con el borde de la tarjeta.
+   Los 96px son los que ocupa la columna de la izquierda del bloque de arriba:
+   el padding de la fila (12) + la foto (72) + el gap (12). Así el chip cuelga
+   del nombre, que es de lo que habla, en vez de arrancar debajo de la botella.
+   Si cambia el tamaño de la miniatura de la vitrina, cambia acá. */
+.wine-row--vitrina .wine-row__tasted {
+  align-self: flex-start;
+  margin: 0 0 2px calc(var(--card-pad-compact) + 72px + 12px);
+}
+
+/* En teléfonos angostos el chip se queda SIN texto por una regla general de más
+   arriba: cuando compartía renglón con el nombre, la palabra "Sin probar" le
+   comía el ancho al título y se dejaba sólo el ícono. Acá ya no comparte
+   renglón con nadie, así que esconderla es perder la palabra sin ganar nada —
+   y un círculo hueco solo, sin rótulo, no significa absolutamente nada. */
+.wine-row--vitrina .wine-row__tasted-text {
+  display: inline;
+}
+
+/* El chevron pasa a ser una franja al pie del bloque: ancho completo, centrado
+   y bajo. Ocupa el lugar donde va a aparecer el panel, que es lo que un chevron
+   hacia abajo promete. */
+.wine-row--vitrina .wine-row__disclosure {
+  width: auto;
+  height: 26px;
+  margin: 2px 0 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--text-subtle);
+}
+
+@media (hover: hover) {
+  .wine-row--vitrina .wine-row__disclosure:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--line);
+    color: var(--text);
+  }
+}
+
+/* Con el panel abierto, la línea de arriba del chevron sobra: la del panel ya
+   hace el corte y dos líneas paralelas a 26px de distancia se leen como un
+   error de alineación. */
+.wine-row.is-expanded .wine-row__disclosure {
+  border-top-color: transparent;
+}
+
 /* En pantallas angostas queda sólo el ícono: el chip completo le comía el ancho
    al nombre del vino, que es lo que hay que poder leer. */
 @media (max-width: 430px) {
@@ -455,55 +518,66 @@
    nada: el `border-top` del desplegable ya separa esto de la cabecera.
    Sin la caja, los datos flotan sobre el fondo del desplegable y el botón queda
    como lo único enmarcado, que es lo que uno vino a tocar. */
+/* Dos columnas fijas y no una fila que envuelve.
+   Envolviendo, la cantidad de columnas cambiaba con el largo de cada valor:
+   "Malbec / 2021 / Mendoza" entraba en un renglón y "Cabernet Sauvignon /
+   2019 / Luján de Cuyo, Mendoza" en tres, así que dos vinos abiertos uno al
+   lado del otro no tenían la misma forma y el ojo no encontraba dónde mirar.
+   Con la grilla, el rótulo de cada dato está siempre en el mismo lugar. */
 .wine-row__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
   margin: 0;
 }
 
+.wine-row__fact {
+  min-width: 0;
+}
+
+/* El rótulo, en versalitas y en el gris más bajo: es el andamio de la ficha,
+   no su contenido. Se lee una vez para ubicarse y después el ojo salta directo
+   a los valores. */
 .wine-row__facts dt {
-  font-size: var(--text-2xs);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-subtle);
 }
 
 .wine-row__facts dd {
-  margin: 1px 0 0;
+  margin: 2px 0 0;
   font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1.3;
+  /* 500 y no 600: son datos que se leen, no títulos. Con el rótulo apagado
+     arriba, este peso ya alcanza para que el valor sea lo que se ve primero. */
+  font-weight: 500;
+  line-height: 1.35;
   color: var(--text);
   overflow-wrap: anywhere;
 }
 
-/* Con una sola acción (es lo normal: "Abrí una botella" O "Marcar probado",
-   nunca las dos), el botón quedaba angosto y pegado a la izquierda, como una
-   pastilla perdida en una fila vacía. Ocupa el ancho completo: es la acción
-   principal de la fila desplegada y tiene que leerse como tal. */
-.wine-row__controls {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+/* ══ La botonera del pie ═══════════════════════════════════════════════════
+   Una sola fila para las tres acciones. Eran dos contenedores hermanos
+   (`__controls` con el botón principal y `__links` con los dos íconos pegados
+   al borde derecho, un renglón más abajo): dos filas para tres botones, sin
+   línea de base compartida y con tres alturas distintas.
 
-.wine-row__controls .wine-action-btn {
-  flex: 1;
-  min-width: 160px;
-}
-
-/* A la derecha, donde quedaban antes de que se fuera "Ver ficha completa"
-   (ese botón ocupaba el resto del ancho con `flex: 1` y empujaba a estos dos
-   al final; sin él, sin `justify-content` se habrían quedado pegados a la
-   izquierda). */
-.wine-row__links {
+   El principal se lleva lo que sobra; los secundarios son cuadrados fijos.
+   Sin `flex-wrap`: envolviendo, en una pantalla angosta el corazón y el tacho
+   se caían solos a un segundo renglón y volvía el problema que esto vino a
+   arreglar. El principal encoge en su lugar, que para eso tiene el texto y el
+   ícono adentro.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.wine-row__acciones {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
+}
+
+.wine-row__acciones .wine-action-btn {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Botón "Marcar probado" / "Probado" (faltaba estilo → caía al default). */
@@ -762,12 +836,12 @@
   }
 }
 
-/* ── Wishlist ──
-   MUERTO. Ninguna de estas dieciocho reglas tiene un selector en el JSX: la
-   lista de deseos dejó de vivir plegada dentro de la bodega y pasó a ser su
-   propia pantalla (GuardadosPage), con sus propios estilos. Lo que quedó acá es
-   el CSS de la versión anterior, que ya no puede alcanzar a ningún elemento.
-   Se borra entero — está en el historial de git si alguna vez hace falta. */
+/* ── "Quiero probar" ──
+   La lista de deseos volvió a esta pantalla, pero como una VISTA más del
+   segmentado y no plegada acá adentro como estaba la primera vez. Sus estilos
+   viven en styles/components/WishlistPanel.css, junto al componente: es una
+   fila con su propia anatomía (un vino que no tenés no ofrece abrir una
+   botella) y no una variante de `.wine-row`. */
 
 /* ══ Barra de herramientas de la bodega ═════════════════════════════════════
    Antes había CUATRO combos y CUATRO chips que hacían lo mismo, en tres filas,
@@ -1125,17 +1199,26 @@
    entero debajo: sin esto quedaba una franja vacía de 30px en cada tarjeta que
    no tenía puntaje, y una tarjeta con un agujero en el medio se lee como que
    algo no cargó. */
-.wines-list--protagonista .wine-row__tasted {
+/* ── Estas dos reglas ya no valen para la fila de LISTA ────────────────────
+   Subían el chip 34px y lo empujaban contra el borde derecho, para encajarlo en
+   una cabecera que era un solo renglón. Esa cabecera ya no existe en lista: el
+   chip tiene su propio renglón, alineado bajo el título (ver
+   `.wine-row--vitrina` más arriba).
+
+   Se acotan en vez de borrarse porque la vitrina en GRILLA sí conserva la
+   cabecera vieja —una celda de cuadrícula no se despliega, así que ahí no hubo
+   nada que reordenar— y sin estas dos el chip se le caía al pie de la tarjeta.
+
+   El `:not()` es lo que las deja sólo donde siguen sirviendo: `wine-row--vitrina`
+   se pone únicamente en lista (ver BodyPage.jsx). */
+.wines-list--protagonista .wine-row:not(.wine-row--vitrina) .wine-row__tasted {
   margin-top: -34px;
+  margin-left: auto;
 }
 
 .wines-list--protagonista .wine-row__right {
   align-self: flex-start;
   padding-top: 2px;
-}
-
-.wines-list--protagonista .wine-row__tasted {
-  margin-left: auto;
 }
 
 /* La foto, en formato botella y del tamaño de una foto.
@@ -1339,9 +1422,16 @@
   left: 50%;
   transform: translateX(-50%);
   /* Encima de la navegación, no debajo: es la barra de la tarea que estás
-     haciendo ahora y tiene que quedar al alcance del pulgar. */
-  bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 10px);
-  z-index: var(--z-nav);
+     haciendo ahora y tiene que quedar al alcance del pulgar.
+     `--nav-height` en vez del 68 escrito a mano que había: es el mismo alto de
+     barra que ya despeja el pie de las páginas, y tenerlo dos veces es tenerlo
+     mal la próxima vez que cambie. */
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 10px);
+  /* Por ENCIMA del botón flotante de Agregar, que vive justo acá.
+     Mientras estás eligiendo vinos para borrarlos en lote, agregar uno nuevo no
+     es una acción posible: esta barra ocupa el ancho entero y lo tapa, que es
+     la forma más simple de que el modo se vea como un modo. */
+  z-index: calc(var(--z-nav) + 2);
   width: min(560px, calc(100vw - 24px));
   display: grid;
   gap: 8px;

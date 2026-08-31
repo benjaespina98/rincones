@@ -464,76 +464,114 @@ img {
   border: 0;
 }
 
-/* ══ Pastillas de metadatos de vino ═══════════════════════════════════════
-   El mismo dato (tipo, uva, cosecha, región) se veía de SIETE formas: pastilla
-   violeta, texto plano acentuado, texto muted sin fondo, caja grande de 0.82rem…
-   Y `.wine-type` / `.wine-year`, usadas en Bodega y en las dos fichas, no
-   existían en ninguna hoja de estilos: salían como texto suelto.
+/* ══ La identidad del vino, en una línea ═══════════════════════════════════
+   Tipo, uva, cosecha y región: los cuatro datos con los que se reconoce una
+   botella. Acá vivían como PASTILLAS —una cápsula con borde y fondo por cada
+   uno—, y eso tenía dos problemas.
 
-   Un solo vocabulario para toda la app. */
-.chip {
+   El primero, de cantidad: cuatro cápsulas por tarjeta y seis tarjetas por
+   pantalla son treinta formas redondeadas compitiendo con el nombre del vino,
+   que es lo único que alguien viene a leer.
+
+   El segundo, de significado: una cápsula es la forma de algo que se toca —un
+   filtro, un toggle, un chip de selección—. Estos cuatro datos no se tocan, se
+   leen. Vestirlos de control es prometer una interacción que no existe.
+
+   Ahora los dice la tipografía: el tipo con un punto de su color (se reconoce
+   antes de leer la palabra) y el resto como texto corrido separado por puntos
+   medios. Es lo mismo que hace la fila de Mi Bodega desde hace dos tandas; esto
+   es el resto de la app hablando ese idioma. La escribe `WineMeta`, un
+   componente, para que no haya una segunda versión nunca más. */
+.wine-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  min-width: 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.wine-meta__type {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: rgba(126, 89, 201, 0.14);
-  color: var(--text-secondary);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  line-height: 1.5;
+  gap: 5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-secondary);
 }
 
-/* Tipo de vino: el único con color propio, porque es la categoría. */
-.chip--type {
-  background: var(--accent-muted);
-  border-color: var(--line-accent);
-  color: var(--accent-soft);
-  font-weight: 700;
+/* El punto lleva el color del vino. `currentColor` para que cada variante de
+   abajo pinte el texto y el punto de una sola vez. */
+.wine-meta__type::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-/* Uva: lo segundo que se busca con la vista después del nombre. */
-.chip--grape {
-  color: var(--text);
+.wine-meta__type--red { color: #f0899d; }
+.wine-meta__type--white { color: var(--gold-soft); }
+.wine-meta__type--rosé { color: #f2a0c0; }
+.wine-meta__type--sparkling { color: #8fd8e8; }
+.wine-meta__type--fortified { color: #d0a878; }
+
+.wine-meta__sep {
+  color: var(--text-subtle);
 }
 
-.chip--year {
-  font-variant-numeric: tabular-nums;
-}
-
-.chip--region {
-  color: var(--text-muted);
-}
-
-/* Sobre foto (badge flotante en la esquina de una imagen). */
-.chip--overlay {
-  background: rgba(12, 15, 25, 0.72);
-  border-color: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* Fila de pastillas: mismo gap en todas las pantallas. */
-/* Texto de pastilla que puede no entrar (regiones largas). El truncado va acá
-   y no en .chip porque la pastilla es flex y ahí el ellipsis no se aplica. */
-.chip__text {
+/* La región puede ser larga ("Luján de Cuyo, Mendoza") y es el dato menos
+   determinante de los cuatro: si no entra, se corta ella y no el renglón. */
+.wine-meta__item {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
+/* ══ El color del avatar ═══════════════════════════════════════════════════
+   Las iniciales sobre un color elegido, en lugar de la fila de ocho emojis que
+   había (ver `AVATAR_COLORS` en utils/identity.js, donde está el porqué).
+
+   Vive acá y no en la hoja del perfil porque lo usan cuatro lugares: la barra
+   de arriba, la ficha del perfil, el editor y las reseñas de la comunidad.
+   Tenerlo una sola vez es lo que impide que el mismo usuario aparezca de dos
+   colores distintos según la pantalla.
+
+   Cada color se aplica como fondo con `currentColor` heredado: el elemento que
+   lo lleva pinta su fondo, y el texto va siempre en blanco porque los siete
+   están elegidos con contraste suficiente para eso.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.avatar-color--violeta { background: #7e59c9; }
+.avatar-color--vino { background: #a8324a; }
+.avatar-color--oro { background: #a97a18; }
+.avatar-color--verde { background: #1f7d57; }
+.avatar-color--cielo { background: #2b6f97; }
+.avatar-color--coral { background: #b8534a; }
+.avatar-color--piedra { background: #4d4a63; }
+
+/* Insignia sobre una foto (la esquina de una imagen). Es lo único que
+   sobrevive del vocabulario de pastillas, y con razón: sobre una foto de
+   cualquier color hace falta un fondo opaco para que el texto se lea. */
+.chip--overlay {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 15, 25, 0.72);
+  color: #fff;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Tokens de página ──
@@ -550,15 +588,23 @@ img {
    68. El final de la página no se veía intencional porque no lo decidió nadie:
    era la suma de dos reglas que hacían el mismo trabajo sin saber una de la otra.
 
-   El valor es la barra (68px) + un respiro (24px) + el safe-area del teléfono.
-   Si mañana cambia la altura de la barra, se cambia acá y en ningún otro lado.
+   El valor es la barra (68px) + lo que el botón de escanear le saca por
+   encima (sobresale 44px: mide 52 y está metido 8 dentro de la barra) + un
+   respiro (12px) + el safe-area del teléfono. Si mañana cambia la altura de la
+   barra o del botón, se cambia acá y en ningún otro lado.
+
+   El botón entra en esta cuenta porque está CENTRADO y flotando: con tres
+   pestañas no hay forma de que un cuarto lugar en la fila caiga en el medio
+   —la fila se reparte en cuatro y el botón queda en el 63%— así que sale de la
+   fila, y salir de la fila significa que tapa contenido si no se lo despeja.
+
    Una pantalla que necesite MÁS aire abajo lo pide con margin en su último
    bloque, no volviendo a declarar el despeje de la navegación. */
 :root {
   --page-pad-x: 16px;
   --page-gap: 18px;
   --nav-height: 68px;
-  --page-pad-bottom: calc(var(--nav-height) + 24px + env(safe-area-inset-bottom));
+  --page-pad-bottom: calc(var(--nav-height) + 56px + env(safe-area-inset-bottom));
 }
 
 /* En desktop la barra inferior se convierte en sidebar: no hay nada abajo que

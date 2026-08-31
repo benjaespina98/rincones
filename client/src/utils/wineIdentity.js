@@ -5,19 +5,94 @@
 // cambiala también allá — las dos tienen que producir el mismo string, porque
 // ese nombre es la clave con la que se comparten fotos, precios y descripciones.
 
+const fold = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * ── LAS GAMAS QUE NO NOMBRAN NADA ───────────────────────────────────────────
+ *
+ * "Reserva" no es el nombre de un vino: es la gama, y la usan decenas de
+ * bodegas. Un Norton Reserva escaneado se guardaba con nombre "Reserva" —así,
+ * solo— porque el nombre visible salía de la línea y la línea decía eso. En la
+ * bodega quedaba una fila llamada "Reserva", imposible de distinguir del
+ * Trapiche Reserva de al lado, y ese mismo string viajaba al catálogo
+ * compartido.
+ *
+ * Estas son las gamas genéricas: cuando el vino se llama SÓLO así, el nombre se
+ * completa con la bodega ("Norton Reserva", "Rutini Single Vineyard"), que es
+ * como lo nombra cualquiera que lo tenga en la mano. Una línea que no está en
+ * esta lista es distintiva —"Saint Felicien", "Broquel", "Angélica Zapata"— y
+ * va sola, porque agregarle la bodega adelante la diría dos veces.
+ *
+ * Debe ser idéntica a la del servidor (server/src/data/wineIdentity.js).
+ */
+const GENERIC_LINES = new Set([
+  "reserva", "reservas", "reserve", "gran reserva", "grand reserve",
+  "clasico", "clasica", "classic", "tradicional", "tradicion",
+  "roble", "oak", "barrica", "crianza",
+  "seleccion", "seleccionado", "selection", "selected",
+  "estate", "varietal", "varietales", "premium", "superior", "especial",
+  "single vineyard", "vinedo unico",
+  "cosecha tardia", "late harvest",
+  "coleccion", "collection", "edicion limitada", "limited edition",
+  "vinas viejas", "old vine", "old vines",
+  "gran corte", "corte",
+  "brut", "extra brut", "brut nature", "nature", "demi sec", "dulce natural",
+]);
+
+export const isGenericLine = (line) => GENERIC_LINES.has(fold(line));
+
+/**
+ * La bodega como se escribe delante del vino.
+ *
+ * "Bodega Norton Reserva" no lo dice nadie: se dice "Norton Reserva". Se sacan
+ * los tokens societarios —los que acompañan a cualquier bodega y no distinguen
+ * a ninguna—. "Finca" y "Familia" se quedan: ahí sí son parte del nombre
+ * ("Finca La Celia" no es "La Celia" para nadie).
+ */
+const WINERY_PREFIX = /^(bodegas?\s+y\s+vi[nñ]edos|bodegas?|vi[nñ]edos|vi[nñ]as?)\s+/i;
+const WINERY_SUFFIX = /\s+(wines?|winery|vineyards?|estate|s\.?\s?a\.?|s\.?r\.?l\.?)$/i;
+
+export const displayWinery = (winery = "") => {
+  const base = String(winery || "").trim();
+  if (!base) return "";
+  const limpio = base.replace(WINERY_PREFIX, "").replace(WINERY_SUFFIX, "").trim();
+  // Si limpiarla la deja irreconocible, la bodega ERA ese token.
+  return limpio.length >= 3 ? limpio : base;
+};
+
 /**
  * El nombre visible NO lleva la uva: el vino se llama "Saint Felicien", que sea
- * Malbec ya lo dice su propio chip. La uva sigue siendo campo propio y sigue
- * entrando en la búsqueda; ver `wineSearchName`.
+ * Malbec ya lo dice la línea de datos. La uva sigue siendo campo propio y sigue
+ * entrando en la búsqueda; ver `composeSearchName`.
  *
- * Tampoco cae a la bodega. Sin nombre ni línea el vino NO tiene nombre, y eso
- * se devuelve vacío a propósito: el fallback a `winery` era lo que hacía que una
- * etiqueta leída como bodega "Pispi" terminara guardada con nombre "Pispi" y
+ * Tampoco cae a la bodega SOLA. Sin nombre ni línea el vino NO tiene nombre, y
+ * eso se devuelve vacío a propósito: el fallback a `winery` era lo que hacía que
+ * una etiqueta leída como bodega "Pispi" terminara guardada con nombre "Pispi" y
  * bodega "Pispi" —dos campos distintos colapsados en uno— y de ahí pasara al
  * catálogo público. Ver el comentario largo en el archivo del servidor.
+ *
+ * Lo que SÍ hace ahora es completar una gama genérica con su bodega: ver
+ * `GENERIC_LINES`. "Reserva" sin bodega adelante no nombra ninguna botella.
  */
-export const composeDisplayName = ({ name, line } = {}) =>
-  String(name || "").trim() || String(line || "").trim();
+export const composeDisplayName = ({ name, line, winery } = {}) => {
+  const propio = String(name || "").trim();
+  if (propio) return propio;
+
+  const gama = String(line || "").trim();
+  if (!gama || !isGenericLine(gama)) return gama;
+
+  const bodega = displayWinery(winery);
+  if (!bodega) return gama;
+  // La línea ya la trae ("Norton Reserva" leído entero como línea).
+  if (fold(gama).includes(fold(bodega))) return gama;
+  return `${bodega} ${gama}`;
+};
 
 /**
  * El nombre de un vino GUARDADO, listo para mostrar.
@@ -36,18 +111,34 @@ export const composeDisplayName = ({ name, line } = {}) =>
  * "Malbec" conserva su nombre, porque vaciarlo lo dejaría sin ninguno.
  */
 export const wineDisplayName = (wine = {}) => {
-  const nombre = String(wine.name || "").trim();
+  const guardado = String(wine.name || "").trim();
   const uva = String(wine.varietal || "").trim();
-  if (!nombre || !uva) return nombre;
 
-  const tn = nombre.split(/\s+/);
-  const tu = uva.split(/\s+/);
-  if (tn.length <= tu.length) return nombre;
+  // Sacar la uva pegada al nombre (vinos cargados con la convención vieja).
+  let nombre = guardado;
+  if (nombre && uva) {
+    const tn = nombre.split(/\s+/);
+    const tu = uva.split(/\s+/);
+    if (tn.length > tu.length && fold(tn.slice(-tu.length).join(" ")) === fold(uva)) {
+      nombre = tn.slice(0, -tu.length).join(" ").trim() || nombre;
+    }
+  }
 
-  const fold = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (fold(tn.slice(-tu.length).join(" ")) !== fold(uva)) return nombre;
+  /**
+   * Completar la gama genérica con la bodega, al DIBUJAR.
+   *
+   * Los vinos que ya entraron con nombre "Reserva" —antes de que
+   * `composeDisplayName` supiera completarlo— siguen guardados así. Componerlo
+   * acá hace que la bodega se vea bien sin depender de una migración: el nombre
+   * correcto no puede quedar sujeto a un script que alguien tiene que acordarse
+   * de correr. Lo que se guardó no se toca; lo que se lee, sí.
+   */
+  if (nombre && isGenericLine(nombre)) {
+    const bodega = displayWinery(wine.winery);
+    if (bodega && !fold(nombre).includes(fold(bodega))) return `${bodega} ${nombre}`;
+  }
 
-  return tn.slice(0, -tu.length).join(" ").trim() || nombre;
+  return nombre;
 };
 
 /**
@@ -58,7 +149,7 @@ export const wineDisplayName = (wine = {}) => {
  * cuando no sabemos cómo se llama, sí.
  */
 export const composeSearchName = ({ name, line, varietal, winery } = {}) => {
-  const head = composeDisplayName({ name, line }) || String(winery || "").trim();
+  const head = composeDisplayName({ name, line, winery }) || String(winery || "").trim();
   const grape = String(varietal || "").trim();
   if (!grape) return head;
   if (head.toLowerCase().includes(grape.toLowerCase())) return head;

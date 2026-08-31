@@ -99,17 +99,21 @@
   gap: 10px;
 }
 
+/* La vista previa: tus iniciales sobre el color elegido.
+   Sin el degradado violeta que tenía: ahora el fondo lo pone la clase de color
+   (`.avatar-color--*`, en index.css) y un degradado encima le cambiaría el tono
+   a los siete, con lo cual el que elegís no sería el que ves. */
 .profile-editor__avatar {
   width: 88px;
   height: 88px;
   border-radius: var(--radius-full);
   display: grid;
   place-items: center;
-  font-size: 2.6rem;
-  background:
-    radial-gradient(120% 120% at 50% 0%, rgba(167, 130, 239, 0.4), transparent 60%),
-    linear-gradient(160deg, rgba(126, 89, 201, 0.28), rgba(16, 19, 33, 0.9));
-  border: 1px solid var(--line-accent);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: var(--shadow-md);
 }
 
@@ -148,25 +152,30 @@
   justify-content: center;
 }
 
+/* Las muestras de color. Círculos del color y nada más: una muestra de color
+   que además tuviera un borde propio, un fondo de vidrio y un ícono adentro
+   dejaría de ser una muestra del color. 44px porque es un objetivo táctil, no
+   un punto decorativo. */
 .profile-editor__avatar-chip {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  font-size: var(--text-3xl);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.profile-editor__avatar-chip:hover {
-  border-color: var(--line-accent);
+@media (hover: hover) {
+  .profile-editor__avatar-chip:hover {
+    transform: scale(1.06);
+  }
 }
 
+/* El elegido se marca con un anillo separado del propio color —un hueco y
+   después el borde— para que se distinga sobre cualquiera de los siete. Un
+   borde pegado se pierde contra los claros. */
 .profile-editor__avatar-chip.is-selected {
-  border-color: var(--accent-light);
-  background: var(--accent-muted);
-  box-shadow: var(--focus-ring);
+  box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 4px var(--accent-light);
 }
 
 /* ── Grupos de campos ── */

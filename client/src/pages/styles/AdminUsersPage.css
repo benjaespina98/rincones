@@ -274,15 +274,20 @@
   color: var(--text-muted);
 }
 
+/* La inicial de quien escribió, igual que en la ficha del vino. El fondo lo
+   pone `.avatar-color--*` (index.css) con el color de esa persona; declararlo
+   acá los pintaría a todos del mismo violeta. */
 .admin-review__avatar {
   display: grid;
   place-items: center;
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--accent-muted);
-  border: 1px solid var(--line-accent);
-  font-size: var(--text-2xs);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 /* La paginación se fue a `.admin-pager` (AdminLayout.css): la tenían escrita

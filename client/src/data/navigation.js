@@ -9,16 +9,58 @@
    Con la lista acá, agregar o mover una pestaña es una sola edición y el resto
    se acomoda solo.
 
-   Orden: Descubrí (home) · Guardados · [+ Agregar, centrado] · Sommelier ·
-   Bodega. El perfil se entra tocando el nombre en el header; no tiene pestaña
-   porque no es un lugar donde se trabaja, es donde se configura. */
+   ── POR QUÉ GUARDADOS DEJÓ DE SER UNA PESTAÑA ────────────────────────────
+   "Guardados" eran los vinos que querés probar pero todavía no tenés. Es
+   decir: una parte de tu colección, mirada desde el otro lado del tiempo. Que
+   viviera en su propia pestaña partía en dos la respuesta a una sola pregunta
+   —"¿qué vinos hay en mi vida?"— y obligaba a saber de antemano en cuál de las
+   dos secciones estaba lo que buscabas, que es justo lo que uno viene a
+   averiguar. Ahora es la cuarta vista de Mi Bodega ("Quiero probar"), al lado
+   de En stock, Todos y Probados. La funcionalidad no se perdió: cambió de
+   lugar al que le correspondía.
+
+   El hueco NO se rellenó. Una sección que no se justifica no se reemplaza por
+   otra para que la fila quede pareja. Perfil sigue donde estaba —el avatar
+   arriba a la derecha—, porque es donde se configura la cuenta y no un lugar
+   donde se trabaja.
+
+   ── POR QUÉ "AGREGAR" YA NO ES UNA PESTAÑA ────────────────────────────────
+   Porque no es un LUGAR, es LA acción del producto. Una pestaña promete una
+   sección a la que se va y de la que se vuelve, con su estado propio; escanear
+   una botella es una tarea que empieza y termina, y que uno quiere disparar
+   desde cualquier pantalla sin perder dónde estaba.
+
+   Ahora es un botón redondo con una cámara adentro y sin texto, que vive EN la
+   barra pero no es una pestaña: tiene su propio lugar en la fila —así no tapa
+   a ninguna— y se levanta unos píxeles por encima de las demás para que se lea
+   como lo que es, la acción principal.
+
+   Sin texto porque está en todas las pantallas: cada píxel que se tome se lo
+   saca al contenido de las tres secciones para siempre, y una cámara ya dice
+   qué hace. "Agregar" al lado sería pagar ancho por repetir el dibujo.
+
+   Va entre Sommelier y Mi Bodega, que es adonde va a parar lo que cargues.
+
+   La navegación queda en tres secciones y nada más: Descubrí · Sommelier ·
+   Mi Bodega. Cada una es un lugar donde se está; la acción vive aparte. */
 export const TABS = [
   { id: "descubri", label: "Descubrí", path: "/", icon: "sparkle" },
-  { id: "guardados", label: "Guardados", path: "/guardados", icon: "heart" },
-  { id: "agregar", label: "Agregar", path: "/agregar", icon: "plus-solid", primary: true },
   { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass" },
-  { id: "bodega", label: "Bodega", path: "/bodega", icon: "bottle" },
+  { id: "bodega", label: "Mi Bodega", path: "/bodega", icon: "bottle" },
 ];
+
+/** Adónde lleva la acción de escanear. Fuera de TABS: no es una sección. */
+export const ADD_PATH = "/agregar";
+
+/**
+ * Dónde NO se dibuja el botón de la cámara.
+ *
+ * En la propia carga sería un atajo a donde ya estás. En el Sommelier, ese
+ * lugar —centrado, apoyado sobre la barra— lo ocupa el campo donde se escribe
+ * la consulta: dos controles encimados no se leen como dos cosas, se leen como
+ * un error. Y ahí la acción principal es preguntar, no cargar una botella.
+ */
+export const SIN_BOTON_ESCANEAR = new Set([ADD_PATH, "/sommelier"]);
 
 export const TAB_PATHS = new Set(TABS.map((t) => t.path));
 

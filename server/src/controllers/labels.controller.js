@@ -236,8 +236,19 @@ const conVerificacion = async (data, { userId } = {}) => {
     confidence,
     // El nombre visible y los problemas se recalculan sobre lo CORREGIDO: si no,
     // la revisión mostraría el nombre viejo y avisaría de algo que ya se arregló.
-    displayName: composeDisplayName({ name: valores.properName, line: valores.line }),
-    estimatedName: composeDisplayName({ name: valores.properName, line: valores.line }),
+    // Con la bodega: "Reserva" se completa a "Norton Reserva" (ver
+    // GENERIC_LINES en data/wineIdentity.js), que es el nombre que la pantalla
+    // de revisión va a mostrar y con el que el vino se va a guardar.
+    displayName: composeDisplayName({
+      name: valores.properName,
+      line: valores.line,
+      winery: valores.winery,
+    }),
+    estimatedName: composeDisplayName({
+      name: valores.properName,
+      line: valores.line,
+      winery: valores.winery,
+    }),
     issues: checkCoherence({
       name: valores.properName,
       line: valores.line,

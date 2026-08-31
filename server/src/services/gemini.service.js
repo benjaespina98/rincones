@@ -110,8 +110,27 @@ const parseJsonLoose = (text) => {
  *   bloquear 75s — mucho más que los 30s que espera el cliente, así que el
  *   usuario ya había visto el error mientras el server seguía gastando cuota.
  * @param {"search"|"vision"} task  Qué cadena de modelos usar. Ver arriba.
+ * @param {number} [maxOutputTokens]  Techo DURO de la respuesta.
+ *   Casi todo lo que pide esta app son datos, y el esquema ya los acota: no
+ *   hace falta un tope. Lo que sí lo necesita es la guía de vino, que pide
+ *   texto escrito — ahí "sé breve" en el prompt se cumple casi siempre, y
+ *   "casi siempre" multiplicado por miles de consultas es la diferencia entre
+ *   una cuenta previsible y una sorpresa. Ojo: pasarse del tope corta la
+ *   respuesta y el JSON queda inválido; eso se detecta abajo (MAX_TOKENS) y se
+ *   trata como fallo del modelo, así que el tope tiene que ser holgado para lo
+ *   que de verdad se espera, no ajustado.
+ * @param {number} [temperature]  0 por defecto: para pedir datos, la
+ *   creatividad es alucinación. Se sube sólo donde se pide prosa.
  */
-const generateJson = async ({ parts, schema, timeoutMs = 10000, budgetMs, task = "search" }) => {
+const generateJson = async ({
+  parts,
+  schema,
+  timeoutMs = 10000,
+  budgetMs,
+  task = "search",
+  maxOutputTokens,
+  temperature = 0,
+}) => {
   const apiKey = String(process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) throw new Error("GEMINI_API_KEY no configurada");
 
@@ -120,9 +139,10 @@ const generateJson = async ({ parts, schema, timeoutMs = 10000, budgetMs, task =
   const body = JSON.stringify({
     contents: [{ parts }],
     generationConfig: {
-      temperature: 0,
+      temperature,
       responseMimeType: "application/json",
       responseSchema: schema,
+      ...(maxOutputTokens ? { maxOutputTokens } : {}),
     },
   });
 

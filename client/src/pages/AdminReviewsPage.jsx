@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import Icon from "../components/Icon";
+import { avatarColor } from "../utils/identity";
 import "./styles/AdminReviewsPage.css";
 
 const RATING_FILTERS = [
@@ -143,7 +144,15 @@ const AdminReviewsPage = () => {
 
               <div className="admin-review__foot">
                 <span className="admin-review__author">
-                  <span className="admin-review__avatar">{r.authorAvatar || "🍷"}</span>
+                  {/* La inicial sobre el color del perfil, igual que en la
+                      ficha del vino: el mismo dato no puede dibujarse de dos
+                      formas según la pantalla. */}
+                  <span
+                    className={`admin-review__avatar avatar-color--${avatarColor(r.authorAvatar)}`}
+                    aria-hidden="true"
+                  >
+                    {String(r.authorName || "?").trim().charAt(0).toUpperCase() || "?"}
+                  </span>
                   {r.authorName || "Alguien"} · {formatDate(r.createdAt)}
                 </span>
                 <button

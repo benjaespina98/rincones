@@ -50,6 +50,45 @@
   min-width: 92px;
 }
 
+/* ── El puntaje, cuando además abre las opiniones ───────────────────────────
+   Reemplaza a las dos barras de texto que había ("Leer las N opiniones de
+   otras personas" y "Ocultar las reseñas"). El bloque no cambia de aspecto —es
+   el mismo puntaje— salvo por el chevron, que es lo que dice que esto se toca
+   y en qué estado está. */
+.wine-score__main--tap {
+  position: relative;
+  padding: 4px 30px 4px 4px;
+  margin: -4px -30px -4px -4px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .wine-score__main--tap:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.wine-score__caret {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.wine-score.is-open .wine-score__caret {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--accent-soft);
+}
+
 .wine-score__avg {
   font-family: var(--font-family-serif);
   font-size: 2.1rem;
@@ -179,15 +218,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* La inicial de quien firma. El fondo lo pone `.avatar-color--*` (index.css)
+   con el color que esa persona eligió en su perfil, así que acá no se declara:
+   uno propio pisaría a los siete y volverían a ser todos iguales. */
 .review-card__avatar {
   display: grid;
   place-items: center;
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--accent-muted);
-  border: 1px solid var(--line-accent);
-  font-size: var(--text-sm);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: var(--text-2xs);
+  font-weight: 800;
 }
 
 .review-card__date {
@@ -208,27 +252,8 @@
    lista muestra las reseñas de los DEMÁS, y sobre esas no hay nada que hacer.
    Editar y borrar la propia vive en WineOpinion. */
 
-/* Abrir y cerrar las reseñas. Mismo aspecto que el toggle de "Sobre este vino":
-   son la misma clase de control —material de consulta que se despliega— y verse
-   distinto haría pensar que hacen cosas distintas. */
-.wine-reviews__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  align-self: flex-start;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--accent-soft);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
+/* Acá vivía `.wine-reviews__toggle`, la barra de texto que abría y cerraba las
+   reseñas ("Leer las 3 opiniones de otras personas" / "Ocultar las reseñas").
+   Se fue con ella: ahora abre y cierra el puntaje, que es lo que uno está
+   mirando cuando decide leer las opiniones. Ver `.wine-score__main--tap`. */
 
-.wine-reviews__toggle:hover {
-  border-color: var(--line-accent);
-  color: #fff;
-}

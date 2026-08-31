@@ -30,6 +30,19 @@ const PATHS = {
   "arrow-right": <path d="M5 12h14M13 5l7 7-7 7" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "chevron-up": <path d="m6 15 6-6 6 6" />,
+  // El chevron que apunta a la derecha: "esto abre otra pantalla".
+  //
+  // No existía, y en su lugar había DOS suplentes que dicen otra cosa. Uno era
+  // `chevron-down` girado -90° con CSS (las filas del perfil): un ícono
+  // dibujado para abrir un acordeón, rotado a mano en una hoja de estilos. El
+  // otro era `arrow-right`, que es la flecha de "ir/enviar" y pesa mucho más
+  // en pantalla — una lista de diez filas terminadas en flecha grita diez
+  // veces lo mismo. El chevron fino es la convención de iOS y Android para
+  // "hay más adentro", y ahora es una sola forma para toda la app.
+  "chevron-right": <path d="m9 6 6 6-6 6" />,
+  "chevron-left": <path d="m15 6-6 6 6 6" />,
+  // Avión de papel: "mandar". Lo usa el campo del Sommelier.
+  send: <path d="M21 3 10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8 21 3Z" />,
   // El embudo: el ícono de filtrar que entiende todo el mundo. Antes se usaba el
   // engranaje, que significa "configuración" —otra cosa— y por eso no se leía.
   filter: <path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z" />,

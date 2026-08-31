@@ -41,9 +41,26 @@ export function useSheet(onClose, { enabled = true } = {}) {
     };
     document.addEventListener("keydown", alTeclear);
 
-    // El contenedor que de verdad scrollea. `.app-content` dentro de la app;
-    // fuera de ella (login, onboarding, panel) scrollea el documento.
-    const scroller = document.querySelector(".app-content") || document.documentElement;
+    /**
+     * El contenedor que de verdad scrollea.
+     *
+     * Ojo con esto, que ya falló una vez de una forma invisible: se elegía
+     * `.app-content` por existir, y `.app-content` NO siempre desborda. Su
+     * `flex: 1 1 auto` sólo lo convierte en el scroller si su padre es un
+     * contenedor flex de altura fija, y `.app-layout` es un bloque con
+     * `min-height` — así que el elemento crece con el contenido, nunca
+     * desborda, y el que scrollea es el documento. Resultado: se le ponía
+     * `overflow: hidden` a un elemento que no scrolleaba y el fondo se seguía
+     * moviendo detrás de cada hoja abierta, que es exactamente lo que este
+     * bloque existe para impedir.
+     *
+     * Se pregunta por el comportamiento y no por el nombre: gana el primero que
+     * de verdad desborde. Así funciona igual si mañana el layout cambia y
+     * `.app-content` pasa a ser el scroller de nuevo.
+     */
+    const desborda = (el) => el && el.scrollHeight > el.clientHeight;
+    const contenido = document.querySelector(".app-content");
+    const scroller = desborda(contenido) ? contenido : document.documentElement;
     const overflowPrevio = scroller.style.overflow;
     scroller.style.overflow = "hidden";
 

@@ -825,16 +825,37 @@ select:disabled {
    cápsula se lee que son excluyentes y que siempre hay uno activo, cosa que unos
    chips sueltos no dicen.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ── POR QUÉ PUEDE DESPLAZARSE ─────────────────────────────────────────────
+   Con tres opciones cortas entraban siempre. La cuarta de Mi Bodega —"Quiero
+   probar", que antes era una pestaña entera de la barra de abajo— no entra en
+   un teléfono de 360px sin achicar la letra hasta volverla ilegible o sin
+   sacarle los números, que son justamente lo que evita tocar para averiguar
+   qué hay del otro lado.
+
+   Entonces: los botones nunca se encogen por debajo de su texto (`flex-shrink:
+   0`) y crecen a repartirse el ancho sólo cuando sobra (`flex-grow: 1`). Si no
+   sobra, la cápsula se desplaza. La barra del sistema se oculta porque la
+   señal de que hay más es la opción cortada en el borde, no una regla gris; y
+   el botón activo se trae a la vista solo al cambiar de vista (ver
+   Segmented.jsx), así que nunca queda elegido algo que no se ve. */
 .segmented {
   display: flex;
   padding: 3px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--glass);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.segmented::-webkit-scrollbar {
+  display: none;
 }
 
 .segmented__btn {
-  flex: 1;
+  flex: 1 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -72,17 +72,25 @@ const userSchema = new mongoose.Schema(
       maxlength: 500,
     },
     // Un emoji, elegido a mano en el editor de perfil (ver ProfileEditor.jsx).
-    // El comentario decía "URL de foto de perfil" desde antes de que existiera
-    // el selector de emojis: quedó desactualizado y ahora es directamente falso
-    // — nada de lo que hay guardado acá es una URL.
+    // El COLOR del avatar de iniciales ("violeta", "vino", "oro"…). No es una
+    // URL —nunca lo fue— y desde el rediseño tampoco es un emoji: la identidad
+    // de una persona son sus iniciales sobre el color que eligió, que se dibuja
+    // igual en todos los dispositivos y de verdad distingue a alguien de otro.
+    // Ver `AVATAR_COLORS` en client/src/utils/identity.js.
+    //
+    // Sin enum a propósito: las cuentas viejas tienen un emoji guardado acá y
+    // ponerle una lista cerrada al campo haría fallar el guardado del perfil de
+    // esa gente por un dato que ya ni se lee. El cliente resuelve cualquier
+    // valor desconocido al primer color (`avatarColor`), así que un valor viejo
+    // se ve bien sin migrar nada.
     avatar: {
       type: String,
     },
     // La foto de perfil DE VERDAD, la de la cuenta de Google con la que
-    // entraste. A diferencia de `avatar` (el emoji, elegido a mano) ésta es una
+    // entraste. A diferencia de `avatar` (un color, elegido a mano) ésta es una
     // URL — la sincroniza `googleAuth` en cada login con Google, y vive aparte
-    // para no romper los lugares que muestran `avatar` como texto (reseñas,
-    // catálogo): meterle una URL ahí las haría imprimir el link entero.
+    // para no romper los lugares que leen `avatar` como un identificador de
+    // color: meterle una URL ahí los dejaría sin color y sin foto.
     avatarPhoto: {
       type: String,
       trim: true,

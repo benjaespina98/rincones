@@ -68,8 +68,71 @@ Ejemplos:
  *
  * Debe producir EXACTAMENTE lo mismo que compone argentineWines.js.
  */
-const composeDisplayName = ({ name, line } = {}) =>
-  String(name || "").trim() || String(line || "").trim();
+/**
+ * ── LAS GAMAS QUE NO NOMBRAN NADA ───────────────────────────────────────────
+ *
+ * "Reserva" no es el nombre de un vino: es la gama, y la usan decenas de
+ * bodegas. Un Norton Reserva escaneado se guardaba con nombre "Reserva" —así,
+ * solo— porque el nombre visible salía de la línea y la línea decía eso. La
+ * convención de campos de arriba lo pide bien (la gama va en `line`), pero el
+ * nombre visible no puede ser esa gama a secas: en la bodega quedaba una fila
+ * llamada "Reserva", indistinguible del Trapiche Reserva de al lado, y ese
+ * mismo string es el que viaja al catálogo compartido y a los pools de fotos.
+ *
+ * Cuando el vino se llama SÓLO así, el nombre se completa con la bodega
+ * ("Norton Reserva", "Rutini Single Vineyard"), que es como lo nombra
+ * cualquiera que lo tenga en la mano. Una línea que no está en esta lista es
+ * distintiva —"Saint Felicien", "Broquel", "Angélica Zapata"— y va sola.
+ *
+ * Debe ser idéntica a la del cliente (client/src/utils/wineIdentity.js).
+ */
+const GENERIC_LINES = new Set([
+  "reserva", "reservas", "reserve", "gran reserva", "grand reserve",
+  "clasico", "clasica", "classic", "tradicional", "tradicion",
+  "roble", "oak", "barrica", "crianza",
+  "seleccion", "seleccionado", "selection", "selected",
+  "estate", "varietal", "varietales", "premium", "superior", "especial",
+  "single vineyard", "vinedo unico",
+  "cosecha tardia", "late harvest",
+  "coleccion", "collection", "edicion limitada", "limited edition",
+  "vinas viejas", "old vine", "old vines",
+  "gran corte", "corte",
+  "brut", "extra brut", "brut nature", "nature", "demi sec", "dulce natural",
+]);
+
+const isGenericLine = (line) => GENERIC_LINES.has(fold(line).replace(/\s+/g, " ").trim());
+
+/**
+ * La bodega como se escribe DELANTE del vino.
+ *
+ * Distinta de `canonicalWinery`, que existe para claves y devuelve texto
+ * plegado (sin acentos, en minúscula). Ésta conserva cómo se escribe, porque
+ * su resultado se muestra: "Bodega Norton" → "Norton", para que el nombre
+ * quede "Norton Reserva" y no "Bodega Norton Reserva", que no lo dice nadie.
+ */
+const WINERY_PREFIX_DISPLAY = /^(bodegas?\s+y\s+vi[nñ]edos|bodegas?|vi[nñ]edos|vi[nñ]as?)\s+/i;
+const WINERY_SUFFIX_DISPLAY = /\s+(wines?|winery|vineyards?|estate|s\.?\s?a\.?|s\.?r\.?l\.?)$/i;
+
+const displayWinery = (winery = "") => {
+  const base = String(winery || "").trim();
+  if (!base) return "";
+  const limpio = base.replace(WINERY_PREFIX_DISPLAY, "").replace(WINERY_SUFFIX_DISPLAY, "").trim();
+  return limpio.length >= 3 ? limpio : base;
+};
+
+const composeDisplayName = ({ name, line, winery } = {}) => {
+  const propio = String(name || "").trim();
+  if (propio) return propio;
+
+  const gama = String(line || "").trim();
+  if (!gama || !isGenericLine(gama)) return gama;
+
+  const bodega = displayWinery(winery);
+  if (!bodega) return gama;
+  // La línea ya la trae ("Norton Reserva" leído entero como línea).
+  if (fold(gama).includes(fold(bodega))) return gama;
+  return `${bodega} ${gama}`;
+};
 
 /**
  * El nombre como se BUSCA, que sí incluye la uva: nadie escribe "Saint
@@ -168,9 +231,25 @@ const canonicalWinery = (winery = "") => {
  * tintas" sean una sola botella y no dos.
  */
 const poolKey = (name, winery, varietal = "") => {
-  const core = fold(composeSearchName({ name, varietal: canonicalGrape(varietal) }));
+  let core = fold(composeSearchName({ name, varietal: canonicalGrape(varietal) }));
+  const bodega = canonicalWinery(winery);
+
+  /**
+   * La bodega no entra en el core: ya está del otro lado de la barra.
+   *
+   * Sacarla es lo que hace que la MISMA botella caiga en el mismo pool aunque
+   * su nombre se haya guardado con dos convenciones distintas. El Norton
+   * Reserva cargado antes de que el nombre se completara con la bodega quedó
+   * como "Reserva"; el de hoy queda como "Norton Reserva". Sin esto serían dos
+   * pools —dos veces la misma foto, el precio partido al medio— por un cambio
+   * que sólo afecta a cómo se escribe el nombre, no a qué botella es.
+   */
+  if (bodega && core.startsWith(`${bodega} `)) {
+    core = core.slice(bodega.length + 1).trim();
+  }
+
   if (core.length < 3) return null;
-  return `${core}|${canonicalWinery(winery)}`;
+  return `${core}|${bodega}`;
 };
 
 /**
