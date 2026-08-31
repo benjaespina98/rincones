@@ -291,6 +291,22 @@ export default function ScanWinePage() {
   return (
     <div className="scan-wine-page">
       <div className="scan-options">
+        {/* El botón solo, centrado en la pantalla, se leía como algo a medio
+            cargar: es la puerta de entrada de toda la app —lo que hay del otro
+            lado de la etiqueta— y no tenía ni una línea que lo dijera. Un
+            medallón y un título son la misma solución que ya usan los estados
+            vacíos (`.empty-icon`), acá aplicada al momento con más peso de la
+            app en vez de a su ausencia. */}
+        <div className="scan-hero">
+          <span className="scan-hero__icon" aria-hidden="true">
+            <Icon name="camera" size={30} />
+          </span>
+          <h2 className="scan-hero__title">Sumá un vino a tu bodega</h2>
+          <p className="scan-hero__sub">
+            Escaneá la etiqueta y completamos bodega, varietal y cosecha por vos.
+          </p>
+        </div>
+
         <button
           className="btn-scan-large"
           onClick={() => setShowScanner(true)}

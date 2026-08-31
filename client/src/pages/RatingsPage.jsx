@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import MyRatings from "../components/MyRatings";
 import "../styles/pages/RatingsPage.css";
@@ -13,18 +12,16 @@ import "../styles/pages/RatingsPage.css";
  *
  * No repite el promedio ni el conteo: los dice el perfil, en la fila desde la
  * que se llega. Acá se viene a LEER lo que escribiste, no a medirlo.
+ *
+ * Sin botón de "volver" propio: es el mismo trabajo que ya hace la flecha de
+ * AppLayout, dos toques abajo, para esta y cualquier otra pantalla de detalle.
+ * Tenerlos los dos era el mismo control dicho dos veces seguidas.
  */
 export default function RatingsPage() {
-  const navigate = useNavigate();
-
   return (
     <div className="ratings-page">
-      <button type="button" className="ratings-page__back" onClick={() => navigate("/perfil")}>
-        <Icon name="arrow-left" size={16} /> Perfil
-      </button>
-
       <header className="ratings-page__head">
-        <h1>Tus valoraciones</h1>
+        <h2>Tus valoraciones</h2>
         {/* El par del "Sólo vos" del diario. Las dos listas viven en el mismo
             perfil y hace falta decir cuál es cuál: ésta la ve cualquiera que
             busque ese vino. */}

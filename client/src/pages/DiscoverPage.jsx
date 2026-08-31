@@ -268,13 +268,15 @@ export default function DiscoverPage() {
   return (
     <div className="discover-page">
       <header className="discover-hero">
-        {/* El saludo es el h1: es lo primero y lo más grande que se lee al
-            abrir la app, así que la semántica tiene que acompañar eso.
-            Sin el 👋: un emoji saludando es el gesto que ponen las apps que
-            quieren caer bien, y no sobrevive a verlo dos veces. */}
-        <h1 className="discover-hero__greeting">
+        {/* h2 y no h1: la barra superior (AppLayout) ya pone un <h1> con el
+            nombre de la pestaña ("Descubrí") en TODAS las pantallas, así que
+            éste no puede ser el segundo. Sigue siendo lo primero y lo más
+            grande que se lee al abrir la app — eso lo dice el tamaño, no la
+            etiqueta. Sin el 👋: un emoji saludando es el gesto que ponen las
+            apps que quieren caer bien, y no sobrevive a verlo dos veces. */}
+        <h2 className="discover-hero__greeting">
           {greeting()}{name ? `, ${name}` : ""}
-        </h1>
+        </h2>
         {/* Sólo aparece cuando hay algo accionable que decir —bodega sin cargar,
             o sin botellas—. Con la bodega andando no hay renglón y el buscador
             sube: era una pregunta retórica rotativa en el lugar más visible de

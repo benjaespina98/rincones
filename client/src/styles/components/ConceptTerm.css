@@ -94,8 +94,11 @@
   inset: -10px -6px;
 }
 
-/* ── La hoja ─────────────────────────────────────────────────────────────── */
-
+/* ── La hoja ──────────────────────────────────────────────────────────────
+   El medallón, el rótulo y el fondo con luz propia son compartidos —ver
+   `.settings-sheet__panel--feature` y compañía en SettingsSheet.css, que
+   también usa la receta de WinePlan—. Acá sólo queda lo que es específico de
+   ESTA hoja: cuánto puede medir y cómo se separan los párrafos. */
 .concept-sheet {
   max-width: 460px;
 }

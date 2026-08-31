@@ -22,7 +22,10 @@
   margin: 0;
 }
 
-.sommelier-header h1 {
+/* h2 y no h1: la barra superior (AppLayout) ya usa un <h1> con el nombre de
+   la pestaña ("Sommelier"). Dos h1 en la misma pantalla rompen la jerarquía
+   que un lector de pantalla espera encontrar. */
+.sommelier-header h2 {
   margin: 0 0 3px;
   font-family: var(--font-family-serif);
   font-size: var(--text-3xl);

@@ -75,7 +75,7 @@ export default function GuardadosPage() {
           estado vacío de abajo es el que habla. */}
       {wishes.length > 0 && (
         <header className="guardados-header">
-          <h1>{wishes.length} {wishes.length === 1 ? "vino guardado" : "vinos guardados"}</h1>
+          <h2>{wishes.length} {wishes.length === 1 ? "vino guardado" : "vinos guardados"}</h2>
         </header>
       )}
 

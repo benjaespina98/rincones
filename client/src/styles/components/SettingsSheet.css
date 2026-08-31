@@ -388,3 +388,56 @@
   font-weight: 600;
   color: var(--text-muted);
 }
+
+/* ══ Hojas de LECTURA, no de formulario ═════════════════════════════════════
+   Un concepto de vino y una receta se leen; una contraseña o un filtro se
+   completan. Las dos familias vivían en el mismo panel plano con el mismo
+   <h2> suelto, así que abrir "Decantar o airear" se sentía igual que abrir
+   "Cambiar contraseña" — incluso cuando lo que sigue es prosa, no campos.
+   Estas cuatro clases son el vocabulario para la primera familia: un medallón
+   con el ícono de la tarjeta que la disparó (continuidad, no un diálogo
+   nuevo), un rótulo de qué TIPO de contenido es, y un fondo con una luz
+   propia en vez del plano de siempre. Ninguna hoja de formulario las usa. */
+.settings-sheet__panel--feature {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(167, 130, 239, 0.14), transparent 60%),
+    var(--surface-2);
+}
+
+.settings-sheet__head--feature {
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-sheet__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--accent-soft);
+  background: var(--accent-muted);
+  border: 1px solid var(--line-accent);
+}
+
+.settings-sheet__heading {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-sheet__eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.settings-sheet__head--feature h2 {
+  font-size: var(--text-2xl);
+}

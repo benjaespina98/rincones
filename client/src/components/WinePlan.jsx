@@ -231,14 +231,24 @@ export default function WinePlan({ wine, info }) {
             <div
               ref={panelRef}
               tabIndex={-1}
-              className="settings-sheet__panel wine-recipe-sheet"
+              className="settings-sheet__panel settings-sheet__panel--feature wine-recipe-sheet"
               role="dialog"
               aria-modal="true"
               aria-label={`Receta: ${receta.dish}`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="settings-sheet__head">
-                <h2>{receta.dish}</h2>
+              {/* Mismo vocabulario de "hoja de lectura" que ConceptSheet: el
+                  medallón repite el ícono del botón que la abrió ("Qué cocinar
+                  para acompañarla"), así que la receta se siente una
+                  continuación de ese toque y no un formulario nuevo. */}
+              <div className="settings-sheet__head settings-sheet__head--feature">
+                <span className="settings-sheet__icon" aria-hidden="true">
+                  <Icon name="utensils" size={17} />
+                </span>
+                <div className="settings-sheet__heading">
+                  <span className="settings-sheet__eyebrow">Para acompañarla</span>
+                  <h2>{receta.dish}</h2>
+                </div>
                 <button
                   type="button"
                   className="settings-sheet__close"

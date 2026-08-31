@@ -639,7 +639,11 @@ export default function WineDetailPage() {
         )}
 
         <div className="wine-detail-hero__overlay">
-          <h1 className="wine-detail-hero__name">{wineDisplayName(wine)}</h1>
+          {/* h2: la barra superior (AppLayout) ya pone un <h1> genérico
+              ("Vino") en todas las fichas; éste, con el nombre real, es el
+              título que importa en la página pero no puede ser un segundo
+              h1. */}
+          <h2 className="wine-detail-hero__name">{wineDisplayName(wine)}</h2>
           {/* Sólo la región acá. La bodega bajó a la ficha de datos, donde tiene su
               rótulo y se lee sin competir con la foto. Si no hay región no se
               anuncia el hueco: la ficha de abajo ya ofrece completar los datos. */}
