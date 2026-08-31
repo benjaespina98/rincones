@@ -3,6 +3,13 @@
 
 const WineImage = require("../models/wineImage.model");
 const { poolKey } = require("../data/wineIdentity");
+const wineImageQuality = require("./wineImageQuality.service");
+
+// Cuánto tiene que superar una foto nueva a la puesta para desplazarla. Sin
+// margen, dos fotos parecidas puntuadas por separado (y Gemini no es
+// determinista al 100%) podrían turnarse en el lugar con cada carga. Con
+// margen, sólo una foto CLARAMENTE mejor gana.
+const REPLACE_MARGIN = 15;
 
 // Clave del vino: nombre + uva + bodega. Los tres, para no mezclar homónimos ni
 // dos uvas de la misma línea ("Saint Felicien Malbec" no es "Saint Felicien
@@ -16,15 +23,27 @@ const looksLikeImage = (value) =>
 /**
  * Aporta una foto al pool para un vino.
  *
- * ── QUIÉN PUEDE PISAR LA FOTO ───────────────────────────────────────────────
- * La primera foto que llega se queda: así, la de un desconocido no puede
- * reemplazar a otra sólo por ser más nueva, y nadie puede arruinar la foto de
- * un vino para todos los demás.
+ * ── EL GATE: QUÉ NI SIQUIERA ENTRA ──────────────────────────────────────────
+ * Si Gemini está configurado y puede leer la imagen, una foto que reconoce con
+ * seguridad como "no es un vino" no entra al pool público bajo ningún
+ * concepto — ni crea la entrada ni reemplaza una existente, ni siquiera si la
+ * sube el dueño de la foto actual. El pool es la cara pública del vino para
+ * cualquiera que lo busque, no un álbum personal. Sin Gemini configurado, o si
+ * la imagen no es un data URL (por ejemplo, un enlace pegado a mano), el gate
+ * no puede evaluar y no bloquea: mismo comportamiento que antes de que
+ * existiera este puntaje.
  *
- * La excepción es quien la aportó. Antes no existía y era un callejón sin
- * salida: si tu foto salió movida o con el flash en la etiqueta, quedaba de
- * cara visible de ese vino para toda la app y ni siquiera vos podías
- * cambiarla. Ahora sí — sólo vos, y sólo sobre la tuya.
+ * ── QUIÉN PUEDE PISAR LA FOTO YA PUESTA ─────────────────────────────────────
+ * Dos caminos:
+ *   1. El autor de la foto actual siempre puede reemplazar la suya — si salió
+ *      movida o con el flash en la etiqueta, no tiene que quedar así para
+ *      siempre ni pedirle permiso a nadie.
+ *   2. Cualquier otra persona puede reemplazarla si Gemini puntuó SU foto
+ *      claramente mejor que la puesta (`REPLACE_MARGIN`). Así el pool converge
+ *      con el uso hacia la mejor foto disponible, en vez de quedarse
+ *      congelado en la primera que llegó. Una foto vieja sin puntaje (de
+ *      antes de este cambio) cuenta como piso, así cualquier foto nueva bien
+ *      puntuada la puede desplazar.
  *
  * Best-effort: nunca lanza, para no romper el alta ni la edición del vino.
  */
@@ -34,28 +53,42 @@ const contribute = async ({ name, winery, varietal, image, userId }) => {
     if (!key || !looksLikeImage(image)) return;
 
     const limpia = image.trim();
-    const existente = await WineImage.findOne({ key }).select("contributedBy").lean();
+    const score = await wineImageQuality.scorePhoto(limpia);
+    if (score && score.isWinePhoto === false) return;
+
+    const existente = await WineImage.findOne({ key })
+      .select("contributedBy qualityScore")
+      .lean();
 
     if (existente) {
-      // Sólo el autor de la foto actual puede reemplazarla.
-      if (!userId || String(existente.contributedBy || "") !== String(userId)) return;
-      await WineImage.updateOne({ key }, { $set: { image: limpia } });
+      const esDueño = Boolean(userId) && String(existente.contributedBy || "") === String(userId);
+      const pisoActual =
+        typeof existente.qualityScore === "number" ? existente.qualityScore : -Infinity;
+      const claramenteMejor = Boolean(score) && score.quality >= pisoActual + REPLACE_MARGIN;
+
+      if (!esDueño && !claramenteMejor) return;
+
+      const set = { image: limpia };
+      if (score) {
+        set.qualityScore = score.quality;
+        // Si quien reemplaza no es el dueño actual, es porque su foto ganó
+        // por calidad: la atribución pasa a ser suya.
+        if (!esDueño) set.contributedBy = userId;
+      }
+      await WineImage.updateOne({ key }, { $set: set });
       return;
     }
 
-    await WineImage.updateOne(
-      { key },
-      {
-        $setOnInsert: {
-          key,
-          image: limpia,
-          contributedBy: userId,
-          name: String(name || "").trim(),
-          winery: String(winery || "").trim(),
-        },
-      },
-      { upsert: true }
-    );
+    const nuevo = {
+      key,
+      image: limpia,
+      contributedBy: userId,
+      name: String(name || "").trim(),
+      winery: String(winery || "").trim(),
+    };
+    if (score) nuevo.qualityScore = score.quality;
+
+    await WineImage.updateOne({ key }, { $setOnInsert: nuevo }, { upsert: true });
   } catch {
     // El pool es una mejora, no un requisito del alta.
   }

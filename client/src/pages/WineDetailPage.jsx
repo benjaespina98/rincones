@@ -25,6 +25,7 @@ import {
   addWineMoment,
 } from "../services/wineApi";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
+import { getWineReviews } from "../services/reviewApi";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { shareWine } from "../utils/share";
@@ -289,6 +290,28 @@ export default function WineDetailPage() {
   }, [wineName, wineWinery, wineCompleto, wine?.description?.generatedAt]);
 
   useEffect(() => loadDescription(), [loadDescription]);
+
+  /**
+   * Promedio de la comunidad, sólo para decidir el halo dorado de la foto
+   * (≥ 4.5 → vino destacado). No es un dato nuevo: es el mismo promedio que
+   * `WineReviews` muestra más abajo en esta misma ficha, y el pedido cachea
+   * por clave (ver reviewApi.js) — pedirlo acá no abre un segundo viaje.
+   */
+  const [avgRating, setAvgRating] = useState(null);
+  useEffect(() => {
+    if (!wineName) return undefined;
+    let active = true;
+    getWineReviews(wineName, wineWinery, wineVarietal)
+      .then((data) => {
+        if (active) setAvgRating(data?.summary?.avg ?? null);
+      })
+      .catch(() => {
+        if (active) setAvgRating(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [wineName, wineWinery, wineVarietal]);
 
   useEffect(() => {
     if (!wineName) return undefined;
@@ -563,14 +586,30 @@ export default function WineDetailPage() {
             onClick={() => setLightbox({ src: wine.image, alt: wineDisplayName(wine) })}
             aria-label="Ampliar la foto del vino"
           >
-            <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
+            <WinePhoto
+              src={wine.image}
+              type={wine.type}
+              alt={wineDisplayName(wine)}
+              artSize={220}
+              fit="contain"
+              priority
+              className={avgRating >= 4.5 ? "wine-photo--gold" : ""}
+            />
             <span className="wine-detail-hero__zoom" aria-hidden="true">
               <Icon name="expand" size={14} />
             </span>
           </button>
         ) : (
           <div className="wine-detail-hero__placeholder">
-            <WinePhoto src={wine.image} type={wine.type} alt={wineDisplayName(wine)} artSize={220} fit="contain" priority />
+            <WinePhoto
+              src={wine.image}
+              type={wine.type}
+              alt={wineDisplayName(wine)}
+              artSize={220}
+              fit="contain"
+              priority
+              className={avgRating >= 4.5 ? "wine-photo--gold" : ""}
+            />
           </div>
         )}
 

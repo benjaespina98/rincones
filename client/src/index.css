@@ -139,6 +139,15 @@
      oscura, como todas las demás de esta lista. */
   --shadow-accent: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 8px 22px rgba(0, 0, 0, 0.3);
+  /* Variante dorada de --shadow-glow, para los pocos lugares donde --gold ya
+     se usa (ver comentario junto a ese token) y hace falta el mismo efecto de
+     halo que --shadow-glow le da al violeta. No reemplaza al violeta como
+     acento general — sigue siendo la excepción, no la regla.
+     Baja intensidad a propósito: tiene que leerse como un reflejo ambiental
+     sobre la botella, no como un brillo. Un halo que se nota es decoración; uno
+     que no se nota pero que se extraña si se apaga es luz. */
+  --gold-glow: rgba(242, 183, 55, 0.14);
+  --shadow-gold: 0 0 0 1px rgba(242, 183, 55, 0.16), 0 8px 22px rgba(0, 0, 0, 0.3);
   
   /* Safe Area (for notched phones) */
   --safe-area-inset-top: env(safe-area-inset-top, 0);
