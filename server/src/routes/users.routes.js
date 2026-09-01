@@ -257,6 +257,30 @@ router.get("/:id/wine-stats", authenticate, async (req, res) => {
      */
     stats.ratedCount = await wineReviews.countByUser(targetUserId);
 
+    /**
+     * ── UN NÚMERO CON TIEMPO ADENTRO ─────────────────────────────────────────
+     *
+     * Todo lo demás en `stats` es "de siempre": vinos totales, probados
+     * totales. Ninguno contesta "¿tomé mucho este mes?", que es la pregunta de
+     * verdad detrás de "cuántos vinos tomé".
+     *
+     * No hay un registro de CADA botella abierta con su fecha —`adjustStock`
+     * sólo mueve un contador—, así que no se puede contar "botellas de este
+     * mes" sin inventar datos. Lo que SÍ hay, siempre, es `lastConsumedAt`: la
+     * última vez que se abrió CADA vino. Contar vinos cuyo último consumo cae
+     * en la ventana es honesto con lo que se sabe — dice "vinos distintos que
+     * tomaste", no "botellas", y no cuenta dos veces el mismo Malbec si lo
+     * abriste tres noches seguidas ese mes.
+     */
+    const ahora = new Date();
+    const inicioDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const inicioDelAnio = new Date(ahora.getFullYear(), 0, 1);
+    const [esteMes, esteAnio] = await Promise.all([
+      Wine.countDocuments({ userId: targetUserId, lastConsumedAt: { $gte: inicioDelMes } }),
+      Wine.countDocuments({ userId: targetUserId, lastConsumedAt: { $gte: inicioDelAnio } }),
+    ]);
+    stats.recientes = { esteMes, esteAnio };
+
     res.json({ success: true, data: stats });
   } catch (error) {
     fail(res, error, req);
