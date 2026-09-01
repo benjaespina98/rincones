@@ -28,7 +28,7 @@ import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSea
 import { getWineReviews } from "../services/reviewApi";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nuncaEstuvoEnTuCava } from "../utils/cellarTime";
-import { shareWine } from "../utils/share";
+import { useShareCard } from "../hooks/useShareCard";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { OCCASIONS, EMOTIONS } from "../data/momentOptions";
 import { toUploadableDataUrl } from "../utils/image";
@@ -66,6 +66,7 @@ export default function WineDetailPage() {
     Boolean(location.state?.recienAgregado)
   );
   const { addToast, removeToast, showSuccess, showError } = useToast();
+  const { sharing: sharingCard, shareCard } = useShareCard();
 
   /**
    * ── LA FICHA ARRANCA CON LO QUE LA LISTA YA SABÍA ──────────────────────────
@@ -511,6 +512,27 @@ export default function WineDetailPage() {
     }
   };
 
+  /**
+   * Un solo camino para las dos puertas de entrada a esto: el botón del
+   * encabezado (comparte el vino solo) y el de cada cata (le suma esa cata en
+   * particular). El toast de "Generando…" es el mismo acá arriba y no en el
+   * hook porque el hook no sabe de toasts —esa decisión es de la pantalla— y
+   * los dos botones la necesitan igual: dibujar la ficha espera la imagen de
+   * la botella y la tipografía, así que nunca es instantáneo.
+   */
+  const shareAsCard = async (moment = null) => {
+    const toastId = addToast("Generando imagen…", "info", 20000);
+    try {
+      const resultado = await shareCard(wine, moment);
+      removeToast(toastId);
+      if (resultado === "downloaded") showSuccess("Imagen descargada");
+      else if (resultado === "error") showError("No se pudo generar la imagen para compartir");
+    } catch {
+      removeToast(toastId);
+      showError("No se pudo generar la imagen para compartir");
+    }
+  };
+
   const occasionLabel = useMemo(
     () => (value) => OCCASIONS.find((o) => o.value === value)?.label || value,
     []
@@ -625,11 +647,9 @@ export default function WineDetailPage() {
             <button
               type="button"
               className="wine-detail-hero__icon-btn"
-              onClick={async () => {
-                const r = await shareWine(wine);
-                if (r === "copied") showSuccess("Copiado al portapapeles");
-              }}
-              aria-label="Compartir vino"
+              onClick={() => shareAsCard()}
+              disabled={sharingCard}
+              aria-label="Compartir vino como imagen"
               title="Compartir"
             >
               <Icon name="share" size={16} />
@@ -1311,7 +1331,19 @@ export default function WineDetailPage() {
                 <li key={moment._id} className="moment-item">
                   <div className="moment-item__head">
                     <strong>{moment.occasion ? occasionLabel(moment.occasion) : "Momento"}</strong>
-                    <span>{new Date(moment.consumedAt).toLocaleDateString("es-AR")}</span>
+                    <span className="moment-item__head-right">
+                      {new Date(moment.consumedAt).toLocaleDateString("es-AR")}
+                      <button
+                        type="button"
+                        className="moment-item__share"
+                        onClick={() => shareAsCard(moment)}
+                        disabled={sharingCard}
+                        aria-label="Compartir esta cata como imagen"
+                        title="Compartir"
+                      >
+                        <Icon name="share" size={14} />
+                      </button>
+                    </span>
                   </div>
                   {!!moment.rating && <StarRating value={moment.rating} size="sm" />}
                   <div className="moment-item__meta">

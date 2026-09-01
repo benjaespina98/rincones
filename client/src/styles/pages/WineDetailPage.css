@@ -177,10 +177,13 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(12, 15, 25, 0.68);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Era rgba(12,15,25,.68): un chip oscuro sobre una foto que también es
+     oscura, así que sólo se notaba por el borde de un píxel. Más claro y con
+     más blur despega del fondo aunque la foto de abajo sea igual de oscura. */
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #fff;
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
@@ -988,6 +991,42 @@
 .moment-item__head span {
   color: var(--text-muted);
   font-size: var(--text-sm);
+}
+
+/* La fecha y el botón de compartir, agrupados: `.moment-item__head` sigue
+   siendo dos mitades en `space-between` —la ocasión a la izquierda, esto a la
+   derecha— en vez de tres columnas repartidas por partes iguales. */
+.moment-item__head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moment-item__share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 32px visual, pero el toque real es más grande gracias al padding: no hay
+     lugar para un botón de 44px en un renglón que también lleva la fecha. */
+  width: 28px;
+  height: 28px;
+  padding: 8px;
+  margin: -8px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.moment-item__share:disabled { opacity: 0.5; cursor: default; }
+
+@media (hover: hover) {
+  .moment-item__share:hover:not(:disabled) {
+    background: var(--accent-muted);
+    color: var(--accent-soft);
+  }
 }
 
 .moment-item__meta {
