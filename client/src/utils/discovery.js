@@ -75,5 +75,19 @@ export const elegirOtroDistinto = (wines, actualIdx, azar = Math.random) => {
   const mejor = niveles.find((nivel) => nivel.length > 0);
   if (!mejor) return null;
 
-  return mejor[Math.floor(azar() * mejor.length)];
+  /**
+   * Con foto primero, adentro del nivel de "qué tan distinto es".
+   *
+   * Mismo criterio que ya usa el server para armar el set y para la búsqueda
+   * (ver el comentario "Con foto primero" en catalog.controller.js): la
+   * tarjeta grande de Descubrí es casi toda imagen, y sin este desempate "Ver
+   * otro" podía saltar de una botella con foto a una con el placeholder
+   * genérico aunque hubiera, en el MISMO nivel de distinción, otra con foto
+   * de sobra. Es un orden y no un filtro: si nadie en el nivel tiene foto, se
+   * elige igual entre los que hay.
+   */
+  const conFoto = mejor.filter((i) => Boolean(lista[i]?.image));
+  const candidatos = conFoto.length > 0 ? conFoto : mejor;
+
+  return candidatos[Math.floor(azar() * candidatos.length)];
 };

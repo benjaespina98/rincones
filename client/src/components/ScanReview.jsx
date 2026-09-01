@@ -135,27 +135,28 @@ export default function ScanReview({
    */
   const [sugerencia, setSugerencia] = useState("pendiente");
   /**
-   * ── LA PREGUNTA QUE FALTABA: ¿ESTA BOTELLA ES TUYA? ───────────────────────
+   * ── UN SOLO NÚMERO, NO UNA PREGUNTA Y DESPUÉS UN NÚMERO ───────────────────
    *
-   * Son dos cargas distintas y la app las trataba casi igual. Una es "compré
-   * este vino y lo tengo en casa"; la otra, "lo tomé en un restaurante y me lo
-   * quiero acordar". Lo único que las separaba era un botón chico abajo del
-   * stepper —"Lo tomé afuera, no me quedó ninguna"— que había que descubrir, y
-   * cuyo efecto real (poner las botellas en cero) no se leía en ningún lado.
+   * Antes esto eran dos pasos: primero elegir entre "La tengo yo" y "Lo tomé
+   * afuera" —un binario que copiaba, con otras palabras, la misma pregunta que
+   * el número ya iba a contestar—, y sólo si elegías la primera aparecía el
+   * contador. Dos controles para un solo dato confundían más de lo que
+   * ordenaban: había que entender la distinción ANTES de poder decir cuántas
+   * botellas tenías, cuando lo único que de verdad hace falta saber es eso.
    *
-   * Ahora es una pregunta explícita y ANTES del número: primero decidís qué
-   * pasó, después —sólo si el vino es tuyo— cuántas botellas. Cada rama dice lo
-   * que implica, porque implican cosas distintas en toda la app: la de afuera no
-   * entra a "En stock", no abre un lote, no cuenta como compra y no tiene una
-   * fecha de "en tu bodega desde" que contar.
+   * Ahora es un único contador que arranca en CERO. El cero no es un caso
+   * especial que haya que elegir aparte: es la respuesta más corta a "cuántas
+   * te quedan" cuando la respuesta es "ninguna, lo tomé". El texto y el botón
+   * de guardar cambian solos según el número, así que la consecuencia —entra a
+   * la bodega, o queda sólo como probado— se sigue viendo siempre, pero sin
+   * pedir una decisión aparte para llegar a ella.
    */
-  const [destino, setDestino] = useState("bodega");
-  const afuera = destino === "afuera";
-  // Cuántas botellas entran a la cava. Obligar a escanear doce veces la misma
-  // etiqueta porque compraste una caja no tiene sentido.
-  const [cantidad, setCantidad] = useState(1);
-  // Lo que de verdad se guarda: sin botellas cuando lo tomaste afuera.
-  const botellas = afuera ? 0 : cantidad;
+  // Cuántas botellas entran a la cava. Arranca en cero: es "lo tomé", no un
+  // valor vacío a completar. Obligar a escanear doce veces la misma etiqueta
+  // porque compraste una caja tampoco tiene sentido, de ahí los atajos.
+  const [cantidad, setCantidad] = useState(0);
+  // Lo que de verdad se guarda es el número tal cual: en cero, sin botellas.
+  const botellas = cantidad;
   // Si la lectura salió tan floja que no hay campo puntual que señalar, se
   // esconde el formulario detrás de "Completar los datos a mano" (ver
   // `sinIdentificar` más abajo) en vez de mostrarlo de entrada.
@@ -729,88 +730,58 @@ export default function ScanReview({
         {showAll ? "Ocultar los que están bien" : "Editar todos los datos"}
       </button>
 
-      {/* ── QUÉ PASÓ CON ESTA BOTELLA ────────────────────────────────────────
-          Antes de cualquier número. Las dos opciones dicen su consecuencia con
-          todas las letras porque son dos lugares distintos de la app: una suma
-          botellas a tu cava (con su lote y su fecha), la otra no toca el stock y
-          sólo deja escrito que lo tomaste.
-
-          "Probado" y "stock" son dos ejes independientes y las cuatro
-          combinaciones son normales (ver utils/cellarViews.js): por eso esto se
-          puede preguntar sin que ninguna respuesta obligue a mentirle a la otra.
-          Antes de que existiera el cero, un vino tomado afuera sólo se podía
-          registrar declarando una botella que nunca tuviste — y esa botella
-          entraba a tus gastos y te contaba como parte de la cava. */}
-      <div className="scan-destino" role="group" aria-label="Qué pasó con esta botella">
-        <button
-          type="button"
-          className={`scan-destino__opcion ${afuera ? "" : "is-active"}`}
-          onClick={() => setDestino("bodega")}
-          disabled={saving}
-          aria-pressed={!afuera}
-        >
-          <Icon name={afuera ? "circle" : "check"} size={15} />
-          <span className="scan-destino__texto">
-            <strong>La tengo yo</strong>
-            <em>Entra a tu bodega, con stock</em>
-          </span>
-        </button>
-        <button
-          type="button"
-          className={`scan-destino__opcion ${afuera ? "is-active" : ""}`}
-          onClick={() => setDestino("afuera")}
-          disabled={saving}
-          aria-pressed={afuera}
-        >
-          <Icon name={afuera ? "check" : "circle"} size={15} />
-          <span className="scan-destino__texto">
-            <strong>Lo tomé afuera</strong>
-            <em>Queda entre los probados, sin sumar botellas</em>
-          </span>
-        </button>
-      </div>
-
-      {/* Cuántas botellas, sólo si son tuyas. Los atajos cubren los casos reales
-          —media docena, una caja— sin obligar a tocar doce veces el más. */}
-      {!afuera && (
-        <div className="scan-qty">
-          <span className="scan-qty__label">¿Cuántas botellas?</span>
-          <div className="scan-qty__row">
-            <div className="scan-qty__stepper">
+      {/* ── CUÁNTAS BOTELLAS TENÉS AHORA ─────────────────────────────────────
+          Un solo control, y de él sale todo lo demás: en cero, la botella no
+          existe en tu casa y el vino queda anotado entre tus probados; a
+          partir de una, entra a tu bodega con esa cantidad de stock. La frase
+          de abajo dice la consecuencia con todas las letras porque son dos
+          lugares distintos de la app: una suma botellas a tu cava (con su lote
+          y su fecha), la otra no toca el stock y sólo deja escrito que lo
+          tomaste — y ninguna respuesta obliga a mentirle a la otra (ver
+          utils/cellarViews.js). Los atajos cubren los casos reales —media
+          docena, una caja— sin obligar a tocar doce veces el más. */}
+      <div className="scan-qty">
+        <span className="scan-qty__label">¿Cuántas botellas tenés ahora?</span>
+        <div className="scan-qty__row">
+          <div className="scan-qty__stepper">
+            <button
+              type="button"
+              onClick={() => setCantidad((n) => Math.max(0, n - 1))}
+              disabled={saving || cantidad <= 0}
+              aria-label="Una botella menos"
+            >
+              <Icon name="minus" size={16} />
+            </button>
+            <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
+            <button
+              type="button"
+              onClick={() => setCantidad((n) => Math.min(99, n + 1))}
+              disabled={saving || cantidad >= 99}
+              aria-label="Una botella más"
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
+          <div className="scan-qty__presets">
+            {[6, 12].map((n) => (
               <button
+                key={n}
                 type="button"
-                onClick={() => setCantidad((n) => Math.max(1, n - 1))}
-                disabled={saving || cantidad <= 1}
-                aria-label="Una botella menos"
+                className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
+                onClick={() => setCantidad(n)}
+                disabled={saving}
               >
-                <Icon name="minus" size={16} />
+                {n}
               </button>
-              <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
-              <button
-                type="button"
-                onClick={() => setCantidad((n) => Math.min(99, n + 1))}
-                disabled={saving || cantidad >= 99}
-                aria-label="Una botella más"
-              >
-                <Icon name="plus" size={16} />
-              </button>
-            </div>
-            <div className="scan-qty__presets">
-              {[6, 12].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
-                  onClick={() => setCantidad(n)}
-                  disabled={saving}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
-      )}
+        <p className="scan-qty__consequence" aria-live="polite">
+          {cantidad === 0
+            ? "Sin botellas: queda anotado entre tus probados, no suma stock."
+            : "Entra a tu bodega, con stock."}
+        </p>
+      </div>
 
       <div className="scan-review__actions">
         <button
@@ -824,7 +795,7 @@ export default function ScanReview({
           ) : (
             <>
               <Icon name="check" size={17} />{" "}
-              {afuera
+              {cantidad === 0
                 ? "Guardarlo como probado"
                 : cantidad === 1
                   ? "Agregar a mi bodega"

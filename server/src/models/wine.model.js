@@ -225,7 +225,14 @@ const wineSchema = new mongoose.Schema(
       generatedAt: { type: Date },
     },
     cellar: {
+      // "Lugar": dónde vive la botella (ej. "Cava 1", "Heladera").
       location: { type: String, trim: true },
+      // "Posición": dónde adentro de ese lugar (ej. "Estante 3"). Separado de
+      // `location` y no un solo campo más largo porque son dos preguntas
+      // distintas al buscar una botella —primero A DÓNDE ir, después QUÉ
+      // estante mirar— y la tarjeta puede mostrar sólo la primera cuando el
+      // espacio es chico sin partir un string a la mitad.
+      shelf: { type: String, trim: true },
       drinkFrom: { type: Number },
       drinkUntil: { type: Number },
     },

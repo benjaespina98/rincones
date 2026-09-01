@@ -36,6 +36,27 @@
   color: var(--text-muted);
 }
 
+/* Que la opinión precargada es de OTRA cosecha. Ámbar y no rojo: no es un
+   error, es la app avisando antes de que puntuar reemplace algo sin querer. */
+.wine-opinion__vintage-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(242, 183, 55, 0.28);
+  background: rgba(242, 183, 55, 0.08);
+  color: var(--gold-soft);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.wine-opinion__vintage-notice svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 .wine-opinion__stars {
   display: flex;
   align-items: center;

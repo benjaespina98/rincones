@@ -28,7 +28,7 @@ import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSea
 import { getWineReviews } from "../services/reviewApi";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nuncaEstuvoEnTuCava } from "../utils/cellarTime";
-import { shareWine } from "../utils/share";
+import { useShareCard } from "../hooks/useShareCard";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { OCCASIONS, EMOTIONS } from "../data/momentOptions";
 import { toUploadableDataUrl } from "../utils/image";
@@ -66,6 +66,7 @@ export default function WineDetailPage() {
     Boolean(location.state?.recienAgregado)
   );
   const { addToast, removeToast, showSuccess, showError } = useToast();
+  const { sharing: sharingCard, shareCard } = useShareCard();
 
   /**
    * ── LA FICHA ARRANCA CON LO QUE LA LISTA YA SABÍA ──────────────────────────
@@ -428,6 +429,7 @@ export default function WineDetailPage() {
       notes: wine.notes || "",
       image: wine.image || "",
       cellarLocation: wine.cellar?.location || "",
+      cellarShelf: wine.cellar?.shelf || "",
       drinkFrom: wine.cellar?.drinkFrom || "",
       drinkUntil: wine.cellar?.drinkUntil || "",
       price: wine.purchase?.price ?? "",
@@ -462,6 +464,7 @@ export default function WineDetailPage() {
         // campo no venga.
         image: draft.image || "",
         cellarLocation: draft.cellarLocation?.trim() || undefined,
+        cellarShelf: draft.cellarShelf?.trim() || undefined,
         drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : undefined,
         drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : undefined,
         price: draft.price !== "" ? parseFloat(draft.price) : undefined,
@@ -506,6 +509,27 @@ export default function WineDetailPage() {
       showError("No se pudo guardar el momento");
     } finally {
       setSavingMoment(false);
+    }
+  };
+
+  /**
+   * Un solo camino para las dos puertas de entrada a esto: el botón del
+   * encabezado (comparte el vino solo) y el de cada cata (le suma esa cata en
+   * particular). El toast de "Generando…" es el mismo acá arriba y no en el
+   * hook porque el hook no sabe de toasts —esa decisión es de la pantalla— y
+   * los dos botones la necesitan igual: dibujar la ficha espera la imagen de
+   * la botella y la tipografía, así que nunca es instantáneo.
+   */
+  const shareAsCard = async (moment = null) => {
+    const toastId = addToast("Generando imagen…", "info", 20000);
+    try {
+      const resultado = await shareCard(wine, moment);
+      removeToast(toastId);
+      if (resultado === "downloaded") showSuccess("Imagen descargada");
+      else if (resultado === "error") showError("No se pudo generar la imagen para compartir");
+    } catch {
+      removeToast(toastId);
+      showError("No se pudo generar la imagen para compartir");
     }
   };
 
@@ -623,11 +647,9 @@ export default function WineDetailPage() {
             <button
               type="button"
               className="wine-detail-hero__icon-btn"
-              onClick={async () => {
-                const r = await shareWine(wine);
-                if (r === "copied") showSuccess("Copiado al portapapeles");
-              }}
-              aria-label="Compartir vino"
+              onClick={() => shareAsCard()}
+              disabled={sharingCard}
+              aria-label="Compartir vino como imagen"
               title="Compartir"
             >
               <Icon name="share" size={16} />
@@ -884,10 +906,13 @@ export default function WineDetailPage() {
                 renglón de datos: cada ícono ya dice qué es y ninguno necesita que
                 se lo presente con un encabezado. La ventana de guarda no está acá
                 porque ya la dice el bloque de arriba. */}
-            {(wine.cellar?.location || wine.purchase?.price > 0 || wine.purchase?.store) && (
+            {(wine.cellar?.location || wine.cellar?.shelf || wine.purchase?.price > 0 || wine.purchase?.store) && (
               <div className="wine-meta-row">
-                {wine.cellar?.location && (
-                  <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
+                {(wine.cellar?.location || wine.cellar?.shelf) && (
+                  <span className="wine-meta-chip">
+                    <Icon name="map-pin" size={13} />{" "}
+                    {[wine.cellar?.location, wine.cellar?.shelf].filter(Boolean).join(" · ")}
+                  </span>
                 )}
                 {wine.purchase?.price > 0 && (
                   <span className="wine-meta-chip">
@@ -1017,17 +1042,36 @@ export default function WineDetailPage() {
             <div className="scan-section-divider">
               <span>Bodega</span>
             </div>
-            <input
-              type="text"
-              className="scan-edit-input"
-              placeholder="Ubicación (ej: Estante A, Heladera)"
-              value={draft.cellarLocation}
-              onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-            />
+            {/* Dos campos y no uno: "dónde" (Cava 1, Heladera) y "en qué parte de
+                ahí" (Estante 3) contestan preguntas distintas cuando volvés a
+                buscar la botella, y separados la tarjeta puede mostrar sólo el
+                primero sin partir un texto libre a la mitad. */}
+            <div className="scan-edit-grid scan-edit-grid--two">
+              <input
+                type="text"
+                className="scan-edit-input"
+                placeholder="Lugar (ej: Cava 1, Heladera)"
+                aria-label="Lugar en tu casa"
+                value={draft.cellarLocation}
+                onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+              <input
+                type="text"
+                className="scan-edit-input"
+                placeholder="Posición (ej: Estante 3)"
+                aria-label="Posición dentro de ese lugar"
+                value={draft.cellarShelf}
+                onChange={(e) => updateDraftField("cellarShelf", e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+            </div>
             <div className="scan-edit-grid scan-edit-grid--two">
               <input
                 type="number"
@@ -1287,7 +1331,19 @@ export default function WineDetailPage() {
                 <li key={moment._id} className="moment-item">
                   <div className="moment-item__head">
                     <strong>{moment.occasion ? occasionLabel(moment.occasion) : "Momento"}</strong>
-                    <span>{new Date(moment.consumedAt).toLocaleDateString("es-AR")}</span>
+                    <span className="moment-item__head-right">
+                      {new Date(moment.consumedAt).toLocaleDateString("es-AR")}
+                      <button
+                        type="button"
+                        className="moment-item__share"
+                        onClick={() => shareAsCard(moment)}
+                        disabled={sharingCard}
+                        aria-label="Compartir esta cata como imagen"
+                        title="Compartir"
+                      >
+                        <Icon name="share" size={14} />
+                      </button>
+                    </span>
                   </div>
                   {!!moment.rating && <StarRating value={moment.rating} size="sm" />}
                   <div className="moment-item__meta">

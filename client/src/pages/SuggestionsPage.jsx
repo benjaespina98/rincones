@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { searchWines } from "../services/wineSearchApi";
@@ -36,9 +37,11 @@ import "../styles/pages/SuggestionsPage.css";
  *     Va como texto de la app, del mismo tamaño y color que el resto. Lo que
  *     entra en burbuja es lo que escribe la persona, que es lo que de verdad
  *     necesita distinguirse.
- *   · No hay "escribiendo…" con puntitos animados, ni saludo de bienvenida,
- *     ni "¡Hola! Soy tu asistente virtual". La pantalla arranca con lo que se
- *     puede preguntar, no con alguien presentándose.
+ *   · No hay "escribiendo…" con puntitos animados ni "¡Hola! Soy tu asistente
+ *     virtual" — la pantalla no se presenta como si fuera alguien. El "Hola,
+ *     {nombre}" que sí tiene arriba es otra cosa: no es la guía saludando, es
+ *     Rincones reconociendo a quien entró, lo mismo que hace cualquier pantalla
+ *     de inicio. La diferencia es de quién habla, no de si hay saludo o no.
  *   · Y sobre todo: la respuesta trae BOTELLAS. Cuando la pregunta es sobre
  *     qué tomar, abajo del texto aparecen las mismas tarjetas que dibuja Mi
  *     Bodega —con su foto, su stock, su ficha— y las del catálogo para lo que
@@ -56,44 +59,41 @@ import "../styles/pages/SuggestionsPage.css";
  */
 
 /**
- * ── LAS DOS PUERTAS DE ENTRADA ──────────────────────────────────────────────
+ * ── EL ARRANQUE: DOS TIRAS CHICAS, CADA UNA CON SU TRABAJO ─────────────────
  *
- * La pantalla contesta cualquier cosa del mundo del vino, pero hay UNA consulta
- * que se hace mucho más que las demás —"¿con qué acompaño lo que voy a
- * comer?"— y que además era la única que la versión anterior sabía hacer. Un
- * campo de texto vacío no la ofrece: hay que adivinar que se puede.
+ * Habían quedado fundidas en una sola tira mezclada, y ahí se perdía algo: sin
+ * separación, ni "Asado" ni "¿Qué Malbec tengo?" dicen para qué sirve tocarlos
+ * hasta que ya los tocaste. Ahora son dos grupos, cada uno con su lugar y una
+ * frase corta que dice qué hace:
  *
- * Por eso el arranque tiene dos grupos y no uno solo:
+ *   COMIDAS      Arriba de todo, con el "te digo qué vino le va" al lado: es
+ *                maridaje, y tocar un plato (o escribir el tuyo) es la
+ *                pregunta más corta que hay para eso.
+ *   OTRAS_PREGUNTAS  Pegadas arriba del campo, donde se sigue la conversación:
+ *                son ejemplos de todo lo demás que se le puede preguntar —tu
+ *                bodega, qué abrir hoy— y viven ahí porque son la última
+ *                cosa que se lee antes de escribir.
  *
- *   COMIDAS      Un rótulo que pregunta "¿Qué vas a comer?" y abajo los platos.
- *                Tocar uno manda la pregunta entera armada. Enseña la
- *                capacidad más usada sin que haya que escribir ni descubrir
- *                nada.
- *   PREGUNTAS    Ejemplos de todo lo demás. Están escritos como los diría una
- *                persona, no como categorías: eso enseña, de una sola vez, que
- *                acá se escribe con las propias palabras.
+ * Ninguna de las dos lleva marco, título ni ícono de sección: son la misma
+ * pastilla chica (`.somm__chip`) que ya usa el resto de la pantalla.
  *
- * Y las dos cosas en PRIMERA PERSONA, porque son botones que la persona toca
- * para hablar. "¿Qué Malbec tengo?" y no "¿Qué Malbec tenés?": lo segundo pone
- * a la app preguntándole al usuario, que es al revés de lo que pasa al tocarlo.
+ * Y todo en PRIMERA PERSONA, porque son botones que la persona toca para
+ * hablar. "¿Qué Malbec tengo?" y no "¿Qué Malbec tenés?": lo segundo pone a la
+ * app preguntándole al usuario, que es al revés de lo que pasa al tocarlo.
  */
 const COMIDAS = [
   { label: "Asado", pregunta: "¿Qué tomo con un asado?" },
   { label: "Pasta", pregunta: "¿Qué tomo con pasta?" },
   { label: "Pizza", pregunta: "¿Qué tomo con pizza?" },
   { label: "Milanesas", pregunta: "¿Qué tomo con milanesas?" },
-  { label: "Pescado", pregunta: "¿Qué tomo con pescado?" },
-  { label: "Sushi", pregunta: "¿Qué tomo con sushi?" },
-  { label: "Picada", pregunta: "¿Qué tomo con una picada?" },
-  { label: "Empanadas", pregunta: "¿Qué tomo con empanadas?" },
 ];
 
-const ENTRADAS = [
-  "¿Cuál abro hoy?",
-  "¿Qué Malbec tengo?",
-  "Malbec o Cabernet",
-  "Un tinto para regalar",
-  "¿Cuánto se guarda un vino?",
+const OTRAS_PREGUNTAS = [
+  { label: "¿Qué vinos tengo?", pregunta: "¿Qué vinos tengo?" },
+  { label: "¿Qué tomo con este clima?", pregunta: "¿Qué tomo hoy con este clima?" },
+  { label: "¿Cuál abro hoy?", pregunta: "¿Cuál abro hoy?" },
+  { label: "Malbec o Cabernet", pregunta: "Malbec o Cabernet" },
+  { label: "Un tinto para regalar", pregunta: "Un tinto para regalar" },
 ];
 
 let contador = 0;
@@ -101,8 +101,15 @@ const nuevoId = () => `m${(contador += 1)}`;
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { addWish } = useWishlist();
   const { showError, showSuccess } = useToast();
+
+  // El nombre de pila, con la misma cascada que ya usa el resto de la app para
+  // firmar algo con quien sos (ver `author.name` en catalog.controller.js): si
+  // todavía no lo pusiste, la parte del mail antes de la arroba. Sin ninguna de
+  // las dos, mejor ningún nombre que uno inventado.
+  const nombre = (user?.firstName || "").trim() || (user?.email || "").split("@")[0] || "";
 
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState("");
@@ -231,7 +238,6 @@ export default function SuggestionsPage() {
             descubrir: [],
             // Reserva el lugar del cargando sólo si de verdad va a haber algo.
             buscandoVinos: Boolean(comida) && !data.offTopic,
-            followups: data.followups || [],
           },
         ]);
         // Se apaga acá y no al final: con el texto en pantalla ya no hay nada
@@ -298,82 +304,38 @@ export default function SuggestionsPage() {
     }
   };
 
-  /**
-   * Las sugerencias pegadas al campo.
-   *
-   * Sólo con la conversación empezada: las del último turno. Con la
-   * conversación vacía no van, porque el arranque ya muestra las dos puertas
-   * completas arriba —comidas y preguntas— y repetirlas acá abajo sería
-   * mostrar la misma lista dos veces en una pantalla.
-   */
-  const ultima = [...mensajes].reverse().find((m) => m.role === "guia" && !m.error);
-  const sugerencias = mensajes.length === 0 ? [] : ultima?.followups || [];
-
   return (
     <div className="somm">
       <div className="somm__feed">
         {mensajes.length === 0 && (
-          /* ── EL ARRANQUE: DOS TARJETAS, UNA POR MODO ──────────────────────
-             Las dos formas de usar la pantalla: atajar por plato, o preguntar
-             libremente. Que la primera sea la comida no es casual — es la
-             consulta que más se hace y la única que un campo de texto vacío no
-             ofrece.
-
-             En tarjetas y no como dos filas sueltas en el fondo de la página:
-             sin caja, los ocho platos y las cinco preguntas se leían como una
-             sola lista larga de trece pastillas iguales, y la diferencia entre
-             "esto es una comida" y "esto es una pregunta" quedaba a cargo de
-             dos rótulos chiquitos. El contorno hace el trabajo que los rótulos
-             estaban haciendo solos.
-
-             Se fue de acá el medallón con la copa que iba arriba de todo: un
-             ícono de 54px que no se toca, no informa y empujaba las dos
-             tarjetas media pantalla hacia abajo. La pantalla ya se llama
-             "Sommelier" en la barra de arriba. */
+          /* ── EL ARRANQUE: EL TÍTULO YA DICE PARA QUÉ SIRVE TOCAR UN CHIP ────
+             Antes eran dos tarjetas con marco, ícono y título cada una —"Emparejar
+             con comida", "Sugerencias rápidas"— y ocupaban media pantalla antes de
+             que nadie escribiera nada. Se fue el marco, y con la última vuelta se
+             fue también el título genérico ("Preguntame de vino") y la frase
+             aparte que explicaba el gesto: las dos decían cosas parecidas en dos
+             renglones. "¿Con qué maridamos hoy?" hace las dos cosas en uno solo,
+             en el vocabulario propio de la pantalla —maridar, no "preguntar"—, y
+             ya deja claro que tocar "Asado" pide una botella, no la receta. */
           <div className="somm__intro">
-            <h2>Preguntame de vino</h2>
-
-            <section className="somm__card">
-              <h3 className="somm__card-titulo">
-                <Icon name="utensils" size={15} /> Emparejar con comida
-              </h3>
-              <div className="somm__rail">
-                {COMIDAS.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    className="somm__comida"
-                    onClick={() => preguntar(c.pregunta)}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-              {/* La única explicación de la pantalla, y está acá porque promete
-                  algo que los botones no pueden mostrar: que la recomendación
-                  sale de TU bodega. */}
-              <p className="somm__card-pie">
-                Te digo cuál de los tuyos abrir, y qué buscar si no tenés ninguno que vaya.
-              </p>
-            </section>
-
-            <section className="somm__card">
-              <h3 className="somm__card-titulo">
-                <Icon name="chat" size={15} /> Sugerencias rápidas
-              </h3>
-              <div className="somm__rail">
-                {ENTRADAS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="somm__comida"
-                    onClick={() => preguntar(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </section>
+            {/* El saludo es de la APP, no de la guía: por eso va arriba y
+                aparte del título, que es el que describe qué hace esta
+                pantalla. Sin nombre (sesión sin perfil todavía) se esconde en
+                vez de saludar a nadie. */}
+            {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
+            <h2>¿Con qué maridamos hoy?</h2>
+            <div className="somm__rail">
+              {COMIDAS.map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  className="somm__chip"
+                  onClick={() => preguntar(c.pregunta)}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -504,22 +466,24 @@ export default function SuggestionsPage() {
           teléfono. Arriba —donde estaba— obligaba a subir la vista para
           escribir y bajarla para leer, en cada turno.
 
-          Las sugerencias van pegadas encima del campo y no arriba de todo: son
-          formas de seguir la conversación, así que pertenecen al lugar donde se
-          sigue. Cambian con cada respuesta; con la conversación vacía son las
-          preguntas de entrada. */}
+          Ya no lleva las repreguntas que proponía el modelo después de cada
+          respuesta —una fila de pastillas nueva debajo de otra que ya se
+          acababa de leer, turno tras turno—, pero sí conserva una tira FIJA,
+          sólo en el arranque: ejemplos de todo lo que NO es maridaje —tu
+          bodega, el clima de hoy, un regalo— pegados arriba del campo, que es
+          lo último que se lee antes de escribir. Se esconde apenas arranca la
+          conversación, igual que el resto del arranque. */}
       <div className="somm__pie">
-        {sugerencias.length > 0 && (
-          <div className="somm__chips" role="group" aria-label="Sugerencias">
-            {sugerencias.map((s) => (
+        {mensajes.length === 0 && (
+          <div className="somm__rail">
+            {OTRAS_PREGUNTAS.map((s) => (
               <button
-                key={s}
+                key={s.label}
                 type="button"
                 className="somm__chip"
-                onClick={() => preguntar(s)}
-                disabled={pensando}
+                onClick={() => preguntar(s.pregunta)}
               >
-                {s}
+                {s.label}
               </button>
             ))}
           </div>

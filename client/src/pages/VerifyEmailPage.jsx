@@ -35,18 +35,38 @@ export default function VerifyEmailPage() {
     verifyEmail({ token, email })
       .then(() => {
         setEstado(ESTADOS.ok);
-        // Si quien abrió el link tiene sesión en ESTE navegador (lo más común:
-        // confirmás desde el mismo teléfono en el que te registraste), refresca
-        // el usuario para que el resto de la app deje de mostrar el aviso.
-        if (user) refreshUser();
+        /**
+         * ── EL BUG: "TENGO QUE ACTUALIZAR PARA QUE ME RECONOZCA" ──────────────
+         *
+         * Acá decía `if (user) refreshUser()`, y `user` es el de la primera
+         * pintada: este efecto corre una sola vez (deps `[token, email]`, a
+         * propósito) y `user` queda congelado en lo que valía en ese instante.
+         *
+         * El caso que rompía es el más común de todos: tocar el link desde la
+         * app de mail casi siempre abre una pestaña NUEVA, y en una pestaña
+         * nueva `AuthContext` arranca sin sesión todavía —está a mitad de
+         * preguntarle al server quién sos— así que `user` es `null` en esa
+         * primera pintada. La cuenta SÍ quedaba confirmada (`verifyEmail` ya
+         * había contestado bien, por eso esta pantalla decía "¡Email
+         * confirmado!"), pero nadie volvía a avisarle al resto de la app: la
+         * hidratación propia de `AuthContext` podía terminar de correr ANTES de
+         * que el servidor supiera de la verificación, y ahí quedaba trabada con
+         * el estado viejo hasta un F5.
+         *
+         * `refreshUser` no tiene ese problema —es `hydrateUser`, la misma
+         * función siempre (ver el `useCallback` en AuthContext.jsx)— así que
+         * llamarla sin la condición es seguro pase lo que pase: con sesión en
+         * este navegador, se entera de la confirmación; sin sesión (alguien
+         * abrió el link sin estar logueado en esta pestaña), no hace nada malo.
+         */
+        refreshUser();
       })
       .catch((err) => {
         setEstado(ESTADOS.error);
         setMensaje(err.response?.data?.message || "El enlace es inválido o expiró.");
       });
-    // Sólo debe correr una vez, con el token/email de la URL: `user` y
-    // `refreshUser` cambian de identidad en cada render y no tienen que
-    // reiniciar el pedido.
+    // Sólo debe correr una vez, con el token/email de la URL: no tiene que
+    // reiniciar el pedido por un re-render ajeno a esos dos valores.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, email]);
 

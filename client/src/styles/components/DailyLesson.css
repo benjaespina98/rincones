@@ -115,7 +115,7 @@
   overflow: hidden;
   max-width: 62ch;
   font-size: var(--text-sm);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.55;
   color: var(--text-secondary);
 }

@@ -52,14 +52,16 @@ test("no deja pasar lo que es de otro mundo", () => {
 
 test("las sugerencias que la app ofrece pasan todas", () => {
   /**
-   * Son los chips que el Sommelier muestra abajo del campo (ver `ENTRADAS` en
-   * client/src/pages/SuggestionsPage.jsx). Si el portero rechazara una, la app
-   * estaría ofreciendo con un botón una pregunta que ella misma no contesta —
-   * el peor error posible de una lista blanca, porque lo comete contra su
-   * propia interfaz.
+   * Son los chips que el Sommelier muestra en el arranque (ver `COMIDAS` y
+   * `OTRAS_PREGUNTAS` en client/src/pages/SuggestionsPage.jsx). Si el portero
+   * rechazara una, la app estaría ofreciendo con un botón una pregunta que
+   * ella misma no contesta — el peor error posible de una lista blanca,
+   * porque lo comete contra su propia interfaz.
    *
-   * "¿Cuál abro hoy?" es la que lo hace valer la pena: no tiene ni una palabra
-   * del vocabulario del vino. Entra porque habla de tu bodega.
+   * "¿Cuál abro hoy?" es la que hace valer la pena tener `usaTuBodega`: no
+   * tiene ni una palabra del vocabulario del vino, entra porque habla de tu
+   * bodega. "¿Qué tomo hoy con este clima?" es la misma idea con "clima":
+   * ninguna palabra de vino tampoco, entra por su propia entrada en la lista.
    */
   const chips = [
     // Las de comida (`COMIDAS`): la puerta de entrada más usada.
@@ -67,16 +69,12 @@ test("las sugerencias que la app ofrece pasan todas", () => {
     "¿Qué tomo con pasta?",
     "¿Qué tomo con pizza?",
     "¿Qué tomo con milanesas?",
-    "¿Qué tomo con pescado?",
-    "¿Qué tomo con sushi?",
-    "¿Qué tomo con una picada?",
-    "¿Qué tomo con empanadas?",
-    // Las libres (`ENTRADAS`).
+    // Las libres (`OTRAS_PREGUNTAS`).
+    "¿Qué vinos tengo?",
+    "¿Qué tomo hoy con este clima?",
     "¿Cuál abro hoy?",
-    "¿Qué Malbec tengo?",
     "Malbec o Cabernet",
     "Un tinto para regalar",
-    "¿Cuánto se guarda un vino?",
   ];
   for (const chip of chips) {
     assert.equal(esDelDominio(chip), true, `la app ofrece y el portero rechaza: ${chip}`);

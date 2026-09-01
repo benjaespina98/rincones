@@ -9,11 +9,9 @@ import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { calculateAge } from "../utils/age";
 import { initials, avatarColor } from "../utils/identity";
 import { errorHaptic } from "../utils/haptics";
-import { getLevel } from "../utils/gamification";
 import Icon from "../components/Icon";
 import ProfileEditor from "../components/ProfileEditor";
 import PreferencesEditor from "../components/PreferencesEditor";
-import PasswordEditor from "../components/PasswordEditor";
 import TypeSplit from "../components/TypeSplit";
 import TopRanking from "../components/TopRanking";
 import MomentsDiary from "../components/MomentsDiary";
@@ -33,7 +31,6 @@ export default function ProfilePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -180,16 +177,12 @@ export default function ProfilePage() {
           <Icon name="chevron-right" size={16} className="account-item__chevron" />
         </button>
 
-        <button className="account-item" type="button" onClick={() => setShowPassword(true)}>
-          <span className="account-item__icon"><Icon name="lock" size={18} /></span>
-          <span className="account-item__label">Cambiar contraseña</span>
-          <Icon name="chevron-right" size={16} className="account-item__chevron" />
-        </button>
-
-        {/* Ícono propio: llevaba el mismo candado que "Cambiar contraseña", dos
-            filas más arriba. Dos renglones seguidos con el mismo dibujo y
-            destinos que no tienen nada que ver se leen como si fueran lo
-            mismo. */}
+        {/* "Cambiar contraseña" vivía acá, como pantalla propia con contraseña
+            actual + nueva. Se fue: el camino de siempre es "Olvidé mi
+            contraseña" desde el login, que ya existe (ResetPasswordPage) y no
+            depende de que la persona recuerde la actual — que es justo el caso
+            en el que más se necesita cambiarla. Mantener las dos puertas para
+            la misma acción era el problema, no la solución. */}
         {isAdmin && (
           <button className="account-item" type="button" onClick={() => navigate("/admin")}>
             <span className="account-item__icon"><Icon name="grid" size={18} /></span>
@@ -210,52 +203,41 @@ export default function ProfilePage() {
 
       <h2 className="profile-section-title">Tu perfil</h2>
 
-      {/* Progreso primero: es lo que más cambia y lo que da sentido al resto. */}
-      {/* Sin guard, esto renderizaba "Nv 1 / 0 logros" durante la carga y después
-          saltaba al valor real: un parpadeo de datos falsos. */}
-      {statsLoading && <div className="level-card level-card--skeleton" aria-hidden="true" />}
-
-      {!statsLoading && (() => {
-        const total = wineStats?.totals?.total || 0;
-        const lvl = getLevel(total);
-        return (
-            <div className="level-card">
-              <div className="level-card__top">
-                <span className="level-card__badge">Nv {lvl.level}</span>
-                <div className="level-card__meta">
-                  <span className="level-card__title">{lvl.title}</span>
-                  <span className="level-card__sub">
-                    {lvl.isMax
-                      ? "Nivel máximo"
-                      : `${lvl.toNext} ${lvl.toNext === 1 ? "vino" : "vinos"} para ${lvl.nextTitle}`}
-                  </span>
-                </div>
-              </div>
-              <div className="level-bar" role="progressbar" aria-valuenow={Math.round(lvl.progress * 100)}>
-                <span className="level-bar__fill" style={{ width: `${Math.round(lvl.progress * 100)}%` }} />
-              </div>
-            </div>
-        );
-      })()}
+      {/* ── UN NÚMERO CON TIEMPO ADENTRO ────────────────────────────────────
+          Acá vivía la tarjeta de nivel ("Nv 3 · Conocedor", con barra de
+          progreso): un logro de videojuego que no contestaba nada que se
+          pudiera usar. Lo que faltaba de verdad era esto — los tres números de
+          abajo son todos "de siempre" (vinos totales, probados totales) y
+          ninguno dice si tomaste mucho ESTE mes. Un renglón, no una sección
+          nueva: es la respuesta a la pregunta, no un bloque más para leer. */}
+      {!statsLoading && (wineStats?.recientes?.esteAnio || 0) > 0 && (
+        <p className="profile-recent">
+          <Icon name="calendar" size={13} />{" "}
+          Tomaste {wineStats.recientes.esteMes} {wineStats.recientes.esteMes === 1 ? "vino" : "vinos"} distintos
+          este mes · {wineStats.recientes.esteAnio} en {new Date().getFullYear()}
+        </p>
+      )}
 
       {/* ── TRES NÚMEROS QUE AHORA DICEN ALGO ──────────────────────────────
           Eran "Vinos 8 · Probados 4 · Rating 4.2": ciertos y mudos. Un número
           sin referencia no se puede leer —¿8 es mucho?, ¿4.2 sobre qué?— y los
           tres datos que lo vuelven legible ya venían en la misma respuesta y no
           los miraba nadie: las BOTELLAS (que no son lo mismo que los vinos: ocho
-          etiquetas pueden ser quince botellas), qué PARTE de tu colección
-          probaste, y que el promedio sale sólo de lo que puntuaste. */}
+          etiquetas pueden ser quince botellas), sobre CUÁNTOS probaste (en
+          cifras, no en porcentaje — "1 de 2" no pide la cuenta que sí pide
+          "50%"), y que el promedio sale sólo de lo que puntuaste. */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
             {statsLoading ? "" : wineStats?.totals?.total || 0}
           </div>
           <div className="label">Vinos</div>
+          {/* "4 botellas" solo, debajo de "2", se leía como un segundo dato
+              suelto — ¿4 qué? Con "en" adelante queda una sola frase que se lee
+              de corrido: "2 Vinos, en 4 botellas". */}
           {!statsLoading && (wineStats?.totals?.bottles || 0) > 0 && (
             <div className="stat-card__hint">
-              {wineStats.totals.bottles === 1
-                ? "1 botella"
-                : `${wineStats.totals.bottles} botellas`}
+              en {wineStats.totals.bottles === 1 ? "1 botella" : `${wineStats.totals.bottles} botellas`}
             </div>
           )}
         </div>
@@ -264,10 +246,12 @@ export default function ProfilePage() {
             {statsLoading ? "" : wineStats?.totals?.consumed || 0}
           </div>
           <div className="label">Probados</div>
+          {/* Antes era un porcentaje ("50% de tu colección"): pide una cuenta
+              mental para volver al número de arriba. "1 de 2 vinos" usa el
+              mismo par de cifras que ya está a la vista, sin traducirlas. */}
           {!statsLoading && (wineStats?.totals?.total || 0) > 0 && (
             <div className="stat-card__hint">
-              {Math.round(((wineStats.totals.consumed || 0) / wineStats.totals.total) * 100)}% de tu
-              colección
+              de {wineStats.totals.total} {wineStats.totals.total === 1 ? "vino" : "vinos"}
             </div>
           )}
         </div>
@@ -276,9 +260,14 @@ export default function ProfilePage() {
             {statsLoading ? "" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "—"}
           </div>
           <div className="label">Puntuación</div>
-          {!statsLoading && wineStats?.avgRating > 0 && (
-            <div className="stat-card__hint">promedio de lo que puntuaste</div>
-          )}
+          {/* La raya sola, sin nada abajo, se leía como un dato roto. Ahora dice
+              por qué está vacía en vez de sólo mostrar el vacío. */}
+          {!statsLoading &&
+            (wineStats?.avgRating > 0 ? (
+              <div className="stat-card__hint">promedio de lo que puntuaste</div>
+            ) : (
+              <div className="stat-card__hint">todavía sin puntuar</div>
+            ))}
         </div>
       </div>
 
@@ -300,76 +289,77 @@ export default function ProfilePage() {
           regiones, rating promedio, y tres de gastos— y una de ellas repetía el
           rating que ya estaba tres líneas más arriba. Ahora son tres bloques con
           jerarquía: qué tomás, qué te gusta, cuánto gastás. */}
-      {wineStats && !statsLoading && (wineStats.totals?.total || 0) > 0 && (
+      {/* Antes ésta y "Tu inversión" eran dos <section> seguidas, cada una con
+          su propia caja: el gasto no es un tema distinto de qué tomás y qué
+          elegís, es el mismo perfil visto desde otro número. Una sola sección
+          con tres tarjetas adentro en vez de dos secciones con una y dos. */}
+      {((wineStats && !statsLoading && (wineStats.totals?.total || 0) > 0) ||
+        (spending && spending.totalSpent > 0)) && (
         <section className="insights">
-          {wineStats.countsByType?.length > 0 && (
-            <div className="insight">
-              <h3 className="insight__title">Qué tomás</h3>
-              <TypeSplit counts={wineStats.countsByType} total={wineStats.totals?.total || 0} />
-            </div>
+          {wineStats && !statsLoading && (wineStats.totals?.total || 0) > 0 && (
+            <>
+              {wineStats.countsByType?.length > 0 && (
+                <div className="insight">
+                  <h3 className="insight__title">Qué tomás</h3>
+                  <TypeSplit counts={wineStats.countsByType} total={wineStats.totals?.total || 0} />
+                </div>
+              )}
+
+              {(wineStats.topVarietals?.length > 0 || wineStats.topRegions?.length > 0) && (
+                <div className="insight">
+                  <h3 className="insight__title">Lo que más elegís</h3>
+                  <div className="insight__cols">
+                    <TopRanking
+                      label="Uvas"
+                      items={wineStats.topVarietals}
+                      nameKey="varietal"
+                    />
+                    <TopRanking
+                      label="Regiones"
+                      items={wineStats.topRegions}
+                      nameKey="region"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {(wineStats.topVarietals?.length > 0 || wineStats.topRegions?.length > 0) && (
+          {spending && spending.totalSpent > 0 && (
             <div className="insight">
-              <h3 className="insight__title">Lo que más elegís</h3>
-              <div className="insight__cols">
-                <TopRanking
-                  label="Uvas"
-                  items={wineStats.topVarietals}
-                  nameKey="varietal"
-                />
-                <TopRanking
-                  label="Regiones"
-                  items={wineStats.topRegions}
-                  nameKey="region"
-                />
+              <h3 className="insight__title">Tu inversión</h3>
+              <div className="spend">
+                <div className="spend__total">
+                  <span className="spend__amount">
+                    ${spending.totalSpent.toLocaleString("es-AR", { maximumFractionDigits: 0 })}
+                  </span>
+                  <span className="spend__sub">
+                    en {spending.winesWithPrice} {spending.winesWithPrice === 1 ? "vino" : "vinos"} con precio cargado
+                  </span>
+                </div>
+
+                {spending.bestValueWine && (
+                  <p className="spend__row">
+                    <span className="spend__row-label">Mejor relación</span>
+                    <span className="spend__row-value">
+                      {spending.bestValueWine.name} · {spending.bestValueWine.rating}★
+                    </span>
+                  </p>
+                )}
+
+                {spending.avgPriceByType?.length > 0 && (
+                  <p className="spend__row">
+                    <span className="spend__row-label">Promedio por tipo</span>
+                    <span className="spend__row-value">
+                      {spending.avgPriceByType
+                        .map((t) => `${WINE_TYPE_LABELS[t.type] || t.type} $${t.avgPrice.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`)
+                        .join(" · ")}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           )}
-        </section>
-      )}
-
-      {/* Los logros no están más. Eran ocho medallas de las que la mayoría se
-          veía apagada —"Coleccionista: llegá a 10 vinos"— y una cuadrícula de
-          seis pendientes al lado de dos cumplidas es un recordatorio de lo que
-          NO hiciste, no una celebración. El nivel de arriba ya cuenta el avance
-          con un solo número y sin señalar deudas. */}
-
-      {spending && spending.totalSpent > 0 && (
-        <section className="insights">
-          <div className="insight">
-            <h3 className="insight__title">Tu inversión</h3>
-            <div className="spend">
-              <div className="spend__total">
-                <span className="spend__amount">
-                  ${spending.totalSpent.toLocaleString("es-AR", { maximumFractionDigits: 0 })}
-                </span>
-                <span className="spend__sub">
-                  en {spending.winesWithPrice} {spending.winesWithPrice === 1 ? "vino" : "vinos"} con precio cargado
-                </span>
-              </div>
-
-              {spending.bestValueWine && (
-                <p className="spend__row">
-                  <span className="spend__row-label">Mejor relación</span>
-                  <span className="spend__row-value">
-                    {spending.bestValueWine.name} · {spending.bestValueWine.rating}★
-                  </span>
-                </p>
-              )}
-
-              {spending.avgPriceByType?.length > 0 && (
-                <p className="spend__row">
-                  <span className="spend__row-label">Promedio por tipo</span>
-                  <span className="spend__row-value">
-                    {spending.avgPriceByType
-                      .map((t) => `${WINE_TYPE_LABELS[t.type] || t.type} $${t.avgPrice.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`)
-                      .join(" · ")}
-                  </span>
-                </p>
-              )}
-            </div>
-          </div>
         </section>
       )}
 
@@ -435,8 +425,6 @@ export default function ProfilePage() {
           }
         />
       )}
-
-      {showPassword && <PasswordEditor onClose={() => setShowPassword(false)} />}
     </div>
   );
 }

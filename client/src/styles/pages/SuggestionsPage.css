@@ -45,69 +45,32 @@
   padding-bottom: 72px;
 }
 
-/* La entrada. Sin "¡Hola! Soy tu asistente" y sin el medallón con la copa que
-   iba arriba de todo: un ícono de 54px que no se toca, no informa y empujaba
-   las dos tarjetas media pantalla hacia abajo. La pantalla ya se llama
-   "Sommelier" en la barra de arriba.
-
-   20px entre tarjetas: son dos bloques con contorno propio y necesitan aire
-   para no leerse como una lista de dos filas. */
+/* La entrada. Sin el medallón con la copa que iba arriba de todo: un ícono de
+   54px que no se toca, no informa y empujaba todo lo demás hacia abajo. La
+   pantalla ya se llama "Sommelier" en la barra de arriba. */
 .somm__intro {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 20px;
+  gap: 12px;
   padding: 18px 0 8px;
+}
+
+/* El saludo, chico y por encima del título: es un dato de contexto ("sé quién
+   sos"), no el mensaje principal de la pantalla — ése sigue siendo el h2. */
+.somm__saludo {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .somm__intro h2 {
   margin: 0;
-  font-size: var(--text-3xl);
+  font-size: var(--text-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
-}
-
-/* ── La tarjeta de cada modo ──────────────────────────────────────────────
-   Un fondo apenas más claro que la pantalla, borde de un píxel y esquinas
-   redondeadas. La diferencia con el fondo es deliberadamente chica: alcanza
-   para que el bloque se separe, y no tanto como para competir con las
-   pastillas de adentro, que son lo único que se toca. */
-.somm__card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-}
-
-/* h3 y no un <p> con clase: es el encabezado de una sección de contenido, y
-   quien navega con lector de pantalla tiene derecho a saltar entre las dos
-   tarjetas. Va debajo del h2 de la pantalla, en su nivel correcto. */
-.somm__card-titulo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.somm__card-titulo .icon {
-  flex-shrink: 0;
-  color: var(--accent-soft);
-}
-
-/* Lo que la respuesta va a traer, dicho una vez y en voz baja. */
-.somm__card-pie {
-  margin: 0;
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  color: var(--text-muted);
 }
 
 /* ══ El carrusel de pastillas ══════════════════════════════════════════════
@@ -309,28 +272,11 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* Las sugerencias: una fila que se desliza, pegada encima del campo.
-   Son formas de SEGUIR la conversación, así que viven donde se sigue. Cambian
-   con cada respuesta; con la conversación vacía, son las preguntas de entrada. */
-/* Mismo carrusel que el de las tarjetas (ver `.somm__rail` arriba, donde está
-   el porqué de cada línea), con el padding del compositor en vez del de la
-   tarjeta: acá el borde contra el que se corta es el de la pantalla. */
-.somm__chips {
-  display: flex;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-  margin: 0 calc(var(--page-pad-x) * -1);
-  padding: 2px var(--page-pad-x);
-}
-
-.somm__chips::-webkit-scrollbar {
-  display: none;
-}
-
+/* La pastilla chica: la usa la tira del arranque (ver `.somm__rail` arriba).
+   Vivía acá porque antes también la usaban las repreguntas que el modelo
+   proponía debajo de cada respuesta (`.somm__chips`, el carrusel que las
+   contenía) — se sacaron para que la pantalla no sume una fila de pastillas
+   nueva después de cada respuesta, y con ellas se fue ese carrusel. */
 .somm__chip {
   flex: 0 0 auto;
   min-height: 36px;
@@ -454,10 +400,6 @@
     margin-left: auto;
     margin-right: auto;
     width: 100%;
-  }
-
-  .somm__chips {
-    margin: 0 auto;
   }
 }
 

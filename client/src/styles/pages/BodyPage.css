@@ -1274,6 +1274,25 @@
    lado, en la misma fila, ya hay una pastilla de tipo y una de stock — tres
    cápsulas por vino es la fila hablando en etiquetas. El color y el ícono ya
    distinguen esto de un dato neutro; no hace falta además dibujarle un marco. */
+/* Dónde está la botella en tu casa. Mismo tratamiento que "En su punto" —línea
+   propia, sin cápsula— pero en gris: no es un logro ni una alerta, es un dato
+   de ubicación en voz baja. */
+.wine-row__location {
+  justify-self: start;
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.wine-row__location .icon { flex-shrink: 0; }
+
 .wine-row__peak {
   /* `justify-self` y no `align-self`: la columna de info es un grid, y sin esto
      el texto se estiraba a lo ancho de toda la fila —hasta meterse debajo del
