@@ -288,6 +288,7 @@ async function createWine(userId, payload) {
     lastConsumedAt,
     consumptionCount,
     cellarLocation,
+    cellarShelf,
     drinkFrom,
     drinkUntil,
     price,
@@ -421,6 +422,7 @@ async function createWine(userId, payload) {
     consumptionCount: parseQuantity(consumptionCount, tomadoAfuera ? 1 : 0),
     cellar: {
       location: cellarLocation?.trim() || undefined,
+      shelf: cellarShelf?.trim() || undefined,
       drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined,
       drinkUntil: drinkUntil ? parseInt(drinkUntil) : undefined,
     },
@@ -536,6 +538,7 @@ async function updateWine(userId, id, payload) {
     lastConsumedAt,
     consumptionCount,
     cellarLocation,
+    cellarShelf,
     drinkFrom,
     drinkUntil,
     price,
@@ -576,6 +579,7 @@ async function updateWine(userId, id, payload) {
   if (consumptionCount !== undefined) wine.consumptionCount = parseQuantity(consumptionCount, wine.consumptionCount || 0);
 
   if (cellarLocation !== undefined) wine.cellar = { ...wine.cellar, location: cellarLocation?.trim() || undefined };
+  if (cellarShelf !== undefined) wine.cellar = { ...wine.cellar, shelf: cellarShelf?.trim() || undefined };
   if (drinkFrom !== undefined) wine.cellar = { ...wine.cellar, drinkFrom: drinkFrom ? parseInt(drinkFrom) : undefined };
   if (drinkUntil !== undefined) wine.cellar = { ...wine.cellar, drinkUntil: drinkUntil ? parseInt(drinkUntil) : undefined };
   // Lo que pagaste ANTES de tocarlo: hace falta para saber, después de

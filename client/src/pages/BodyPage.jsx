@@ -487,6 +487,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const porOrden = (a, b) => {
       if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
       if (sortBy === "year") return (b.vintage || 0) - (a.vintage || 0);
+      // Más cara primero, como "Mejor puntuados" pone la nota más alta primero.
+      // Sin precio cargado queda al final: no es una botella barata, es un dato
+      // que falta, y las dos cosas no pueden verse igual en la lista.
+      if (sortBy === "price") return (b.purchase?.price || 0) - (a.purchase?.price || 0);
       if (sortBy === "name") return wineDisplayName(a).localeCompare(wineDisplayName(b), "es");
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     };
@@ -1347,6 +1351,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         </span>
                       )}
                       {bodega && <span className="wine-row__winery">{bodega}</span>}
+
+                      {/* Dónde está la botella en tu casa. Debajo de la uva y no
+                          al lado: "Rosado · Malbec · 2024 📍 Cava 1, Estante 3"
+                          en un solo renglón se corta en un teléfono, y es un dato
+                          que se mira sólo cuando ya decidiste el vino y vas a
+                          buscarlo — no compite por la primera mirada. Sólo
+                          aparece si lo cargaste: la mayoría de las filas no
+                          tienen nada que mostrar acá. */}
+                      {(wine.cellar?.location || wine.cellar?.shelf) && (
+                        <span className="wine-row__location">
+                          <Icon name="map-pin" size={11} />{" "}
+                          {[wine.cellar?.location, wine.cellar?.shelf].filter(Boolean).join(" · ")}
+                        </span>
+                      )}
 
                       {/* ── DÓNDE VA "EN SU PUNTO" (probado en pantalla) ───────
                           Su propio renglón, debajo de la bodega. Las otras dos

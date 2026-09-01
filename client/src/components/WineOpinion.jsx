@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
+import ConfirmModal from "./ConfirmModal";
 import { useToast } from "../context/ToastContext";
 import { getWineReviews, publishWineReview, deleteWineReview } from "../services/reviewApi";
 import "./WineOpinion.css";
@@ -40,6 +41,27 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
   const [text, setText] = useState("");
   const [writing, setWriting] = useState(false);
   const [saving, setSaving] = useState(false);
+  // La estrella que se tocó y todavía espera el "sí, reemplazala" del modal de
+  // abajo. `null` = no hay nada pendiente; nunca vale 0, porque borrar la
+  // puntuación no pasa por acá (ver `rate`).
+  const [pendienteReemplazo, setPendienteReemplazo] = useState(null);
+
+  /**
+   * ── LA MISMA ETIQUETA, OTRA COSECHA ────────────────────────────────────────
+   *
+   * La reseña se guarda por vino —nombre + bodega + uva— y no por añada (ver el
+   * comentario largo en `server/wineReviews.service.js`): con el volumen de
+   * opiniones que tiene esta app, separarlas por cosecha dejaría cada balde con
+   * una sola voz y el promedio dejaría de decir algo.
+   *
+   * El costo de esa decisión es este: si escaneás el mismo vino un año después
+   * —otra añada, mismo nombre— esta caja carga la opinión VIEJA con las
+   * estrellas ya puestas, porque para el servidor es la misma reseña. Sirve
+   * para dos cosas: mostrar el aviso de arriba, y frenar con una confirmación
+   * antes de que tocar una estrella la reemplace sin querer (ver `rate`).
+   */
+  const otraCosecha =
+    Boolean(mine) && Number(mine.vintage) > 0 && Number(vintage) > 0 && Number(mine.vintage) !== Number(vintage);
 
   /**
    * ── LA CARGA INICIAL NO PUEDE PISAR LO QUE YA TOCASTE ──────────────────────
@@ -87,10 +109,13 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
    * avisa: cualquiera concluye que la muda no hizo nada y que hay que pasar por
    * la otra. El bug no estaba en el guardado, estaba en la falta de acuse.
    */
-  const rate = async (value) => {
-    // Desde acá, lo que decidió la persona manda sobre la carga en vuelo.
-    tocado.current = true;
-    const next = rating === value ? 0 : value;
+  /**
+   * Lo que de verdad guarda: borra en cero, publica en cualquier otro valor.
+   * Separado de `rate` para que un mismo guardado sirva a dos caminos —tocar
+   * una estrella directo, o tocarla y primero contestar el modal de "otra
+   * cosecha"— sin repetir la llamada a la API en los dos lugares.
+   */
+  const aplicarRating = async (next) => {
     setRating(next);
 
     if (next === 0) {
@@ -126,6 +151,33 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
     }
   };
 
+  const rate = (value) => {
+    // Desde acá, lo que decidió la persona manda sobre la carga en vuelo.
+    tocado.current = true;
+    const next = rating === value ? 0 : value;
+
+    /**
+     * Publicar sobre una opinión de OTRA cosecha la reemplaza, y hasta acá
+     * eso pasaba apenas tocabas la estrella: un toque, sin vuelta atrás, contra
+     * una reseña que quizás escribiste con ganas hace un año. Borrar (next
+     * === 0) no entra en esta frenada — sigue siendo un toque, como siempre
+     * fue — porque ahí no hay nada de otra cosecha que estés por pisar.
+     */
+    if (next > 0 && otraCosecha) {
+      setPendienteReemplazo(value);
+      return;
+    }
+
+    aplicarRating(next);
+  };
+
+  /** El modal de "otra cosecha" dijo que sí: recién ahí se publica. */
+  const confirmarReemplazo = () => {
+    const value = pendienteReemplazo;
+    setPendienteReemplazo(null);
+    if (value) aplicarRating(value);
+  };
+
   const saveText = async () => {
     try {
       setSaving(true);
@@ -155,6 +207,14 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
           <Icon name="eye" size={12} /> {rating > 0 ? "Pública" : "Se publica"}
         </span>
       </div>
+
+      {otraCosecha && (
+        <p className="wine-opinion__vintage-notice">
+          <Icon name="alert-triangle" size={12} /> Esto trae la opinión que dejaste de la cosecha{" "}
+          {mine.vintage}: {mine.rating}★{mine.text ? ", con reseña" : ""}. Si puntuás esta añada, la
+          reemplaza.
+        </p>
+      )}
 
       <div
         className="wine-opinion__stars"
@@ -265,6 +325,23 @@ export default function WineOpinion({ name, winery = "", varietal = "", vintage,
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={pendienteReemplazo !== null}
+        title="¿Reemplazar tu valoración?"
+        message={
+          mine
+            ? `Ya la valoraste (cosecha ${mine.vintage}) con ${mine.rating}★${
+                mine.text ? ", con reseña" : ""
+              }. Si seguís, la reemplazás por ${pendienteReemplazo}★ de la cosecha ${vintage}.`
+            : ""
+        }
+        confirmText="Reemplazar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={confirmarReemplazo}
+        onCancel={() => setPendienteReemplazo(null)}
+      />
     </section>
   );
 }

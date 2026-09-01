@@ -8,6 +8,7 @@ const { fail } = require("../utils/apiError");
 const winesService = require("../services/wines.service");
 const { validatePasswordStrength } = require("../utils/password");
 const sessions = require("../services/session.service");
+const wineReviews = require("../services/wineReviews.service");
 
 
 // GET /api/users/profile - Obtener perfil del usuario actual
@@ -243,6 +244,18 @@ router.get("/:id/wine-stats", authenticate, async (req, res) => {
     }
 
     const stats = await Wine.getUserStats(targetUserId);
+
+    /**
+     * `ratedCount` venía de la agregación de arriba: cuántos vinos de TU
+     * BODEGA ACTUAL tienen `rating > 0`. "Tus valoraciones" en el perfil lleva
+     * a `MyRatings`, que lista reseñas PUBLICADAS (`WineReview`) — y esa lista
+     * sobrevive a que borres el vino, o existe sin que el vino haya estado
+     * nunca en tu bodega (puntuaste desde el catálogo). Dos tablas para el
+     * mismo número es como el perfil terminaba diciendo "1" con dos reseñas
+     * esperando adentro: se pisa acá con el conteo real de lo que esa pantalla
+     * va a mostrar.
+     */
+    stats.ratedCount = await wineReviews.countByUser(targetUserId);
 
     res.json({ success: true, data: stats });
   } catch (error) {

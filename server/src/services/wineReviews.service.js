@@ -219,4 +219,26 @@ const listByUser = async (userId, limit = 50) => {
   }
 };
 
-module.exports = { upsertReview, deleteReview, listReviews, listByUser, getSummaries, wineKey };
+/**
+ * Cuántas reseñas publicó esta persona, en total.
+ *
+ * Existe para que el perfil pueda decir "tenés N valoraciones" sin traerse la
+ * lista entera sólo para contarla, y sobre todo para que ese número sea EL
+ * MISMO que `listByUser` va a mostrar un toque después: antes el perfil contaba
+ * cuántos vinos de TU BODEGA tenían `rating > 0` (una tabla distinta, la propia
+ * de cada vino) mientras esta pantalla lista reseñas publicadas, que sobreviven
+ * a que borres el vino o a que hayas puntuado uno que nunca sumaste a tu
+ * bodega. Dos fuentes para el mismo dato es como el perfil llegó a decir "1
+ * valoración" con dos reseñas esperando adentro.
+ */
+const countByUser = (userId) => WineReview.countDocuments({ userId }).catch(() => 0);
+
+module.exports = {
+  upsertReview,
+  deleteReview,
+  listReviews,
+  listByUser,
+  countByUser,
+  getSummaries,
+  wineKey,
+};

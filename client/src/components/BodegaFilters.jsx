@@ -31,6 +31,7 @@ const ORDENES = [
   { value: "name", label: "A → Z" },
   { value: "rating", label: "Mejor puntuados" },
   { value: "year", label: "Cosecha nueva" },
+  { value: "price", label: "Precio" },
 ];
 
 const NOMBRE_FACETA = { uva: "Uva", region: "región", cosecha: "cosecha" };

@@ -50,10 +50,11 @@
 // suspende una feria, la app la sigue anunciando hasta el próximo deploy. Una
 // campaña se apaga con un toque y tiene su ventana de vigencia.
 //
-// Lo que queda acá es lo que NO caduca: videos y cursos. La música se genera
-// (ver `musicItems`), no se escribe.
+// Lo que queda acá es lo que NO caduca: videos y cursos. La música casi toda se
+// genera (ver `musicItems`); el único fijo es el bloque de Deep Progressive, que
+// no depende de la hora y por eso vive escrito.
 
-import { suggestedPlaylists, playlistUrl } from "./playlists";
+import { suggestedPlaylists, playlistUrl, DEEP_PROGRESSIVE } from "./playlists";
 
 /**
  * Las secciones, en orden de aparición.
@@ -259,8 +260,8 @@ const isLive = (item, today) => {
  * Las playlists son las mismas siete oficiales de Spotify que ya usa el plan de
  * la ficha, verificadas una por una: no se suma ni un link que se pueda romper.
  */
-const musicItems = (now) =>
-  suggestedPlaylists(now.getHours(), now.getDay()).map((p) => ({
+const musicItems = (now) => [
+  ...suggestedPlaylists(now.getHours(), now.getDay()).map((p) => ({
     id: `playlist-${p.id}`,
     group: "musica",
     type: "playlist",
@@ -272,7 +273,21 @@ const musicItems = (now) =>
     // data/playlists.js), así que no afirma nada que no estemos suponiendo ya.
     badge: p.momento || "",
     source: { name: "Spotify", url: playlistUrl(p) },
-  }));
+  })),
+  // El bloque fijo: no lo elige la hora, así que no lleva "para qué mesa es"
+  // (`badge` vacío) — decir un momento inventado sería afirmar algo que esta
+  // playlist no supone. Va tercera y no reemplaza a ninguna de las dos de
+  // arriba: son gustos distintos, no la misma oferta con otra etiqueta.
+  {
+    id: `playlist-${DEEP_PROGRESSIVE.id}`,
+    group: "musica",
+    type: "playlist",
+    title: DEEP_PROGRESSIVE.name,
+    summary: DEEP_PROGRESSIVE.mood,
+    badge: "",
+    source: { name: "Spotify", url: playlistUrl(DEEP_PROGRESSIVE) },
+  },
+];
 
 /**
  * Un ítem curado con la forma que espera `ContentCard`.

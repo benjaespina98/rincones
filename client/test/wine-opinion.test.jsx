@@ -130,3 +130,76 @@ describe("puntuar sin escribir nada", () => {
     await waitFor(() => expect(screen.getByText("Flojo")).toBeTruthy());
   });
 });
+
+describe("la misma etiqueta, otra cosecha", () => {
+  // La reseña se guarda por vino, no por añada (ver el comentario largo en
+  // WineOpinion.jsx): re-puntuar el mismo vino un año después, con otra
+  // cosecha, reemplaza la opinión vieja. Estas pruebas fijan que eso ya no
+  // pase en un solo toque sin querer.
+  const conOtraCosecha = { ...vino, vintage: 2024 };
+
+  beforeEach(() => {
+    getWineReviews.mockResolvedValue({ mine: { rating: 4, vintage: 2023, text: "" } });
+  });
+
+  it("avisa antes de tocar ninguna estrella", async () => {
+    render(<WineOpinion {...conOtraCosecha} />);
+    await waitFor(() => expect(screen.getByText(/cosecha 2023/i)).toBeTruthy());
+    expect(screen.getByText(/4★/)).toBeTruthy();
+  });
+
+  it("tocar una estrella nueva no publica sola: primero pregunta", async () => {
+    render(<WineOpinion {...conOtraCosecha} />);
+    await waitFor(() => expect(screen.getByText(/cosecha 2023/i)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "5 estrellas" }));
+
+    expect(publishWineReview).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByText(/reemplazás por 5★ de la cosecha 2024/i)).toBeTruthy();
+  });
+
+  it("cancelar el modal no publica nada y deja la estrella vieja como estaba", async () => {
+    render(<WineOpinion {...conOtraCosecha} />);
+    await waitFor(() => expect(screen.getByText(/cosecha 2023/i)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "5 estrellas" }));
+    fireEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(publishWineReview).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("confirmar el modal recién ahí publica, con la cosecha nueva", async () => {
+    publishWineReview.mockResolvedValue({ rating: 5, vintage: 2024, text: "" });
+    render(<WineOpinion {...conOtraCosecha} />);
+    await waitFor(() => expect(screen.getByText(/cosecha 2023/i)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "5 estrellas" }));
+    fireEvent.click(screen.getByRole("button", { name: /^reemplazar$/i }));
+
+    await waitFor(() => expect(publishWineReview).toHaveBeenCalledTimes(1));
+    expect(publishWineReview.mock.calls[0][0]).toMatchObject({ rating: 5, vintage: 2024 });
+  });
+
+  it("quitar la puntuación no pasa por el modal: sigue siendo un toque", async () => {
+    deleteWineReview.mockResolvedValue(true);
+    render(<WineOpinion {...conOtraCosecha} />);
+    await waitFor(() => expect(screen.getByText(/cosecha 2023/i)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar mi puntuación" }));
+
+    await waitFor(() => expect(deleteWineReview).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("sin cosecha cargada de ningún lado, no hay nada que avisar", async () => {
+    getWineReviews.mockResolvedValue({ mine: { rating: 4, text: "" } });
+    render(<WineOpinion {...vino} />);
+    await waitFor(() => expect(screen.getByText("Muy bueno")).toBeTruthy());
+
+    expect(screen.queryByText(/cosecha/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "5 estrellas" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

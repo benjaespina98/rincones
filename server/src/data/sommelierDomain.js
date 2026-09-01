@@ -80,6 +80,11 @@ const DEL_DOMINIO = [
   // Cuándo
   "regalo", "regalar", "festejo", "cumpleanos", "brindis", "brindar",
   "aniversario", "reunion", "juntada", "previa", "navidad", "fin de ano",
+
+  // Con qué clima: la pantalla ofrece "¿Qué tomo con este clima?" como chip
+  // de entrada, y sin estas palabras el portero la rechazaba — "clima" no
+  // nombra nada de vino a propósito, así que necesita su propia entrada.
+  "clima", "calor", "frio", "verano", "invierno",
 ];
 
 /**
@@ -127,23 +132,59 @@ const HABLA_DE_TU_BODEGA = [
  * y viven adentro de palabras de cualquier otro tema.
  *
  * Entonces: las de una sola palabra se comparan como PALABRA ENTERA, con
- * tolerancia al plural —"malbecs", "espumantes"— sacándole la "s" final. Las
- * que ya son frases ("rio negro", "fin de ano") se siguen comparando como
- * texto, que es lo que son.
+ * tolerancia al plural —"malbecs", "espumantes"— sacándole la "s" final.
+ *
+ * ── Y POR QUÉ LAS FRASES TOLERAN PALABRAS ADENTRO ───────────────────────────
+ * Eran `texto.includes(frase)`, comparación literal, y con "que tengo" —la
+ * frase que reconoce "¿cuál abro hoy?" y compañía— tenía el mismo agujero que
+ * ya se había cerrado para las sueltas: "¿QUÉ MALBEC TENGO?", el ejemplo que la
+ * propia pantalla del sommelier sugiere tocar, no contiene "que tengo" como
+ * subcadena porque el nombre de la uva se mete en el medio. Esa pregunta no
+ * disparaba `hablaDeTuBodega`, así que la respuesta salía SIN la bodega —y
+ * encima se guardaba en el caché genérico, para que le tocara a cualquiera que
+ * escribiera lo mismo—. Lo mismo le pasaba a "cuál Cabernet abro" o "qué Malbec
+ * tomo".
+ *
+ * Por eso una frase ahora matchea por SUBSECUENCIA: sus palabras, en orden,
+ * pueden tener hasta `GAP` palabras ajenas intercaladas entre una y la
+ * siguiente. Con `GAP` chico —dos— "que MALBEC tengo" entra y "que tomo un
+ * vino más tarde y después me pregunto si tengo" no debería (hay de sobra más
+ * de dos palabras entre "que" y "tengo" ahí), que es lo que evita que dos
+ * puntas de una pregunta larga se toquen sin tener nada que ver.
  *
  * Sacar la "s" y no hacer prefijo es deliberado: con prefijos volvería
  * "francia".startsWith("franc") y el agujero entero con él.
  */
+const GAP_ENTRE_PALABRAS = 2;
+
+const contieneFrase = (palabras, frase) => {
+  let desde = 0;
+  for (const palabraFrase of frase) {
+    let encontrada = -1;
+    const tope = Math.min(palabras.length, desde + GAP_ENTRE_PALABRAS + 1);
+    for (let i = desde; i < tope; i += 1) {
+      if (palabras[i] === palabraFrase) {
+        encontrada = i;
+        break;
+      }
+    }
+    if (encontrada === -1) return false;
+    desde = encontrada + 1;
+  }
+  return true;
+};
+
 const armarMatcher = (lista) => {
   const sueltas = new Set(lista.filter((p) => !p.includes(" ")));
-  const frases = lista.filter((p) => p.includes(" "));
+  const frases = lista.filter((p) => p.includes(" ")).map((f) => f.split(" "));
 
   return (texto) => {
-    for (const palabra of texto.split(" ")) {
+    const palabras = texto.split(" ");
+    for (const palabra of palabras) {
       if (sueltas.has(palabra)) return true;
       if (palabra.endsWith("s") && sueltas.has(palabra.slice(0, -1))) return true;
     }
-    return frases.some((f) => texto.includes(f));
+    return frases.some((f) => contieneFrase(palabras, f));
   };
 };
 

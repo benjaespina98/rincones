@@ -53,6 +53,16 @@ const PLAYLISTS = {
     name: "Peaceful Piano",
     mood: "piano y nada más, para bajar un cambio",
   },
+  // No es de las siete que arma `PLANES`/`suggestedPlaylists` (ver el pedido
+  // puntual en discoverContent.js): es un bloque fijo aparte, así que no tiene
+  // un `hour`/`plan` que la dispare. Oficial igual —"This Is" es la serie
+  // propia de Spotify por artista, mismo prefijo `37i9dQZF1D` que las otras
+  // seis— y verificada contra el oEmbed de Spotify antes de sumarla.
+  deepProgressive: {
+    id: "37i9dQZF1DZ06evO3dSWT8",
+    name: "This Is Ben Böhmer",
+    mood: "progresivo y melódico, la línea de Ben Böhmer y Lane 8",
+  },
 };
 
 /**
@@ -155,6 +165,9 @@ export const playlistFor = (plan, wineType, hour = new Date().getHours(), struct
 };
 
 export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${playlist.id}`;
+
+/** El bloque fijo de "Deep Progressive" que pide Descubrí, aparte del algoritmo. */
+export const DEEP_PROGRESSIVE = PLAYLISTS.deepProgressive;
 
 /* ── Las dos de la home ─────────────────────────────────────────────────────
  *

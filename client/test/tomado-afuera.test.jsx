@@ -9,12 +9,13 @@ import { nuncaEstuvoEnTuCava } from "../src/utils/cellarTime";
  *
  * Son dos cargas distintas: "compré este vino" y "lo tomé en un restaurante y me
  * lo quiero acordar". La app las distinguía por dentro —stock y probado son ejes
- * independientes— pero no por fuera: la diferencia se elegía con un botón chico
- * que ponía las botellas en cero, y después media app le hablaba a esa copa como
- * si estuviera en la cava ("En tu bodega desde el 12 de marzo").
+ * independientes— pero no por fuera: había que elegir con un botón chico entre
+ * "la tengo yo" y "la tomé afuera" ANTES de poder decir cuántas botellas, un
+ * paso de más para lo mismo que el número ya iba a contestar. Ahora es un único
+ * contador que arranca en cero: el cero ES "la tomé afuera", no un caso aparte.
  *
- * Estos tests fijan las dos mitades del arreglo: que la pregunta se haga de
- * frente al cargar, y que después nada afirme una tenencia que no existió.
+ * Estos tests fijan las dos mitades del arreglo: que el número por defecto no
+ * afirme una tenencia que no existió, y que después nada la afirme tampoco.
  */
 
 afterEach(cleanup);
@@ -35,33 +36,37 @@ const LECTURA = {
 };
 
 describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
-  it("por defecto la botella es tuya y entra con stock", () => {
+  it("por defecto arranca en cero: se guarda como probado, sin botellas", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
-    expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
-  });
-
-  it("elegir 'lo tomé afuera' guarda sin sumar ninguna botella", () => {
-    const onConfirm = vi.fn();
-    render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /lo tomé afuera/i }));
-
-    // El botón de guardar cambia de nombre: es lo que hace que la consecuencia
-    // se lea ANTES de tocarlo, y no después en un aviso.
+    // El botón ya nombra la consecuencia del cero: no hace falta elegir nada
+    // aparte para llegar a "lo tomé".
     const guardar = screen.getByRole("button", { name: /guardarlo como probado/i });
     fireEvent.click(guardar);
     expect(onConfirm.mock.calls[0][0].quantity).toBe(0);
   });
 
-  it("con la botella afuera no se pregunta cuántas", () => {
-    render(<ScanReview reading={LECTURA} onConfirm={vi.fn()} />);
-    expect(screen.getByText(/¿cuántas botellas\?/i)).toBeInTheDocument();
+  it("subir el contador a uno pasa a sumar la botella a la bodega", () => {
+    const onConfirm = vi.fn();
+    render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /lo tomé afuera/i }));
-    expect(screen.queryByText(/¿cuántas botellas\?/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /una botella más/i }));
+
+    // El botón cambia de nombre solo, con el número: es lo que hace que la
+    // consecuencia se lea ANTES de tocarlo, y no después en un aviso.
+    const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
+    fireEvent.click(guardar);
+    expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
+  });
+
+  it("la frase de abajo del contador cambia con el número", () => {
+    render(<ScanReview reading={LECTURA} onConfirm={vi.fn()} />);
+    expect(screen.getByText(/queda anotado entre tus probados/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /una botella más/i }));
+    expect(screen.queryByText(/queda anotado entre tus probados/i)).toBeNull();
+    expect(screen.getByText(/entra a tu bodega, con stock/i)).toBeInTheDocument();
   });
 });
 

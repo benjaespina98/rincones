@@ -428,6 +428,7 @@ export default function WineDetailPage() {
       notes: wine.notes || "",
       image: wine.image || "",
       cellarLocation: wine.cellar?.location || "",
+      cellarShelf: wine.cellar?.shelf || "",
       drinkFrom: wine.cellar?.drinkFrom || "",
       drinkUntil: wine.cellar?.drinkUntil || "",
       price: wine.purchase?.price ?? "",
@@ -462,6 +463,7 @@ export default function WineDetailPage() {
         // campo no venga.
         image: draft.image || "",
         cellarLocation: draft.cellarLocation?.trim() || undefined,
+        cellarShelf: draft.cellarShelf?.trim() || undefined,
         drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : undefined,
         drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : undefined,
         price: draft.price !== "" ? parseFloat(draft.price) : undefined,
@@ -884,10 +886,13 @@ export default function WineDetailPage() {
                 renglón de datos: cada ícono ya dice qué es y ninguno necesita que
                 se lo presente con un encabezado. La ventana de guarda no está acá
                 porque ya la dice el bloque de arriba. */}
-            {(wine.cellar?.location || wine.purchase?.price > 0 || wine.purchase?.store) && (
+            {(wine.cellar?.location || wine.cellar?.shelf || wine.purchase?.price > 0 || wine.purchase?.store) && (
               <div className="wine-meta-row">
-                {wine.cellar?.location && (
-                  <span className="wine-meta-chip"><Icon name="map-pin" size={13} /> {wine.cellar.location}</span>
+                {(wine.cellar?.location || wine.cellar?.shelf) && (
+                  <span className="wine-meta-chip">
+                    <Icon name="map-pin" size={13} />{" "}
+                    {[wine.cellar?.location, wine.cellar?.shelf].filter(Boolean).join(" · ")}
+                  </span>
                 )}
                 {wine.purchase?.price > 0 && (
                   <span className="wine-meta-chip">
@@ -1017,17 +1022,36 @@ export default function WineDetailPage() {
             <div className="scan-section-divider">
               <span>Bodega</span>
             </div>
-            <input
-              type="text"
-              className="scan-edit-input"
-              placeholder="Ubicación (ej: Estante A, Heladera)"
-              value={draft.cellarLocation}
-              onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-            />
+            {/* Dos campos y no uno: "dónde" (Cava 1, Heladera) y "en qué parte de
+                ahí" (Estante 3) contestan preguntas distintas cuando volvés a
+                buscar la botella, y separados la tarjeta puede mostrar sólo el
+                primero sin partir un texto libre a la mitad. */}
+            <div className="scan-edit-grid scan-edit-grid--two">
+              <input
+                type="text"
+                className="scan-edit-input"
+                placeholder="Lugar (ej: Cava 1, Heladera)"
+                aria-label="Lugar en tu casa"
+                value={draft.cellarLocation}
+                onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+              <input
+                type="text"
+                className="scan-edit-input"
+                placeholder="Posición (ej: Estante 3)"
+                aria-label="Posición dentro de ese lugar"
+                value={draft.cellarShelf}
+                onChange={(e) => updateDraftField("cellarShelf", e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+            </div>
             <div className="scan-edit-grid scan-edit-grid--two">
               <input
                 type="number"
