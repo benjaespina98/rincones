@@ -146,5 +146,8 @@ vite.config.ts.timestamp-*
 .vercel
 .env*
 
+# Config local de Claude Code (launch.json del preview, permisos locales)
+.claude/
+
 # Screenshots sueltos que se cuelan en la raíz
 login.png

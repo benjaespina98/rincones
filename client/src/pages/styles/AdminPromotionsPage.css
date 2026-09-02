@@ -50,10 +50,26 @@
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text-secondary);
+  transition: border-color var(--transition-fast);
 }
 
+.pr__search:focus-within {
+  border-color: var(--accent-light);
+}
+
+/* La regla global de App.css (`input[type="text"] { padding: 0.875rem;
+   min-height: 44px; }`) le agregaba a este input su propio alto y relleno
+   además del que ya le daba `.pr__search` como cápsula — 44px de cápsula
+   más 44px + padding de input adentro, así que se salía por los bordes. Y en
+   foco, `input:focus` global sumaba su propio borde y `box-shadow`, un
+   segundo aro desalineado del que ahora dibuja `.pr__search:focus-within` de
+   arriba (no existía: sin él, apagar el foco del input de abajo hubiera
+   dejado el campo sin NINGUNA señal de foco). Mismo bug y mismo arreglo que
+   `.admin-search` (AdminLayout.css). */
 .pr__search input {
-  width: 100%;
+  width: auto;
+  min-height: auto;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--text);
@@ -62,6 +78,8 @@
 
 .pr__search input:focus {
   outline: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* ── Secciones de la lista ───────────────────────────────────────────────────

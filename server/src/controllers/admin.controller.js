@@ -5,6 +5,10 @@ const Wine = require("../models/wine.model");
 const WineReview = require("../models/wineReview.model");
 const WineWish = require("../models/wineWish.model");
 const WineMoment = require("../models/wineMoment.model");
+const catalogService = require("../services/catalog.service");
+const wineImages = require("../services/wineImages.service");
+const imageStorage = require("../services/imageStorage.service");
+const { CATALOG, fold } = require("../data/argentineWines");
 
 // Registra una acción de admin sobre OTRA cuenta. Best-effort, igual que la
 // auditoría de reseñas: la moderación (acá, la gestión de usuarios) nunca
@@ -474,6 +478,181 @@ const deleteReview = async (req, res, next) => {
   }
 };
 
+// --- Curación de fotos (pool compartido) ---
+//
+// El pool (wineImages.service.js) ya se llena solo con lo que cargan los
+// usuarios. Esto es para adelantarse: precargar la foto de un vino que el
+// admin todavía no tiene en su propia bodega, en vez de esperar a que lo
+// cargue alguien. Reusa la misma búsqueda de catálogo que usa el buscador de
+// Descubrí, así el admin escribe el nombre del vino y no una clave interna.
+
+/**
+ * El universo completo de vinos que la app conoce, con su estado en el pool:
+ * qué tiene foto puesta y qué no. Es la vista por defecto de la pantalla,
+ * ANTES de escribir nada en el buscador — "tener a mano todo el pool", no
+ * sólo lo que se busca de a uno.
+ *
+ * ── QUÉ ES "TODO" ────────────────────────────────────────────────────────
+ * Dos fuentes, unidas por la misma clave que usa el pool (nombre+bodega+uva):
+ *   1. El catálogo argentino curado (data/argentineWines.js) — siempre está,
+ *      cueste lo que cueste.
+ *   2. Cada vino DISTINTO que cualquier usuario haya cargado alguna vez —de
+ *      cualquiera, no sólo del admin que mira—, porque un vino real en la
+ *      bodega de alguien es tan parte del pool como uno del catálogo, y es
+ *      justo el que el catálogo curado no puede tener todavía.
+ * Si una clave aparece en las dos fuentes, gana el catálogo (datos más
+ * prolijos de bodega/región) y no se duplica la fila.
+ *
+ * Cero costo de Gemini: agrupa y pagina en memoria más dos consultas
+ * (`Wine.aggregate`, `WineImage.find`). `searchWineImages`, más abajo, sigue
+ * ahí para el caso raro que ni así aparece — un nombre que el modelo tiene
+ * que interpretar porque llegó mal escrito.
+ */
+const browseWineImages = async (req, res, next) => {
+  try {
+    const q = fold(String(req.query.q || "").trim());
+    const hasPhoto = ["yes", "no"].includes(req.query.hasPhoto) ? req.query.hasPhoto : "all";
+    const page = Math.max(1, Number(req.query.page || 1));
+    // Tope duro en 50: es justo el pedido ("que se limite para no
+    // sobrecargar la pantalla"), no una sugerencia que el cliente pueda subir.
+    const limit = Math.min(Math.max(1, Number(req.query.limit || 50)), 50);
+
+    const porClaveUnion = new Map();
+    for (const w of CATALOG) {
+      const key = wineImages.wineKey(w.name, w.winery, w.varietal);
+      if (key) {
+        porClaveUnion.set(key, {
+          name: w.name,
+          winery: w.winery,
+          varietal: w.varietal,
+          type: w.type,
+          region: w.region,
+        });
+      }
+    }
+
+    // Distinto por nombre+bodega+uva, cargado por cualquier usuario. `$limit`
+    // es un techo de seguridad —hoy la colección tiene un puñado de vinos—,
+    // no un recorte que se espere alcanzar.
+    const deLaApp = await Wine.aggregate([
+      {
+        $group: {
+          _id: { name: "$name", winery: "$winery", varietal: "$varietal" },
+          type: { $first: "$type" },
+          region: { $first: "$region" },
+        },
+      },
+      { $limit: 5000 },
+    ]);
+    for (const w of deLaApp) {
+      const name = String(w._id.name || "").trim();
+      if (!name) continue;
+      const winery = String(w._id.winery || "").trim();
+      const varietal = String(w._id.varietal || "").trim();
+      const key = wineImages.wineKey(name, winery, varietal);
+      // Ya está por el catálogo (o por otro usuario con el mismo vino, casi
+      // idéntico escrito): no se duplica la fila.
+      if (!key || porClaveUnion.has(key)) continue;
+      porClaveUnion.set(key, { name, winery, varietal, type: w.type || "unknown", region: w.region || "" });
+    }
+
+    let universo = [...porClaveUnion.values()];
+    if (q) {
+      universo = universo.filter((w) => fold(`${w.name} ${w.winery} ${w.varietal} ${w.region}`).includes(q));
+    }
+
+    const porClave = await wineImages.getImagesFor(universo);
+    const conEstado = universo.map((w) => ({
+      ...w,
+      poolImage: porClave.get(wineImages.wineKey(w.name, w.winery, w.varietal)) || "",
+    }));
+
+    const final =
+      hasPhoto === "all"
+        ? conEstado
+        : conEstado.filter((w) => (hasPhoto === "yes" ? Boolean(w.poolImage) : !w.poolImage));
+
+    // Orden estable: alfabético por bodega y nombre. Sin esto, dos pedidos de
+    // la misma página podrían no traer las mismas filas (el Map no promete
+    // orden fijo entre pedidos), y "página 2" se leería distinto cada vez.
+    final.sort((a, b) => `${a.winery}${a.name}`.localeCompare(`${b.winery}${b.name}`, "es"));
+
+    const total = final.length;
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const data = final.slice((page - 1) * limit, page * limit);
+
+    return res.status(200).json({ data, pagination: { page, limit, total, pages } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const searchWineImages = async (req, res, next) => {
+  try {
+    const q = String(req.query.q || "").trim();
+    if (q.length < 2) return res.status(200).json({ data: [], degraded: false });
+
+    const { results, degraded } = await catalogService.searchWines(q);
+
+    // `catalogImage` es lo que ya trae el catálogo (puede venir de una fuente
+    // oficial, no del pool); `poolImage` es puntualmente lo que hoy se le
+    // muestra a un usuario que no aportó foto propia — es lo único que esta
+    // pantalla puede cambiar. Se muestran separadas para que el admin sepa
+    // cuál está pisando.
+    const data = await Promise.all(
+      results.slice(0, 30).map(async (w) => ({
+        name: w.name,
+        winery: w.winery || "",
+        varietal: w.varietal || "",
+        type: w.type || "unknown",
+        catalogImage: w.image || "",
+        poolImage: await wineImages.getImage(w.name, w.winery, w.varietal),
+      }))
+    );
+
+    return res.status(200).json({ data, degraded });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const setWineImage = async (req, res, next) => {
+  try {
+    const { name, winery = "", varietal = "", image } = req.body;
+    if (!String(name || "").trim()) {
+      return res.status(400).json({ message: "Falta el nombre del vino" });
+    }
+    if (!String(image || "").trim()) {
+      return res.status(400).json({ message: "Falta la imagen" });
+    }
+
+    const before = await wineImages.getImage(name, winery, varietal);
+    // Mismo paso que al cargar un vino: subir a Cloudinary (si está
+    // configurado) y guardar la URL liviana, no el base64 crudo.
+    const stored = await imageStorage.store(String(image).trim());
+
+    let result;
+    try {
+      result = await wineImages.adminSet({ name, winery, varietal, image: stored, userId: req.user.id });
+    } catch (err) {
+      return res.status(422).json({ message: err.message || "No se pudo guardar la imagen" });
+    }
+
+    await logAdminAction({
+      entityType: "wineImage",
+      entityId: result.id,
+      action: before ? "update" : "create",
+      actor: { userId: req.user.id, email: req.user.email, role: "admin" },
+      before: before ? { image: before } : null,
+      after: { image: stored, name, winery },
+    });
+
+    return res.status(200).json({ message: "Imagen guardada", data: { ...result, image: stored } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   getSummary,
   getChangeLogs,
@@ -483,4 +662,7 @@ module.exports = {
   bulkDeleteUsers,
   getReviews,
   deleteReview,
+  browseWineImages,
+  searchWineImages,
+  setWineImage,
 };

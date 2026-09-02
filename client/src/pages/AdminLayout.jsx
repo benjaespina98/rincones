@@ -4,17 +4,46 @@ import Icon from "../components/Icon";
 import "./styles/AdminLayout.css";
 
 // El mismo menú en dos formas: sidebar fija de escritorio, tira que se
-// desliza en celular. Un solo array evita que las dos versiones se
+// desliza en celular. Un solo array de GRUPOS evita que las dos versiones se
 // desincronicen (ya pasó antes: la pantalla tenía "Vista app" en un lado y no
-// en el otro).
-const NAV_ITEMS = [
-  { to: "/admin/panel", end: true, label: "Resumen", icon: "home" },
-  { to: "/admin/panel/metricas", label: "Métricas", icon: "star" },
-  { to: "/admin/panel/campanas", label: "Campañas", icon: "sparkle" },
-  { to: "/admin/panel/usuarios", label: "Usuarios", icon: "user" },
-  { to: "/admin/panel/resenas", label: "Reseñas", icon: "chat" },
-  { to: "/admin/panel/actividad", label: "Actividad", icon: "calendar" },
+// en el otro) y además le da forma a lo que antes era una lista plana.
+//
+// ── POR QUÉ GRUPOS Y NO LA LISTA DE SIEMPRE ─────────────────────────────────
+// Con seis secciones ya no entraban en la tira de celular sin cortar la
+// última a la mitad ("Fot…"); con siete es peor. Una lista plana no tiene
+// dónde crecer: cada sección nueva empeora a todas las anteriores por igual.
+// Agrupadas por qué gobiernan —el panel en sí, lo que ven los usuarios, las
+// cuentas— la sidebar gana jerarquía (se lee en bloques, no en una fila de
+// siete iguales) y la tira de celular sigue siendo una lista, pero con aire
+// entre grupos en vez de crecer indefinidamente en una sola dirección.
+const NAV_GROUPS = [
+  {
+    label: "Panel",
+    items: [
+      { to: "/admin/panel", end: true, label: "Resumen", icon: "home" },
+      { to: "/admin/panel/metricas", label: "Métricas", icon: "star" },
+    ],
+  },
+  {
+    label: "Contenido",
+    items: [
+      { to: "/admin/panel/fotos", label: "Fotos", icon: "image" },
+      { to: "/admin/panel/campanas", label: "Campañas", icon: "sparkle" },
+      { to: "/admin/panel/resenas", label: "Reseñas", icon: "chat" },
+    ],
+  },
+  {
+    label: "Cuentas",
+    items: [
+      { to: "/admin/panel/usuarios", label: "Usuarios", icon: "user" },
+      { to: "/admin/panel/actividad", label: "Actividad", icon: "calendar" },
+    ],
+  },
 ];
+
+// Aplanado: la tira de celular y cualquier otro lugar que necesite "todos los
+// ítems sin importar el grupo" (por ejemplo, saber si alguno está activo).
+const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 /**
  * El armazón del panel: sidebar en escritorio, tira horizontal en celular,
@@ -37,16 +66,21 @@ const AdminLayout = () => {
         </div>
 
         <nav className="admin-sidebar__nav" aria-label="Secciones del panel">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `admin-sidebar__link ${isActive ? "is-active" : ""}`}
-            >
-              <Icon name={item.icon} size={17} />
-              <span>{item.label}</span>
-            </NavLink>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="admin-sidebar__group">
+              <span className="admin-sidebar__group-label">{group.label}</span>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => `admin-sidebar__link ${isActive ? "is-active" : ""}`}
+                >
+                  <Icon name={item.icon} size={17} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 

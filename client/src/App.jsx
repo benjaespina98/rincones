@@ -43,6 +43,7 @@ const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
 const AdminReviewsPage = lazy(() => import("./pages/AdminReviewsPage"));
 const AdminMetricsPage = lazy(() => import("./pages/AdminMetricsPage"));
 const AdminCampaignsPage = lazy(() => import("./pages/AdminCampaignsPage"));
+const AdminWineImagesPage = lazy(() => import("./pages/AdminWineImagesPage"));
 const AdminActivityPage = lazy(() => import("./pages/AdminActivityPage"));
 
 // Mismo lenguaje que el arranque: al saltar entre secciones lazy se ve la
@@ -130,6 +131,7 @@ function App() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="metricas" element={<AdminMetricsPage />} />
           <Route path="campanas" element={<AdminCampaignsPage />} />
+          <Route path="fotos" element={<AdminWineImagesPage />} />
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="resenas" element={<AdminReviewsPage />} />
           <Route path="actividad" element={<AdminActivityPage />} />

@@ -99,6 +99,38 @@ const OTRAS_PREGUNTAS = [
 let contador = 0;
 const nuevoId = () => `m${(contador += 1)}`;
 
+/**
+ * ── LA CONVERSACIÓN SOBREVIVE A CAMBIAR DE PESTAÑA ───────────────────────────
+ *
+ * Antes vivía sólo en memoria del componente: tocar "Mi Bodega" para mirar
+ * algo y volver a Sommelier —React desmonta la pantalla al salir— dejaba la
+ * charla en cero, como si nunca hubiera pasado. Ningún chat de verdad hace
+ * eso (ver el comentario grande de más arriba sobre por qué ésta se pensó
+ * para sentirse como uno), así que era un hueco, no una decisión.
+ *
+ * `sessionStorage` y no `localStorage`: dura mientras la PESTAÑA sigue
+ * abierta, no para siempre. Volver dentro de la sesión encuentra la charla
+ * donde quedó; cerrar el navegador y volver otro día encuentra la pantalla
+ * de arranque de siempre, no una conversación de hace una semana.
+ *
+ * Por usuario (la clave incluye el id): en una compu compartida, la sesión
+ * de una persona no puede heredar la charla de la anterior.
+ */
+const CLAVE_BASE = "rincones:sommelier";
+const claveDe = (userId) => `${CLAVE_BASE}:${userId || "anon"}`;
+
+const cargarHistorial = (userId) => {
+  try {
+    const crudo = sessionStorage.getItem(claveDe(userId));
+    const datos = crudo ? JSON.parse(crudo) : [];
+    return Array.isArray(datos) ? datos : [];
+  } catch {
+    // Modo privado, cuota llena, lo que sea: la charla sigue andando en
+    // memoria, sólo que no sobrevive a salir de la pantalla.
+    return [];
+  }
+};
+
 export default function SuggestionsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -111,7 +143,19 @@ export default function SuggestionsPage() {
   // las dos, mejor ningún nombre que uno inventado.
   const nombre = (user?.firstName || "").trim() || (user?.email || "").split("@")[0] || "";
 
-  const [mensajes, setMensajes] = useState([]);
+  const [mensajes, setMensajes] = useState(() => {
+    const previos = cargarHistorial(user?.id);
+    // El contador de ids es del módulo, no del componente (sobrevive a
+    // remontar la pantalla dentro de la misma pestaña). Si se restauran
+    // mensajes con ids "m7", el próximo tiene que seguir en "m8", no volver
+    // a "m1" y chocar con uno que ya existe en la lista restaurada.
+    const maxId = previos.reduce((max, m) => {
+      const n = Number(String(m.id || "").replace(/^m/, ""));
+      return Number.isFinite(n) ? Math.max(max, n) : max;
+    }, 0);
+    contador = Math.max(contador, maxId);
+    return previos;
+  });
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
   const [addingId, setAddingId] = useState(null);
@@ -130,6 +174,19 @@ export default function SuggestionsPage() {
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [mensajes, pensando]);
+
+  // Se guarda en cada cambio, no sólo al salir: si se cierra la pestaña de
+  // golpe (o el navegador se cae), la conversación que se guardó es la que
+  // había hasta el último mensaje, no la de la última vez que alguien
+  // recordó guardarla.
+  useEffect(() => {
+    try {
+      if (mensajes.length === 0) sessionStorage.removeItem(claveDe(user?.id));
+      else sessionStorage.setItem(claveDe(user?.id), JSON.stringify(mensajes));
+    } catch {
+      // Idem cargarHistorial: sigue andando en memoria si esto falla.
+    }
+  }, [mensajes, user?.id]);
 
   const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
@@ -267,9 +324,15 @@ export default function SuggestionsPage() {
         // respuesta a lo que la persona acaba de preguntar, y tiene que quedar
         // en el lugar donde quedó la pregunta. Un toast dejaría la
         // conversación con una pregunta sin nada abajo.
+        //
+        // Guarda la pregunta original (`retry`) para que el botón de abajo
+        // pueda reintentarla sin que la persona tenga que escribirla de
+        // nuevo — perder lo que ya escribiste es el doble de trabajo por el
+        // mismo error, y encima el más probable de todos (Gemini colgado un
+        // instante, no un problema de la persona).
         setMensajes((prev) => [
           ...prev,
-          { id: nuevoId(), role: "guia", text: mensajeDeError(error), error: true },
+          { id: nuevoId(), role: "guia", text: mensajeDeError(error), error: true, retry: limpia },
         ]);
       } finally {
         setPensando(false);
@@ -347,6 +410,21 @@ export default function SuggestionsPage() {
           ) : (
             <div key={m.id} className={`somm__resp ${m.error ? "is-error" : ""}`}>
               <p className="somm__texto">{m.text}</p>
+
+              {/* Sólo en la burbuja de error, y sólo si hay algo para
+                  reintentar: vuelve a mandar la MISMA pregunta, no reabre el
+                  campo para que la escribas de nuevo. */}
+              {m.error && m.retry && (
+                <button
+                  type="button"
+                  className="somm__reintentar"
+                  onClick={() => preguntar(m.retry)}
+                  disabled={pensando}
+                >
+                  <Icon name="refresh" size={14} />
+                  Reintentar
+                </button>
+              )}
 
               {/* ── LO QUE TENÉS ──────────────────────────────────────────
                   Las botellas que el modelo eligió de tu bodega, dibujadas

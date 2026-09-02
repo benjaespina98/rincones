@@ -82,7 +82,7 @@ const AdminReviewsPage = () => {
       </header>
 
       <div className="admin-users__toolbar">
-        <div className="admin-users__search">
+        <div className="admin-search">
           <Icon name="search" size={16} />
           <input
             type="search"
