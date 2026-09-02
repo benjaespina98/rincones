@@ -237,3 +237,35 @@ test("lo que ya tomaste va aparte y sólo por el nombre", () => {
   assert.match(resumen, /YA TOMÓ: Ya tomado/);
   assert.ok(!resumen.includes("Bonarda"));
 });
+
+/**
+ * ── EL BUG: "ME RECOMENDÓ UN VINO DICIENDO QUE LO TENGO, Y NO LO TENGO" ─────
+ *
+ * Se reportó así: preguntaste "¿qué marca me recomendás?" como repregunta —sin
+ * ninguna de las frases que activan `usaTuBodega`— y el modelo contestó "de tu
+ * bodega, el Rutini Cabernet Sauvignon…" sin que el server le hubiera mandado
+ * la bodega para nada: la inventó.
+ *
+ * El portero (`usaTuBodega`) no puede adivinar cada repregunta ambigua, así
+ * que la defensa de fondo tiene que estar en el prompt: si esta pregunta no
+ * trajo "SU BODEGA", el modelo tiene prohibido decir "de tu bodega" o nombrar
+ * una botella como si fuera suya. Estas pruebas fijan que esa instrucción esté
+ * SIEMPRE en el prompt cuando no hay bodega, y que la sección "SU BODEGA" y la
+ * prohibición nunca convivan (si hay bodega, no hace falta prohibir nada).
+ */
+test("sin bodega en el prompt, el modelo tiene prohibido decir que algo es tuyo", () => {
+  const prompt = sommelier.armarPrompt({ question: "Qué marca me recomendás", cellar: "" });
+  // La sección de VERDAD ("SU BODEGA" + salto de línea + el resumen) no está;
+  // sí está, a propósito, la frase de la instrucción que la NOMBRA para poder
+  // prohibirla — por eso se busca el patrón con el salto de línea, no la
+  // palabra suelta.
+  assert.ok(!prompt.includes("SU BODEGA\n"));
+  assert.match(prompt, /NUNCA digas "de tu bodega"/);
+});
+
+test("con bodega de verdad en el prompt, la sección aparece como corresponde", () => {
+  const cellar = sommelier.resumirBodega([{ name: "Rutini", varietal: "Cabernet Sauvignon", quantity: 2 }]);
+  const prompt = sommelier.armarPrompt({ question: "Qué marca me recomendás", cellar });
+  assert.ok(prompt.includes("SU BODEGA\n"));
+  assert.match(prompt, /Rutini/);
+});

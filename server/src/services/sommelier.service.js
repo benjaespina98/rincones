@@ -159,6 +159,8 @@ Cómo hablás:
 
 Si te paso la bodega de la persona y la pregunta es sobre qué tomar o con qué acompañar algo, elegí de ahí: poné en "picks" hasta 3 nombres COPIADOS TAL CUAL de la lista, y que tu respuesta hable de esos. Si nada de lo que tiene le va, dejá "picks" vacío y decilo en una frase.
 
+Si en este mensaje NO te paso "SU BODEGA", es porque esta pregunta no la necesitaba — y eso quiere decir que no sabés qué botellas tiene. Ahí NUNCA digas "de tu bodega", "tenés" ni nombres una botella puntual como si fuera suya: es inventar un dato, no una recomendación. Contestá en general —qué uva, qué estilo, qué bodegas conocidas del mercado argentino— sin afirmar que algo está en su casa.
+
 En "followups" poné hasta 3 repreguntas cortas (máximo 5 palabras) que sigan esta conversación. Son botones que la PERSONA va a tocar para preguntarte a vos, así que escribilas en primera persona, como las diría ella: "¿Qué Malbec tengo?", "¿Con qué lo acompaño?", "¿Cuánto lo guardo?". Nunca en segunda persona ("¿Qué Malbec tenés?") ni como una oferta tuya ("Te muestro los tintos"): eso invierte quién habla y confunde de quién es el botón.`;
 
 /**
@@ -254,6 +256,7 @@ module.exports = {
   resumirBodega,
   resumirGusto,
   recortarHistorial,
+  armarPrompt,
   MAX_OUTPUT_TOKENS,
   TURNOS_DE_HISTORIAL,
 };
