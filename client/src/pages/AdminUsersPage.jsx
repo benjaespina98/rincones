@@ -5,6 +5,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import AdminPager from "../components/AdminPager";
+import Dropdown from "../components/Dropdown";
 import Icon from "../components/Icon";
 import "./styles/AdminUsersPage.css";
 
@@ -168,7 +169,7 @@ const AdminUsersPage = () => {
       </header>
 
       <div className="admin-users__toolbar">
-        <div className="admin-users__search">
+        <div className="admin-search">
           <Icon name="search" size={16} />
           <input
             type="search"
@@ -195,16 +196,13 @@ const AdminUsersPage = () => {
             </button>
           ))}
         </div>
-        <select
+        <Dropdown
           className="admin-users__sort"
           value={sortKey}
-          onChange={(e) => { setSortKey(e.target.value); setPage(1); }}
-          aria-label="Ordenar por"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={(v) => { setSortKey(v); setPage(1); }}
+          options={SORT_OPTIONS}
+          ariaLabel="Ordenar por"
+        />
       </div>
 
       {/* La barra de lote aparece SÓLO con algo seleccionado.
@@ -270,6 +268,9 @@ const AdminUsersPage = () => {
                       disabled={selectableIds.length === 0}
                       aria-label="Seleccionar todos los de esta página"
                     />
+                    <span className="admin-checkbox__tick" aria-hidden="true">
+                      <Icon name="check" size={12} />
+                    </span>
                   </label>
                 </th>
                 <th scope="col">Usuario</th>
@@ -303,6 +304,9 @@ const AdminUsersPage = () => {
                                 onChange={() => toggleOne(u._id)}
                                 aria-label={`Seleccionar ${u.email}`}
                               />
+                              <span className="admin-checkbox__tick" aria-hidden="true">
+                                <Icon name="check" size={12} />
+                              </span>
                             </label>
                           )}
                         </td>

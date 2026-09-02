@@ -148,7 +148,7 @@ const AdminActivityPage = () => {
           acotan el TIPO de movimiento, pero no ayudan a encontrar "qué pasó con
           este vino" entre miles de filas. Busca por el admin que actuó y por el
           nombre/mail/título de lo afectado (ver `q` en el server). */}
-      <div className="admin-log-search">
+      <div className="admin-search">
         <Icon name="search" size={16} />
         <input
           type="search"

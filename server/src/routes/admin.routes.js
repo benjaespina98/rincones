@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const adminController = require("../controllers/admin.controller");
 const { authenticate, requireAdmin } = require("../middleware/auth.middleware");
+const { aiLimiter } = require("../middleware/aiLimiter");
 
 const router = Router();
 
@@ -19,5 +20,19 @@ router.delete("/users/:userId", authenticate, requireAdmin, adminController.dele
 // Moderación de reseñas (lo único público que escriben los usuarios)
 router.get("/reviews", authenticate, requireAdmin, adminController.getReviews);
 router.delete("/reviews/:reviewId", authenticate, requireAdmin, adminController.deleteReview);
+
+// Curación de fotos: precargar la foto pública de un vino sin pasar por
+// tenerlo en la bodega propia. Ver el comentario en admin.controller.js.
+// Sin aiLimiter: no toca Gemini, sólo el catálogo local + lo que ya cargaron
+// los usuarios. Va antes que "/wine-images" a propósito, aunque Express no
+// las confundiría (son rutas distintas) — leerlas juntas evita duplicarlas
+// por error, mismo criterio que ya usa este archivo en Usuarios.
+router.get("/wine-images/browse", authenticate, requireAdmin, adminController.browseWineImages);
+
+// Con aiLimiter: la búsqueda cae en la misma cuota de Gemini que el buscador
+// público (catalogService.searchWines la comparte), y esto es un panel de
+// admin, no un uso masivo — no necesita un techo aparte.
+router.get("/wine-images", authenticate, requireAdmin, aiLimiter, adminController.searchWineImages);
+router.put("/wine-images", authenticate, requireAdmin, adminController.setWineImage);
 
 module.exports = router;

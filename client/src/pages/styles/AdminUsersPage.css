@@ -39,15 +39,27 @@
   margin-bottom: 14px;
 }
 
+/* `.admin-users__sort` ya no es un `<select>`: es el `className` que recibe
+   el componente `Dropdown` compartido (ver components/Dropdown.css). Ese
+   componente ya trae su propia caja (`.dropdown__trigger`), así que acá sólo
+   se ajusta CÓMO SE ACOMODA en esta barra —no crece, se va al margen
+   derecho— y su tamaño, al chico del panel en vez del pensado para tocar con
+   el pulgar en la app de consumo (46px / `--text-md`). Ponerle además borde y
+   fondo al `.dropdown` de afuera —que es lo que hacía la regla vieja, escrita
+   para un `<select>` que ya no está— dibujaba una caja adentro de otra caja. */
 .admin-users__sort {
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 168px;
+}
+
+.admin-users__sort .dropdown__trigger {
   min-height: var(--control-sm);
   padding: 0 10px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  border-color: var(--line);
   font-size: var(--text-xs);
-  margin-left: auto;
+  font-weight: 600;
 }
 
 /* ── Selección en lote ── */
@@ -64,45 +76,72 @@
   background: var(--glass);
 }
 
+/* ── Checkbox ──
+   Antes era el checkbox nativo del sistema operativo con sólo el color
+   pisado (`accent-color`) — se veía distinto en cada navegador/SO y en
+   ninguno se parecía al resto de la app. Es el mismo círculo con tilde que
+   usa Mi Bodega para elegir vinos en lote (`.wine-row__tick`): el input real
+   sigue ahí (foco, teclado, lector de pantalla lo ven como checkbox de
+   siempre), pero visualmente invisible debajo del círculo que sí se dibuja
+   a mano. */
 .admin-checkbox {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   user-select: none;
 }
 
 .admin-checkbox input {
-  width: 17px;
-  height: 17px;
-  accent-color: var(--accent);
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
-.admin-users__search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 240px;
-  padding: 0 14px;
-  min-height: var(--control-md);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--text-muted);
+.admin-checkbox__tick {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line-accent);
+  background: transparent;
+  color: #fff;
+  pointer-events: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.admin-users__search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font-size: var(--text-base);
-  outline: none;
+.admin-checkbox__tick svg {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.admin-checkbox input:checked ~ .admin-checkbox__tick {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.admin-checkbox input:checked ~ .admin-checkbox__tick svg {
+  opacity: 1;
+}
+
+.admin-checkbox input:disabled ~ .admin-checkbox__tick {
+  opacity: 0.4;
+}
+
+.admin-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+/* `.admin-users__search` se fue a `.admin-search` (AdminLayout.css): letra
+   por letra la misma regla, sólo que ahora la cargan las siete secciones y
+   no sólo ésta. Acá sólo queda el ajuste que SÍ es propio de esta pantalla:
+   que el buscador crezca para compartir la fila con el orden. */
+.admin-search {
+  flex: 1 1 240px;
 }
 
 .admin-users__filters {
@@ -206,27 +245,10 @@
   justify-content: space-between;
 }
 
-.admin-btn {
-  min-height: var(--control-sm);
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
-  background: var(--glass);
-  color: var(--text);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.admin-btn:hover:not(:disabled) { background: var(--accent-muted); }
-
-.admin-btn--danger {
-  border-color: rgba(198, 70, 95, 0.4);
-  color: var(--danger-text);
-}
-
-.admin-btn--danger:hover:not(:disabled) { background: var(--wine-soft); }
+/* `.admin-btn` y `.admin-btn--danger` se fueron a AdminLayout.css: son de
+   toda la sección, no sólo de ésta (Reseñas ya los usaba desde acá, sin
+   garantía de que este archivo hubiera cargado — ver el comentario de
+   arriba de ese archivo). */
 
 /* ── Reseña ── */
 .admin-review__head {
@@ -294,11 +316,5 @@
    Usuarios y Actividad por separado, con el mismo markup y las mismas dos
    limitaciones — sólo Anterior/Siguiente, y ninguna forma de saltar. */
 
-/* El botón de acción de una fila cuando lleva sólo ícono: cuadrado, para que
-   no quede un rectángulo de 40 px de ancho con un tacho de 14 adentro. */
-.admin-btn--icon {
-  min-width: var(--control-sm);
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-}
+/* `.admin-btn--icon` también se fue a AdminLayout.css, junto con el resto de
+   la familia `.admin-btn`. */
