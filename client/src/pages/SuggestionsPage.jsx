@@ -489,13 +489,20 @@ export default function SuggestionsPage() {
           </div>
         )}
 
-        <form
-          className="somm__campo"
-          onSubmit={(e) => {
-            e.preventDefault();
-            preguntar(texto);
-          }}
-        >
+        {/* ── SIN <form> A PROPÓSITO ────────────────────────────────────────
+            Era un <form onSubmit>, y ESE es el motivo de la barra rara arriba
+            del teclado que se reportó ("ese tilde que no tiene sentido"): Safari
+            en iOS le agrega a cualquier campo adentro de un <form> su propia
+            barra de navegación de formulario —flechas para saltar de campo en
+            campo y un botón de "Listo"—, pensada para loguearse o completar una
+            dirección, no para escribir en un chat. Ningún chat "de verdad"
+            (WhatsApp, Instagram, y los otros asistentes de IA) mete el campo
+            adentro de un form, y por eso el suyo se siente nativo y el nuestro
+            no.
+            Enviar sigue andando igual: el botón dispara `enviar()` directo, y
+            Enter en el teclado lo hace vía `onKeyDown` — sin necesitar un
+            submit de formulario para ninguno de los dos caminos. */}
+        <div className="somm__campo">
           <input
             ref={inputRef}
             type="text"
@@ -507,12 +514,17 @@ export default function SuggestionsPage() {
             aria-label="Tu consulta"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") preguntar(texto);
+            }}
             enterKeyHint="send"
             maxLength={300}
+            autoComplete="off"
           />
           <button
-            type="submit"
+            type="button"
             className="somm__enviar"
+            onClick={() => preguntar(texto)}
             disabled={texto.trim().length < 3 || pensando}
             aria-label="Enviar consulta"
           >
@@ -522,7 +534,7 @@ export default function SuggestionsPage() {
               <Icon name="send" size={18} />
             )}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

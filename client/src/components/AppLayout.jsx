@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
@@ -27,6 +28,9 @@ const AppLayout = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  // Una sola vez para toda la app: la barra de abajo y cualquier compositor
+  // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
+  useKeyboardInset();
 
   // Los controles de volver sólo tienen sentido en pantallas de detalle;
   // en las pestañas principales la navegación es el propio tab bar.
