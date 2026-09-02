@@ -40,10 +40,19 @@ const { generateJson, isGeminiConfigured } = require("./gemini.service");
  *
  * Tres números y los tres empujan para el mismo lado:
  *
- *   TIMEOUT_MS  6,5s por modelo. La cadena arranca por gemini-3.1-flash-lite,
- *               medido en 766 ms (ver gemini.service.js): si a los seis segundos
- *               y medio no contestó, no está lento, está colgado, y esperarlo
- *               nueve sólo retrasa el intento con el siguiente.
+ *   TIMEOUT_MS  3,5s por modelo. La cadena arranca por gemini-3.1-flash-lite,
+ *               medido en 766 ms (ver gemini.service.js): a los tres segundos y
+ *               medio ya es más de cuatro veces esa base, así que no está
+ *               lento, está colgado — y siendo la guía la ÚNICA función de la
+ *               app con cinco modelos en cadena Y un presupuesto pensado para
+ *               que la persona no se aburra, un timeout largo por modelo es
+ *               justo lo que le saca sentido a tener cadena: antes (6,5s) un
+ *               solo modelo colgado ya se comía dos tercios de `BUDGET_MS`, y
+ *               con eso alcanzaba apenas para un segundo intento a medias
+ *               antes de agotarlo — la cadena de cinco no llegaba nunca al
+ *               tercero. Medido en vivo: 2 de 4 consultas seguidas volvieron
+ *               503 por esto mismo. Con 3,5s entran cómodos dos intentos
+ *               completos dentro del presupuesto, y casi siempre un tercero.
  *   BUDGET_MS   10s en total. Es el techo de lo que una persona espera mirando
  *               una pantalla sin creer que se rompió. Antes se podían encadenar
  *               dos timeouts y llegar a dieciocho.
@@ -53,7 +62,7 @@ const { generateJson, isGeminiConfigured } = require("./gemini.service");
  *               sobra para tres frases y tres repreguntas — que es todo lo que
  *               el prompt pide.
  */
-const TIMEOUT_MS = 6500;
+const TIMEOUT_MS = 3500;
 const BUDGET_MS = 10000;
 const MAX_OUTPUT_TOKENS = 260;
 

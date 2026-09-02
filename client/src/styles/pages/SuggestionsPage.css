@@ -103,6 +103,14 @@
   -webkit-overflow-scrolling: touch;
   margin: 0 -16px;
   padding: 2px 16px;
+  /* Sin esto, la última pastilla ("Un tinto para regalar") queda cortada a
+     la mitad contra el borde de la pantalla y se lee como una etiqueta rota,
+     no como una fila que se desliza — se reportó justo así. El degradé en
+     los dos bordes dice "hay más para este lado" sin gastar una flecha.
+     Mismo arreglo que ya lleva la tira de secciones del panel de admin
+     (`.admin-nav-tabs`, AdminLayout.css). */
+  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
 }
 
 .somm__rail::-webkit-scrollbar {
@@ -112,13 +120,21 @@
 /* `flex: 0 0 auto` + `nowrap`: sin los dos, flexbox le achica el ancho a las
    pastillas largas para que entren, y "Un tinto para regalar" se parte en dos
    renglones adentro de una cápsula pensada para uno. */
+/* `--line` (violeta al 20%) sobre `--surface` (casi el mismo tono oscuro del
+   fondo de la app) es border+relleno casi invisibles en reposo — se
+   reportó justo así, "las etiquetas se sienten vacías". La reinforced acá
+   con `--line-strong`, el mismo borde que ya usa el campo de texto de al
+   lado (`.somm__campo`): son las dos cosas que se TOCAN para hablar con la
+   guía, así que tienen que pesar lo mismo. El hover de abajo sigue subiendo
+   un escalón más, pero en el celular —donde se usa esto de verdad— no hay
+   hover: el reposo tiene que sostenerse solo. */
 .somm__comida {
   flex: 0 0 auto;
   min-height: 40px;
   padding: 0 16px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
   color: var(--text);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -172,6 +188,35 @@
 
 .somm__resp.is-error .somm__texto {
   color: var(--danger-text);
+}
+
+/* Reintentar la MISMA pregunta: chico y a la izquierda, como una acción
+   sobre el mensaje de error y no como otra tarjeta de la conversación. */
+.somm__reintentar {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(198, 70, 95, 0.35);
+  background: none;
+  color: var(--danger-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.somm__reintentar:hover:not(:disabled) {
+  background: var(--wine-soft);
+  border-color: rgba(198, 70, 95, 0.6);
+}
+
+.somm__reintentar:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* El rótulo de cada grupo de vinos. Minúscula y en gris: es una etiqueta que
@@ -277,13 +322,15 @@
    proponía debajo de cada respuesta (`.somm__chips`, el carrusel que las
    contenía) — se sacaron para que la pantalla no sume una fila de pastillas
    nueva después de cada respuesta, y con ellas se fue ese carrusel. */
+/* Mismo motivo que `.somm__comida` arriba: `--line` sobre `--surface` casi
+   no se distinguía del fondo. */
 .somm__chip {
   flex: 0 0 auto;
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-weight: 600;

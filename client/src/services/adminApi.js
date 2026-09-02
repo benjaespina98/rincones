@@ -49,3 +49,21 @@ export const deleteReview = async (reviewId) => {
   const { data } = await api.delete(`/admin/reviews/${reviewId}`);
   return data;
 };
+
+// --- Curación de fotos (pool compartido) ---
+
+/** El universo completo (catálogo + lo que ya cargaron los usuarios), sin tocar Gemini. */
+export const browseWineImages = async ({ q = "", hasPhoto = "all", page = 1, limit = 50 } = {}) => {
+  const { data } = await api.get("/admin/wine-images/browse", { params: { q, hasPhoto, page, limit } });
+  return data;
+};
+
+export const searchWineImages = async (q) => {
+  const { data } = await api.get("/admin/wine-images", { params: { q } });
+  return data;
+};
+
+export const setWineImage = async ({ name, winery, varietal, image }) => {
+  const { data } = await api.put("/admin/wine-images", { name, winery, varietal, image });
+  return data;
+};

@@ -109,6 +109,27 @@ const getImage = async (name, winery, varietal) => {
 };
 
 /**
+ * El estado del pool para una lista de vinos, en un solo viaje a la base.
+ *
+ * Para el navegador del catálogo (panel de admin): necesita saber, de una
+ * pasada por hasta el catálogo entero, cuáles YA tienen foto puesta —para
+ * filtrar "con foto" / "sin foto"— sin pedir una por una (eso sería un
+ * `findOne` por fila, y el catálogo argentino tiene varios cientos).
+ * Devuelve un Map clave→imagen; lo que no está en el pool, simplemente no
+ * aparece en el Map.
+ */
+const getImagesFor = async (wines = []) => {
+  const keys = [...new Set(wines.map((w) => wineKey(w.name, w.winery, w.varietal)).filter(Boolean))];
+  if (keys.length === 0) return new Map();
+  try {
+    const docs = await WineImage.find({ key: { $in: keys } }).select("key image").lean();
+    return new Map(docs.map((d) => [d.key, d.image]));
+  } catch {
+    return new Map();
+  }
+};
+
+/**
  * Enriquece una lista de resultados de búsqueda: a los que no tienen imagen les
  * pega la del pool si existe. Una sola consulta para toda la lista.
  */
@@ -134,4 +155,55 @@ const enrichWithImages = async (wines = []) => {
   });
 };
 
-module.exports = { contribute, getImage, enrichWithImages, wineKey };
+/**
+ * Fija la foto del pool para un vino, curada a mano por un admin.
+ *
+ * ── EN QUÉ SE DIFERENCIA DE `contribute` ────────────────────────────────────
+ * `contribute` es un aporte espontáneo: sólo pisa la foto puesta si es del
+ * mismo dueño o si gana por calidad con margen (`REPLACE_MARGIN`), y nunca
+ * lanza porque el pool es una mejora sobre un alta que no puede romperse por
+ * esto. Acá es al revés en las dos cosas:
+ *
+ *   - Pisa sin condición: es curación deliberada ("elegí esta foto para este
+ *     vino"), no una convivencia entre aportes de usuarios distintos.
+ *   - SÍ lanza si la imagen no es válida o si Gemini la reconoce con
+ *     seguridad como "no es una foto de vino" — el panel necesita ese motivo
+ *     para mostrárselo al admin, en vez de fallar en silencio como hace un
+ *     aporte cualquiera.
+ *
+ * El gate de "no es una foto de vino" se mantiene: un admin apurado pegando
+ * la URL equivocada no debería poder ensuciar la cara pública de un vino
+ * distinto más fácil que cualquier otro usuario.
+ */
+const adminSet = async ({ name, winery, varietal, image, userId }) => {
+  const key = wineKey(name, winery, varietal);
+  if (!key) throw new Error("Faltan datos del vino (nombre, bodega o uva) para identificarlo");
+
+  const limpia = String(image || "").trim();
+  if (!looksLikeImage(limpia)) throw new Error("La imagen no es válida");
+
+  const score = await wineImageQuality.scorePhoto(limpia);
+  if (score && score.isWinePhoto === false) {
+    throw new Error("No se reconoce esto como una foto de vino");
+  }
+
+  const set = {
+    image: limpia,
+    contributedBy: userId,
+    name: String(name || "").trim(),
+    winery: String(winery || "").trim(),
+  };
+  if (score) set.qualityScore = score.quality;
+
+  // `findOneAndUpdate` (no `updateOne`) porque el que llama necesita el _id
+  // real del documento — por ejemplo para el registro de auditoría, que
+  // guarda `entityId` como ObjectId y no puede usar la clave-string del pool.
+  const doc = await WineImage.findOneAndUpdate(
+    { key },
+    { $set: set },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  ).select("_id");
+  return { id: doc._id, key, qualityScore: set.qualityScore ?? null };
+};
+
+module.exports = { contribute, adminSet, getImage, getImagesFor, enrichWithImages, wineKey };
