@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 .playwright-mcp/
 .vercel
 .env*
+
+# Screenshots sueltos que se cuelan en la raíz
+login.png
