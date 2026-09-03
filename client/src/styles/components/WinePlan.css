@@ -249,6 +249,18 @@
   max-width: 520px;
 }
 
+/* El nombre del plato es una frase gourmet, no una palabra ("Ojo de bife con
+   reducción de malbec y puré de papas trufado"), y `--text-2xl` —pensado para
+   el título de una palabra de ConceptSheet, que comparte esta misma hoja— lo
+   estira a tres renglones en un teléfono: el encabezado se come media
+   pantalla antes de que aparezca un solo ingrediente. Achicado y con el
+   interlineado más apretado, entra en dos renglones la mayoría de las veces
+   y dejar de ser lo primero (y lo único) que se ve al abrir. */
+.wine-recipe-sheet .settings-sheet__head--feature h2 {
+  font-size: var(--text-lg);
+  line-height: 1.3;
+}
+
 .wine-recipe {
   gap: 12px;
 }
@@ -262,11 +274,22 @@
   color: var(--accent-soft);
 }
 
+/* Dos salidas, no una: la búsqueda de otras versiones (texto) y ahora el
+   video (pedido explícito, "no crítico" — por eso una búsqueda de YouTube y
+   no una API que hay que mantener y pagar). En columna y no en fila: los dos
+   textos son largos y en fila se hubieran partido en dos renglones cada uno,
+   compitiendo por el mismo ancho angosto de la hoja. */
+.wine-recipe__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
 .wine-recipe__web {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 4px;
   color: var(--accent-soft);
   font-size: var(--text-sm);
   font-weight: 700;

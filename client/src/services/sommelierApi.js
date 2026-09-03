@@ -16,11 +16,29 @@ import api from "./api";
  */
 const TURNOS = 3;
 
+/**
+ * ── POR QUÉ ESTE PEDIDO TIENE SU PROPIO TIMEOUT ─────────────────────────────
+ *
+ * El resto de la app usa el de `api.js` (12s), pero el propio `BUDGET_MS` del
+ * server para esta pregunta ES 12s (ver sommelier.service.js) — con el mismo
+ * número de los dos lados, sin margen para la red, el cliente corta la espera
+ * en la línea de llegada, justo cuando el server todavía está terminando.
+ * Reproducido en vivo: "Parece que te quedaste sin conexión" varias veces
+ * seguidas con la red andando bien, porque un timeout de axios no trae
+ * `error.response` y `mensajeDeError` lo confunde con eso. 16s deja margen de
+ * verdad sobre el peor caso del server.
+ */
+const TIMEOUT_MS = 16000;
+
 export const preguntarAlSommelier = async (question, history = []) => {
-  const { data } = await api.post("/sommelier/ask", {
-    question,
-    history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
-  });
+  const { data } = await api.post(
+    "/sommelier/ask",
+    {
+      question,
+      history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
+    },
+    { timeout: TIMEOUT_MS }
+  );
   return data?.data || null;
 };
 
@@ -38,6 +56,11 @@ export const mensajeDeError = (error) => {
   const delServer = error?.response?.data?.message;
   if (status === 429) return delServer || "Por hoy llegaste al límite de consultas.";
   if (status === 503) return delServer || "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.";
+  // Un timeout de axios (`ECONNABORTED`) tampoco trae `error.response`, igual
+  // que una caída de red de verdad — pero para quien lee son dos cosas muy
+  // distintas: una dice "revisá tu conexión" y la otra "esperá un toque más".
+  // Sin distinguirlas, alguien con la red perfecta se queda buscando el wifi.
+  if (error?.code === "ECONNABORTED") return "Tardó más de lo esperado pensando la respuesta. Probá de nuevo.";
   if (!error?.response) return "Parece que te quedaste sin conexión. Probá de nuevo.";
   return delServer || "Algo falló al buscar la respuesta. Probá de nuevo.";
 };

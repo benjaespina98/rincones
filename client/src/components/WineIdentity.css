@@ -12,14 +12,17 @@
   gap: 10px;
 }
 
+/* Sin caja propia: era una tarjeta con borde y fondo conteniendo una lista de
+   filas, y esa lista ya se separa sola con la línea entre renglones — la caja
+   alrededor no agregaba lectura, agregaba un borde más al lado de la guarda y
+   los botones de acción, que también tienen el suyo. "Se lee como una sola
+   ficha" no necesitaba un marco por bloque; lo pide la calma de secciones como
+   "Sobre este vino", que son texto y barras sin ninguna caja encima. */
 .wine-id__grid {
   display: grid;
   gap: 0;
   margin: 0;
-  padding: 4px 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
+  padding: 0;
 }
 
 .wine-id__row {

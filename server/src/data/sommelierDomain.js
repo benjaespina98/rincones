@@ -120,6 +120,28 @@ const HABLA_DE_TU_BODEGA = [
   "que tengo", "lo que tengo", "tengo en casa", "me queda", "me quedan",
   "cual abro", "que abro", "cual tomo", "cual descorcho", "que descorcho",
   "de los mios", "mis botellas", "mi lista", "quiero probar",
+  // Preguntar por lo YA tomado es la misma bodega, mirando para atrás: sin
+  // esto, "¿algo puntual que ya tomé?" no traía "YA TOMÓ" al prompt (ninguna
+  // frase de arriba la cubre) y el modelo, sin datos y sin nada que se lo
+  // impida, terminaba inventando una etiqueta real como si la hubiera
+  // probado — reproducido en vivo: preguntó por algo puntual ya tomado y
+  // contestó con un Malbec de alta gama que la persona nunca cargó. "que
+  // tome"/"que probe" alcanzan solos por la tolerancia a palabras de sobra
+  // del matcher de frases (ver GAP_ENTRE_PALABRAS): matchean "qué ya tomé",
+  // "algo que ya probé", etc.
+  "que tome", "que probe", "ya tome", "ya probe",
+  // "mi" a secas, y no sólo las frases de arriba: "voy a abrir MI Cabernet
+  // Franc esta noche" no trae ninguna de esas frases (nombra el vino, no la
+  // bodega en general) y aun así es exactamente la misma pregunta — "¿qué
+  // hago con lo que tengo?" — con el nombre puesto en vez de "lo que tengo".
+  // Reproducido en vivo: sin esto, esa pregunta contestaba sin ver el stock
+  // ni la cosecha real, y la receta que pedía después salía con el nombre
+  // pelado, sin uva ni región. A diferencia de "tengo" (que se dejó afuera
+  // a propósito más arriba, por "tengo dolor de cabeza"), "mi" no tiene un
+  // uso frecuente fuera del dominio del vino adentro de una pregunta que ya
+  // pasó el portero — el costo de sobrar es unos tokens de más, nunca una
+  // respuesta peor.
+  "mi",
 ];
 
 /**

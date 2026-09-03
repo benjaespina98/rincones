@@ -6,7 +6,7 @@ const {
   usaTuBodega,
   normalizarPregunta,
 } = require("../src/data/sommelierDomain");
-const { atarPicks } = require("../src/controllers/sommelier.controller");
+const { atarPicks, recipeWineDe } = require("../src/controllers/sommelier.controller");
 const sommelier = require("../src/services/sommelier.service");
 
 /**
@@ -128,6 +128,17 @@ test("detecta cuándo la pregunta habla de tu propia bodega", () => {
   assert.equal(usaTuBodega("¿cuál abro hoy?"), true);
   assert.equal(usaTuBodega("de lo que tengo, ¿qué va con pizza?"), true);
   assert.equal(usaTuBodega("mostrame mis vinos para una picada"), true);
+  // "mi X", nombrando el vino en vez de decir "lo que tengo" en general:
+  // ninguna de las frases de arriba la agarraba (bug real, reproducido en
+  // vivo — la respuesta salía sin stock ni cosecha), así que "mi" sola
+  // completa el patrón sin depender de una frase exacta.
+  assert.equal(usaTuBodega("voy a abrir mi Cabernet Franc esta noche"), true);
+  assert.equal(usaTuBodega("¿a qué temperatura sirvo mi Malbec?"), true);
+  // Preguntar por lo YA tomado: mismo bug que "mi X", reproducido en vivo —
+  // sin esto la pregunta pasaba el portero (por ser repregunte corto) pero
+  // no traía "YA TOMÓ", y el modelo inventaba una etiqueta real.
+  assert.equal(usaTuBodega("¿algo puntual que ya tomé?"), true);
+  assert.equal(usaTuBodega("¿qué vinos ya probé?"), true);
   // Genéricas: la respuesta sirve para cualquiera y por eso se puede cachear.
   assert.equal(usaTuBodega("¿qué es un blend?"), false);
   assert.equal(usaTuBodega("diferencia entre malbec y bonarda"), false);
@@ -227,15 +238,55 @@ test("sin bodega no se manda nada", () => {
   assert.equal(sommelier.resumirGusto({}), "");
 });
 
-test("lo que ya tomaste va aparte y sólo por el nombre", () => {
+test("lo que ya tomaste va aparte, sin varietal pero con puntaje si lo tiene", () => {
   // Es contexto de GUSTO, no un catálogo: para saber qué recomendar alcanza con
-  // el nombre, y el resto de los campos serían tokens sin uso.
+  // el nombre (y el puntaje, si lo puntuó), y el resto de los campos serían
+  // tokens sin uso.
   const resumen = sommelier.resumirBodega([
     { name: "Con stock", varietal: "Malbec", quantity: 1 },
-    { name: "Ya tomado", varietal: "Bonarda", quantity: 0, tasted: true },
+    { name: "Ya tomado sin puntaje", varietal: "Bonarda", quantity: 0, tasted: true },
+    { name: "Ya tomado con puntaje", varietal: "Syrah", quantity: 0, tasted: true, rating: 5 },
   ]);
-  assert.match(resumen, /YA TOMÓ: Ya tomado/);
+  assert.match(resumen, /YA TOMÓ EN ALGÚN MOMENTO/);
+  assert.ok(resumen.includes("Ya tomado sin puntaje"));
+  assert.ok(resumen.includes("Ya tomado con puntaje (5/5)"));
   assert.ok(!resumen.includes("Bonarda"));
+  assert.ok(!resumen.includes("Syrah"));
+});
+
+/**
+ * ── EL BUG REAL: "¿QUÉ VINOS YA TOMÉ?" CONTESTANDO "NO TENGO REGISTRO" ──────
+ *
+ * Se reportó con una cuenta de verdad, no con datos de prueba: la persona
+ * tenía vinos puntuados que SÍ había tomado, y la guía igual contestó que no
+ * tenía nada anotado. La causa era este filtro: exigía `quantity <= 0` para
+ * contar como "ya tomado", y `tasted` se pone en true al abrir la PRIMERA
+ * botella de una etiqueta — si compró de a varias, le siguen quedando
+ * mientras ya la probó. El caso más común (abriste una de la caja, la
+ * puntuaste, te quedan más) quedaba completamente afuera de "YA TOMÓ".
+ */
+test("un vino probado con stock sigue contando como 'ya tomado', y aparece en las dos listas", () => {
+  const resumen = sommelier.resumirBodega([
+    { name: "Rutini Malbec", varietal: "Malbec", quantity: 2, tasted: true, rating: 4 },
+  ]);
+  assert.match(resumen, /EN CASA AHORA/);
+  assert.match(resumen, /YA TOMÓ EN ALGÚN MOMENTO/);
+  assert.ok(resumen.includes("Rutini Malbec (4/5)"));
+});
+
+test("los guardados van aparte, aclarando que no se pueden abrir", () => {
+  const resumen = sommelier.resumirGuardados([
+    { name: "Catena Zapata", varietal: "Malbec", vintage: 2020 },
+    { name: "Sin uva ni cosecha" },
+  ]);
+  assert.match(resumen, /GUARDADOS PARA CONSEGUIR/);
+  assert.match(resumen, /no se pueden abrir/);
+  assert.ok(resumen.includes("Catena Zapata · Malbec · 2020"));
+  assert.ok(resumen.includes("Sin uva ni cosecha"));
+});
+
+test("sin guardados no se manda nada", () => {
+  assert.equal(sommelier.resumirGuardados([]), "");
 });
 
 /**
@@ -268,4 +319,86 @@ test("con bodega de verdad en el prompt, la sección aparece como corresponde", 
   const prompt = sommelier.armarPrompt({ question: "Qué marca me recomendás", cellar });
   assert.ok(prompt.includes("SU BODEGA\n"));
   assert.match(prompt, /Rutini/);
+});
+
+/**
+ * ── EL MISMO BUG, CON EL HISTORIAL EN VEZ DEL STOCK ─────────────────────────
+ *
+ * Se reportó así: "¿algo puntual que ya tomé?" y el modelo contestó con un
+ * Malbec de alta gama de una bodega real que la persona nunca cargó. Acá el
+ * portero SÍ dejaba pasar la pregunta (por ser repregunte corto adentro de
+ * una charla), pero `usaTuBodega` no la reconocía (arreglado arriba), así que
+ * ni siquiera con la bodega cargada llegaba "YA TOMÓ" si no tiene nada
+ * marcado como probado. La defensa de fondo, igual que con "SU BODEGA", tiene
+ * que estar en el prompt.
+ */
+test("sin 'ya tomó' en el prompt, el modelo tiene prohibido inventar qué probó", () => {
+  const cellar = sommelier.resumirBodega([{ name: "Rutini", varietal: "Malbec", quantity: 2 }]);
+  const prompt = sommelier.armarPrompt({ question: "¿algo puntual que ya tomé?", cellar });
+  // Igual que con "SU BODEGA": el rótulo de la sección de VERDAD no puede
+  // buscarse por la palabra suelta, porque la regla que la prohíbe la nombra
+  // entre comillas más abajo en el propio SISTEMA. "sirve para saber qué le
+  // gustó" es el cierre fijo de `resumirBodega` y sólo aparece con datos.
+  assert.ok(!prompt.includes("sirve para saber qué le gustó"));
+  assert.match(prompt, /NUNCA inventes un nombre real/);
+});
+
+test("con 'ya tomó' de verdad en el prompt, la sección aparece", () => {
+  const cellar = sommelier.resumirBodega([
+    { name: "Rutini", varietal: "Malbec", quantity: 0, tasted: true, rating: 4 },
+  ]);
+  const prompt = sommelier.armarPrompt({ question: "¿algo puntual que ya tomé?", cellar });
+  assert.ok(prompt.includes("sirve para saber qué le gustó"));
+  assert.match(prompt, /Rutini \(4\/5\)/);
+});
+
+/**
+ * ── GUARDADOS: MISMO CUIDADO QUE LA BODEGA ──────────────────────────────────
+ * "Quiero probar" es tan tentador como "SU BODEGA" para que el modelo elija
+ * de ahí una botella para abrir esta noche — y es exactamente lo que NO
+ * puede hacer, porque son vinos que la persona no tiene.
+ */
+test("los guardados entran al prompt sin el prefijo de bodega, y con su propia advertencia", () => {
+  const wishlist = sommelier.resumirGuardados([{ name: "Zuccardi Concreto", varietal: "Malbec" }]);
+  const prompt = sommelier.armarPrompt({ question: "Qué marca me recomendás", wishlist });
+  assert.ok(!prompt.includes("SU BODEGA\nGUARDADOS"));
+  assert.match(prompt, /GUARDADOS PARA CONSEGUIR/);
+  assert.match(prompt, /Zuccardi Concreto/);
+});
+
+test("sin guardados, la sección de datos no aparece (aunque el nombre se nombre en las reglas)", () => {
+  // "GUARDADOS PARA CONSEGUIR" está SIEMPRE en el prompt, entre comillas,
+  // porque el sistema tiene que poder nombrar la sección para prohibirla
+  // (mismo patrón que "SU BODEGA" en el test de arriba). Lo que no puede
+  // aparecer sin datos es la sección DE VERDAD, que `resumirGuardados` abre
+  // con "…CONSEGUIR — " seguido de la lista.
+  const prompt = sommelier.armarPrompt({ question: "Qué marca me recomendás", wishlist: "" });
+  assert.ok(!prompt.includes("CONSEGUIR — quiere probarlos"));
+});
+
+/**
+ * ── LA RECETA: RESOLVER A QUÉ VINO SE REFIERE, NO GENERARLA ─────────────────
+ * `recipeWineDe` (sommelier.controller.js) es la bisagra entre lo que dice el
+ * modelo ("recipeFor": un nombre) y lo que el cliente necesita para pedir la
+ * receta de verdad (el mismo shape que ya usa la ficha del vino). Nunca
+ * lanza y nunca devuelve null si `recipeFor` vino con algo: en el peor caso,
+ * un objeto con sólo el nombre alcanza para una receta de estilo general.
+ */
+test("la receta resuelve contra la bodega primero, y si no está, contra los guardados", () => {
+  const wishlist = [{ name: "Saint Felicien Malbec", varietal: "Malbec", type: "red" }];
+  const enBodega = recipeWineDe("Rutini Malbec", bodega, wishlist);
+  assert.equal(enBodega.name, "Rutini Malbec");
+  assert.equal(enBodega.winery, "Rutini");
+
+  const enGuardados = recipeWineDe("Saint Felicien Malbec", [], wishlist);
+  assert.equal(enGuardados.varietal, "Malbec");
+});
+
+test("una receta sin vino real igual arma algo con el nombre", () => {
+  const generico = recipeWineDe("un Malbec joven", [], []);
+  assert.deepEqual(generico, { name: "un Malbec joven", winery: "", varietal: "", type: "unknown", region: "" });
+});
+
+test("sin recipeFor no hay nada que resolver", () => {
+  assert.equal(recipeWineDe("", bodega, []), null);
 });

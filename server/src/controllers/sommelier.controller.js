@@ -1,9 +1,11 @@
 const Wine = require("../models/wine.model");
+const WineWish = require("../models/wineWish.model");
 const User = require("../models/user.model");
 const SommelierAnswer = require("../models/sommelierAnswer.model");
 const sommelier = require("../services/sommelier.service");
 const { esDelDominio, usaTuBodega, normalizarPregunta } = require("../data/sommelierDomain");
 const { fold } = require("../data/argentineWines");
+const { captureException } = require("../config/sentry");
 
 /** Tope de lo que se acepta escribir. Más largo que esto no es una pregunta. */
 const MAX_PREGUNTA = 300;
@@ -27,6 +29,31 @@ const FUERA_DE_TEMA = {
 };
 
 /**
+ * Busca un vino por nombre entre candidatos, tolerante a propósito: el
+ * modelo a veces copia el nombre recortando la cosecha o anteponiendo la
+ * bodega. Se prueba por igualdad normalizada y después por contención en
+ * cualquier dirección — cubre los dos casos sin abrir la puerta a falsos
+ * positivos, porque los nombres de vino son largos y específicos.
+ *
+ * La usan `atarPicks` (contra la bodega) y la resolución de `recipeFor`
+ * (contra bodega y guardados): es la misma pregunta —"¿a cuál de ESTOS se
+ * refiere?"— hecha dos veces con listas distintas, y antes vivía duplicada.
+ */
+const encontrarVino = (nombre, candidatos = [], excluidos = new Set()) => {
+  const buscado = fold(nombre);
+  if (!buscado) return null;
+  return (
+    candidatos.find((w) => !excluidos.has(String(w._id)) && fold(w.name) === buscado) ||
+    candidatos.find(
+      (w) =>
+        !excluidos.has(String(w._id)) &&
+        (fold(w.name).includes(buscado) || buscado.includes(fold(w.name)))
+    ) ||
+    null
+  );
+};
+
+/**
  * Ata los nombres que eligió el modelo a los vinos REALES de la persona.
  *
  * Es la parte que separa a esto de un chat pegado adentro de la app. El modelo
@@ -34,30 +61,15 @@ const FUERA_DE_TEMA = {
  * nombre y tiene que ir a buscarlo a mano a Mi Bodega. Con este paso, abajo de
  * la respuesta aparecen las mismas tarjetas que dibuja la bodega, con su foto,
  * su stock y su enlace a la ficha.
- *
- * El match es tolerante a propósito: el modelo copia el nombre de la lista que
- * le dimos, pero a veces le recorta la cosecha o le agrega la bodega adelante.
- * Se prueba por igualdad normalizada y después por contención en cualquier
- * dirección, que cubre los dos casos sin abrir la puerta a falsos positivos —
- * los nombres de vino son largos y específicos.
  */
 const atarPicks = (picks = [], wines = []) => {
   const elegidos = [];
   const usados = new Set();
 
   for (const pick of picks) {
-    const buscado = fold(pick);
-    if (!buscado) continue;
-
-    const wine =
-      wines.find((w) => !usados.has(String(w._id)) && fold(w.name) === buscado) ||
-      wines.find(
-        (w) =>
-          !usados.has(String(w._id)) &&
-          (fold(w.name).includes(buscado) || buscado.includes(fold(w.name)))
-      );
-
+    const wine = encontrarVino(pick, wines, usados);
     if (!wine) continue;
+
     usados.add(String(wine._id));
     elegidos.push({
       _id: String(wine._id),
@@ -74,6 +86,26 @@ const atarPicks = (picks = [], wines = []) => {
   }
 
   return elegidos;
+};
+
+/**
+ * Lo que el cliente necesita para pedir la receta de `recipeFor` — el mismo
+ * shape que espera `/api/catalog/recipe` (ver wineSearchApi.js,
+ * getWineRecipe). Busca primero en la bodega (mejor prompt: llega con uva y
+ * región reales), después en los guardados, y si no encuentra nada arma un
+ * objeto mínimo con sólo el nombre — sirve igual para un estilo general
+ * ("Malbec joven") que no es ningún vino puntual de la persona.
+ */
+const recipeWineDe = (recipeFor, wines, wishes) => {
+  if (!recipeFor) return null;
+  const wine = encontrarVino(recipeFor, wines) || encontrarVino(recipeFor, wishes);
+  return {
+    name: wine?.name || recipeFor,
+    winery: wine?.winery || "",
+    varietal: wine?.varietal || "",
+    type: wine?.type || "unknown",
+    region: wine?.region || "",
+  };
 };
 
 // POST /api/sommelier/ask { question, history? }
@@ -140,21 +172,32 @@ const ask = async (req, res, next) => {
     /**
      * MEDIDA 3 — el contexto viaja compacto, y sólo cuando hace falta.
      *
-     * La bodega se pide únicamente si la pregunta la menciona. Las
-     * preferencias del onboarding, en cambio, van siempre: son una línea de
-     * texto y son lo que evita que la primera recomendación de alguien con la
-     * bodega vacía sea genérica.
+     * La bodega y los guardados se piden únicamente si la pregunta los
+     * menciona (las dos gatilladas por la misma señal, `personal`: la
+     * pregunta "¿qué tengo?" es tan sobre el stock como sobre lo que anotó
+     * para conseguir — la persona hace la misma pregunta sin distinguir la
+     * fuente). Las preferencias del onboarding, en cambio, van siempre: son
+     * una línea de texto y son lo que evita que la primera recomendación de
+     * alguien con la bodega vacía sea genérica.
      *
-     * Las dos consultas van en paralelo, proyectadas a los campos que de
+     * Las tres consultas van en paralelo, proyectadas a los campos que de
      * verdad se usan, y si alguna falla se sigue sin ella: una respuesta menos
      * personal es infinitamente mejor que un error.
      */
-    const [wines, user] = await Promise.all([
+    const [wines, wishes, user] = await Promise.all([
       personal
         ? Wine.find({ userId: req.user.id })
             .select("name winery varietal vintage region type image quantity rating tasted")
             .sort({ quantity: -1, updatedAt: -1 })
             .limit(60)
+            .lean()
+            .catch(() => [])
+        : Promise.resolve([]),
+      personal
+        ? WineWish.find({ userId: req.user.id })
+            .select("name winery varietal vintage type region")
+            .sort({ addedAt: -1 })
+            .limit(20)
             .lean()
             .catch(() => [])
         : Promise.resolve([]),
@@ -167,11 +210,19 @@ const ask = async (req, res, next) => {
         question,
         history,
         wines,
+        wishes,
         preferences: user?.preferences || {},
       });
-    } catch {
+    } catch (error) {
       // Gemini sin cuota, caído o lento. Se dice lo que pasó y qué hacer, en
-      // vez de un "error" que no distingue esto de un problema del usuario.
+      // vez de un "error" que no distingue esto de un problema del usuario —
+      // pero de este lado SÍ queda registrado: antes este catch se comía la
+      // excepción entera y en silencio, así que una falla de verdad (una API
+      // key vencida, una cuota agotada) era indistinguible de un timeout
+      // normal, y ni loggeaba ni llegaba a Sentry. `next(error)` no se usa
+      // porque cambiaría el status y el mensaje que ya elegimos para esto.
+      console.error("[sommelier]", error?.message || error);
+      captureException(error, { route: "POST /api/sommelier/ask" });
       return res.status(503).json({
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
       });
@@ -197,6 +248,13 @@ const ask = async (req, res, next) => {
       offTopic: false,
     };
 
+    // La receta NO se genera acá (sería una segunda llamada a Gemini adentro
+    // de ésta, y acá la velocidad es la funcionalidad): sólo se resuelve a qué
+    // vino se refiere. El cliente pide la receta aparte, con el mismo
+    // endpoint que ya usa la ficha, y sólo si toca el botón.
+    const recipeWine = recipeWineDe(resultado.recipeFor, wines, wishes);
+    if (recipeWine) data.recipeWine = recipeWine;
+
     if (cacheable) {
       try {
         await SommelierAnswer.updateOne(
@@ -215,4 +273,4 @@ const ask = async (req, res, next) => {
   }
 };
 
-module.exports = { ask, atarPicks, FUERA_DE_TEMA };
+module.exports = { ask, atarPicks, encontrarVino, recipeWineDe, FUERA_DE_TEMA };

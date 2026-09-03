@@ -738,15 +738,17 @@
   font-size: var(--text-md);
 }
 
+/* Sin caja propia, por el mismo motivo que `.wine-id__grid` (ver ese
+   comentario): era una tarjeta bordeada conteniendo un botón con SU propio
+   borde y una fila de pastillas con el suyo — un marco de más alrededor de
+   controles que ya se distinguen solos. Sueltos en la página, con el aire que
+   ya da el `gap`, se leen tan claro como adentro de la caja y sin sumarle una
+   línea más a una pantalla que ya tiene la de la guarda arriba. */
 .wine-detail-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  background: var(--elevated);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: var(--card-pad-compact);
+  gap: 10px;
 }
 
 /* "Abrí una botella" encabeza la caja de acciones: es lo que uno viene a hacer
@@ -780,38 +782,34 @@
   cursor: default;
 }
 
-/* ── Stock y estados, un solo renglón ──────────────────────────────────────
-   El stepper y los dos chips eran tres bloques apilados de ancho completo: casi
-   media caja de acciones para tres controles que no se tocan casi nunca. En
-   fila entran los tres en un teléfono de 360px, y si no entran, el que sobra
-   baja solo. */
-.wine-detail-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: 100%;
+/* ── El stock, en voz baja ──────────────────────────────────────────────────
+   Favorito y Probado se fueron de esta pantalla (viven en Mi Bodega) y con
+   ellos se fue `.wine-detail-row`, la fila que los compartía con el stepper.
+   Lo que queda es sólo el "−"/"+", y a propósito NO tiene el mismo peso que
+   "Abrí una botella": 32px en vez de 40, sin fondo propio, borde apenas
+   visible. Es una corrección ocasional del número, no una segunda acción a la
+   misma altura que la de verdad — si se viera igual de grande, iba a seguir
+   leyéndose como "otra forma de vaciar una botella", que es justo la
+   confusión que esto vino a sacar (ver el comentario grande en el JSX). */
+.wine-qty-controls--quiet {
+  align-self: flex-start;
+  gap: 4px;
 }
 
-.wine-detail-row .wine-qty-controls {
-  flex: 0 0 auto;
+.wine-qty-controls--quiet .qty-btn {
+  width: 32px;
+  height: 32px;
+  border-color: var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
-.wine-detail-row .toggle-chip {
-  flex: 1;
-  min-width: 108px;
-  justify-content: center;
+.wine-qty-controls--quiet .wine-qty {
+  min-width: 20px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
-
-/* Qué hace el +/− y qué no. Mismo texto que en Mi Bodega: la aclaración vivía
-   en un `title=`, que en un teléfono no existe. Ocupa su propia fila completa
-   para quedar debajo del stepper que explica. */
-/* `.wine-detail-actions__note` se fue con el renglón que explicaba el "−": ver
-   el comentario en WineDetailPage.jsx. */
-
-/* `.wine-detail-toggles` ya no existe: los dos chips de estado se mudaron al
-   renglón del stepper (ver `.wine-detail-row`), que es donde se entiende que
-   los tres son ajustes del mismo vino y no acciones nuevas. */
 
 /* ── El cartel de calle entre zonas ────────────────────────────────────────
    La ficha son once bloques con la misma caja y el mismo peso. Estos rótulos

@@ -1605,14 +1605,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
                       {/* Mientras haya botellas, la acción es abrir una: es lo
                           que se hace con un vino que tenés en casa, y de paso lo
-                          deja marcado como probado. Sin stock ya no hay nada que
-                          abrir, así que ahí el botón vuelve a ser el de marcar
-                          probado —para un vino que tomaste en otro lado o para
-                          corregir el dato—, que nunca toca el stock.
+                          deja marcado como probado. Abre la hoja en vez de
+                          descontar de una: es donde se elige cuántas y donde se
+                          leen las tres consecuencias.
 
-                          Abre la hoja en vez de descontar de una: es donde se
-                          elige cuántas y donde se leen las tres consecuencias. */}
-                      {Number(wine.quantity) > 0 ? (
+                          Sin stock no hay nada que abrir, y ACÁ NO vuelve un
+                          botón de "Marcar probado": ése ya está, siempre visible,
+                          en el chip de la cabecera (`wine-row__tasted`) — es el
+                          mismo caso que la valoración doble de la ficha del vino
+                          (ver el comentario en WineDetailPage sobre "Tu
+                          opinión"): dos controles para la misma pregunta, uno al
+                          lado del otro apenas se despliega la fila. Sin stock,
+                          esta fila de acciones se queda sólo con favorito y
+                          eliminar. */}
+                      {Number(wine.quantity) > 0 && (
                         <button
                           className="wine-action-btn wine-action-btn--open"
                           onClick={() => setAbriendo(wine)}
@@ -1621,16 +1627,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         >
                           <Icon name="bottle" size={16} />
                           Abrí una botella
-                        </button>
-                      ) : (
-                        <button
-                          className={`wine-action-btn ${wine.tasted ? "is-active" : ""}`}
-                          onClick={() => handleToggleTasted(wine)}
-                          type="button"
-                          disabled={isPending}
-                        >
-                          <Icon name={wine.tasted ? "check" : "circle"} size={16} />
-                          {wine.tasted ? "Probado" : "Marcar probado"}
                         </button>
                       )}
 

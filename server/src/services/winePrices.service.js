@@ -102,7 +102,7 @@ const retract = async ({ name, winery, varietal, userId }) => {
  * Devuelve { avg, count, min, max, currency } o null si no hay datos.
  *
  * `excludeUserId` saca tu propia muestra de la cuenta, y es lo que hace honesto
- * al bloque "Lo de afuera" de la ficha: ahí el número tiene que ser lo que paga
+ * al bloque "La comunidad" de la ficha: ahí el número tiene que ser lo que paga
  * el RESTO. Sin esto, un vino que sólo cargaste vos mostraba tu precio dos veces
  * —el chip de arriba y el "promedio de 1 persona" abajo— como si el segundo
  * confirmara al primero. Quien lo pide sin excluir a nadie (el catálogo, donde
