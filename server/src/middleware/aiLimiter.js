@@ -16,13 +16,26 @@ const rateLimit = require("express-rate-limit");
  * pocas llamadas, y las búsquedas del catálogo curado ni siquiera llegan al
  * modelo) y a la vez impide que un bucle accidental se coma el día.
  */
+/**
+ * `handler` en vez de `message`: por default, express-rate-limit manda el
+ * mensaje con `response.send(message)` — texto plano, `Content-Type:
+ * text/html`. El cliente lee `error.response.data.message` (como cualquier
+ * otro error de la API, ver mensajeDeError en sommelierApi.js), y sobre un
+ * string esa propiedad no existe: el mensaje que se escribió acá abajo
+ * jamás llegaba, y el que se mostraba era siempre el genérico de "algo
+ * falló". Con `handler` la respuesta es JSON, como el resto de la API.
+ */
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 60,
   keyGenerator: (req) => req.user?.id || req.ip,
-  message: "Estás usando el escáner y la búsqueda muy seguido. Probá en un rato.",
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      message: "Estás usando el escáner y la búsqueda muy seguido. Probá en un rato.",
+    });
+  },
 });
 
 /**
@@ -45,9 +58,15 @@ const sommelierDailyLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max: 40,
   keyGenerator: (req) => req.user?.id || req.ip,
-  message: "Llegaste al límite de consultas por hoy. Mañana volvés a tener todas.",
   standardHeaders: true,
   legacyHeaders: false,
+  // Mismo motivo que en `aiLimiter`: `handler` en vez de `message`, para que
+  // el texto de verdad llegue como `{ message }` y no como texto plano.
+  handler: (req, res) => {
+    res.status(429).json({
+      message: "Llegaste al límite de consultas por hoy. Mañana volvés a tener todas.",
+    });
+  },
 });
 
 module.exports = { aiLimiter, sommelierDailyLimiter };

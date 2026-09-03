@@ -366,6 +366,15 @@ export default function DiscoverPage() {
               hint="Probá con el nombre de la bodega."
               actionLabel="Escanear etiqueta"
               onAction={() => navigate("/agregar")}
+              /* Esto busca contra el catálogo: nombre, bodega, uva. Cero
+                 resultados también puede querer decir que lo que escribiste
+                 no era un vino puntual sino una pregunta ("¿qué tomo con
+                 asado?", "malbec o cabernet") — ésas SÍ tienen respuesta, sólo
+                 que del otro lado. La salida lateral manda la misma búsqueda
+                 al Sommelier en vez de dejarla en un callejón sin salida (ver
+                 el efecto que la recibe en SuggestionsPage.jsx). */
+              secondaryLabel="Preguntale al Sommelier"
+              onSecondary={() => navigate("/sommelier", { state: { pregunta: query.trim() } })}
               compact
             />
           )}

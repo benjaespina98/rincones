@@ -47,7 +47,6 @@ const EMPTY_MOMENT = {
   emotion: "",
   foodPairing: "",
   notes: "",
-  rating: 0,
   photos: [],
 };
 
@@ -327,34 +326,11 @@ export default function WineDetailPage() {
     };
   }, [wineName, wineWinery, wineVarietal]);
 
-  const applyUpdate = async (payload, successMessage) => {
-    setPending(true);
-    try {
-      const updated = await updateWine(id, payload);
-      setWine(updated);
-      if (successMessage) showSuccess(successMessage);
-    } catch {
-      showError("No se pudo actualizar el vino");
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const handleToggleFavorite = () =>
-    applyUpdate(
-      { favorite: !wine.favorite },
-      wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos"
-    );
-
-  // "Probado" dice si alguna vez lo tomaste. Es un dato de tu historial y no
-  // mueve el stock: podés haber probado un vino que no era tuyo, o querer
-  // corregir el dato sin que aparezca ni desaparezca una botella de tu cava.
-  const handleToggleTasted = () =>
-    applyUpdate(
-      { tasted: !wine.tasted },
-      wine.tasted ? "Quitada la marca de probada" : "Marcada como que ya la probaste"
-    );
-
+  // Favorito y Probado se dejaron de tocar desde acá: son controles que ya
+  // existen, iguales y a un toque, en la fila de Mi Bodega — tenerlos también
+  // acá, al lado de "Abrí una botella", los hacía leer como una tercera forma
+  // de decir lo mismo que esa botella (ver el comentario grande más abajo,
+  // sobre por qué el ajuste de stock).
   const handleAdjustQuantity = async (delta) => {
     if (delta < 0 && Number(wine.quantity) <= 0) return;
     setPending(true);
@@ -710,11 +686,26 @@ export default function WineDetailPage() {
 
             {/* Las acciones, arriba de todo. Estaban novenas de once: para abrir
                 una botella había que bajar 2364px, casi tres pantallas, pasando
-                por la descripción de IA, el precio y tres bloques de datos. */}
+                por la descripción de IA, el precio y tres bloques de datos.
+
+                ── POR QUÉ YA NO HAY CUATRO CONTROLES ACÁ ────────────────────
+                Favorito y Probado se sacaron enteros: ya están, con el mismo
+                toque, en la fila de Mi Bodega — tenerlos DE NUEVO acá, al lado
+                de "Abrí una botella", hacía que las tres cosas se leyeran como
+                variantes de una sola pregunta ("¿qué hago con este vino?") en
+                vez de tres decisiones distintas. La ficha se queda con la
+                acción de verdad: abrir una botella (o conseguirla, si nunca
+                fue tuya).
+
+                El ajuste de stock (el "−") es distinto y se queda, pero
+                aparte: no es una alternativa a "Abrí una botella", es la
+                corrección de un número —diste una botella, se rompió una,
+                estás sincronizando después de contar la cava a mano— y NUNCA
+                marca la botella como tomada, que es justo lo que sí hace
+                abrirla. Puesto chico y al lado, en vez de con el mismo peso
+                que el botón grande, se lee como lo que es: un ajuste
+                ocasional, no una segunda forma de hacer lo mismo. */}
             <div className="wine-detail-actions">
-              {/* Abrir es LA acción y va primera: es lo que se hace con un vino
-                  que tenés en casa. El ajuste de stock queda debajo, con su
-                  aclaración — mismo orden y mismas palabras que en Mi Bodega. */}
               {Number(wine.quantity) > 0 && (
                 <button
                   type="button"
@@ -741,74 +732,21 @@ export default function WineDetailPage() {
                   <Icon name="plus" size={17} />
                   Sumar a mi bodega
                 </button>
-              ) : null}
-
-              {/* ── STOCK Y ESTADOS, EN UN RENGLÓN ────────────────────────────
-                  Eran tres bloques apilados —el stepper con su rótulo, una
-                  aclaración de dos líneas debajo, y los chips en una fila
-                  aparte— o sea cinco renglones para tres controles que se tocan
-                  de a uno. Ahora comparten fila y la aclaración se fusionó con
-                  el rótulo: "Ajustá tu stock · no marca que la tomaste" dice lo
-                  mismo en una línea, y el detalle completo sigue en los
-                  aria-label de cada botón, que es donde hace falta de verdad.
-
-                  Los chips son los mismos que en la bodega: mismo texto, mismo
-                  color, mismo comportamiento. La misma acción con dos caras
-                  obliga a aprender la app dos veces. */}
-              <div className="wine-detail-row">
-                {!noEsTuyo && (
-                  <div className="wine-qty-controls" role="group" aria-label="Ajustar tu stock">
-                    <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
-                      <Icon name="minus" size={16} />
-                    </button>
-                    {/* Ver BodyPage: el `key` va en el span interno para que la
-                        región viva no se desmonte y siga anunciando. */}
-                    <span className="wine-qty" aria-live="polite">
-                      <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
-                    </span>
-                    <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
-                      <Icon name="plus" size={16} />
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  className={`toggle-chip ${wine.tasted ? "is-on" : ""}`}
-                  disabled={pending}
-                  onClick={handleToggleTasted}
-                  aria-pressed={wine.tasted}
-                  // El chip ya dice el estado con su texto y su color; el
-                  // aria-label dice la ACCIÓN, que es lo que un lector de
-                  // pantalla necesita y lo único que no está a la vista.
-                  aria-label={
-                    wine.tasted ? "Quitar la marca de probada" : "Marcar como probada"
-                  }
-                >
-                  <Icon name={wine.tasted ? "check" : "circle"} size={14} />
-                  {wine.tasted ? "Probado" : "Sin probar"}
-                </button>
-
-                <button
-                  type="button"
-                  className={`toggle-chip ${wine.favorite ? "is-on is-on--fav" : ""}`}
-                  disabled={pending}
-                  onClick={handleToggleFavorite}
-                  aria-pressed={wine.favorite}
-                  aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                >
-                  <Icon name="heart" filled={wine.favorite} size={14} />
-                  Favorito
-                </button>
-              </div>
-
-              {/* Acá vivía un renglón que explicaba qué hace el "−" y qué no.
-                  Un control que necesita un instructivo debajo está mal
-                  dibujado, y el instructivo lo empeora: le da a la barra de
-                  acciones el aire de un formulario con ayuda contextual. Los
-                  botones ya dicen lo suyo por su forma, y la aclaración completa
-                  sigue donde de verdad hace falta —los `aria-label` de cada uno,
-                  que es lo que escucha quien no ve la pantalla—. */}
+              ) : (
+                <div className="wine-qty-controls wine-qty-controls--quiet" role="group" aria-label="Corregir tu stock">
+                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
+                    <Icon name="minus" size={14} />
+                  </button>
+                  {/* Ver BodyPage: el `key` va en el span interno para que la
+                      región viva no se desmonte y siga anunciando. */}
+                  <span className="wine-qty" aria-live="polite">
+                    <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
+                  </span>
+                  <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
+                    <Icon name="plus" size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* ── QUÉ ES ESTE VINO, ANTES QUE QUÉ HACER CON ÉL ────────────────
@@ -848,19 +786,22 @@ export default function WineDetailPage() {
                 reponer, y saber qué cocinar con ella es parte de decidirlo. */}
             <WinePlan wine={wine} info={aiInfo} />
 
-            {/* ── LO TUYO ────────────────────────────────────────────────────
+            {/* ── TU EXPERIENCIA ────────────────────────────────────────────
                 Lo que puntuaste, escribiste y viviste con esta botella.
+                "Lo tuyo" decía lo mismo pero sonaba a placeholder, pegado a
+                subtítulos concretos como "Tu opinión" — se cambió por algo que
+                nombra qué hay adentro sin sumar otra vaguedad a la pila.
 
                 La ficha son once bloques y hasta ahora todos pesaban igual: la
                 misma caja, el mismo borde, el mismo aire entre uno y otro. Para
                 encontrar tus momentos había que leerlos todos —y tus momentos
                 son lo único de esta pantalla que no existe en ninguna otra app.
 
-                Tres zonas en vez de once cajas: el vino (arriba), lo tuyo (acá)
-                y lo de afuera (al final). El rótulo va en voz baja a propósito:
-                no es un título que compita con los de los bloques, es un cartel
-                de calle para saber en qué parte de la ficha estás. */}
-            <h2 className="wine-zone">Lo tuyo</h2>
+                Tres zonas en vez de once cajas: el vino (arriba), tu experiencia
+                (acá) y la comunidad (al final). El rótulo va en voz baja a
+                propósito: no es un título que compita con los de los bloques,
+                es un cartel de calle para saber en qué parte de la ficha estás. */}
+            <h2 className="wine-zone">Tu experiencia</h2>
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
@@ -930,7 +871,7 @@ export default function WineDetailPage() {
             )}
 
             {/* Las opiniones de otros y el precio de referencia se fueron al
-                final de la ficha, después de tus momentos: ver "LO DE AFUERA"
+                final de la ficha, después de tus momentos: ver "LA COMUNIDAD"
                 abajo del diario. */}
           </>
         ) : (
@@ -1154,7 +1095,7 @@ export default function WineDetailPage() {
         )}
 
 
-        {/* El diario cierra "lo tuyo", y por eso ahora se esconde mientras
+        {/* El diario cierra "tu experiencia", y por eso ahora se esconde mientras
             editás: sin el rótulo de la zona —que vive del otro lado del
             formulario— quedaba flotando abajo de los campos, como si fuera
             parte de lo que estás cambiando. */}
@@ -1277,25 +1218,13 @@ export default function WineDetailPage() {
                 </div>
               </div>
 
-              <div className="rating-input" role="group" aria-label="Calificar este momento">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`rating-input__star ${value <= momentDraft.rating ? "filled" : ""}`}
-                    // Tocar la estrella ya puesta la saca: sin esto no había forma
-                    // de volver a "sin calificar".
-                    onClick={() =>
-                      setMomentDraft((p) => ({ ...p, rating: p.rating === value ? 0 : value }))
-                    }
-                    aria-label={`Calificar con ${value} ${value === 1 ? "estrella" : "estrellas"}`}
-                    aria-pressed={value <= momentDraft.rating}
-                    disabled={savingMoment}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
+              {/* Sin estrellas acá: eran la segunda fila de cinco estrellas en
+                  la misma ficha, dos secciones más abajo de "Tu opinión"
+                  (WineOpinion, que ya consolidó las dos que había antes en
+                  una — ver el comentario ahí). Volver a preguntar el puntaje
+                  al cargar un momento se sentía como que la app ya se había
+                  olvidado de lo que acababas de tocar arriba. "Tu opinión"
+                  sigue siendo el único lugar de la ficha donde se puntúa. */}
               <div className="result-actions">
                 <button type="button" className="btn-cancel" onClick={() => setShowMomentForm(false)} disabled={savingMoment}>
                   Cancelar
@@ -1382,16 +1311,19 @@ export default function WineDetailPage() {
         </section>
         )}
 
-        {/* ── LO DE AFUERA ──────────────────────────────────────────────────
+        {/* ── LA COMUNIDAD ──────────────────────────────────────────────────
             Lo que no es tuyo: lo que opinaron otros y lo que sale en el
-            mercado. Material de consulta —se mira cuando se busca, no cuando se
-            abre la ficha— y por eso va último, después de tu diario.
+            mercado. "Lo de afuera" decía lo mismo con menos precisión, al lado
+            de subtítulos que ya nombran cada cosa ("Opiniones de la
+            comunidad", "Precio de mercado"). Material de consulta —se mira
+            cuando se busca, no cuando se abre la ficha— y por eso va último,
+            después de tu diario.
 
             Estaba al revés: tus momentos, que son lo único que esta app tiene y
             ninguna otra, quedaban abajo de un link a MercadoLibre. */}
         {!editing && (
           <>
-            <h2 className="wine-zone">Lo de afuera</h2>
+            <h2 className="wine-zone">La comunidad</h2>
 
             {/* Las opiniones NO se envuelven en una sección plegable, aunque la
                 lista sea larga: `WineReviews` ya se pliega solo y deja el

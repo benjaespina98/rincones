@@ -604,6 +604,14 @@
   gap: 12px;
 }
 
+/* Sin botón principal (vino sin stock: ver el comentario en el JSX sobre por
+   qué acá no vuelve "Marcar probado"), los dos íconos quedarían pegados a la
+   izquierda con un hueco vacío a la derecha, que es donde vivía el principal.
+   Al final es donde ya los espera la mano, en la misma esquina de siempre. */
+.wine-row__acciones:has(.wine-row__icon-btn:first-child) {
+  justify-content: flex-end;
+}
+
 .wine-row__acciones .wine-action-btn {
   flex: 1;
   min-width: 0;

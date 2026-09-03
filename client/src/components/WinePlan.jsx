@@ -1,8 +1,7 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import Icon from "./Icon";
-import Portal from "./Portal";
 import ConceptTerm from "./ConceptTerm";
-import { useSheet } from "../hooks/useSheet";
+import WineRecipeSheet from "./WineRecipeSheet";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
 import { planTitle } from "../utils/momentCopy";
 import { getWineRecipe } from "../services/wineSearchApi";
@@ -51,11 +50,6 @@ const TEMPERATURAS = {
   fortified: "12-14 °C",
 };
 
-// Otras versiones del plato, fuera de la app. La receta que damos es una; quien
-// cocina siempre quiere comparar dos o tres antes de decidirse.
-const recetasWeb = (plato) =>
-  `https://www.google.com/search?q=${encodeURIComponent(`${plato} receta`)}`;
-
 export default function WinePlan({ wine, info }) {
   const [plan, setPlan] = useState(null);
   // Las recetas ya traídas, por plan: cambiar de plan y volver no vuelve a pedir.
@@ -63,10 +57,6 @@ export default function WinePlan({ wine, info }) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  // Escape, bloqueo del scroll de atrás y foco: ver hooks/useSheet.
-  const cerrarHoja = useCallback(() => setSheetOpen(false), []);
-  const panelRef = useSheet(cerrarHoja, { enabled: sheetOpen });
 
   const temperatura = info?.serve || TEMPERATURAS[wine.type] || "";
 
@@ -226,109 +216,7 @@ export default function WinePlan({ wine, info }) {
       )}
 
       {sheetOpen && receta && (
-        <Portal>
-          <div className="settings-sheet" onClick={cerrarHoja} role="presentation">
-            <div
-              ref={panelRef}
-              tabIndex={-1}
-              className="settings-sheet__panel settings-sheet__panel--feature wine-recipe-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Receta: ${receta.dish}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Mismo vocabulario de "hoja de lectura" que ConceptSheet: el
-                  medallón repite el ícono del botón que la abrió ("Qué cocinar
-                  para acompañarla"), así que la receta se siente una
-                  continuación de ese toque y no un formulario nuevo. */}
-              <div className="settings-sheet__head settings-sheet__head--feature">
-                <span className="settings-sheet__icon" aria-hidden="true">
-                  <Icon name="utensils" size={17} />
-                </span>
-                <div className="settings-sheet__heading">
-                  <span className="settings-sheet__eyebrow">Para acompañarla</span>
-                  <h2>{receta.dish}</h2>
-                </div>
-                <button
-                  type="button"
-                  className="settings-sheet__close"
-                  onClick={() => setSheetOpen(false)}
-                  aria-label="Cerrar la receta"
-                >
-                  <Icon name="x" size={16} />
-                </button>
-              </div>
-
-              <div className="settings-sheet__body wine-recipe">
-                {/* El maridaje se explica justo donde acaba de aplicarse: abajo
-                    de la frase que dice por qué ESTE plato va con ESTE vino. En
-                    abstracto, "maridaje" no le interesa a nadie. */}
-                {receta.why && (
-                  <p className="wine-recipe__why">
-                    {receta.why}{" "}
-                    <ConceptTerm id="maridaje" ctx={{ wine, info }} className="wine-recipe__why-term">
-                      ¿cómo se marida?
-                    </ConceptTerm>
-                  </p>
-                )}
-
-                {(receta.time || receta.servings) && (
-                  <p className="wine-recipe__meta">
-                    {receta.time && <span>{receta.time}</span>}
-                    {receta.servings && (
-                      <span>
-                        <Icon name="users" size={12} /> {receta.servings}
-                      </span>
-                    )}
-                  </p>
-                )}
-
-                {/* "Ingredientes" y "Preparación", como cualquier receta de
-                    verdad. El tono gourmet va en cómo está escrita la receta, no
-                    en rótulos que haya que descifrar. */}
-                <h3 className="wine-recipe__label">Ingredientes</h3>
-                <ul className="wine-recipe__ingredients">
-                  {receta.ingredients.map((ing, i) => (
-                    <li key={i}>{ing}</li>
-                  ))}
-                </ul>
-
-                <h3 className="wine-recipe__label">Preparación</h3>
-                <ol className="wine-recipe__steps">
-                  {receta.steps.map((paso, i) => (
-                    <li key={i}>{paso}</li>
-                  ))}
-                </ol>
-
-                <a
-                  className="wine-recipe__web"
-                  href={recetasWeb(receta.dish)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Ver otras versiones de este plato <Icon name="arrow-right" size={15} />
-                </a>
-
-                <p className="wine-recipe__note">
-                  Pensada para esta botella. Ajustá las cantidades a tu gusto y los
-                  tiempos a tu horno.
-                </p>
-
-                {/* La salida abajo, además de la × de arriba. Una receta se lee
-                    scrolleando hasta el final, y ahí el cierre queda tres
-                    pantallas atrás: pedirle a alguien que suba para poder salir
-                    es hacerle deshacer todo el camino que acaba de recorrer. */}
-                <button
-                  type="button"
-                  className="wine-recipe__done"
-                  onClick={() => setSheetOpen(false)}
-                >
-                  Listo, cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        </Portal>
+        <WineRecipeSheet receta={receta} wine={wine} info={info} onClose={() => setSheetOpen(false)} />
       )}
     </section>
   );

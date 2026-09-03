@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
-import { searchWines } from "../services/wineSearchApi";
+import { searchWines, getWineRecipe } from "../services/wineSearchApi";
 import { getSuggestedWines } from "../services/wineApi";
 import { preguntarAlSommelier, mensajeDeError } from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
@@ -12,6 +12,7 @@ import Icon from "../components/Icon";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
 import WineMeta from "../components/WineMeta";
+import WineRecipeSheet from "../components/WineRecipeSheet";
 import { FOOD_PAIRINGS } from "../data/wineReference";
 import { tapHaptic } from "../utils/haptics";
 import { trackEvent } from "../services/analyticsApi";
@@ -99,6 +100,18 @@ const OTRAS_PREGUNTAS = [
 let contador = 0;
 const nuevoId = () => `m${(contador += 1)}`;
 
+/** Alto máximo del campo antes de que scrollee adentro — unas 5-6 líneas. Sin
+ * tope, escribir un párrafo entero empujaría el compositor (y con él, media
+ * conversación) fuera de la pantalla. */
+const ALTO_MAX_INPUT = 120;
+
+/** Cuánto tarda en dejar de creerse "rápido" y empezar a necesitar una
+ * segunda frase que diga "seguís ahí". Ver el comentario grande sobre
+ * TIMEOUT_MS/BUDGET_MS en sommelier.service.js: el modelo puede tardar hasta
+ * ~10s en el peor caso (dos intentos completos), y "Buscando…" quieto todo
+ * ese tiempo empieza a leerse como colgado antes de que en verdad lo esté. */
+const PENSANDO_LARGO_MS = 4000;
+
 /**
  * ── LA CONVERSACIÓN SOBREVIVE A CAMBIAR DE PESTAÑA ───────────────────────────
  *
@@ -133,6 +146,7 @@ const cargarHistorial = (userId) => {
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { addWish } = useWishlist();
   const { showError, showSuccess } = useToast();
@@ -158,11 +172,64 @@ export default function SuggestionsPage() {
   });
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
+  // Segunda frase de "pensando", sólo si de verdad se hace largo. Ver
+  // PENSANDO_LARGO_MS.
+  const [pensandoLargo, setPensandoLargo] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
 
+  // La receta: qué mensaje la está pidiendo, cuál falló, y cuál tiene la
+  // hoja abierta. Un vino por vez (como en WinePlan) — no hace falta más:
+  // nadie pide dos recetas a la vez en la misma conversación.
+  const [recetaLoadingId, setRecetaLoadingId] = useState(null);
+  const [recetaFailedId, setRecetaFailedId] = useState(null);
+  const [recetaAbiertaId, setRecetaAbiertaId] = useState(null);
+
   const finRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!pensando) {
+      setPensandoLargo(false);
+      return undefined;
+    }
+    const t = setTimeout(() => setPensandoLargo(true), PENSANDO_LARGO_MS);
+    return () => clearTimeout(t);
+  }, [pensando]);
+
+  /**
+   * El campo crece con lo que escribís, hasta ALTO_MAX_INPUT.
+   *
+   * Antes era un `<input>` de una sola línea: una pregunta de más de un
+   * renglón (habituales — "qué maridaje le pongo a un asado de tira con
+   * chimichurri picante") se escribía scrolleando horizontalmente ADENTRO
+   * del campo, invisible hasta que la releías. Ningún chat de verdad hace
+   * eso. Se recalcula en cada cambio de `texto` (no sólo al tipear): así
+   * también se achica solo cuando `preguntar` limpia el campo después de
+   * enviar, sin tener que llamar esto a mano desde dos lugares distintos.
+   */
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (!texto) {
+      // Sin texto no hace falta medir nada: que la caja vuelva a su alto
+      // natural de una sola línea, el que ya pone el CSS solo.
+      //
+      // Esto además esquiva una carrera real: al montar la pantalla, este
+      // efecto corre ANTES de que el navegador termine de aplicar el CSS de
+      // esta ruta (es un chunk lazy — ver el comentario sobre AdminLayout.css
+      // en otra pantalla, mismo tipo de problema). Medir en ese instante
+      // devuelve el alto de respaldo global (120px, `textarea` en App.css) en
+      // vez del real, y como el efecto sólo vuelve a correr cuando CAMBIA el
+      // texto, ese 120 de más quedaba pegado para siempre en un campo vacío.
+      // Reproducido en vivo: recién cargada la pantalla, el campo nacía alto
+      // como si tuviera cuatro renglones adentro sin una letra escrita.
+      el.style.height = "";
+      return;
+    }
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, ALTO_MAX_INPUT)}px`;
+  }, [texto]);
 
   /**
    * La conversación se sigue sola hacia abajo.
@@ -295,6 +362,15 @@ export default function SuggestionsPage() {
             descubrir: [],
             // Reserva el lugar del cargando sólo si de verdad va a haber algo.
             buscandoVinos: Boolean(comida) && !data.offTopic,
+            // Las repreguntas que el modelo propone para ESTA respuesta. Se
+            // guardan en el mensaje (no aparte) para que sigan siendo las
+            // correctas si se restaura la charla desde sessionStorage.
+            followups: data.followups || [],
+            // A qué vino/estilo referirle la receta, si el modelo detectó que
+            // la persona busca un plato concreto (ver "recipeFor" en
+            // sommelier.service.js). La receta en sí NO viaja acá — se pide
+            // aparte, sólo si se toca el botón (ver pedirReceta más abajo).
+            recipeWine: data.recipeWine || null,
           },
         ]);
         // Se apaga acá y no al final: con el texto en pantalla ya no hay nada
@@ -330,9 +406,21 @@ export default function SuggestionsPage() {
         // nuevo — perder lo que ya escribiste es el doble de trabajo por el
         // mismo error, y encima el más probable de todos (Gemini colgado un
         // instante, no un problema de la persona).
+        //
+        // EXCEPTO cuando el error es "llegaste al límite" (429): ahí
+        // reintentar no cambia nada — el límite sigue puesto, así que el
+        // botón fallaría otra vez en el acto. Ofrecerlo igual sería prometer
+        // una salida que no existe.
+        const esLimite = error?.response?.status === 429;
         setMensajes((prev) => [
           ...prev,
-          { id: nuevoId(), role: "guia", text: mensajeDeError(error), error: true, retry: limpia },
+          {
+            id: nuevoId(),
+            role: "guia",
+            text: mensajeDeError(error),
+            error: true,
+            retry: esLimite ? undefined : limpia,
+          },
         ]);
       } finally {
         setPensando(false);
@@ -340,6 +428,124 @@ export default function SuggestionsPage() {
     },
     [mensajes, pensando, buscarParaDescubrir]
   );
+
+  /**
+   * ── LA PREGUNTA LLEGA DESDE OTRA PANTALLA ───────────────────────────────
+   *
+   * "Descubrí" tiene su propio buscador, y son dos cosas parecidas pero no
+   * iguales: ahí buscás un vino puntual por nombre, bodega o uva contra el
+   * catálogo; acá le preguntás algo a alguien. El problema real no es tener
+   * los dos —cada uno contesta lo suyo—, es el callejón sin salida: escribir
+   * "¿qué tomo con asado?" en el buscador de Descubrí no encuentra ningún
+   * vino que se llame así, y hasta ahora ahí se terminaba, sin decir que la
+   * misma pregunta SÍ tiene respuesta acá (ver el botón "Preguntale al
+   * Sommelier" en el vacío de la búsqueda, en DiscoverPage.jsx).
+   *
+   * Se dispara sola y no deja el texto esperando en el campo: quien tocó ese
+   * botón ya decidió preguntar eso, así que pedirle un segundo toque para
+   * enviar lo que ya escribió una vez sería cobrarle el mismo trabajo dos
+   * veces. Se limpia el state de navegación enseguida (mismo patrón que
+   * `recienAgregado` en WineDetailPage) para que volver con "atrás" o
+   * refrescar la pantalla no la reenvíe sola.
+   *
+   * `yaEnviada` es lo que evita mandarla DOS veces en desarrollo: React
+   * StrictMode corre cada efecto de montaje dos veces a propósito, y acá eso
+   * no es gratis como en el resto de la app — `navigate` de sobra no hace
+   * nada, pero `preguntar` de sobra es una segunda pregunta real, con su
+   * propio gasto de cuota. Reproducido en vivo: la misma pregunta llegaba
+   * duplicada, con dos respuestas (o dos errores) apiladas.
+   */
+  const preguntaEnviada = useRef(false);
+  useEffect(() => {
+    const pregunta = location.state?.pregunta;
+    if (!pregunta || preguntaEnviada.current) return;
+    preguntaEnviada.current = true;
+    navigate(location.pathname, { replace: true, state: {} });
+    preguntar(pregunta);
+    // Sólo al montar: `preguntar` cambia en cada tecla que se escribe después
+    // (depende de `mensajes`), y no hay que volver a correr esto por eso.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * La receta del vino que el modelo detectó en esta respuesta.
+   *
+   * No se pide sola: generarla es OTRA llamada entera a Gemini (hasta 22s de
+   * presupuesto propio — ver suggestRecipe en wineAi.service.js), y meterla
+   * adentro del pedido del Sommelier le rompería el suyo (10s, pensado para
+   * que la guía se sienta rápida). Se pide aparte, con el mismo endpoint que
+   * ya usa la ficha del vino (`/api/catalog/recipe`, ya cacheado por vino +
+   * plan), y sólo cuando la persona toca el botón — igual que en `WinePlan`.
+   *
+   * Un plan fijo ("cena") porque acá no hay selector de plan como en la
+   * ficha: es el más neutro de los seis (ver PLANS en wineAi.service.js).
+   */
+  const pedirReceta = async (m) => {
+    if (!m.recipeWine || recetaLoadingId) return;
+    if (m.receta) {
+      setRecetaAbiertaId(m.id);
+      return;
+    }
+
+    setRecetaLoadingId(m.id);
+    setRecetaFailedId(null);
+    try {
+      const data = await getWineRecipe(m.recipeWine, "cena");
+      if (data) {
+        setMensajes((prev) => prev.map((x) => (x.id === m.id ? { ...x, receta: data } : x)));
+        setRecetaAbiertaId(m.id);
+        trackEvent("sommelier_recipe");
+      } else {
+        setRecetaFailedId(m.id);
+      }
+    } catch {
+      setRecetaFailedId(m.id);
+    } finally {
+      setRecetaLoadingId(null);
+    }
+  };
+
+  /**
+   * Las repreguntas de la ÚLTIMA respuesta, no de todas.
+   *
+   * El modelo las propone en cada turno (ver RESPONSE_SCHEMA en
+   * sommelier.service.js), pero antes se descartaban del todo: mostrar la
+   * fila que proponía CADA respuesta, una abajo de la otra, era justo lo que
+   * se sacó en una vuelta anterior de esta pantalla ("una fila de pastillas
+   * nueva debajo de otra que ya se acababa de leer, turno tras turno" — ver
+   * el comentario grande más abajo). Acá se resuelve distinto: se muestra
+   * SÓLO la fila de la respuesta más reciente, reemplazando a la anterior en
+   * el mismo lugar fijo del compositor, no acumulando. Con eso el problema
+   * que motivó sacarlas (el amontonamiento) no existe, y lo que costó
+   * generar deja de tirarse: el modelo ya las pensaba en cada respuesta, sólo
+   * que el cliente las ignoraba.
+   */
+  const repreguntas = useMemo(() => {
+    for (let i = mensajes.length - 1; i >= 0; i -= 1) {
+      const m = mensajes[i];
+      if (m.role === "guia" && m.followups?.length > 0) return m.followups;
+      // Si el último turno fue una pregunta de la persona o un error, no hay
+      // repreguntas vigentes todavía (o el error ya tiene su propia acción,
+      // "Reintentar") — no hace falta seguir mirando turnos más viejos.
+      if (m.role === "user" || m.error) return null;
+    }
+    return null;
+  }, [mensajes]);
+
+  /**
+   * Volver a empezar. Antes no hacía falta un botón para esto: salir de la
+   * pantalla YA borraba la charla (era memoria del componente, nada más). Con
+   * la conversación persistida en sessionStorage (ver más arriba) eso dejó de
+   * pasar, así que ahora hace falta una forma explícita de decir "quiero
+   * arrancar de cero" — sin ella, alguien que quiere cambiar de tema del todo
+   * quedaría empujando la charla vieja para abajo para siempre.
+   */
+  const nuevaConversacion = () => {
+    trackEvent("sommelier_reset");
+    setMensajes([]);
+    setTexto("");
+    inputRef.current?.focus();
+  };
 
   const handleWant = async (wine) => {
     if (addingId || addedIds.has(wine.id)) return;
@@ -369,7 +575,19 @@ export default function SuggestionsPage() {
 
   return (
     <div className="somm">
-      <div className="somm__feed">
+      {/* `aria-live="polite"` para que un lector de pantalla anuncie la
+          respuesta apenas llega, sin que la persona tenga que ir a buscarla
+          — antes sólo "Buscando…" (role="status", más abajo) hablaba, y en
+          cuanto desaparecía, silencio: nada avisaba que la respuesta ya
+          estaba. */}
+      <div className="somm__feed" aria-live="polite">
+        {mensajes.length > 0 && (
+          <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
+            <Icon name="plus" size={13} />
+            Nueva conversación
+          </button>
+        )}
+
         {mensajes.length === 0 && (
           /* ── EL ARRANQUE: EL TÍTULO YA DICE PARA QUÉ SIRVE TOCAR UN CHIP ────
              Antes eran dos tarjetas con marco, ícono y título cada una —"Emparejar
@@ -418,12 +636,47 @@ export default function SuggestionsPage() {
                 <button
                   type="button"
                   className="somm__reintentar"
-                  onClick={() => preguntar(m.retry)}
+                  onClick={() => {
+                    trackEvent("sommelier_retry");
+                    preguntar(m.retry);
+                  }}
                   disabled={pensando}
                 >
                   <Icon name="refresh" size={14} />
                   Reintentar
                 </button>
+              )}
+
+              {/* El sommelier hace mérito al nombre: si detectó que la
+                  persona quiere un PLATO concreto (no sólo una categoría de
+                  comida), acá está el botón para pedirlo — la receta en sí
+                  llega recién si se toca, nunca sola (ver pedirReceta). */}
+              {m.recipeWine && (
+                <button
+                  type="button"
+                  className="somm__receta"
+                  onClick={() => pedirReceta(m)}
+                  disabled={recetaLoadingId === m.id}
+                >
+                  {recetaLoadingId === m.id ? (
+                    <>
+                      <span className="somm__spin" aria-hidden="true" />
+                      Pensando qué le va…
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="utensils" size={15} />
+                      {m.receta
+                        ? m.receta.dish
+                        : recetaFailedId === m.id
+                          ? "Reintentar la receta"
+                          : "Qué cocinar para acompañarla"}
+                    </>
+                  )}
+                </button>
+              )}
+              {recetaFailedId === m.id && recetaLoadingId !== m.id && (
+                <p className="somm__receta-error">No se pudo armar la receta ahora.</p>
               )}
 
               {/* ── LO QUE TENÉS ──────────────────────────────────────────
@@ -528,11 +781,15 @@ export default function SuggestionsPage() {
         )}
 
         {/* Pensando. Una línea con el ritmo de una respiración y sin puntitos
-            de chat: dice que hay algo en camino sin imitar a nadie escribiendo. */}
+            de chat: dice que hay algo en camino sin imitar a nadie escribiendo.
+            Cambia de frase pasados PENSANDO_LARGO_MS: "Buscando…" quieto por
+            más de cuatro segundos deja de leerse como "está pensando" y
+            empieza a leerse como "se colgó", aunque adentro (ver
+            sommelier.service.js) todavía esté dentro de lo esperado. */}
         {pensando && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
-            Buscando la mejor respuesta…
+            {pensandoLargo ? "Sigue pensando, ya casi…" : "Buscando la mejor respuesta…"}
           </p>
         )}
 
@@ -544,13 +801,18 @@ export default function SuggestionsPage() {
           teléfono. Arriba —donde estaba— obligaba a subir la vista para
           escribir y bajarla para leer, en cada turno.
 
-          Ya no lleva las repreguntas que proponía el modelo después de cada
-          respuesta —una fila de pastillas nueva debajo de otra que ya se
-          acababa de leer, turno tras turno—, pero sí conserva una tira FIJA,
-          sólo en el arranque: ejemplos de todo lo que NO es maridaje —tu
-          bodega, el clima de hoy, un regalo— pegados arriba del campo, que es
-          lo último que se lee antes de escribir. Se esconde apenas arranca la
-          conversación, igual que el resto del arranque. */}
+          Antes de tener conversación de verdad no lleva las repreguntas que
+          proponía el modelo turno a turno —eso era "una fila de pastillas
+          nueva debajo de otra que ya se acababa de leer", y se sacó por
+          amontonarse—, pero sí conserva una tira FIJA, sólo en el arranque:
+          ejemplos de todo lo que NO es maridaje —tu bodega, el clima de hoy,
+          un regalo— pegados arriba del campo, que es lo último que se lee
+          antes de escribir. Se esconde apenas arranca la conversación.
+
+          Adentro de la conversación, en cambio, SÍ vuelven las repreguntas —
+          pero UNA fila, la de la última respuesta, en el mismo lugar fijo de
+          siempre en vez de una nueva cada vez: eso resuelve el amontonamiento
+          sin tirar lo que el modelo ya pensó (ver `repreguntas` más arriba). */}
       <div className="somm__pie">
         {mensajes.length === 0 && (
           <div className="somm__rail">
@@ -562,6 +824,24 @@ export default function SuggestionsPage() {
                 onClick={() => preguntar(s.pregunta)}
               >
                 {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mensajes.length > 0 && !pensando && repreguntas?.length > 0 && (
+          <div className="somm__rail">
+            {repreguntas.map((r) => (
+              <button
+                key={r}
+                type="button"
+                className="somm__chip"
+                onClick={() => {
+                  trackEvent("sommelier_followup_click");
+                  preguntar(r);
+                }}
+              >
+                {r}
               </button>
             ))}
           </div>
@@ -581,10 +861,17 @@ export default function SuggestionsPage() {
             Enter en el teclado lo hace vía `onKeyDown` — sin necesitar un
             submit de formulario para ninguno de los dos caminos. */}
         <div className="somm__campo">
-          <input
+          {/* `<textarea>` y no `<input>`: una pregunta de más de un renglón
+              se escribía scrolleando horizontalmente, invisible mientras se
+              tipea (ver el efecto de auto-alto más arriba). `rows={1}` es
+              sólo el punto de partida — el efecto la estira sola.
+              Enter manda, Shift+Enter mete un salto de línea: la misma
+              convención que Slack, Gmail y cualquier chat con más de un
+              renglón para escribir. */}
+          <textarea
             ref={inputRef}
-            type="text"
             className="somm__input"
+            rows={1}
             /* Nombra la consulta más frecuente ANTES que la genérica: un campo
                que sólo dice "preguntá lo que quieras" no le hace pensar a nadie
                en escribir "milanesas", que es justo lo que mejor contesta. */
@@ -593,7 +880,10 @@ export default function SuggestionsPage() {
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") preguntar(texto);
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                preguntar(texto);
+              }
             }}
             enterKeyHint="send"
             maxLength={300}
@@ -614,6 +904,21 @@ export default function SuggestionsPage() {
           </button>
         </div>
       </div>
+
+      {/* La misma hoja que usa la ficha del vino (WinePlan): que una receta
+          se vea igual la pida el Sommelier o la ficha es lo que hace que las
+          dos se sientan la misma app y no dos features que no se hablan. */}
+      {recetaAbiertaId &&
+        (() => {
+          const m = mensajes.find((x) => x.id === recetaAbiertaId);
+          return m?.receta ? (
+            <WineRecipeSheet
+              receta={m.receta}
+              wine={m.recipeWine}
+              onClose={() => setRecetaAbiertaId(null)}
+            />
+          ) : null;
+        })()}
     </div>
   );
 }
