@@ -141,6 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Caché de pre-bundling de Vite/Vitest (normalmente vive en node_modules/.vite,
+# pero correr los tests desde client/ a veces la deja acá al lado).
+client/.vite/
+
 # Playwright MCP scratch
 .playwright-mcp/
 .vercel
