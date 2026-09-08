@@ -412,8 +412,29 @@ const deleteUser = async (req, res, next) => {
         await session.endSession();
       }
     } catch (txError) {
+      /**
+       * ── EL BUG REAL: "BORRÉ UNO Y EL SIGUIENTE ME TIRÓ ERROR" ────────────────
+       *
+       * Reportado en producción, reproducido con el stack exacto:
+       * "MongoServerError: Only servers in a sharded cluster can start a new
+       * transaction at the active transaction number" — al segundo borrado
+       * individual seguido, no al primero. Pasa en Atlas + funciones
+       * serverless (Vercel): entre una invocación y la siguiente, la conexión
+       * mongoose se reusa "tibia" para no pagar reconectar en cada request, y
+       * a veces el pool de sesiones del driver entrega una sesión que quedó
+       * con un número de transacción activo de un borrado anterior — el
+       * server la rechaza con ESTE mensaje puntual, que la lista de abajo no
+       * contemplaba.
+       *
+       * Es la MISMA situación que el comentario de arriba ya sabía manejar
+       * (transacciones no usables acá → caer al borrado sin transacción):
+       * sólo hacía falta que el patrón reconociera este mensaje también, no
+       * únicamente "no hay soporte de transacciones en absoluto". Por eso el
+       * arreglo es ensanchar el patrón, no agregar un camino nuevo — el
+       * fallback correcto ya existía.
+       */
       const noSoportaTransacciones =
-        /Transaction numbers|IllegalOperation|Transactions are not supported/i.test(
+        /transaction number|IllegalOperation|Transactions are not supported/i.test(
           String(txError?.message || "")
         );
       if (!noSoportaTransacciones) throw txError;
