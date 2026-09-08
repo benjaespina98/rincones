@@ -259,9 +259,91 @@ const esDelDominio = (pregunta, hayConversacion = false) => {
 /** ¿Le mando el resumen de su bodega al modelo? */
 const usaTuBodega = (pregunta) => hablaDeTuBodega(normalizarPregunta(pregunta));
 
+/**
+ * ── "¿QUÉ VINOS TENGO?": UNA LISTA, NO UNA REDACCIÓN ────────────────────────
+ *
+ * Se reportó así: con el stock en cero, la guía contestó "Tenés una selección
+ * muy interesante, destacándose el Nicasia Vineyards, el Andeluna Altitud y
+ * el PISPI" — nombres de "YA TOMÓ", presentados como si estuvieran en la
+ * heladera. El prompt (ver sommelier.service.js) ya le dice al modelo que
+ * para esta pregunta conteste SÓLO con "SU BODEGA", pero es una instrucción
+ * y no una garantía: el mismo motivo por el que `atarPicks` filtra las
+ * TARJETAS por stock en código y no confía en que el modelo elija bien.
+ *
+ * Para esta pregunta puntual no hace falta redactar nada — es una consulta a
+ * una lista, y una lista no se equivoca. `esPreguntaDeInventario` la detecta
+ * para que el controlador conteste directo contra `wines`, sin pasar por
+ * Gemini: ni gasta cuota, ni puede llegar a decir algo que no es cierto.
+ *
+ * La distingue de una pregunta de RECOMENDACIÓN ("¿cuál abro?", "¿qué tomo
+ * con el asado?") por dos cosas: tiene que nombrar "tengo" (o "queda(n)",
+ * "stock", "inventario") pegado a "qué"/"cuánto", y no puede traer un verbo
+ * de los que piden una sugerencia — si los tiene, la persona quiere que se
+ * elija por ella, no que se le liste lo que ya sabe que tiene.
+ */
+const VERBOS_DE_RECOMENDACION = [
+  "abro", "abrir", "abrimos", "tomo", "tomar", "tomamos", "descorcho",
+  "descorchar", "acompano", "acompanar", "recomendas", "recomendar",
+  "recomendame", "recomendacion", "conviene", "convendria", "elijo",
+  "elegir", "eleccion", "sirve", "marida", "maridar", "combina", "combino",
+];
+
+const PATRONES_INVENTARIO = [
+  // "qué (vinos|Malbec|...) tengo", con hasta dos palabras en el medio.
+  /\bque\b(?:\s+\w+){0,2}\s+tengo\b/,
+  // "cuántos/cuántas ... tengo / me queda(n) / quedan"
+  /\bcuant[oa]s?\b(?:\s+\w+){0,2}\s+(tengo|me queda|me quedan|quedan)\b/,
+  /\bque\s+me\s+(queda|quedan)\b/,
+  /\bque\s+(tengo|hay)\s+en\s+(mi\s+)?(bodega|cava|casa)\b/,
+  /\bmi\s+stock\b/,
+  /\bmi\s+inventario\b/,
+  /\bque\s+stock\s+tengo\b/,
+];
+
+const esPreguntaDeInventario = (pregunta) => {
+  const texto = normalizarPregunta(pregunta);
+  if (!texto) return false;
+  if (VERBOS_DE_RECOMENDACION.some((v) => texto.includes(v))) return false;
+  return PATRONES_INVENTARIO.some((re) => re.test(texto));
+};
+
+/**
+ * Si la pregunta de inventario acota por uva o por tipo ("¿qué Malbec
+ * tengo?", "¿qué tintos tengo?"), esto dice contra qué campo del vino
+ * comparar. `null` cuando pregunta por todo.
+ */
+const UVAS = [
+  "malbec", "cabernet", "sauvignon", "merlot", "syrah", "shiraz", "bonarda",
+  "tannat", "chardonnay", "torrontes", "semillon", "viognier", "chenin",
+  "sangiovese", "tempranillo", "garnacha", "grenache", "malvasia", "moscato",
+  "riesling", "gewurztraminer", "albarino", "criolla", "barbera", "nebbiolo",
+  "carmenere", "trousseau", "marsanne", "franc", "noir", "grigio",
+];
+
+const TIPOS_INVENTARIO = {
+  tinto: "red", tintos: "red",
+  blanco: "white", blancos: "white",
+  rosado: "rosé", rosados: "rosé",
+  espumante: "sparkling", espumantes: "sparkling", espumoso: "sparkling",
+  champagne: "sparkling", champan: "sparkling",
+};
+
+const filtroDeInventario = (pregunta) => {
+  const texto = normalizarPregunta(pregunta);
+  for (const uva of UVAS) {
+    if (texto.split(" ").includes(uva)) return { campo: "varietal", valor: uva };
+  }
+  for (const [palabra, tipo] of Object.entries(TIPOS_INVENTARIO)) {
+    if (texto.split(" ").includes(palabra)) return { campo: "type", valor: tipo };
+  }
+  return null;
+};
+
 module.exports = {
   esDelDominio,
   usaTuBodega,
+  esPreguntaDeInventario,
+  filtroDeInventario,
   normalizarPregunta,
   DEL_DOMINIO,
   DE_OTRO_MUNDO,

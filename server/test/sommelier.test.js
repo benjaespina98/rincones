@@ -4,9 +4,11 @@ const assert = require("node:assert");
 const {
   esDelDominio,
   usaTuBodega,
+  esPreguntaDeInventario,
+  filtroDeInventario,
   normalizarPregunta,
 } = require("../src/data/sommelierDomain");
-const { atarPicks, recipeWineDe } = require("../src/controllers/sommelier.controller");
+const { atarPicks, recipeWineDe, armarInventario } = require("../src/controllers/sommelier.controller");
 const sommelier = require("../src/services/sommelier.service");
 
 /**
@@ -211,6 +213,78 @@ test("un pick que nombra un vino sin stock tampoco se dibuja", () => {
   // el que no, se descarta solo.
   const elegidos = atarPicks(["Rutini Malbec", "Saint Felicien Chardonnay"], bodega);
   assert.deepEqual(elegidos.map((w) => w._id), ["a"]);
+});
+
+/**
+ * ── EL MISMO BUG, PERO EN EL TEXTO Y NO EN LAS TARJETAS ─────────────────────
+ *
+ * El filtro de arriba (`atarPicks`) ya evitaba la tarjeta con stock 0, pero
+ * se reportó DE NUEVO con una cuenta real y el stock en cero: sin ninguna
+ * tarjeta abajo, el TEXTO decía "Tenés una selección muy interesante,
+ * destacándose el Nicasia Vineyards, el Andeluna Altitud y el PISPI" —
+ * nombres de "YA TOMÓ", presentados como si fueran el stock. El prompt se lo
+ * prohíbe, pero un modelo de lenguaje puede pisarlo igual: la respuesta a
+ * esta pregunta puntual ahora se arma en código (`esPreguntaDeInventario` +
+ * `armarInventario`) y nunca pasa por Gemini, así que no hay nada que pisar.
+ */
+test("detecta la pregunta de inventario y no la confunde con pedir una recomendación", () => {
+  for (const q of ["¿Qué vinos tengo?", "¿Qué Malbec tengo?", "¿Cuántas botellas me quedan?", "mi stock", "¿qué tengo en mi bodega?"]) {
+    assert.equal(esPreguntaDeInventario(q), true, `debería ser inventario: ${q}`);
+  }
+  // Pide una sugerencia, no una lista — aunque diga "tengo" en algún lado.
+  for (const q of ["¿cuál abro hoy?", "¿qué tomo con el asado?", "¿qué me recomendás de los que tengo?"]) {
+    assert.equal(esPreguntaDeInventario(q), false, `no debería ser inventario: ${q}`);
+  }
+});
+
+test("el filtro de inventario detecta la uva o el tipo cuando la pregunta acota", () => {
+  assert.deepEqual(filtroDeInventario("¿Qué Malbec tengo?"), { campo: "varietal", valor: "malbec" });
+  assert.deepEqual(filtroDeInventario("¿Qué tintos tengo?"), { campo: "type", valor: "red" });
+  assert.equal(filtroDeInventario("¿Qué vinos tengo?"), null);
+});
+
+test("con el stock en cero, la respuesta de inventario lo dice derecho — nunca nombra lo ya tomado", () => {
+  // Es EXACTAMENTE el reporte real: bodega con vinos tomados pero sin stock.
+  const sinStock = [
+    { _id: "x", name: "Nicasia Vineyards", varietal: "Malbec", quantity: 0, tasted: true },
+    { _id: "y", name: "Andeluna Altitud", varietal: "Malbec", quantity: 0, tasted: true },
+  ];
+  const data = armarInventario(sinStock, "¿Qué vinos tengo?");
+  assert.equal(data.wines.length, 0);
+  assert.match(data.answer, /no tenés nada en stock/i);
+  assert.ok(!data.answer.includes("Nicasia"));
+  assert.ok(!data.answer.includes("Andeluna"));
+});
+
+test("con stock real, la respuesta de inventario nombra sólo lo que tiene y coincide con las tarjetas", () => {
+  const data = armarInventario(bodega, "¿Qué vinos tengo?");
+  assert.match(data.answer, /Rutini Malbec/);
+  assert.match(data.answer, /Alma Negra M Blend/);
+  assert.ok(!data.answer.includes("Saint Felicien")); // ese está sin stock
+  assert.deepEqual(data.wines.map((w) => w._id), ["a", "b"]);
+});
+
+test("con muchas botellas, la respuesta de inventario no las enumera todas", () => {
+  const muchos = Array.from({ length: 12 }, (_, i) => ({
+    _id: String(i),
+    name: `Vino ${i}`,
+    varietal: "Malbec",
+    quantity: 1,
+  }));
+  const data = armarInventario(muchos, "¿Qué vinos tengo?");
+  assert.match(data.answer, /12 en stock/);
+  assert.match(data.answer, /y 8 más/); // 12 - 4 nombrados
+  assert.ok(!data.answer.includes("Vino 11"));
+});
+
+test("la respuesta de inventario acota por uva cuando la pregunta lo pide", () => {
+  const mixta = [
+    { _id: "a", name: "Rutini Malbec", varietal: "Malbec", quantity: 2 },
+    { _id: "b", name: "Rutini Chardonnay", varietal: "Chardonnay", quantity: 1 },
+  ];
+  const data = armarInventario(mixta, "¿Qué Malbec tengo?");
+  assert.deepEqual(data.wines.map((w) => w._id), ["a"]);
+  assert.ok(!data.answer.includes("Chardonnay"));
 });
 
 /**
