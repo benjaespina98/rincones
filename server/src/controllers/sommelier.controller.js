@@ -3,7 +3,13 @@ const WineWish = require("../models/wineWish.model");
 const User = require("../models/user.model");
 const SommelierAnswer = require("../models/sommelierAnswer.model");
 const sommelier = require("../services/sommelier.service");
-const { esDelDominio, usaTuBodega, normalizarPregunta } = require("../data/sommelierDomain");
+const {
+  esDelDominio,
+  usaTuBodega,
+  esPreguntaDeInventario,
+  filtroDeInventario,
+  normalizarPregunta,
+} = require("../data/sommelierDomain");
 const { fold } = require("../data/argentineWines");
 const { captureException } = require("../config/sentry");
 const { recordError } = require("../services/errorLog.service");
@@ -54,6 +60,20 @@ const encontrarVino = (nombre, candidatos = [], excluidos = new Set()) => {
   );
 };
 
+/** La forma de tarjeta que espera el cliente. La usan `atarPicks` y `armarInventario`. */
+const mapWineCard = (wine) => ({
+  _id: String(wine._id),
+  name: wine.name,
+  winery: wine.winery || "",
+  varietal: wine.varietal || "",
+  vintage: wine.vintage || null,
+  region: wine.region || "",
+  type: wine.type || "unknown",
+  image: wine.image || "",
+  quantity: Number(wine.quantity) || 0,
+  rating: Number(wine.rating) || 0,
+});
+
 /**
  * Ata los nombres que eligió el modelo a los vinos REALES de la persona.
  *
@@ -87,21 +107,75 @@ const atarPicks = (picks = [], wines = []) => {
     if (!wine) continue;
 
     usados.add(String(wine._id));
-    elegidos.push({
-      _id: String(wine._id),
-      name: wine.name,
-      winery: wine.winery || "",
-      varietal: wine.varietal || "",
-      vintage: wine.vintage || null,
-      region: wine.region || "",
-      type: wine.type || "unknown",
-      image: wine.image || "",
-      quantity: Number(wine.quantity) || 0,
-      rating: Number(wine.rating) || 0,
-    });
+    elegidos.push(mapWineCard(wine));
   }
 
   return elegidos;
+};
+
+/** Cuántos nombres se listan antes de resumir el resto como "y N más". */
+const MAX_NOMBRADOS_INVENTARIO = 4;
+
+const listarConY = (nombres) =>
+  nombres.length === 1
+    ? nombres[0]
+    : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+
+/**
+ * Arma la respuesta a una pregunta de inventario ("¿qué vinos tengo?", "¿qué
+ * Malbec tengo?", "¿cuántas botellas me quedan?") SIN llamar a Gemini.
+ *
+ * ── POR QUÉ ESTO NO LE PREGUNTA AL MODELO ───────────────────────────────────
+ * `atarPicks` ya evita que una tarjeta se dibuje sin stock real, pero eso
+ * sólo protege las TARJETAS — el TEXTO lo seguía escribiendo Gemini, y un
+ * modelo que ve "YA TOMÓ" y "GUARDADOS" en el mismo prompt puede nombrarlos
+ * en la respuesta igual, aunque el prompt se lo prohíba explícitamente: es
+ * una instrucción, no una garantía (mismo principio que en `atarPicks`).
+ * Reportado en vivo, con el stock en cero: la respuesta decía "Tenés una
+ * selección muy interesante, destacándose el Nicasia Vineyards..." nombrando
+ * vinos de "YA TOMÓ" como si estuvieran en la heladera — sin ninguna tarjeta
+ * abajo (esas sí estaban bien filtradas), pero mintiendo en el texto igual.
+ *
+ * Para esta pregunta puntual no hace falta redactar nada: es una consulta a
+ * una lista, y una lista no se equivoca. Se arma acá, en código, contra
+ * `wines` (el stock real) y nunca toca el modelo — ni gasta cuota, ni tarda
+ * los segundos de una llamada, ni puede llegar a decir algo que no es
+ * cierto. Ver `esPreguntaDeInventario` en data/sommelierDomain.js para el
+ * criterio que decide cuándo entrar por acá en vez de por Gemini.
+ */
+const armarInventario = (wines, question) => {
+  const conStock = wines.filter((w) => Number(w.quantity) > 0);
+  const filtro = filtroDeInventario(question);
+  const filtrados = !filtro
+    ? conStock
+    : conStock.filter((w) =>
+        filtro.campo === "varietal"
+          ? fold(w.varietal || "").includes(filtro.valor)
+          : w.type === filtro.valor
+      );
+
+  if (!filtrados.length) {
+    return {
+      answer: filtro ? "De eso no tenés nada en stock ahora." : "No tenés nada en stock ahora.",
+      wines: [],
+      followups: ["¿Qué me recomendás comprar?", "¿Qué tomé antes?", "¿Con qué acompaño un asado?"],
+      offTopic: false,
+    };
+  }
+
+  const nombres = filtrados.slice(0, MAX_NOMBRADOS_INVENTARIO).map((w) => w.name);
+  const resto = filtrados.length - nombres.length;
+  const answer =
+    resto > 0
+      ? `Tenés ${filtrados.length} en stock: ${listarConY(nombres)}, y ${resto} más.`
+      : `Tenés ${listarConY(nombres)}.`;
+
+  return {
+    answer,
+    wines: filtrados.slice(0, 3).map(mapWineCard),
+    followups: ["¿Cuál abro hoy?", "¿Qué me recomendás con el asado?", "¿Qué tomé antes?"],
+    offTopic: false,
+  };
 };
 
 /**
@@ -220,6 +294,18 @@ const ask = async (req, res, next) => {
       User.findById(req.user.id).select("preferences").lean().catch(() => null),
     ]);
 
+    /**
+     * MEDIDA 3.5 — el inventario ni pasa por el modelo.
+     *
+     * Se chequea con `wines` ya en mano (por eso va después del Promise.all
+     * y no antes) y corta acá, sin llamar a Gemini: ver el comentario grande
+     * en `armarInventario`. `personal` de guarda extra — si la pregunta no
+     * pidió su bodega, `wines` viene vacío y no hay nada que listar.
+     */
+    if (personal && esPreguntaDeInventario(question)) {
+      return res.status(200).json({ data: armarInventario(wines, question), cached: false });
+    }
+
     let resultado;
     try {
       resultado = await sommelier.preguntar({
@@ -290,4 +376,4 @@ const ask = async (req, res, next) => {
   }
 };
 
-module.exports = { ask, atarPicks, encontrarVino, recipeWineDe, FUERA_DE_TEMA };
+module.exports = { ask, atarPicks, encontrarVino, recipeWineDe, armarInventario, FUERA_DE_TEMA };
