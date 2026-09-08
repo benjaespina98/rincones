@@ -49,6 +49,28 @@ const errorHandler = async (err, req, res, next) => {
     return res.status(400).json({ success: false, message: err.message });
   }
 
+  /**
+   * Choque contra un índice único (E11000): "el mail ya existe" y afines.
+   *
+   * Antes cualquiera de estos caía en el 500 genérico de más abajo — nunca se
+   * había visto porque el registro ya rechaza el mail repetido ANTES de
+   * escribir (`User.findOne` primero), pero eso deja una ventana angosta: dos
+   * pestañas, o dos dispositivos, registrando el MISMO mail casi al mismo
+   * tiempo pueden pasar los dos ese chequeo y sólo uno de los dos `create`
+   * gana la carrera en la base. Sin esto, quien pierde la carrera veía "Algo
+   * falló de nuestro lado" — un error que suena a bug del servidor cuando en
+   * realidad el mensaje correcto (y ya existente para el camino normal) es
+   * "el mail ya está registrado".
+   */
+  if (err.code === 11000) {
+    const campo = Object.keys(err.keyValue || {})[0];
+    const message =
+      campo === "email"
+        ? "El email ya está registrado"
+        : "Ya existe un registro con esos datos";
+    return res.status(409).json({ success: false, message });
+  }
+
   const statusCode = err.statusCode || 500;
 
   // Un 4xx con `statusCode` explícito es un mensaje que alguien escribió a
