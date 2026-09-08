@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
 const Wine = require("../src/models/wine.model");
 const User = require("../src/models/user.model");
+const ChangeLog = require("../src/models/changeLog.model");
 const communityWines = require("../src/services/communityWines.service");
 const wineImages = require("../src/services/wineImages.service");
 const winePrices = require("../src/services/winePrices.service");
@@ -41,11 +42,15 @@ const spyCatalogo = () => {
 /**
  * El entorno mínimo para que `createWine` / `updateWine` corran sin base.
  *
- * Además de los modelos hay que neutralizar los tres servicios que el alta llama
- * al pasar (banco de fotos, precios comunitarios, ficha IA). No es prolijidad:
- * cada uno consulta Mongo, y sin conexión mongoose no falla sino que ESPERA su
- * timeout de buffering. Diez segundos por llamada convierten esta suite en algo
- * que nadie va a correr.
+ * Además de los modelos hay que neutralizar los servicios que el alta llama al
+ * pasar (banco de fotos, precios comunitarios, ficha IA, auditoría). No es
+ * prolijidad: cada uno consulta Mongo, y sin conexión mongoose no falla sino
+ * que ESPERA su timeout de buffering. Diez segundos por llamada convierten
+ * esta suite en algo que nadie va a correr — `ChangeLog.create` (la
+ * auditoría, vía `logChange`) fue justo el que faltaba: ningún test de este
+ * archivo lee su resultado, pero al no estar stubeado cada `createWine`
+ * quedaba pagando esos diez segundos igual, en silencio (`logChange` traga su
+ * propio error).
  */
 const stubEntorno = (wineExistente = null) => {
   const originales = {
@@ -58,6 +63,7 @@ const stubEntorno = (wineExistente = null) => {
     priceContribute: winePrices.contribute,
     store: imageStorage.store,
     describe: wineDescription.ensureDescription,
+    changeLog: ChangeLog.create,
   };
 
   const user = { _id: "u", email: "a@b.c", role: "user", stats: {}, save: async () => {} };
@@ -72,6 +78,7 @@ const stubEntorno = (wineExistente = null) => {
   winePrices.contribute = async () => {};
   imageStorage.store = async (v) => v;
   wineDescription.ensureDescription = async () => {};
+  ChangeLog.create = async () => ({});
 
   return {
     restore: () => {
@@ -84,6 +91,7 @@ const stubEntorno = (wineExistente = null) => {
       winePrices.contribute = originales.priceContribute;
       imageStorage.store = originales.store;
       wineDescription.ensureDescription = originales.describe;
+      ChangeLog.create = originales.changeLog;
     },
   };
 };
