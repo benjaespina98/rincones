@@ -6,6 +6,11 @@ const { aiLimiter } = require("../middleware/aiLimiter");
 const router = Router();
 
 router.get("/logs", authenticate, requireAdmin, adminController.getChangeLogs);
+router.get("/logs/actors", authenticate, requireAdmin, adminController.getChangeLogActors);
+// Antes de la ruta con :userId no aplica acá (no hay :param), pero va aparte
+// de "/logs" (la auditoría) porque es una cosa distinta: ver el comentario
+// grande en el controlador.
+router.get("/error-logs", authenticate, requireAdmin, adminController.getErrorLogs);
 // Los números del Resumen, contados por la base. Ver el comentario del controlador.
 router.get("/summary", authenticate, requireAdmin, adminController.getSummary);
 

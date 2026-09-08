@@ -1,8 +1,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getChangeLogs } from "../services/adminApi";
+import { getChangeLogs, getChangeLogActors } from "../services/adminApi";
 import ErrorState from "../components/ErrorState";
 import AdminPager from "../components/AdminPager";
+import Dropdown from "../components/Dropdown";
 import Icon from "../components/Icon";
 
 const ACTION_LABELS = { create: "Creado", update: "Actualizado", delete: "Eliminado" };
@@ -12,6 +13,11 @@ const ENTITY_LABELS = {
   review: "Reseña",
   promotion: "Campaña",
   user: "Cuenta",
+  // Faltaba: las fotos SÍ quedan auditadas (ver wineImages.service.js), pero
+  // sin rótulo ni entrada en el filtro, así que una fila de foto se dibujaba
+  // con el nombre técnico ("wineImage") en vez de uno legible, y no había
+  // forma de pedir "mostrame sólo eso".
+  wineImage: "Foto",
 };
 
 /**
@@ -48,6 +54,7 @@ const FILTROS_ENTIDAD = [
   { value: "review", label: "Reseñas" },
   { value: "promotion", label: "Campañas" },
   { value: "user", label: "Cuentas" },
+  { value: "wineImage", label: "Fotos" },
 ];
 
 const FILTROS_ACCION = [
@@ -99,14 +106,26 @@ const AdminActivityPage = () => {
     return ["create", "update", "delete"].includes(desdeUrl) ? desdeUrl : "";
   });
   const [query, setQuery] = useState("");
+  // Quién actuó y cuándo — se sumaron porque "¿qué hizo fulano esta semana?"
+  // era una pregunta tan real como las que ya se podían contestar, y hasta
+  // ahora exigía scrollear página por página buscándola a mano.
+  const [actor, setActor] = useState("");
+  const [actors, setActors] = useState([]);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Se pide una sola vez: la lista de admins no cambia mientras se filtra.
+  useEffect(() => {
+    getChangeLogActors().then(setActors).catch(() => setActors([]));
+  }, []);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await getChangeLogs({ page, limit: POR_PAGINA, entityType, action, q: query });
+      const res = await getChangeLogs({ page, limit: POR_PAGINA, entityType, action, q: query, actor, from, to });
       setLogs(res.data || []);
       setPagination(res.pagination || { page: 1, pages: 1, total: 0 });
     } catch {
@@ -114,7 +133,7 @@ const AdminActivityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, entityType, action, query]);
+  }, [page, entityType, action, query, actor, from, to]);
 
   // Mismo debounce que Usuarios: escribir "fulano@" no dispara una consulta
   // por letra.
@@ -136,7 +155,17 @@ const AdminActivityPage = () => {
     return grupos;
   }, [logs]);
 
-  const hayFiltros = Boolean(query || entityType || action);
+  const hayFiltros = Boolean(query || entityType || action || actor || from || to);
+
+  const limpiarFiltros = () => {
+    setQuery("");
+    setEntityType("");
+    setAction("");
+    setActor("");
+    setFrom("");
+    setTo("");
+    setPage(1);
+  };
 
   return (
     <section>
@@ -192,6 +221,49 @@ const AdminActivityPage = () => {
             </button>
           ))}
         </div>
+
+        {/* Quién y cuándo: los dos filtros que faltaban. "Admin" es un
+            desplegable (no chips) porque la lista crece con cada admin nuevo
+            — una fila de chips que no entra en un renglón deja de ser un
+            filtro rápido. El rango de fechas son dos campos nativos: no hace
+            falta un calendario propio para elegir "desde" y "hasta". */}
+        <div className="admin-filter-group" role="group" aria-label="Filtrar por admin">
+          <span className="admin-filter-group__label">Admin</span>
+          <Dropdown
+            className="admin-activity__actor"
+            value={actor}
+            onChange={(v) => { setActor(v); setPage(1); }}
+            options={[{ value: "", label: "Todos" }, ...actors.map((a) => ({ value: a, label: a }))]}
+            ariaLabel="Filtrar por admin"
+          />
+        </div>
+
+        <div className="admin-filter-group admin-filter-group--dates" role="group" aria-label="Filtrar por fecha">
+          <span className="admin-filter-group__label">Fecha</span>
+          <input
+            type="date"
+            className="admin-date-input"
+            value={from}
+            max={to || undefined}
+            onChange={(e) => { setFrom(e.target.value); setPage(1); }}
+            aria-label="Desde"
+          />
+          <span className="admin-filter-group__sep" aria-hidden="true">–</span>
+          <input
+            type="date"
+            className="admin-date-input"
+            value={to}
+            min={from || undefined}
+            onChange={(e) => { setTo(e.target.value); setPage(1); }}
+            aria-label="Hasta"
+          />
+        </div>
+
+        {hayFiltros && (
+          <button type="button" className="admin-chip admin-chip--clear" onClick={limpiarFiltros}>
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       {!loading && error && <ErrorState title={error} onRetry={load} compact />}

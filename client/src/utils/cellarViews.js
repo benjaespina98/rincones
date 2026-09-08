@@ -1,5 +1,5 @@
 /**
- * Las cuatro vistas de Mi Bodega y qué vino entra en cada una.
+ * Las tres vistas de Mi Bodega y qué vino entra en cada una.
  *
  * ── POR QUÉ ESTO VIVE APARTE ────────────────────────────────────────────────
  * Porque es una regla de negocio, no una decisión de pantalla, y porque se
@@ -18,23 +18,39 @@
  *   sin stock  │ lo perdiste o no lo │ lo tomaste y se te terminó
  *              │ cargaste bien       │
  *
- * Las cuatro combinaciones son normales y ninguna implica a la otra. Por eso
- * "En stock" mira el stock, "Probados" mira si lo tomaste, y "Todos" no mira
- * nada. Un vino puede estar en las tres a la vez, y está bien que así sea.
+ * Las combinaciones son normales y ninguna implica a la otra. Por eso "En
+ * stock" mira el stock y "Probados" mira si lo tomaste — un vino puede estar
+ * en las dos a la vez, y está bien que así sea.
  *
- * ── LA CUARTA VISTA ────────────────────────────────────────────────────────
- * "Quiero probar" no sale de la colección: son los vinos que todavía NO tenés
- * (la wishlist, otra colección del server). Vive acá igual porque para el
- * usuario es una parte más de la misma pregunta —qué vinos hay en mi vida— y
- * porque la pantalla necesita un solo vocabulario de vistas para el segmentado.
- * Lo que cambia es de dónde salen las filas, no cómo se elige la vista.
+ * ── POR QUÉ YA NO HAY UNA CUARTA VISTA "TODOS" ──────────────────────────────
+ * Reportado así: "¿cuál es la diferencia de 'Todos' con el resto?" — y
+ * mirando qué vino entra EXCLUSIVAMENTE ahí (ni en stock, ni probado, ni
+ * favorito, ni en la wishlist), la respuesta era "casi nada": un vino que
+ * cargaste, nunca abriste, ya no tenés y nunca te gustó lo suficiente como
+ * para marcarlo. Un caso raro, y que además sigue siendo encontrable: buscar
+ * por nombre ya amplía la búsqueda a TODA la bodega aunque la vista actual no
+ * lo muestre (ver `resultados.ampliada` en BodyPage.jsx, que filtra sobre
+ * `wines` entero y no pasa por `pasaVista`). Sacarla deja tres pestañas que
+ * contestan cada una una pregunta concreta, en vez de una cuarta que no
+ * contestaba ninguna que las otras tres (más la búsqueda) no contestaran ya.
+ *
+ * ── LA TERCERA VISTA: FAVORITOS ─────────────────────────────────────────────
+ * Se llamaba "Quiero probar" y mostraba SÓLO la wishlist (los vinos que
+ * todavía no tenés). El nombre dejaba afuera un caso real: marcar un vino que
+ * SÍ tenés como favorito porque te gusta, no porque quieras "conseguirlo" —
+ * ahí "Quiero probar" mentía. Ahora la vista junta las dos cosas que antes
+ * vivían separadas bajo dos nombres de "favorito" distintos (el corazón de un
+ * vino tuyo, y estar anotado en la wishlist): cualquier vino que tengas Y
+ * hayas marcado con el corazón entra acá, además de todo lo que tengas
+ * anotado para conseguir. Lo que cambia es de dónde salen las filas —de la
+ * colección real, de la wishlist, o de las dos—, no cómo se elige la vista.
  */
 
-/** La vista que NO se alimenta de la colección, sino de la lista de deseos. */
+/** La vista que combina lo tuyo marcado como favorito con la lista de deseos. */
 export const VISTA_DESEOS = "quiero-probar";
 
 /** El eje principal: qué parte de tu vida con el vino estás mirando. */
-export const VISTAS = ["instock", "all", "probados", VISTA_DESEOS];
+export const VISTAS = ["instock", "probados", VISTA_DESEOS];
 
 /**
  * Nombres viejos que se traducen en vez de ignorarse, para no romper un enlace
@@ -43,8 +59,11 @@ export const VISTAS = ["instock", "all", "probados", VISTA_DESEOS];
  *   historial  → "Probados" se llamó así hasta hace dos tandas.
  *   guardados  → era una PESTAÑA propia; hoy es esta vista. Cualquiera que
  *                tenga /guardados en favoritos aterriza donde esperaba.
+ *   all        → "Todos" se sacó del segmentado (ver el comentario grande de
+ *                arriba). Un enlace viejo con `?vista=all` cae en "instock",
+ *                que es el default de todos modos.
  */
-const RENOMBRADAS = { historial: "probados", guardados: VISTA_DESEOS, deseos: VISTA_DESEOS };
+const RENOMBRADAS = { historial: "probados", guardados: VISTA_DESEOS, deseos: VISTA_DESEOS, all: "instock" };
 
 export const normalizarVista = (valor) => {
   const v = RENOMBRADAS[valor] || valor;
@@ -53,13 +72,12 @@ export const normalizarVista = (valor) => {
 
 /** ¿Este vino de tu colección entra en esta vista? */
 export const pasaVista = (vista, wine) => {
-  // Ningún vino de la bodega entra acá: esta vista muestra los que NO tenés.
-  // Devolver `false` y no `true` es lo que evita que "Quiero probar" se
-  // convierta en un segundo "Todos" si alguien la usa por error para filtrar.
-  if (vista === VISTA_DESEOS) return false;
+  // Sólo los favoritos: es la mitad de "Favoritos" que sale de tu colección
+  // real (la otra mitad es la wishlist, que la pantalla suma aparte porque
+  // vive en otra colección del server).
+  if (vista === VISTA_DESEOS) return wine?.favorite === true;
   if (vista === "instock") return Number(wine?.quantity) > 0;
   // No mira el stock a propósito: que te queden botellas de algo que ya tomaste
   // no borra que lo tomaste, y reponerlo tampoco.
-  if (vista === "probados") return wine?.tasted === true;
-  return true;
+  return wine?.tasted === true;
 };

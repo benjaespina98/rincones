@@ -192,6 +192,28 @@ test("no repite el mismo vino dos veces", () => {
 });
 
 /**
+ * ── EL BUG REAL: "ME DICE QUE TENGO VINOS QUE YA NO TENGO" ──────────────────
+ *
+ * Se reportó así: "¿qué vinos tengo?" y la respuesta traía, como tarjeta de
+ * "de tu bodega", un vino con `quantity: 0`. El prompt le dice al modelo que
+ * "picks" sólo puede salir de lo que tiene stock, pero eso es una
+ * instrucción, no una garantía — y antes de esto, si el modelo la pisaba, acá
+ * no había nada que lo frenara: el nombre coincidía igual contra el vino sin
+ * stock (`Saint Felicien Chardonnay`, en la bodega de prueba de arriba) y la
+ * tarjeta se dibujaba iguales que cualquier otra, sin el "×N" porque ese chip
+ * sólo aparece con stock > 0 — o sea que ni siquiera se notaba que faltaba.
+ * `atarPicks` ahora filtra por stock ANTES de buscar el nombre, así que ni el
+ * mejor acierto de nombre alcanza para dibujar una botella que no tiene.
+ */
+test("un pick que nombra un vino sin stock tampoco se dibuja", () => {
+  assert.deepEqual(atarPicks(["Saint Felicien Chardonnay"], bodega), []);
+  // Ni siquiera mezclado con picks válidos: los que sí tienen stock se dibujan,
+  // el que no, se descarta solo.
+  const elegidos = atarPicks(["Rutini Malbec", "Saint Felicien Chardonnay"], bodega);
+  assert.deepEqual(elegidos.map((w) => w._id), ["a"]);
+});
+
+/**
  * ── EL COSTO DE CADA PREGUNTA ───────────────────────────────────────────────
  * El largo del prompt es lo que se paga en cada consulta, y no puede depender
  * de que el cliente se porte bien: un cliente viejo, o alguien pegándole a la
@@ -312,6 +334,14 @@ test("sin bodega en el prompt, el modelo tiene prohibido decir que algo es tuyo"
   // palabra suelta.
   assert.ok(!prompt.includes("SU BODEGA\n"));
   assert.match(prompt, /NUNCA digas "de tu bodega"/);
+});
+
+test("el prompt tiene una regla explícita para las preguntas de inventario", () => {
+  // No es un test de comportamiento del modelo (eso no se puede probar acá
+  // sin llamar a Gemini) — fija que la regla ESTÉ, que es lo mínimo para
+  // confiar en que el modelo la puede seguir.
+  const prompt = sommelier.armarPrompt({ question: "¿Qué vinos tengo?", cellar: "" });
+  assert.match(prompt, /contestá SÓLO con "SU BODEGA"/);
 });
 
 test("con bodega de verdad en el prompt, la sección aparece como corresponde", () => {

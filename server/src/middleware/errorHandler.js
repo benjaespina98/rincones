@@ -1,5 +1,6 @@
 const multer = require("multer");
 const { captureException, flush } = require("../config/sentry");
+const { recordError } = require("../services/errorLog.service");
 
 /**
  * Manejador de errores final.
@@ -59,8 +60,13 @@ const errorHandler = async (err, req, res, next) => {
     });
   }
 
-  // El detalle real queda en el servidor, que es donde sirve.
+  // El detalle real queda en el servidor, que es donde sirve. Antes eso
+  // quería decir "en la consola de la terminal, mientras alguien la esté
+  // mirando": `recordError` deja el mismo detalle en la base, para el tab de
+  // Logs del panel — no bloquea la respuesta (no lleva `await`, es
+  // best-effort) por el mismo motivo que Sentry ya viaja aparte.
   console.error("[error]", req.method, req.originalUrl, "—", err.stack || err.message);
+  recordError({ error: err, req, statusCode: 500 });
   captureException(err, { method: req.method, url: req.originalUrl });
   // En serverless la función puede congelarse apenas sale la respuesta de
   // abajo, antes de que el evento termine de mandarse. Esperar acá (sin

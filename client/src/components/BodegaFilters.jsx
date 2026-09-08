@@ -62,8 +62,6 @@ export default function BodegaFilters({
   resultados,
   sortBy,
   setSortBy,
-  soloFavoritos,
-  setSoloFavoritos,
   probado,
   vista,
   setProbado,
@@ -137,19 +135,15 @@ export default function BodegaFilters({
             <section className="bfilters__group">
               <span className="bfilters__label">Mostrar sólo</span>
               <div className="bfilters__chips">
-                <button
-                  type="button"
-                  className={`bfilters__chip ${soloFavoritos ? "is-active" : ""}`}
-                  aria-pressed={soloFavoritos}
-                  onClick={() => setSoloFavoritos((v) => !v)}
-                >
-                  <Icon name="heart" filled={soloFavoritos} size={13} /> Favoritos
-                </button>
-                {/* Sólo "sin probar", y no también "probados": la pregunta que se
-                    hace con la bodega en la mano es cuál falta abrir, y "probados"
-                    ya es una de las tres vistas de arriba. Justamente por eso, en
-                    esa vista este chip no aparece: "los probados sin probar" no es
-                    una consulta, es una contradicción que devuelve cero. */}
+                {/* Ni "Favoritos" ni "Probados" están acá, y es la misma razón
+                    para las dos: cada una ya es su propia vista arriba, en el
+                    segmentado. Repetirla como filtro sería la misma pregunta
+                    dos veces con dos nombres — que es justo lo que se vino a
+                    sacar (ver el comentario grande sobre VISTA_DESEOS en
+                    cellarViews.js). Sólo "sin probar" queda: no tiene vista
+                    propia, y por eso tampoco aparece adentro de "Probados" —
+                    "los probados sin probar" no es una consulta, es una
+                    contradicción que devuelve cero. */}
                 {vista !== "probados" && (
                   <button
                     type="button"

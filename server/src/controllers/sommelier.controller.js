@@ -6,6 +6,7 @@ const sommelier = require("../services/sommelier.service");
 const { esDelDominio, usaTuBodega, normalizarPregunta } = require("../data/sommelierDomain");
 const { fold } = require("../data/argentineWines");
 const { captureException } = require("../config/sentry");
+const { recordError } = require("../services/errorLog.service");
 
 /** Tope de lo que se acepta escribir. Más largo que esto no es una pregunta. */
 const MAX_PREGUNTA = 300;
@@ -61,13 +62,28 @@ const encontrarVino = (nombre, candidatos = [], excluidos = new Set()) => {
  * nombre y tiene que ir a buscarlo a mano a Mi Bodega. Con este paso, abajo de
  * la respuesta aparecen las mismas tarjetas que dibuja la bodega, con su foto,
  * su stock y su enlace a la ficha.
+ *
+ * ── POR QUÉ SÓLO CONTRA LO QUE TIENE STOCK ──────────────────────────────────
+ * `wines` (lo que le pasa `ask()`) trae TODA la bodega, con stock o sin él —
+ * "YA TOMÓ" necesita verlos a todos. El prompt le dice al modelo que "picks"
+ * sólo puede salir de ahí, pero eso es una instrucción, no una garantía: un
+ * modelo de lenguaje la puede pisar, y cuando la pisa, antes de esto no había
+ * nada que lo parara — el nombre matcheaba igual contra un vino con
+ * `quantity: 0`, la tarjeta se dibujaba igual (sin el "×N" porque ese chip
+ * sólo aparece con stock > 0, así que ni siquiera se notaba que faltaba) y la
+ * persona veía "de tu bodega" una botella que ya no tiene. Reportado así:
+ * "le pregunto qué vinos tengo y me responde con vinos que ya probé pero no
+ * tengo actualmente". Este filtro es la red de verdad, en código y no en
+ * prompt: pase lo que pase en la respuesta, un pick sin stock nunca se dibuja
+ * como si estuviera disponible.
  */
 const atarPicks = (picks = [], wines = []) => {
+  const conStock = wines.filter((w) => Number(w.quantity) > 0);
   const elegidos = [];
   const usados = new Set();
 
   for (const pick of picks) {
-    const wine = encontrarVino(pick, wines, usados);
+    const wine = encontrarVino(pick, conStock, usados);
     if (!wine) continue;
 
     usados.add(String(wine._id));
@@ -222,6 +238,7 @@ const ask = async (req, res, next) => {
       // normal, y ni loggeaba ni llegaba a Sentry. `next(error)` no se usa
       // porque cambiaría el status y el mensaje que ya elegimos para esto.
       console.error("[sommelier]", error?.message || error);
+      recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
       return res.status(503).json({
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",

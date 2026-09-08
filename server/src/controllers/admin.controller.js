@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const ChangeLog = require("../models/changeLog.model");
+const ErrorLog = require("../models/errorLog.model");
 const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const WineReview = require("../models/wineReview.model");
@@ -32,10 +33,38 @@ const getChangeLogs = async (req, res, next) => {
     const entityType = String(req.query.entityType || "").trim();
     const action = String(req.query.action || "").trim();
     const q = String(req.query.q || "").trim();
+    const actor = String(req.query.actor || "").trim();
+    const from = String(req.query.from || "").trim();
+    const to = String(req.query.to || "").trim();
 
     const filter = {};
     if (entityType) filter.entityType = entityType;
     if (["create", "update", "delete"].includes(action)) filter.action = action;
+    // El admin que actuó, aparte de `q`: buscar "¿qué hizo fulano?" con el
+    // buscador de texto libre exige escribir su mail entero y de memoria; acá
+    // alcanza con elegirlo de la lista de admins que ya actuaron (ver
+    // `getChangeLogActors`).
+    if (actor) filter["actor.email"] = actor;
+    // Rango de fechas: "¿qué pasó esta semana?" es una pregunta tan real como
+    // "¿qué pasó con este vino?", y hasta ahora sólo se podía contestar
+    // scrolleando página por página. `to` incluye el día entero (23:59:59.999),
+    // no sólo la medianoche, porque un date picker entrega "2026-03-05" y
+    // alguien que filtra "hasta hoy" espera ver los movimientos de hoy mismo.
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) {
+        const desde = new Date(from);
+        if (!Number.isNaN(desde.getTime())) filter.createdAt.$gte = desde;
+      }
+      if (to) {
+        const hasta = new Date(to);
+        if (!Number.isNaN(hasta.getTime())) {
+          hasta.setHours(23, 59, 59, 999);
+          filter.createdAt.$lte = hasta;
+        }
+      }
+      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+    }
 
     // Con tres chips (tipo, acción) se podía mirar el registro, pero no
     // BUSCAR en él — y el uso real de una auditoría es puntual: "¿quién le
@@ -63,6 +92,71 @@ const getChangeLogs = async (req, res, next) => {
     const [logs, total] = await Promise.all([
       ChangeLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       ChangeLog.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      data: logs,
+      pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Quiénes aparecen como actor en el registro, para el filtro "Admin" — una
+// lista de mails para elegir, no un campo de texto libre que exige saber de
+// memoria quién hizo qué.
+const getChangeLogActors = async (req, res, next) => {
+  try {
+    const actors = await ChangeLog.distinct("actor.email");
+    return res.status(200).json({ data: actors.filter(Boolean).sort() });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * ── LOGS: LO QUE SE ROMPE, NO LO QUE SE HACE ────────────────────────────────
+ * `ChangeLog` (arriba) es una auditoría de acciones — alguien crea, edita o
+ * borra algo. Esto es la otra mitad, que hasta ahora sólo existía en la
+ * consola de la terminal mientras el server corría: un 500, un `AbortError`
+ * de Gemini, cualquier excepción que se haya escapado. Ver
+ * `errorLog.service.js` para dónde se escribe.
+ */
+const getErrorLogs = async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(Number(req.query.limit || 30), 100);
+    const skip = (page - 1) * limit;
+
+    const q = String(req.query.q || "").trim();
+    const from = String(req.query.from || "").trim();
+    const to = String(req.query.to || "").trim();
+
+    const filter = {};
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      filter.$or = [{ message: rx }, { route: rx }];
+    }
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) {
+        const desde = new Date(from);
+        if (!Number.isNaN(desde.getTime())) filter.createdAt.$gte = desde;
+      }
+      if (to) {
+        const hasta = new Date(to);
+        if (!Number.isNaN(hasta.getTime())) {
+          hasta.setHours(23, 59, 59, 999);
+          filter.createdAt.$lte = hasta;
+        }
+      }
+      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+    }
+
+    const [logs, total] = await Promise.all([
+      ErrorLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      ErrorLog.countDocuments(filter),
     ]);
 
     return res.status(200).json({
@@ -656,6 +750,8 @@ const setWineImage = async (req, res, next) => {
 module.exports = {
   getSummary,
   getChangeLogs,
+  getChangeLogActors,
+  getErrorLogs,
   getUsers,
   updateUserRole,
   deleteUser,
