@@ -1402,8 +1402,26 @@ async function bulkAction(userId, ids, action) {
       user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - vinos.length);
       user.stats.tastedWines = Math.max(0, (user.stats.tastedWines || 0) - probados);
       await user.save();
-      for (const w of vinos) {
-        await logChange(user, "delete", w._id, { name: w.name, winery: w.winery }, null);
+      // Un `insertMany` y no un `logChange` por vino: hasta MAX_EN_LOTE (200)
+      // vinos son hasta 200 viajes secuenciales a la base, uno esperando al
+      // anterior, sólo para dejar el rastro de auditoría — el borrado en sí ya
+      // había pasado. `ordered: false` para que un documento que fallara la
+      // validación no le impida entrar al resto, mismo espíritu "mejor
+      // esfuerzo" que ya tenía `logChange` con su try/catch.
+      try {
+        await ChangeLog.insertMany(
+          vinos.map((w) => ({
+            entityType: "wine",
+            entityId: w._id,
+            action: "delete",
+            actor: { userId: user._id, email: user.email, role: user.role },
+            before: { name: w.name, winery: w.winery },
+            after: null,
+          })),
+          { ordered: false }
+        );
+      } catch {
+        // la auditoría nunca debe romper la operación principal
       }
     }
     return { affected: deletedCount };

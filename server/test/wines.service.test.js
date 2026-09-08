@@ -2,12 +2,45 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const Wine = require("../src/models/wine.model");
 const WineMoment = require("../src/models/wineMoment.model");
+const ChangeLog = require("../src/models/changeLog.model");
 const User = require("../src/models/user.model");
+const communityWines = require("../src/services/communityWines.service");
+const wineImages = require("../src/services/wineImages.service");
+const winePrices = require("../src/services/winePrices.service");
 const winesService = require("../src/services/wines.service");
 
 const restore = (object, key, value) => {
   object[key] = value;
 };
+
+/**
+ * ── POR QUÉ ESTO SE STUBEA UNA SOLA VEZ, ACÁ ARRIBA ─────────────────────────
+ *
+ * `createWine`/`updateWine`/`deleteWine` dejan, al pasar, un rastro en varios
+ * lugares que este archivo no está probando: la auditoría (`ChangeLog`, vía
+ * `logChange`), el banco de fotos (`wineImages.getImage`), el catálogo
+ * comunitario (`communityWines.contribute`) y —al borrar— los momentos
+ * huérfanos (`WineMoment.updateMany`). Sin mongoose conectado (esta suite no
+ * lo conecta, ver wineIdentification.test.js) esas llamadas no fallan:
+ * ESPERAN el timeout de buffering de mongoose, ~10s cada una. Cuatro tests de
+ * este archivo las disparaban sin saberlo y sumaban cerca de un minuto muerto
+ * a cada corrida — silencioso, porque `logChange` y `wineImages`/
+ * `communityWines`/`winePrices` tragan sus propios errores y el test
+ * terminaba pasando igual, sólo que diez, veinte o treinta segundos después.
+ *
+ * Nada de esto se restaura: ningún test de ESTE archivo lee el resultado real
+ * de estas llamadas (para eso están communityWines.test.js y las pruebas de
+ * wineIdentification.test.js, que sí las verifican).
+ */
+ChangeLog.create = async () => ({});
+ChangeLog.insertMany = async () => [];
+WineMoment.updateMany = async () => ({ modifiedCount: 0 });
+communityWines.contribute = async () => {};
+wineImages.getImage = async () => "";
+wineImages.contribute = async () => {};
+winePrices.contribute = async () => {};
+winePrices.retract = async () => {};
+communityWines.retract = async () => {};
 
 test("wines service creates a wine and updates user stats", async () => {
   const originalSave = Wine.prototype.save;
@@ -544,6 +577,73 @@ test("borrar en lote no toca vinos de otro y ajusta las estadísticas una sola v
     assert.equal(filtroBorrado.userId, "user-1");
     assert.equal(user.stats.winesCount, 8, "bajan los dos");
     assert.equal(user.stats.tastedWines, 3, "sólo baja el que estaba probado");
+  } finally {
+    restore(User, "findById", originalFindById);
+  }
+});
+
+/**
+ * ── LA AUDITORÍA DEL BORRADO EN LOTE, DE UNA SOLA VEZ ───────────────────────
+ * Antes era `for (const w of vinos) await logChange(...)`: hasta MAX_EN_LOTE
+ * (200) vinos borrados de una eran hasta 200 escrituras a `ChangeLog`, cada
+ * una esperando a que termine la anterior — el borrado en sí ya había
+ * pasado, así que esa espera no protegía nada, sólo alargaba la respuesta.
+ * Ahora es un `insertMany`: un solo viaje, con un documento por vino.
+ */
+test("la auditoría del borrado en lote es un solo insertMany, con un documento por vino", async () => {
+  const user = { _id: "u1", email: "vos@rincones.app", role: "user", stats: { winesCount: 2, tastedWines: 1 }, save: async () => {} };
+  const originalFindById = User.findById;
+  User.findById = async () => user;
+
+  let insertados = null;
+
+  try {
+    await conMock(Wine, "find", () => ({
+      select: () => ({
+        lean: async () => [
+          { _id: ID_1, name: "A", winery: "X", tasted: true },
+          { _id: ID_2, name: "B", winery: "Y", tasted: false },
+        ],
+      }),
+    }), () =>
+      conMock(Wine, "deleteMany", async () => ({ deletedCount: 2 }), () =>
+        conMock(ChangeLog, "insertMany", async (docs) => {
+          insertados = docs;
+          return docs;
+        }, () => winesService.bulkAction("user-1", [ID_1, ID_2], "delete"))
+      )
+    );
+
+    assert.equal(insertados.length, 2, "un documento por vino, no uno por lote");
+    assert.equal(insertados[0].action, "delete");
+    assert.equal(insertados[0].entityId, ID_1);
+    assert.equal(insertados[0].before.name, "A");
+    assert.equal(insertados[1].entityId, ID_2);
+    assert.equal(insertados[0].actor.email, "vos@rincones.app", "el actor es quien borró, no el vino");
+  } finally {
+    restore(User, "findById", originalFindById);
+  }
+});
+
+test("si la auditoría del borrado en lote falla, el borrado ya hecho no se deshace", async () => {
+  const user = { stats: { winesCount: 2, tastedWines: 1 }, save: async () => {} };
+  const originalFindById = User.findById;
+  User.findById = async () => user;
+
+  try {
+    const r = await conMock(Wine, "find", () => ({
+      select: () => ({
+        lean: async () => [{ _id: ID_1, name: "A", winery: "X", tasted: true }],
+      }),
+    }), () =>
+      conMock(Wine, "deleteMany", async () => ({ deletedCount: 1 }), () =>
+        conMock(ChangeLog, "insertMany", async () => { throw new Error("caído"); }, () =>
+          winesService.bulkAction("user-1", [ID_1], "delete")
+        )
+      )
+    );
+
+    assert.equal(r.affected, 1, "el borrado ya había pasado: no depende de que la auditoría escriba");
   } finally {
     restore(User, "findById", originalFindById);
   }
