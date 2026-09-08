@@ -1795,20 +1795,41 @@ export default function BodyPage({ initialFilter = "instock" }) {
           La otra mitad de "Favoritos": lo que todavía no tenés. Va después
           de tu colección real y no antes, porque lo que SÍ tenés es lo que
           podés abrir hoy — la misma jerarquía que ya usa el Sommelier entre
-          "De tu bodega" y "Para descubrir" (ver SuggestionsPage.jsx). */}
-      {enFavoritos && (
-        <>
-          {sortedWines.length > 0 && wishlist.wishes.length > 0 && (
-            <p className="bodega-rotulo">Para conseguir</p>
-          )}
-          <WishlistPanel
-            {...wishlist}
-            terms={terms}
-            onLimpiarBusqueda={() => setSearchTerm("")}
-            onVerBodega={() => setVista("instock")}
-          />
-        </>
-      )}
+          "De tu bodega" y "Para descubrir" (ver SuggestionsPage.jsx).
+
+          ── POR QUÉ NO SE DIBUJA SIEMPRE ──────────────────────────────────
+          Antes esto entraba con sólo `enFavoritos`, así que su propio vacío
+          ("Todavía no guardaste ningún vino") se dibujaba SIEMPRE que la
+          wishlist estuviera vacía — aunque arriba ya hubiera un vino tuyo
+          con el corazón puesto. Reportado así, con una cuenta real: la
+          pestaña mostraba "Favoritos · 1" y la tarjeta del vino, y DEBAJO
+          decía "Todavía no guardaste ningún vino", contradiciéndose sola en
+          la misma pantalla.
+
+          El panel sólo tiene algo que decir cuando: está cargando o falló
+          (hay que avisar, tenga o no tenga nada más la pestaña), tiene
+          vinos de verdad para listar, o es la ÚNICA explicación posible de
+          por qué la pestaña entera está vacía —eso último sólo pasa cuando
+          la persona no cargó ni un vino en su vida (`wines.length === 0`):
+          ahí su vacío es el único cartel de toda la pantalla (ver el
+          comentario de la puerta de entrada, unas líneas más arriba). En
+          cualquier otro caso —ya se explicó el vacío arriba con `vacio`, o
+          ya hay contenido real que mostrar— este panel no agrega nada y
+          sale entero de en medio. */}
+      {enFavoritos &&
+        (wishlist.loading || wishlist.error || wishlist.wishes.length > 0 || wines.length === 0) && (
+          <>
+            {sortedWines.length > 0 && wishlist.wishes.length > 0 && (
+              <p className="bodega-rotulo">Para conseguir</p>
+            )}
+            <WishlistPanel
+              {...wishlist}
+              terms={terms}
+              onLimpiarBusqueda={() => setSearchTerm("")}
+              onVerBodega={() => setVista("instock")}
+            />
+          </>
+        )}
 
       <BodegaFilters
         abierto={advancedOpen}
