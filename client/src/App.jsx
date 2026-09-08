@@ -45,6 +45,7 @@ const AdminMetricsPage = lazy(() => import("./pages/AdminMetricsPage"));
 const AdminCampaignsPage = lazy(() => import("./pages/AdminCampaignsPage"));
 const AdminWineImagesPage = lazy(() => import("./pages/AdminWineImagesPage"));
 const AdminActivityPage = lazy(() => import("./pages/AdminActivityPage"));
+const AdminLogsPage = lazy(() => import("./pages/AdminLogsPage"));
 
 // Mismo lenguaje que el arranque: al saltar entre secciones lazy se ve la
 // marca, no un spinner suelto sin contexto.
@@ -135,6 +136,7 @@ function App() {
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="resenas" element={<AdminReviewsPage />} />
           <Route path="actividad" element={<AdminActivityPage />} />
+          <Route path="logs" element={<AdminLogsPage />} />
         </Route>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -170,13 +172,17 @@ function App() {
         {/* Home = Descubrí (recomendaciones + contenido) */}
         <Route path="/" element={withLayout("Descubrí", <DiscoverPage />)} />
 
-        {/* Mi bodega: las cuatro vistas de tu colección, incluida "Quiero
-            probar" (los que todavía no tenés). */}
+        {/* Mi bodega: las cuatro vistas de tu colección, incluida "Favoritos"
+            (lo que tenés con el corazón puesto, más lo que todavía no tenés
+            y anotaste para conseguir). */}
         <Route path="/bodega" element={withLayout("Mi Bodega", <BodyPage />)} />
-        {/* "Guardados" era una pestaña propia y hoy es una vista de la bodega.
-            Quien tenga el enlace en favoritos aterriza donde esperaba. */}
+        {/* "Guardados" era una pestaña propia y hoy es la vista "Favoritos" de
+            la bodega. Quien tenga el enlace guardado aterriza donde esperaba. */}
         <Route path="/guardados" element={<Navigate to="/bodega?vista=quiero-probar" replace />} />
-        {/* Rutas viejas de favoritos → filtro dentro de bodega */}
+        {/* Ruta vieja de /favoritos: apuntaba a un filtro que ya no existe
+            (`?filter=favorites`, un "sólo favoritos" adentro de "Todos"). Hoy
+            "favorites" lo traduce BodyPage directo a la misma vista unificada
+            de arriba — ver el estado inicial de `vista` en ese componente. */}
         <Route path="/favoritos" element={<Navigate to="/bodega?filter=favorites" replace />} />
 
         {/* Sommelier (antes /explorar) y Agregar (antes /descubrir) */}

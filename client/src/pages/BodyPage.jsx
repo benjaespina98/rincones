@@ -41,6 +41,12 @@ import "../styles/pages/BodyPage.css";
 /** Los tipos de vino, para validar lo que llega por la URL. */
 const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
 
+/** El nombre de cada vista, para decir "en Favoritos no hay ninguno" y no
+ *  un id técnico. Vive acá y no en el segmentado de más abajo porque este
+ *  uso es al revés: ahí se arma la lista de opciones, acá se busca UNA por
+ *  su id. */
+const VISTA_LABEL = { instock: "En stock", probados: "Probados", [VISTA_DESEOS]: "Favoritos" };
+
 // Los filtros sobreviven a la sesión, igual que lista/grilla. Una sola clave con
 // todo adentro: son una configuración, no ocho preferencias sueltas.
 const FILTROS_KEY = "rincones_bodega_filtros";
@@ -115,28 +121,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
    */
   const [guardados] = useState(leerFiltrosGuardados);
 
-  // "Favoritos" no es una vista propia (VISTAS sólo tiene instock/all/probados),
-  // así que `normalizarVista("favorites")` da null y el default de acá abajo
-  // ganaba: "instock". Eso escondía a cualquier favorito sin botellas —lo
-  // marcaste, pero como no tenés stock, la vista "En stock" ni lo mira—. Entrar
-  // a Favoritos tiene que mostrar TODOS los favoritos, tengas botellas o no.
+  // "favorites" (el viejo `?filter=`, de /favoritos) apuntaba a un filtro
+  // aparte que ya no existe: ahora "Favoritos" ES una vista propia —la misma
+  // VISTA_DESEOS que unificó el corazón de un vino tuyo con la wishlist—, así
+  // que el enlace viejo aterriza ahí directo.
   const [vista, setVista] = useState(() =>
-    inicial === "favorites" ? "all" : normalizarVista(inicial) || "instock"
+    inicial === "favorites" ? VISTA_DESEOS : normalizarVista(inicial) || "instock"
   );
   /**
-   * "Quiero probar" no sale de la colección: sale de otra lista y se dibuja con
-   * otra fila. Todo lo que hay debajo —facetas, orden, selección múltiple,
-   * agrupación— habla de vinos que tenés, así que en esta vista no aplica y no
-   * se muestra. Un control que no puede cambiar nada es peor que uno ausente:
-   * promete una decisión y no la cumple.
+   * "Favoritos" mezcla dos fuentes —tus vinos con el corazón puesto y tu
+   * wishlist— así que el cuerpo de la pantalla dibuja las DOS listas, una
+   * abajo de la otra: `sortedWines` ya trae la primera sola (`pasaVista` la
+   * filtra, ver cellarViews.js) y acá se agrega la wishlist debajo. El resto
+   * de los controles —buscar, ordenar, agrupar— siguen andando igual porque
+   * la mitad que sale de la colección sigue siendo una vista más.
    */
-  const enDeseos = vista === VISTA_DESEOS;
+  const enFavoritos = vista === VISTA_DESEOS;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
-  // Filtros que se COMBINAN entre sí y con la vista.
-  const [soloFavoritos, setSoloFavoritos] = useState(
-    inicial === "favorites" || Boolean(guardados.soloFavoritos)
-  );
   const [soloListos, setSoloListos] = useState(Boolean(guardados.soloListos));
   // null = no filtra por probado; true = sólo probados; false = sólo pendientes.
   const [probado, setProbado] = useState(
@@ -200,7 +202,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         FILTROS_KEY,
         JSON.stringify({
           sortBy,
-          soloFavoritos,
           soloListos,
           probado,
           tipoFilter,
@@ -214,7 +215,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
   }, [
     sortBy,
-    soloFavoritos,
     soloListos,
     probado,
     tipoFilter,
@@ -267,7 +267,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (filtroPrevio.current === initialFilter) return;
     filtroPrevio.current = initialFilter;
     if (initialFilter === "favorites") {
-      setVista("all");
+      // Mismo destino que el estado inicial de más arriba: "favorites" apunta
+      // a la vista unificada de Favoritos, no a "Todos" (que ya no existe).
+      setVista(VISTA_DESEOS);
       return;
     }
     const v = normalizarVista(initialFilter);
@@ -409,12 +411,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   const pasaFiltros = useCallback(
     (wine) => {
-      if (soloFavoritos && !wine.favorite) return false;
+      // "Favoritos" ya no es un filtro combinable: es su propia vista (ver
+      // VISTA_DESEOS en cellarViews.js), mismo trato que "Probados".
       if (probado !== null && Boolean(wine.tasted) !== probado) return false;
       if (soloListos && getCellarStatus(wine).status !== "peak") return false;
       return true;
     },
-    [soloFavoritos, probado, soloListos]
+    [probado, soloListos]
   );
 
   /**
@@ -565,7 +568,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
   }, [
     vista,
     searchTerm,
-    soloFavoritos,
     soloListos,
     probado,
     tipoFilter,
@@ -610,8 +612,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const base = wines.filter((w) => pasaFiltros(w) && pasaBusqueda(w));
     return {
       instock: base.filter((w) => pasaVista("instock", w)).length,
-      all: base.length,
       probados: base.filter((w) => pasaVista("probados", w)).length,
+      // La mitad de "Favoritos" que sale de la colección — la otra mitad
+      // (la wishlist) se suma aparte, en el número del segmentado, porque
+      // vive en otra colección y no pasa por `pasaFiltros`/`pasaBusqueda`.
+      favoritos: base.filter((w) => pasaVista(VISTA_DESEOS, w)).length,
     };
   }, [wines, pasaFiltros, pasaBusqueda]);
 
@@ -625,7 +630,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
    */
   const filtrosActivos = useMemo(() => {
     const fichas = [];
-    if (soloFavoritos) fichas.push({ id: "fav", label: "Favoritos", quitar: () => setSoloFavoritos(false) });
     if (probado === false) fichas.push({ id: "prob", label: "Sin probar", quitar: () => setProbado(null) });
     if (probado === true) fichas.push({ id: "prob", label: "Probados", quitar: () => setProbado(null) });
     if (soloListos) fichas.push({ id: "listos", label: "Listos para abrir", quitar: () => setSoloListos(false) });
@@ -643,7 +647,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
       fichas.push({ id: "cosecha", label: `Cosecha ${vintageFilter}`, quitar: () => setVintageFilter("all") });
     }
     return fichas;
-  }, [soloFavoritos, probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter]);
+  }, [probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter]);
 
   /**
    * Qué decir cuando no hay nada que mostrar.
@@ -689,15 +693,19 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onSecondary: () => setVista("probados"),
       };
     }
-    // La bodega vacía de verdad —cero vinos— tiene su propio estado más abajo,
-    // con la bienvenida que corresponde. Acá se llega con vinos cargados y una
-    // vista que igual no muestra ninguno.
+    // Sólo queda "Favoritos": es la única de las tres vistas que no tiene su
+    // propio caso arriba (antes había un cuarto, genérico, para "Todos" — ver
+    // el comentario grande sobre por qué esa vista se sacó, en
+    // cellarViews.js). "Nada para mostrar en esta vista" hubiera sido
+    // engañoso acá igual: esta pantalla SIGUE mostrando algo debajo (la
+    // wishlist, que tiene su propio vacío si también está vacía) — lo único
+    // que no hay es un vino tuyo con el corazón puesto.
     return {
-      icon: "bottle",
-      title: "Nada para mostrar en esta vista",
-      hint: "Probá con otra parte de tu colección.",
-      actionLabel: "Ver toda mi bodega",
-      onAction: () => setVista("all"),
+      icon: "heart",
+      title: "Ningún vino con el corazón puesto",
+      hint: "Marcá un favorito desde Mi Bodega y aparece acá.",
+      actionLabel: "Ver lo que tenés",
+      onAction: () => setVista("instock"),
     };
   }, [searchTerm, filtrosActivos, vista, navigate, conteoPorVista.probados]);
 
@@ -758,7 +766,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
   };
 
   const clearAllFilters = () => {
-    setSoloFavoritos(false);
     setSoloListos(false);
     setProbado(null);
     setTipoFilter("all");
@@ -944,9 +951,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
     <div className="body-page">
       {/* La barra y el segmentado aparecen si hay ALGO que mirar, en cualquiera
           de las cuatro vistas. Antes la condición miraba sólo la colección, y
-          desde que "Quiero probar" vive acá eso dejaba encerrado a quien
-          todavía no cargó vinos pero sí guardó alguno: sin segmentado no había
-          forma de llegar a su lista ni de volver. */}
+          desde que "Favoritos" también vive de la wishlist eso dejaba
+          encerrado a quien todavía no cargó vinos pero sí guardó alguno: sin
+          segmentado no había forma de llegar a su lista ni de volver. */}
       {(loading || wines.length > 0 || wishlist.wishes.length > 0) && (
         <>
       {/* ── Buscador y filtros, en UNA fila ──────────────────────────────────
@@ -991,56 +998,60 @@ export default function BodyPage({ initialFilter = "instock" }) {
             Un solo botón que alterna, no dos: son dos modos y el ícono muestra
             a cuál vas a ir, igual que el botón de silencio de cualquier
             reproductor. Dos chips ocuparían el ancho que necesita el buscador. */}
-        {/* Los dos controles hablan de la colección: cómo mirarla y cómo
-            recortarla. En "Quiero probar" no hay colección que mirar ni facetas
-            que aplicar (una lista de deseos no tiene stock, ni guarda, ni
-            cosecha propia), así que se van en vez de quedarse sin poder hacer
-            nada. El buscador se queda: buscar sí funciona en las cuatro. */}
-        {!enDeseos && (
-          <>
-            <button
-              type="button"
-              className="bodega-modo"
-              onClick={() => {
-                tapHaptic();
-                setViewMode((m) => (m === "grid" ? "list" : "grid"));
-              }}
-              aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
-              title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
-            >
-              <Icon name={viewMode === "grid" ? "list" : "grid"} size={17} />
-            </button>
+        {/* Grilla/lista y filtros siguen andando en "Favoritos": la mitad de
+            esa vista sale de tu colección real (los que tenés con el corazón
+            puesto) y esos vinos SÍ tienen stock, guarda y cosecha propia — la
+            wishlist, que no, simplemente no los usa y sigue mostrándose
+            debajo, sin romper nada. */}
+        <button
+          type="button"
+          className="bodega-modo"
+          onClick={() => {
+            tapHaptic();
+            setViewMode((m) => (m === "grid" ? "list" : "grid"));
+          }}
+          aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+          title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
+        >
+          <Icon name={viewMode === "grid" ? "list" : "grid"} size={17} />
+        </button>
 
-            {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
-                todas las apps del mundo, así que como botón de filtros no se lee —hay
-                que probarlo para saber qué hace—. */}
-            <button
-              type="button"
-              className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
-                filtrosActivos.length > 0 ? "has-active" : ""
-              }`}
-              onClick={() => setAdvancedOpen(true)}
-              aria-haspopup="dialog"
-              aria-label={
-                filtrosActivos.length > 0
-                  ? `Filtros y orden (${filtrosActivos.length} aplicados)`
-                  : "Filtros y orden"
-              }
-              title="Filtros y orden"
-            >
-              <Icon name="filter" size={17} />
-              {filtrosActivos.length > 0 && (
-                <span className="bodega-filtros__n">{filtrosActivos.length}</span>
-              )}
-            </button>
-          </>
-        )}
+        {/* Un embudo, no un engranaje: el engranaje significa "configuración" en
+            todas las apps del mundo, así que como botón de filtros no se lee —hay
+            que probarlo para saber qué hace—. */}
+        <button
+          type="button"
+          className={`bodega-filtros ${advancedOpen ? "is-open" : ""} ${
+            filtrosActivos.length > 0 ? "has-active" : ""
+          }`}
+          onClick={() => setAdvancedOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={
+            filtrosActivos.length > 0
+              ? `Filtros y orden (${filtrosActivos.length} aplicados)`
+              : "Filtros y orden"
+          }
+          title="Filtros y orden"
+        >
+          <Icon name="filter" size={17} />
+          {filtrosActivos.length > 0 && (
+            <span className="bodega-filtros__n">{filtrosActivos.length}</span>
+          )}
+        </button>
       </div>
 
       {/* La vista, con su número adentro. Los tres números que antes vivían en
           tres bloques distintos (la tira de la colección, la línea de conteo y
           estos botones) son uno solo, y acá dice de antemano qué vas a encontrar
-          del otro lado sin tener que tocar para averiguarlo. */}
+          del otro lado sin tener que tocar para averiguarlo.
+
+          "Todos" se sacó de acá: mirando qué vino entraba EXCLUSIVAMENTE en esa
+          vista (ni en stock, ni probado, ni favorito, ni en la wishlist), la
+          respuesta era casi nada — y ese caso raro sigue siendo encontrable con
+          el buscador, que ya amplía a toda la bodega solo (ver el comentario
+          grande en cellarViews.js). Quedan tres pestañas, cada una contestando
+          una pregunta concreta, en vez de una cuarta que no contestaba ninguna
+          que las otras tres no contestaran ya. */}
       <Segmented
         className="bodega-vista"
         ariaLabel="Qué parte de tu bodega ver"
@@ -1048,22 +1059,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onChange={setVista}
         options={[
           { id: "instock", label: "En stock", title: "Los que tenés en casa ahora", count: conteoPorVista.instock },
-          { id: "all", label: "Todos", title: "Toda tu colección", count: conteoPorVista.all },
           { id: "probados", label: "Probados", title: "Los que tomaste alguna vez, tengas o no", count: conteoPorVista.probados },
-          // La cuarta: los que todavía no tenés. Era una pestaña de la barra de
-          // navegación ("Guardados") y es la misma pregunta que las otras tres
-          // —qué vinos hay en mi vida— mirada desde el otro lado del tiempo.
+          // Lo que tenés marcado con el corazón, lo tengas o no. Era "Quiero
+          // probar" y sólo miraba la wishlist — un vino que ya tenías y te
+          // gustaba no entraba ahí, y "quiero probar" tampoco era cierto de
+          // él (ya lo probaste). Unifica los dos "favorito" que tenía la app
+          // en uno (ver el comentario grande de VISTA_DESEOS en
+          // cellarViews.js).
           {
             id: VISTA_DESEOS,
-            label: "Quiero probar",
-            title: "Los que anotaste para conseguir",
-            count: wishlist.wishes.length,
+            label: "Favoritos",
+            title: "Lo que te gusta: lo tengas o lo estés buscando",
+            count: conteoPorVista.favoritos + wishlist.wishes.length,
           },
         ]}
       />
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
-      {!enDeseos && filtrosActivos.length > 0 && (
+      {filtrosActivos.length > 0 && (
         <div className="bodega-fichas" role="group" aria-label="Filtros aplicados">
           {filtrosActivos.map((f) => (
             <button key={f.id} type="button" className="bodega-ficha" onClick={f.quitar}>
@@ -1085,7 +1098,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           larga —el patrón del sistema— lo vuelve invisible para quien no sabe que
           existe. Aparece recién con tres vinos: con dos, tocarlos de a uno es más
           rápido que entrar y salir de un modo. */}
-      {!enDeseos && !loading && !error && !modoSeleccion && sortedWines.length >= 3 && (
+      {!loading && !error && !modoSeleccion && sortedWines.length >= 3 && (
         <div className="bodega-seleccion-entrada">
           <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>
             <Icon name="check" size={14} /> Seleccionar
@@ -1099,21 +1112,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </>
       )}
 
-      {/* ── EL CUERPO: LA COLECCIÓN, O LA LISTA DE DESEOS ────────────────────
-          Tres de las cuatro vistas dibujan la misma fila con distinto recorte;
-          la cuarta dibuja otra cosa, porque un vino que no tenés no ofrece
-          abrir una botella sino decir "ya lo tengo". Lo que las cuatro
-          comparten —el encabezado, el buscador, el segmentado— está arriba y
-          se escribe una sola vez, que es el punto de haberlas unido. */}
-      {enDeseos ? (
-        <WishlistPanel
-          {...wishlist}
-          terms={terms}
-          onLimpiarBusqueda={() => setSearchTerm("")}
-          onVerBodega={() => setVista("instock")}
-        />
-      ) : (
-      <>
+      {/* ── EL CUERPO: LA COLECCIÓN, Y —EN FAVORITOS— TAMBIÉN LA WISHLIST ────
+          Las cuatro vistas dibujan ahora la misma fila con el mismo recorte:
+          `pasaVista` ya decide qué entra en cada una (ver cellarViews.js), así
+          que este bloque no necesita saber que "Favoritos" es distinta. Lo
+          único propio de esa vista es lo que se agrega DESPUÉS: la wishlist,
+          que sale de otra colección y se dibuja con otra fila —un vino que no
+          tenés no ofrece abrir una botella, ofrece decir "ya lo tengo". */}
       {loading && <LoadingSkeleton type="card" count={4} />}
 
       {!loading && error && (
@@ -1124,20 +1129,30 @@ export default function BodyPage({ initialFilter = "instock" }) {
         />
       )}
 
-      {/* Se amplió la búsqueda a toda la bodega: se dice, y se ofrece quedarse
-          del otro lado. Sin este renglón, la lista mostraría vinos sin stock
-          bajo la pestaña "En stock" y parecería un error de la app. */}
+      {/* Se amplió la búsqueda a toda la bodega: se dice. Sin este renglón, la
+          lista mostraría vinos sin stock bajo la pestaña "En stock" y
+          parecería un error de la app. Ya no ofrece "Ver en Todos" —esa vista
+          se sacó (ver el comentario grande en cellarViews.js)— porque no
+          hace falta: lo que amplió la búsqueda ya está ahí, en la lista de
+          abajo. El rótulo del medio cubre las tres vistas, no dos: antes se
+          armaba con un ternario de dos ramas y "Favoritos" —que también
+          puede ampliarse— quedaba diciendo "Probados" por descarte. */}
       {!loading && !error && resultados.ampliada && (
         <p className="wines-widened">
           <Icon name="search" size={14} />
           <span>
-            En <strong>{vista === "instock" ? "En stock" : "Probados"}</strong> no hay
-            ninguno. Esto es lo que encontramos en toda tu bodega.
+            En <strong>{VISTA_LABEL[vista] || vista}</strong> no hay ninguno. Esto es
+            lo que encontramos en toda tu bodega.
           </span>
-          <button type="button" onClick={() => setVista("all")}>
-            Ver en Todos
-          </button>
         </p>
+      )}
+
+      {/* Sólo en Favoritos, y sólo si además hay wishlist: sin la wishlist
+          abajo, esta lista ya se explica sola (es exactamente lo que las
+          otras tres vistas hacen sin rótulo). El rótulo existe para separar
+          DOS listas cuando las dos están a la vista, no para anunciar una. */}
+      {enFavoritos && sortedWines.length > 0 && wishlist.wishes.length > 0 && (
+        <p className="bodega-rotulo">En tu bodega</p>
       )}
 
       {!loading && !error && sortedWines.length > 0 && (
@@ -1162,6 +1177,18 @@ export default function BodyPage({ initialFilter = "instock" }) {
             // "En stock" normal esto no cambia nada, porque ahí todo lo que
             // llega ya tiene stock por construcción (`pasaVista`).
             const esVitrina = vista === "instock" && Number(wine.quantity) > 0;
+            /**
+             * ¿Esta fila se puede desplegar? La vitrina siempre puede (es su
+             * modo natural). El archivo de "Probados" y "Favoritos" también,
+             * aunque sea compacto — es la única forma de llegar al favorito,
+             * al tacho o a la ficha técnica sin salir a la ficha completa, y
+             * en las dos vistas puede haber un vino que no aparece en
+             * ninguna otra: un probado sin stock y sin favorito, o un
+             * favorito sin stock, no tienen otra puerta. "Todos" tenía el
+             * mismo argumento y por eso también se plegaba — se sacó de la
+             * pantalla entera (ver cellarViews.js), no de esta regla.
+             */
+            const puedeExpandir = esVitrina || vista === "probados" || enFavoritos;
             const expanded = expandedId === wine._id;
             // Uva y año en una línea, bodega en otra.
             //
@@ -1423,9 +1450,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
                       Menos en la vista "Probados", donde todos lo están: una
                       columna entera repitiendo la misma palabra en verde no
-                      informa, sólo ocupa el ancho del nombre. Ahí el chip se va y
-                      desmarcar se hace desde "Todos", desde la ficha o eligiendo
-                      varios de una. */}
+                      informa, sólo ocupa el ancho del nombre. Ahí el chip se va
+                      y desmarcar se hace desplegando la fila —ver el botón
+                      "Sin probar" en `wine-row__acciones`, que existe
+                      específicamente para esta vista—. */}
                   {vista !== "probados" && (
                   <button
                     type="button"
@@ -1453,6 +1481,38 @@ export default function BodyPage({ initialFilter = "instock" }) {
                   </button>
                   )}
 
+                  {/* ── EL CORAZÓN, TOCABLE, PERO SÓLO EN GRILLA ────────────────
+                      En lista el favorito se toca desde el panel desplegable
+                      (ver `puedeExpandir` más arriba); acá, al lado de la foto
+                      —igual que el chip de probado—, sólo queda de sólo
+                      lectura, chiquito, adentro del nombre.
+
+                      En grilla no hay panel desplegable (no hay dónde
+                      desplegar sin descolocar a las tarjetas vecinas), así que
+                      sin este botón el corazón era una marca que nunca se
+                      podía tocar ahí — ni para ponerlo ni para sacarlo, en
+                      NINGUNA vista, porque la ficha ya no lo ofrece tampoco
+                      (ver WineDetailPage.jsx). Hermano de `wine-row__main` y
+                      no anidado, mismo motivo que el resto de los botones de
+                      esta cabecera. */}
+                  {esGrilla && (
+                    <button
+                      type="button"
+                      className={`wine-row__gridfav ${wine.favorite ? "is-on" : ""}`}
+                      onClick={() => handleToggleFavorite(wine)}
+                      disabled={isPending || modoSeleccion}
+                      aria-pressed={wine.favorite}
+                      title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                      aria-label={
+                        wine.favorite
+                          ? `Quitar ${wineDisplayName(wine)} de favoritos`
+                          : `Marcar ${wineDisplayName(wine)} como favorito`
+                      }
+                    >
+                      <Icon name="heart" filled={wine.favorite} size={15} />
+                    </button>
+                  )}
+
                   {/* ── EL CHEVRON, ABAJO Y CENTRADO ──────────────────────────
                       Abre las acciones rápidas sin salir de la lista (abrir
                       botella, favorito, eliminar, la ficha técnica).
@@ -1471,13 +1531,22 @@ export default function BodyPage({ initialFilter = "instock" }) {
                       ícono para las dos cosas es la manera de que ninguna se
                       entienda.
 
-                      Sólo en la vitrina en modo lista. En el archivo la fila es
-                      una sola línea de 38px y sumar una franja más la partiría
-                      en dos; en grilla no hay dónde desplegar sin descolocar a
-                      las tarjetas vecinas, así que ahí estas acciones viven en
-                      la ficha. Botón hermano del de arriba y no anidado: un
+                      En la vitrina en modo lista, o en "Probados"/"Favoritos"
+                      (ver `puedeExpandir`, un poco más arriba) — ahí vive el
+                      único corazón que se puede TOCAR (el de la cabecera es
+                      sólo un indicador) y el único "Sin probar" que puede
+                      DESHACER un probado, y sin esto un vino sin stock
+                      quedaba sin ninguna forma de tocar ninguno de los dos:
+                      no está en "En stock" (no tiene botellas) y la ficha ya
+                      no los ofrece (se sacó de ahí, ver WineDetailPage.jsx).
+                      En el resto del archivo (que hoy es sólo grilla, con
+                      cualquier vista) la fila sigue siendo una sola línea de
+                      38px y sumar una franja más la partiría en dos; en
+                      grilla no hay dónde desplegar sin descolocar a las
+                      tarjetas vecinas, así que ahí estas acciones viven en la
+                      ficha. Botón hermano del de arriba y no anidado: un
                       botón adentro de otro no es HTML válido. */}
-                  {!esGrilla && esVitrina && (
+                  {!esGrilla && puedeExpandir && (
                     <button
                       type="button"
                       className="wine-row__disclosure"
@@ -1496,7 +1565,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
                   )}
                 </div>
 
-                {expanded && !esGrilla && esVitrina && (
+                {expanded && !esGrilla && puedeExpandir && (
                   <div className="wine-row__expand">
                     {/* ── EL RENGLÓN DE ESTADO, SIN EL STOCK ──────────────────
                         Decía "4 botellas · en tu cava hace 8 meses". La primera
@@ -1609,15 +1678,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           descontar de una: es donde se elige cuántas y donde se
                           leen las tres consecuencias.
 
-                          Sin stock no hay nada que abrir, y ACÁ NO vuelve un
-                          botón de "Marcar probado": ése ya está, siempre visible,
-                          en el chip de la cabecera (`wine-row__tasted`) — es el
-                          mismo caso que la valoración doble de la ficha del vino
-                          (ver el comentario en WineDetailPage sobre "Tu
-                          opinión"): dos controles para la misma pregunta, uno al
-                          lado del otro apenas se despliega la fila. Sin stock,
-                          esta fila de acciones se queda sólo con favorito y
-                          eliminar. */}
+                          Sin stock, y en cualquier vista MENOS "Probados", ACÁ
+                          NO vuelve un botón de "Marcar probado": ése ya está,
+                          siempre visible, en el chip de la cabecera
+                          (`wine-row__tasted`) — es el mismo caso que la
+                          valoración doble de la ficha del vino (ver el
+                          comentario en WineDetailPage sobre "Tu opinión"): dos
+                          controles para la misma pregunta, uno al lado del
+                          otro apenas se despliega la fila. */}
                       {Number(wine.quantity) > 0 && (
                         <button
                           className="wine-action-btn wine-action-btn--open"
@@ -1627,6 +1695,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
                         >
                           <Icon name="bottle" size={16} />
                           Abrí una botella
+                        </button>
+                      )}
+
+                      {/* En "Probados" el chip de la cabecera SÍ se esconde
+                          (ver más abajo: una columna entera repitiendo
+                          "Probado" no informa), así que acá — y sólo acá —
+                          hace falta este botón, o desmarcar un vino que
+                          probaste por error dejaría de tener forma de
+                          deshacerse. */}
+                      {vista === "probados" && (
+                        <button
+                          className="wine-action-btn is-active"
+                          onClick={() => handleToggleTasted(wine)}
+                          type="button"
+                          disabled={isPending}
+                        >
+                          <Icon name="check" size={16} />
+                          Sin probar
                         </button>
                       )}
 
@@ -1680,8 +1766,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
       )}
 
       {/* La primera pantalla que ve alguien que se acaba de registrar. Dos
-          puertas, porque no todo el mundo llega con la botella en la mano. */}
-      {!loading && !error && wines.length === 0 && (
+          puertas, porque no todo el mundo llega con la botella en la mano.
+          No en Favoritos: si no cargaste ningún vino pero SÍ guardaste algo
+          en la wishlist (que se dibuja debajo), esta pantalla ya no está
+          vacía de verdad — el vacío de la wishlist, si también está vacía,
+          se explica solo ahí. */}
+      {!loading && !error && wines.length === 0 && !enFavoritos && (
         <EmptyState
           icon="bottle"
           title="Todavía no cargaste ningún vino"
@@ -1700,7 +1790,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
       {!loading && !error && wines.length > 0 && sortedWines.length === 0 && (
         <EmptyState {...vacio} />
       )}
-      </>
+
+      {/* ── LA WISHLIST, DEBAJO ────────────────────────────────────────────
+          La otra mitad de "Favoritos": lo que todavía no tenés. Va después
+          de tu colección real y no antes, porque lo que SÍ tenés es lo que
+          podés abrir hoy — la misma jerarquía que ya usa el Sommelier entre
+          "De tu bodega" y "Para descubrir" (ver SuggestionsPage.jsx). */}
+      {enFavoritos && (
+        <>
+          {sortedWines.length > 0 && wishlist.wishes.length > 0 && (
+            <p className="bodega-rotulo">Para conseguir</p>
+          )}
+          <WishlistPanel
+            {...wishlist}
+            terms={terms}
+            onLimpiarBusqueda={() => setSearchTerm("")}
+            onVerBodega={() => setVista("instock")}
+          />
+        </>
       )}
 
       <BodegaFilters
@@ -1709,8 +1816,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         resultados={sortedWines.length}
         sortBy={sortBy}
         setSortBy={setSortBy}
-        soloFavoritos={soloFavoritos}
-        setSoloFavoritos={setSoloFavoritos}
         probado={probado}
         setProbado={setProbado}
         vista={vista}

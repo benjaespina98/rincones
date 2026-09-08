@@ -11,8 +11,33 @@ export const getAdminSummary = async (hours = 24) => {
   return data.data;
 };
 
-export const getChangeLogs = async ({ page = 1, limit = 30, entityType = "", action = "", q = "" } = {}) => {
-  const { data } = await api.get("/admin/logs", { params: { page, limit, entityType, action, q } });
+export const getChangeLogs = async ({
+  page = 1,
+  limit = 30,
+  entityType = "",
+  action = "",
+  q = "",
+  actor = "",
+  from = "",
+  to = "",
+} = {}) => {
+  const { data } = await api.get("/admin/logs", {
+    params: { page, limit, entityType, action, q, actor, from, to },
+  });
+  return data;
+};
+
+// Los admins que aparecen como autor de algún movimiento, para el filtro
+// "Admin" — una lista para elegir, no un mail que hay que escribir de memoria.
+export const getChangeLogActors = async () => {
+  const { data } = await api.get("/admin/logs/actors");
+  return data.data || [];
+};
+
+// Los fallos del servidor (ver errorLog.service.js) — distinto de
+// `getChangeLogs`, que audita acciones, no errores.
+export const getErrorLogs = async ({ page = 1, limit = 30, q = "", from = "", to = "" } = {}) => {
+  const { data } = await api.get("/admin/error-logs", { params: { page, limit, q, from, to } });
   return data;
 };
 

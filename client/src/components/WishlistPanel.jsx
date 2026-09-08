@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
@@ -10,19 +9,25 @@ import { useToast } from "../context/ToastContext";
 import "../styles/components/WishlistPanel.css";
 
 /**
- * "Quiero probar": los vinos que todavía NO tenés.
+ * La mitad de "Favoritos" que sale de la wishlist: los vinos que te gustan y
+ * todavía NO tenés.
  *
  * ── DE PESTAÑA A VISTA ─────────────────────────────────────────────────────
  * Esto era una pantalla entera (`/guardados`) con su pestaña en la barra, su
- * propio encabezado y su propio segmentado de "Todos / Favoritos". Nada de eso
- * queda: es la cuarta vista de Mi Bodega, y el encabezado, el buscador y el
- * segmentado los pone la pantalla que la contiene. Lo único que sobrevive —y
- * lo único que era propio de acá— es la fila: un vino que no tenés no ofrece
- * abrir una botella, ofrece decir "ya lo tengo".
+ * propio encabezado y su propio segmentado de "Todos / Favoritos" — un
+ * SEGUNDO significado de "favorito", adentro de una lista que ya era de
+ * favoritos por estar en ella. Nada de eso queda: es una sección más de la
+ * vista "Favoritos" en Mi Bodega (que unificó ese corazón con el de un vino
+ * que sí tenés — ver VISTA_DESEOS en utils/cellarViews.js), el encabezado, el
+ * buscador y el segmentado los pone la pantalla que la contiene, y estar en
+ * esta lista ya ES el favorito: no hace falta un segundo corazón adentro de
+ * cada fila. Lo único que sobrevive —y lo único que era propio de acá— es la
+ * fila en sí: un vino que no tenés no ofrece abrir una botella, ofrece decir
+ * "ya lo tengo".
  *
  * La bodega es stock real y entra por escaneo, así que acá no se crea stock:
- * se guarda el deseo, se marca favorito, y "Ya lo tengo" lleva a cargar la
- * botella con los datos que la app ya sabe.
+ * se guarda el deseo, y "Ya lo tengo" lleva a cargar la botella con los datos
+ * que la app ya sabe.
  */
 export default function WishlistPanel({
   wishes,
@@ -31,7 +36,6 @@ export default function WishlistPanel({
   reload,
   addWish,
   removeWish,
-  toggleWishFavorite,
   /** Términos ya normalizados del buscador de Mi Bodega. */
   terms = [],
   /** Se llama cuando el vacío ofrece irse a otra vista de la bodega. */
@@ -41,7 +45,6 @@ export default function WishlistPanel({
 }) {
   const navigate = useNavigate();
   const { addToast, removeToast, showSuccess, showError } = useToast();
-  const [busyId, setBusyId] = useState(null);
 
   const buscando = terms.length > 0;
   const visible = buscando
@@ -68,17 +71,6 @@ export default function WishlistPanel({
         },
       },
     });
-
-  const handleFav = async (wish) => {
-    try {
-      setBusyId(wish._id);
-      await toggleWishFavorite(wish._id, !wish.favorite);
-    } catch {
-      showError("No se pudo actualizar el favorito");
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   /**
    * Quitar de la lista, con vuelta atrás.
@@ -161,16 +153,14 @@ export default function WishlistPanel({
       {visible.map((wish) => (
         <li key={wish._id} className="wishlist-card">
           {/* ── LA FILA ES EL VINO; LAS ACCIONES VAN ABAJO ─────────────────
-              Acá había tres controles de tres tamaños distintos apilados en
-              una columna a la derecha —corazón, "Ya lo tengo" y una ×— más una
-              flecha suelta en el medio. Entre los cuatro se comían la mitad del
-              ancho, así que "Alma Negra M Blend" se partía en dos renglones al
-              lado de una torre de botones.
-
-              Ahora es lo mismo que hace Mi Bodega: la fila entera abre el vino,
-              el favorito vive al costado del nombre (es un estado, no una
-              tarea) y lo que ES una tarea baja a su propia fila, con el ancho
-              para decirse con todas las letras. */}
+              Acá había cuatro controles apilados en una columna a la derecha
+              —corazón, "Ya lo tengo", una × y una flecha suelta en el medio—
+              que se comían la mitad del ancho, así que "Alma Negra M Blend"
+              se partía en dos renglones al lado de una torre de botones. El
+              corazón se fue entero (ver el comentario grande de arriba: estar
+              en esta lista ya ES el favorito), así que ahora es sólo la fila
+              —abre el vino— y lo que ES una tarea, abajo, con el ancho para
+              decirse con todas las letras. */}
           <div className="wishlist-card__row">
             <button
               type="button"
@@ -191,22 +181,6 @@ export default function WishlistPanel({
                 />
               </span>
               <Icon name="chevron-right" size={16} className="wishlist-card__caret" />
-            </button>
-
-            <button
-              type="button"
-              className={`wishlist-fav ${wish.favorite ? "is-active" : ""}`}
-              onClick={() => handleFav(wish)}
-              disabled={busyId === wish._id}
-              aria-pressed={wish.favorite}
-              aria-label={
-                wish.favorite
-                  ? `Quitar ${wish.name} de favoritos`
-                  : `Marcar ${wish.name} como favorito`
-              }
-              title={wish.favorite ? "Favorito" : "Marcar favorito"}
-            >
-              <Icon name="heart" filled={wish.favorite} size={18} />
             </button>
           </div>
 

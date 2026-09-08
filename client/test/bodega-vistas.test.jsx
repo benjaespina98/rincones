@@ -46,19 +46,15 @@ describe("las tres vistas de la bodega", () => {
     // aparecía en el "historial" igual.
     expect(pasaVista("probados", seTerminoYNuncaLoProbaste)).toBe(false);
     expect(pasaVista("instock", seTerminoYNuncaLoProbaste)).toBe(false);
-    // No se pierde: está en "Todos".
-    expect(pasaVista("all", seTerminoYNuncaLoProbaste)).toBe(true);
+    // No se pierde de la bodega —sigue estando el buscador para encontrarlo—,
+    // pero ya no tiene una cuarta vista "Todos" que lo muestre sin buscar
+    // nada: ver el comentario grande sobre por qué se sacó, en
+    // cellarViews.js.
   });
 
   it("lo que tenés sin abrir está en stock y no entre los probados", () => {
     expect(pasaVista("instock", sinAbrirTodavia)).toBe(true);
     expect(pasaVista("probados", sinAbrirTodavia)).toBe(false);
-  });
-
-  it("\"Todos\" es todos, sin excepción", () => {
-    for (const w of [yaLoTomasteYRepusiste, teQuedaronYYaLoTomaste, seTerminoYNuncaLoProbaste, sinAbrirTodavia]) {
-      expect(pasaVista("all", w)).toBe(true);
-    }
   });
 
   it("un enlace viejo a \"historial\" sigue llevando a algún lado", () => {
@@ -69,33 +65,52 @@ describe("las tres vistas de la bodega", () => {
     expect(normalizarVista("instock")).toBe("instock");
     expect(normalizarVista("cualquier-cosa")).toBe(null);
   });
+
+  it("un enlace viejo a \"Todos\" (?vista=all) aterriza en 'En stock'", () => {
+    // "Todos" se sacó del segmentado (ver el comentario grande en
+    // cellarViews.js) — un enlace guardado de antes no puede caer en una
+    // vista que ya no existe.
+    expect(normalizarVista("all")).toBe("instock");
+    expect(VISTAS).not.toContain("all");
+  });
 });
 
 /**
- * ── LA CUARTA VISTA: "QUIERO PROBAR" ────────────────────────────────────────
+ * ── LA CUARTA VISTA: "FAVORITOS" ────────────────────────────────────────────
  *
- * Era una PESTAÑA de la barra de navegación ("Guardados") con su propia
- * pantalla. Es la misma pregunta que las otras tres —qué vinos hay en mi vida—
- * mirada desde el otro lado del tiempo, así que pasó a ser una vista más de Mi
- * Bodega.
+ * Era "Quiero probar", una PESTAÑA de la barra de navegación ("Guardados")
+ * con su propia pantalla, y sólo mostraba la wishlist. Se unificó con el
+ * OTRO "favorito" que ya tenía la app —el corazón de un vino que sí tenés—
+ * porque los dos significaban lo mismo bajo dos nombres, y "Quiero probar"
+ * mentía sobre un vino que ya tenías y te gustaba (no es cierto que "querés
+ * probarlo": ya lo probaste).
  *
  * Lo que estos tests fijan es lo que se puede romper sin que se note al
- * mirarla: que no se convierta en un segundo "Todos", y que los enlaces viejos
- * sigan aterrizando donde la persona esperaba.
+ * mirarla: que sólo entren los favoritos de verdad (no toda la bodega, ni
+ * ninguno por opción), y que los enlaces viejos sigan aterrizando donde la
+ * persona esperaba.
  */
-describe("\"Quiero probar\" dentro de Mi Bodega", () => {
-  it("ningún vino de la colección entra en esta vista", () => {
-    // La lista sale de OTRA colección (los deseos). Si `pasaVista` devolviera
-    // `true` por omisión —que es el default de la función para lo que no
-    // reconoce— la vista mostraría toda la bodega y diría que son vinos que no
-    // tenés: exactamente lo contrario de lo que promete.
+describe("\"Favoritos\" dentro de Mi Bodega", () => {
+  it("sólo el vino con el corazón puesto entra en esta vista", () => {
+    // Si `pasaVista` devolviera `true` por omisión —que es el default de la
+    // función para lo que no reconoce— la vista mostraría toda la bodega,
+    // favorito o no: exactamente lo que esta vista dejó de ser cuando era
+    // sólo la wishlist, y lo que tampoco puede pasar ahora.
     for (const w of [
-      { quantity: 3, tasted: false },
-      { quantity: 0, tasted: true },
-      { quantity: 1, tasted: true },
+      { quantity: 3, tasted: false, favorite: false },
+      { quantity: 0, tasted: true, favorite: false },
+      { quantity: 3, tasted: false }, // sin el campo: tampoco es favorito
     ]) {
       expect(pasaVista(VISTA_DESEOS, w)).toBe(false);
     }
+  });
+
+  it("cualquier vino tuyo con el corazón puesto entra, tenga o no stock", () => {
+    // Es justo el caso que "Quiero probar" dejaba afuera: un vino que SÍ
+    // tenés (o que ya tomaste y se te terminó) y marcaste como favorito
+    // porque te gusta — no porque "quieras probarlo".
+    expect(pasaVista(VISTA_DESEOS, { quantity: 2, tasted: false, favorite: true })).toBe(true);
+    expect(pasaVista(VISTA_DESEOS, { quantity: 0, tasted: true, favorite: true })).toBe(true);
   });
 
   it("el enlace viejo /guardados aterriza en la vista nueva", () => {

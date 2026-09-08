@@ -39,6 +39,15 @@ const NAV_GROUPS = [
       { to: "/admin/panel/actividad", label: "Actividad", icon: "calendar" },
     ],
   },
+  {
+    // Grupo propio y no adentro de "Cuentas": Logs no habla de usuarios, habla
+    // de que algo se rompió — mezclarlo ahí lo escondía detrás de un rótulo
+    // que no lo describe.
+    label: "Sistema",
+    items: [
+      { to: "/admin/panel/logs", label: "Logs", icon: "alert-triangle" },
+    ],
+  },
 ];
 
 // Aplanado: la tira de celular y cualquier otro lugar que necesite "todos los

@@ -42,10 +42,7 @@
 .wishlist-card__row {
   display: flex;
   align-items: center;
-  /* Aire entre la flecha (que dice "esto abre el vino") y el corazón (que hace
-     otra cosa): pegados se leían como un solo par de controles. */
-  gap: 10px;
-  padding: 10px 8px 10px 12px;
+  padding: 10px 12px;
 }
 
 .wishlist-card__main {
@@ -101,43 +98,9 @@
   color: var(--text-subtle);
 }
 
-/* El favorito: un estado que se enciende, al lado del nombre y no en la fila
-   de tareas de abajo. Mismo lugar y mismo gesto que el corazón de la ficha. */
-.wishlist-fav {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast),
-    border-color var(--transition-fast);
-}
-
-@media (hover: hover) {
-  .wishlist-fav:hover:not(:disabled) {
-    color: var(--favorite);
-    background: var(--favorite-soft);
-  }
-}
-
-.wishlist-fav.is-active {
-  color: var(--favorite);
-}
-
-/* El corazón festeja al encenderse, igual que en la bodega y en la ficha. */
-.wishlist-fav.is-active .icon {
-  animation: rincon-pop var(--transition-smooth) var(--ease-spring) both;
-}
-
-.wishlist-fav:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
+/* `.wishlist-fav` ya no existe: era un segundo corazón adentro de una lista
+   que ya es de favoritos por estar en ella (ver el comentario grande al
+   principio de WishlistPanel.jsx). */
 
 /* ── Las dos tareas ──────────────────────────────────────────────────────── */
 .wishlist-card__actions {

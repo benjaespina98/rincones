@@ -694,6 +694,32 @@ button.admin-chip.is-active {
   gap: 6px;
 }
 
+/* La fila de un log se abre tocándola entera (no hay un botón aparte): con
+   una sola acción posible por fila —ver el stack— un ícono de más sería un
+   segundo control para hacer lo mismo que ya hace tocar la fila. */
+.admin-table__row-clickable {
+  cursor: pointer;
+}
+
+/* El stack completo, sólo cuando se pidió: es la parte que de verdad
+   diagnostica un error, pero es demasiado para tener siempre a la vista —
+   una sola fila puede tener quince renglones de traza. Con scroll propio en
+   los dos ejes: una ruta de Windows o un stack de Mongo se van bien pasados
+   de los 460px que tiene la columna de mensaje. */
+.admin-log-stack {
+  margin: 0;
+  padding: 12px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  white-space: pre;
+}
+
 /* Separador de día en el registro: una fila entera que dice la fecha. Sin
    esto, "hace cuánto pasó esto" había que deducirlo leyendo el timestamp
    completo de cada fila. */
@@ -747,6 +773,52 @@ button.admin-chip.is-active {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-subtle);
+}
+
+/* El desplegable de "Admin": mismo trato que `.admin-users__sort` (ver ese
+   comentario) — es el `Dropdown` compartido, sólo se le ajusta el tamaño al
+   resto de estos chips chicos, sin la caja doble que dejaría estilarlo desde
+   afuera. Sin `margin-left: auto`: acá vive DENTRO de un grupo con rótulo,
+   no solo al final de la barra. */
+.admin-activity__actor {
+  min-width: 180px;
+}
+
+.admin-activity__actor .dropdown__trigger {
+  min-height: var(--control-sm);
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border-color: var(--line);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* El rango de fechas: dos campos nativos y un separador entre medio, del
+   mismo alto que los chips de al lado para que la fila no salte de altura. */
+.admin-date-input {
+  min-height: var(--control-sm);
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+}
+
+.admin-filter-group__sep {
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+}
+
+/* "Limpiar filtros": mismo lenguaje que la ficha de un filtro puesto en Mi
+   Bodega — un chip de más, en voz baja, que sólo aparece cuando hay algo para
+   sacar. */
+.admin-chip--clear {
+  color: var(--text-subtle);
+  text-decoration: underline;
+  border-color: transparent;
+  background: transparent;
 }
 
 .admin-log-badge {
