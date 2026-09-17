@@ -357,7 +357,12 @@ const analyzeLabel = async (req, res, next) => {
     const tOcr = process.hrtime.bigint();
     const result = await labelsService.analyzeImageBuffer(req.file.buffer);
     const ocrMs = ms(tOcr);
-    const ocrName = result.estimatedName || "";
+    // Mismo riesgo que la visión de Gemini, por el mismo motivo: una lectura
+    // que se corta en una sola letra ("Tomero" → "T") no es un nombre, es
+    // ruido — y el OCR local, sobre una etiqueta cursiva, lo produce con más
+    // frecuencia todavía. Ver `esLetraSuelta` en vision.service.js.
+    const ocrNameCruda = result.estimatedName || "";
+    const ocrName = visionService.esLetraSuelta(ocrNameCruda) ? "" : ocrNameCruda;
     const ocrConf = Math.max(0, Math.min(100, Math.round(Number(result.confidence) || 0)));
 
     // La verificación corre también acá, aunque de un texto suelto sin bodega

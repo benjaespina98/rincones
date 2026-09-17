@@ -13,8 +13,14 @@ const promotions = require("../src/services/promotions.service");
  * darse por vencida. El servicio se traga ese error a propósito (el log no puede
  * hacer fallar un cambio de campaña), así que el test pasaría igual —sólo que la
  * suite tardaría un minuto en vez de un segundo—.
+ *
+ * `PromotionView.updateOne` es la misma historia: la marca de "esta persona ya
+ * tocó esta campaña hoy" (ver el comentario grande en promotions.service.js,
+ * la sección de clickers distintos) también escribe a Mongo al pasar, y ningún
+ * test de este archivo verifica ese escrito puntual.
  */
 ChangeLog.create = async () => ({});
+PromotionView.updateOne = async () => ({ upsertedCount: 0, modifiedCount: 0 });
 
 /**
  * Lo que no se puede romper en el gestor de campañas:
