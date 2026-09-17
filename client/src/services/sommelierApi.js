@@ -20,15 +20,18 @@ const TURNOS = 3;
  * ── POR QUÉ ESTE PEDIDO TIENE SU PROPIO TIMEOUT ─────────────────────────────
  *
  * El resto de la app usa el de `api.js` (12s), pero el propio `BUDGET_MS` del
- * server para esta pregunta ES 12s (ver sommelier.service.js) — con el mismo
- * número de los dos lados, sin margen para la red, el cliente corta la espera
- * en la línea de llegada, justo cuando el server todavía está terminando.
- * Reproducido en vivo: "Parece que te quedaste sin conexión" varias veces
- * seguidas con la red andando bien, porque un timeout de axios no trae
- * `error.response` y `mensajeDeError` lo confunde con eso. 16s deja margen de
- * verdad sobre el peor caso del server.
+ * server para esta pregunta subió a 20s (ver el comentario grande en
+ * sommelier.service.js: "no pude pensar la respuesta ahora" salía seguido con
+ * la red andando bien, porque el presupuesto viejo de 12s no dejaba margen
+ * para el jitter normal). Con el mismo número de los dos lados, el cliente
+ * corta la espera en la línea de llegada, justo cuando el server todavía está
+ * terminando — reproducido en vivo con el número anterior: "Parece que te
+ * quedaste sin conexión" varias veces seguidas con la red andando bien,
+ * porque un timeout de axios no trae `error.response` y `mensajeDeError` lo
+ * confunde con eso. 25s deja el mismo margen real (5s) sobre el peor caso del
+ * server que tenía antes, ahora sobre el número nuevo.
  */
-const TIMEOUT_MS = 16000;
+const TIMEOUT_MS = 25000;
 
 export const preguntarAlSommelier = async (question, history = []) => {
   const { data } = await api.post(
