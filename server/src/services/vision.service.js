@@ -2,7 +2,12 @@
 // Devuelve datos estructurados a partir de la foto de la etiqueta.
 // Si no hay GEMINI_API_KEY, no está configurado y el controlador cae al OCR.
 
-const { generateJson, isGeminiConfigured } = require("./gemini.service");
+// Namespace y no destructuring: así el test puede reemplazar
+// `geminiService.generateJson` sin tocar Gemini de verdad — desestructurado,
+// este módulo se queda con su propia copia de la referencia y el mock de
+// afuera no le llega nunca (mismo motivo por el que wines.service.js importa
+// wineImages/winePrices/communityWines como objeto, no por partes).
+const geminiService = require("./gemini.service");
 const { FIELD_CONVENTION, composeDisplayName, canonicalGrape } = require("../data/wineIdentity");
 const { canonicalVarietal, checkCoherence } = require("../data/wineValidation");
 const { expandAbbreviation } = require("../data/grapes");
@@ -15,7 +20,7 @@ const TIMEOUT_MS = 12000;
 // petición colgada mientras seguimos quemando cuota.
 const BUDGET_MS = 22000;
 
-const isVisionConfigured = isGeminiConfigured;
+const isVisionConfigured = () => geminiService.isGeminiConfigured();
 
 /**
  * La tabla de abreviaturas vivía acá y ahora está en data/grapes.js, con el
@@ -166,11 +171,47 @@ const ubicarNombrePropio = (values) => {
 };
 
 /**
+ * ── UNA LETRA SUELTA NO ES UN NOMBRE: ES UNA LECTURA QUE SE CORTÓ ───────────
+ *
+ * Reportado en vivo: una etiqueta de "Tomero", en cursiva, se guardó con el
+ * nombre "T" — el modelo entregó esa única letra como su mejor lectura del
+ * nombre propio, y nada de lo que sigue (armar el nombre visible, guardar el
+ * vino) desconfiaba de que "T" fuera un dato real. El código no puede hacer
+ * que Gemini lea mejor una etiqueta cursiva, pero sí puede negarse a tratar
+ * una letra sola como si fuera el nombre de una botella — mismo principio
+ * que la uva no reconocida, dos funciones más abajo: la confianza que
+ * DECLARA el modelo no alcanza sola cuando lo que devolvió no pasa ni una
+ * verificación mínima de forma.
+ *
+ * Se VACÍA, no se degrada nomás la confianza: el problema acá no es "hay que
+ * verificarlo con más cuidado" (eso ya lo cubre `clampConfidence` para todo
+ * campo dudoso) — es que una sola letra no puede ser un nombre de vino bajo
+ * ninguna lectura, así que mostrarla, aunque sea en un campo editable, es
+ * mostrarle a la persona un dato que ya sabemos que está mal. Vacío cae en
+ * el mismo camino ya resuelto que una etiqueta sin nombre legible: "sin
+ * identificar", se completa a mano — nunca aparece la letra suelta en
+ * ningún lado de la pantalla de revisión.
+ *
+ * Sólo UNA letra, no dos: "V8" o "DV" son nombres reales cortos que sí vale
+ * la pena mostrar y dejar confirmar; una sola letra ("T", "M") no distingue
+ * ninguna botella de otra y en la práctica es siempre un corte de lectura,
+ * nunca la etiqueta real.
+ */
+const esLetraSuelta = (texto) => /^[a-zà-ÿ]$/i.test(String(texto || "").trim());
+
+const descartarLetraSuelta = (values) => ({
+  ...values,
+  name: esLetraSuelta(values.name) ? "" : values.name,
+  line: esLetraSuelta(values.line) ? "" : values.line,
+  winery: esLetraSuelta(values.winery) ? "" : values.winery,
+});
+
+/**
  * Analiza el buffer de imagen con Gemini y devuelve los datos de la etiqueta.
  * Lanza si falla (el controlador lo captura y cae al OCR).
  */
 const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
-  const parsed = await generateJson({
+  const parsed = await geminiService.generateJson({
     parts: [
       { text: PROMPT },
       {
@@ -194,15 +235,17 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   // modelo, guardada tal cual y mostrada en la ficha y en la búsqueda.
   const uva = canonicalVarietal(expandAbbreviation(parsed.varietal));
 
-  const values = ubicarNombrePropio({
-    winery: String(parsed.winery || "").trim(),
-    line: String(parsed.line || "").trim(),
-    name: String(parsed.name || "").trim(),
-    varietal: uva.value,
-    vintage: normalizeVintage(parsed.vintage),
-    region: String(parsed.region || "").trim(),
-    type: String(parsed.type || "unknown").trim() || "unknown",
-  });
+  const values = descartarLetraSuelta(
+    ubicarNombrePropio({
+      winery: String(parsed.winery || "").trim(),
+      line: String(parsed.line || "").trim(),
+      name: String(parsed.name || "").trim(),
+      varietal: uva.value,
+      vintage: normalizeVintage(parsed.vintage),
+      region: String(parsed.region || "").trim(),
+      type: String(parsed.type || "unknown").trim() || "unknown",
+    })
+  );
 
   const confidence = clampConfidence(parsed.confidence, values);
 
@@ -226,4 +269,16 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   };
 };
 
-module.exports = { isVisionConfigured, analyzeWineLabel };
+module.exports = {
+  isVisionConfigured,
+  analyzeWineLabel,
+  // `esLetraSuelta` también la usa labels.controller.js para el nombre que
+  // saca el OCR local (Tesseract): es el mismo riesgo ("Tomero" → "T") por
+  // el mismo motivo —una lectura de imagen que se corta—, así que necesita
+  // la misma guarda, no una copia. Las otras dos quedan exportadas sólo para
+  // el test: son la parte determinística de la lectura, la que no necesita
+  // llamar a Gemini para verificarse.
+  esLetraSuelta,
+  descartarLetraSuelta,
+  ubicarNombrePropio,
+};
