@@ -54,13 +54,25 @@ const { generateJson, isGeminiConfigured } = require("./gemini.service");
  *               reproducido en vivo: la MISMA pregunta, con la MISMA bodega,
  *               fallando por AbortError tres veces seguidas, no por mala
  *               suerte de Gemini. 6s deja casi el doble del peor caso medido.
- *   BUDGET_MS   12s en total (subió de 10). Con 6s por modelo, dos intentos
- *               completos —no uno y medio— entran justos en el presupuesto;
- *               bajarlo de nuevo a 10 volvería a dejar la cadena de cinco
- *               modelos con uno solo de verdad, que es el problema que esto
- *               existe para evitar. Sigue siendo el techo de lo que una
- *               persona espera sin creer que se rompió — dos segundos más que
- *               antes, no el doble.
+ *   BUDGET_MS   20s en total (subió de 12). Reportado en vivo, "muchas veces":
+ *               la guía contestaba "no pude pensar la respuesta ahora" con la
+ *               red andando bien. Medido en el momento — ocho preguntas
+ *               seguidas, misma bodega — dos de ocho tardaron 10,8s y 12,0s
+ *               de punta a punta, PARA UNA SOLA respuesta exitosa. Con 12s de
+ *               presupuesto total, cualquiera de esas dos hubiera sido el
+ *               ÚNICO intento posible: si ese modelo fallaba en vez de
+ *               responder lento, no quedaba tiempo para un segundo intento, y
+ *               la cadena entera de cinco modelos se reducía a uno. 20s deja
+ *               margen real para dos intentos completos de 6s CADA UNO más el
+ *               jitter que se acaba de medir, en vez de calzar los dos
+ *               "justos" y fallar con la primera demora real.
+ *
+ *               No sirve de nada solo, y por eso viene junto con otros dos
+ *               cambios: `TIMEOUT_MS` (client, sommelierApi.js) sube a la par
+ *               para no cortar la espera antes de que el server termine, y
+ *               `api/index.js` pasa a declarar `maxDuration` en Vercel — sin
+ *               eso, la plataforma mataba la función con SU propio default
+ *               (10s) antes de que este número llegara a importar.
  *   MAX_OUTPUT  260 tokens. Además de acotar el gasto, acorta la ESPERA: los
  *               modelos generan token a token, así que una respuesta que puede
  *               ser el doble de larga tarda el doble en terminar. Alcanzan de
@@ -68,7 +80,7 @@ const { generateJson, isGeminiConfigured } = require("./gemini.service");
  *               el prompt pide.
  */
 const TIMEOUT_MS = 6000;
-const BUDGET_MS = 12000;
+const BUDGET_MS = 20000;
 const MAX_OUTPUT_TOKENS = 260;
 
 /** Cuántos turnos de ida y vuelta viajan como contexto. */
