@@ -69,4 +69,25 @@ const sommelierDailyLimiter = rateLimit({
   },
 });
 
-module.exports = { aiLimiter, sommelierDailyLimiter };
+/**
+ * Techo DIARIO para escaneo y catálogo, por usuario. Es el mismo razonamiento
+ * que en `sommelierDailyLimiter`: 60 por hora frena un bucle, pero no a una
+ * sola cuenta que se pase el día entero gastando la cuota de todos.
+ * 150 por día son varias compras enteras escaneadas. Al llegar, la app puede
+ * seguir cargando vinos a mano; sólo se corta lo que gasta Gemini.
+ */
+const aiDailyLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 150,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      message:
+        "Llegaste al límite de escaneos y búsquedas por hoy. Mañana volvés a tener todos; mientras tanto podés cargar el vino a mano.",
+    });
+  },
+});
+
+module.exports = { aiLimiter, aiDailyLimiter, sommelierDailyLimiter };
