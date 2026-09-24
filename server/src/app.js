@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
+const mongoose = require("mongoose");
 
 const { corsOptions } = require("./config/cors");
 const authRoutes = require("./routes/auth.routes");
@@ -132,7 +133,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  // Sólo estado, nada de versiones, hosts ni nombres de base. `db` sirve para
+  // que un monitor externo distinga "el server vive" de "el server ve Mongo".
+  const dbUp = mongoose.connection.readyState === 1;
+  res.status(dbUp ? 200 : 503).json({ status: dbUp ? "ok" : "degraded", db: dbUp ? "up" : "down" });
 });
 
 app.use("/api/auth/login", loginLimiter);
