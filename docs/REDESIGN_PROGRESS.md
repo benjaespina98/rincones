@@ -80,7 +80,14 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 ## Fases
 
 - [x] **Fase 0 — Preparación.** Rama creada, línea base medida, este archivo.
-- [ ] **Fase 1 — Tokens y CSS**
+- [ ] **Fase 1 — Tokens y CSS** — en curso
+  - [x] Canales RGB, tres superficies, sombras en capas, bordes translúcidos.
+  - [x] Tokens por tipo de vino, con el hilo `data-wine-type`.
+  - [x] Corrección de contraste (`--text-subtle`, `--accent-text`).
+  - [x] Styleguide en `/styleguide`, solo en DEV. Verificado que no entra a `dist`.
+  - [x] Fuera los 11 bordes punteados.
+  - [ ] Migrar los 84 hex y 206 `rgba()` de las hojas a tokens.
+  - [ ] Unificar las 4 convenciones de carpeta CSS.
 - [ ] **Fase 2 — Componentes base**
 - [ ] **Fase 3 — Shell y navegación**
 - [ ] **Fase 4 — Mi Bodega**
@@ -90,6 +97,22 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 - [ ] **Fase 7 — Cierre**
 
 ---
+
+## Cosas del entorno que hacen perder tiempo
+
+**El backend no queda donde el cliente lo busca al levantar el preview.**
+`npm run dev` arranca los dos workspaces con `concurrently`, y el harness que
+lanza el preview exporta `PORT=5173` para Vite. Esa variable la hereda también
+el server, y como `server/src/server.js` hace `process.env.PORT || 4000`, gana
+la del entorno por encima del `PORT=4000` del `.env`: el backend anuncia 5173,
+que ya es de Vite, y el cliente le pega a 4000 sin encontrar a nadie. La app
+carga y muestra "No pudimos conectarnos".
+
+No es un problema del proyecto ni del rediseño. Para revisar pantallas que
+necesitan datos, levantar el server aparte con el puerto explícito.
+
+**Pantallas que se pueden revisar sin backend:** `/styleguide`, `/login`,
+`/register`. Para el resto hace falta el server arriba.
 
 ## Pendientes conocidos, ajenos a este trabajo
 
