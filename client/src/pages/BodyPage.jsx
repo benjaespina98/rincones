@@ -11,6 +11,7 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import WishlistPanel from "../components/WishlistPanel";
+import BodegaResumen from "../components/BodegaResumen";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { useWishlist } from "../hooks/useWishlist";
@@ -1001,6 +1002,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
           },
         ]}
       />
+
+      {/* Los números de lo que se está viendo. Va DESPUÉS del segmentado y
+          ANTES de las fichas de filtro a propósito: describe el resultado de
+          los dos, así que tiene que leerse como consecuencia de lo de arriba y
+          no como un encabezado suelto de la pantalla. */}
+      {!loading && !error && <BodegaResumen wines={filteredWines} />}
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (

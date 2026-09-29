@@ -1,0 +1,68 @@
+/* La tira de métricas de Mi Bodega. El criterio está en BodegaResumen.jsx. */
+
+.bres {
+  display: flex;
+  gap: var(--space-md);
+  /* Se desliza en vez de envolver: con cinco métricas en un teléfono angosto,
+     envolver las manda a una segunda fila y la cabecera empieza a comerse la
+     lista, que es a lo que se vino. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--card-pad-compact) 0;
+  /* Los márgenes negativos hacen que la tira llegue a los bordes de la pantalla
+     al desplazarse, en vez de cortarse contra el padding de la página: si no,
+     la última métrica se ve partida por un margen y parece un error. */
+  margin: 0 calc(var(--page-pad-x) * -1);
+  padding-inline: var(--page-pad-x);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bres::-webkit-scrollbar {
+  display: none;
+}
+
+.bres__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.bres__valor {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text);
+  /* Números de ancho fijo: sin esto, la tira se mueve sola cada vez que un
+     contador pasa de 9 a 10. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* La región es texto y no un número: más chica, para que no compita con los
+   números de al lado y para que un nombre largo no rompa la fila. */
+.bres__item--texto .bres__valor {
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  max-width: 13ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bres__etiqueta {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.bres__detalle {
+  color: var(--text-subtle);
+  font-weight: 500;
+}
