@@ -16,6 +16,7 @@ qué se decidió y por qué, y qué queda.
 | `npm run lint -w client` | limpio |
 | `npm run build` | OK |
 | Carga inicial | **≈118 kB gzip** — entry 71,9 + vendor 35,7 + CSS 9,9 |
+| Al cerrar la fase 2 | entry 72,2 + vendor 35,8 — **+0,4 kB** sobre la linea base |
 | Presupuesto | no pasar de **~143 kB gzip** (+25 kB) |
 | Literales de color fuera de `index.css` | **84 hex** y **206 `rgba()`** distintos |
 | Convenciones de carpeta CSS | 4 a la vez |
@@ -97,10 +98,14 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
   - [x] Segmented con indicador deslizante.
   - [x] WineArtwork con una forma por tipo (bordeaux, borgoña, champagne, oporto).
   - [x] Guarda `npm run check:tokens -w client`, ya en el CI.
-  - [ ] Skeletons con la forma real del contenido.
-  - [ ] EmptyState con una ilustracion por contexto.
-  - [ ] Sumar los componentes nuevos al styleguide.
-  - [ ] Adoptarlos en las pantallas (hoy conviven con los botones viejos).
+  - [x] EmptyIllustration: seis dibujos, uno por SITUACION (cava, copa,
+        favoritos, busqueda, diario, resenas).
+  - [x] EmptyState conectado, y los 18 usos migrados: no queda ningun `icon=`.
+  - [x] Los ocho componentes en el styleguide, con variantes Y estados.
+  - [x] Tests del BottomSheet (7), que encontraron un bug del filtro de foco.
+  - [ ] Skeletons afinados a la forma nueva de la tarjeta (las variantes ya
+        existen: card, detail, list, inline — falta ajustarlas, no crearlas).
+  - [ ] Adoptar Button/Card/Chip en las pantallas (hoy conviven con los viejos).
 - [ ] **Fase 3 — Shell y navegación**
 - [ ] **Fase 4 — Mi Bodega**
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
