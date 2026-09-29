@@ -1638,15 +1638,26 @@ export default function BodyPage({ initialFilter = "instock" }) {
                           hace falta este botón, o desmarcar un vino que
                           probaste por error dejaría de tener forma de
                           deshacerse. */}
+                      {/* ── UN BOTÓN DICE QUÉ HACE, NO QUÉ PASA ──────────────
+                          Este decía "Sin probar" con un tilde al lado, parado
+                          adentro de la pestaña "Probados". O sea: rotulaba un
+                          ESTADO, y encima el contrario del que el vino tiene —
+                          porque si está en esa lista, está probado. Quien lo
+                          leía tenía que adivinar si describía la fila o si era
+                          lo que iba a pasar al tocarlo.
+
+                          Ahora nombra la acción. El tilde también se va: un
+                          check refuerza "esto ya está hecho", que es justo lo
+                          contrario de deshacerlo. */}
                       {vista === "probados" && (
                         <button
-                          className="wine-action-btn is-active"
+                          className="wine-action-btn"
                           onClick={() => handleToggleTasted(wine)}
                           type="button"
                           disabled={isPending}
                         >
-                          <Icon name="check" size={16} />
-                          Sin probar
+                          <Icon name="refresh" size={16} />
+                          Desmarcar probado
                         </button>
                       )}
 

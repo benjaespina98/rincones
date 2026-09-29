@@ -120,17 +120,30 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
         superficie de Card) y brillo neutro en vez de violeta.
   - [x] Trampa de foco endurecida: ignora hidden, inert y disabled (8 tests).
   - [x] EmptyState y ErrorState adoptan Button.
-- [ ] **Fase 3 — Shell y navegación** — en curso
+- [x] **Fase 3 — Shell y navegación**
   - [x] Barra inferior con glass (con respaldo `@supports`) e indicador que se
         desliza; en escritorio se apaga y queda la marca vertical del sidebar.
   - [x] Título grande que colapsa: el grande vive en el contenido y se va con el
         scroll, el de la barra aparece por opacidad (`useHeaderCollapse`).
-  - [ ] Botón de cámara con más carácter y `--page-pad-bottom` revisado; fade en
-        el borde inferior de las listas.
-  - [ ] Transiciones de pantalla y shared-element de la foto al abrir una ficha
-        (evaluar View Transitions con fallback, sin librería).
-  - [ ] Feedback: corazón animado al marcar favorito, toasts con deshacer.
-- [ ] **Fase 4 — Mi Bodega**
+  - [x] Botón de cámara: halo de acento y anillo corregido (estaba al 92% de
+        opacidad contra una barra que ahora es glass al 62%).
+  - [x] Fade en el borde inferior, colgado de la barra y no del contenedor que
+        scrollea — ese no siempre es el que scrollea.
+  - [x] Base de transiciones con View Transitions (`utils/viewTransition.js`).
+        El shared-element de la foto queda sin cablear a propósito: las
+        tarjetas y la ficha se reescriben en las fases 4 y 5.
+  - [x] Toasts con deshacer: ya existían (`Toast` acepta `action` y
+        `action.secondary`). No se construye nada; se usa donde haga falta.
+- [ ] **Fase 4 — Mi Bodega** — en curso
+  - [x] Buscar/filtrar/ordenar a `utils/bodegaFiltros.js`, con 23 tests.
+  - [x] `utils/bodegaResumen.js` + `BodegaResumen`: cabecera de métricas de lo
+        que se está viendo.
+  - [x] Corregida la contradicción: el botón "Sin probar" dentro de la pestaña
+        Probados ahora dice "Desmarcar probado".
+  - [ ] Partir el JSX: `WineRow`/`WineCard` con React.memo, cabecera, barra de
+        selección, sheet de filtros. BodyPage sigue en ~1900 líneas.
+  - [ ] Filtros y orden en BottomSheet; toggle lista/grilla con animación.
+  - [ ] Entrada escalonada y swipe.
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
 - [ ] **Fase 5 — Ficha de vino unificada**
 - [ ] **Fase 6 — Estados faltantes**
