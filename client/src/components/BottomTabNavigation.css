@@ -28,6 +28,33 @@
   }
 }
 
+/* ── EL FADE DEL BORDE INFERIOR ──────────────────────────────────────────────
+   Sin esto, una lista larga se CORTA con un filo recto justo donde empieza la
+   barra: la última fila queda partida al medio y parece un error de recorte.
+   Con el degradado, el contenido se desvanece antes de llegar — que además es
+   la pista de que hay más abajo.
+
+   ── POR QUÉ CUELGA DE LA BARRA Y NO DEL CONTENEDOR QUE SCROLLEA ───────────
+   Lo natural sería un `mask-image` en `.app-content`. No sirve acá: ese
+   elemento NO siempre es el que scrollea —a veces desborda el documento— y en
+   ese caso la máscara se aplicaría al alto total del contenido en vez de al
+   borde de la pantalla, difuminando el final del documento y no lo que pasa
+   por debajo de la barra. Es la misma trampa que ya mordió en useSheet.
+
+   Colgado de la barra, que es `fixed`, el degradado siempre está donde tiene
+   que estar sin importar quién scrollee. `pointer-events: none` para que no se
+   coma los toques de la última fila. */
+.bottom-tabs-container::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / 0.72), transparent);
+}
+
 .bottom-tabs {
   position: relative;
   display: flex;
@@ -273,7 +300,9 @@
 
      Por eso el que se desliza se apaga y este se declara entero (incluido el
      `content`, que en teléfono lo ponía la regla base que ya no existe). */
-  .bottom-tabs__indicador {
+  .bottom-tabs__indicador,
+  /* En una columna no hay borde inferior contra el que se corte nada. */
+  .bottom-tabs-container::before {
     display: none;
   }
 

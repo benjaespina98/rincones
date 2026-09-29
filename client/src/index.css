@@ -888,3 +888,34 @@ img {
     --page-pad-bottom: 56px;
   }
 }
+
+/* ══ TRANSICIONES ENTRE PANTALLAS ══════════════════════════════════════════
+   Ver utils/viewTransition.js para el porqué de usar la API del navegador en
+   vez de una librería. Acá sólo se ajusta el tiempo: el default son 250 ms de
+   cross-fade, que en un teléfono se siente lento — una navegación tiene que
+   sentirse instantánea y la animación estar para suavizar el corte, no para
+   que se la mire. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* La foto que viaja de la tarjeta a la ficha. Un poco más lenta que el fondo:
+   es el elemento que cuenta de dónde viene la pantalla, y si va al mismo ritmo
+   que el cross-fade no se llega a leer el recorrido. */
+::view-transition-group(*) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* El guard de reduced-motion vive también en JS (la transición ni se inicia),
+   pero se repite acá por si algo la dispara por otro camino: una animación de
+   media pantalla es justo lo que le hace mal a quien activó esta preferencia. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
