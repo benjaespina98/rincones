@@ -1,6 +1,7 @@
 # Rediseño v2 — progreso
 
-Rama: `feat/redesign-v2`, sacada de `develop`. Sin push ni merge.
+Rama: `feat/redesign-v2`. Las fases 0 a 2 ya estan en `main` (PR #104 a develop,
+#105 a main); la rama se recreo desde ahi para seguir con las fases 3 a 7.
 
 Este archivo existe para poder retomar el trabajo en otra sesión: qué está hecho,
 qué se decidió y por qué, y qué queda.
@@ -141,7 +142,6 @@ necesitan datos, levantar el server aparte con el puerto explícito.
 
 ## Pendientes conocidos, ajenos a este trabajo
 
-- El merge `develop` → `main` quedó sin hacer (11 commits).
 - `DeleteAccountModal.jsx` sigue sin montar: `DELETE /api/users/me` es accesible
   solo por API, no desde el perfil.
 - El check de CI existe pero no bloquea hasta marcarlo como requerido en la
