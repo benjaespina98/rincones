@@ -14,8 +14,21 @@ import WishlistPanel from "../components/WishlistPanel";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { useWishlist } from "../hooks/useWishlist";
+// Sigue usándose para resaltar la coincidencia dentro de una fila (más abajo):
+// eso es presentación, no filtrado, y por eso no se fue con el resto.
 import { normalizeSearchText } from "../utils/text";
 import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
+// Buscar, filtrar y ordenar salieron de acá a un módulo propio: son funciones
+// puras con reglas que nacieron de bugs reportados, y adentro de este archivo
+// no se podían testear ni leer. Ver utils/bodegaFiltros.js.
+import {
+  terminosDe,
+  pasaBusqueda as pasaBusquedaDe,
+  pasaFiltros as pasaFiltrosDe,
+  opcionesDe,
+  ordenarVinos,
+  resultadosDe,
+} from "../utils/bodegaFiltros";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
@@ -301,29 +314,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
   // El error de carga se muestra en la pantalla (con reintento), no en un toast
   // que se va solo: si no, un fallo de red se confunde con "tu bodega está vacía".
 
-  const varietalOptions = useMemo(
-    () => [...new Set(wines.map((wine) => wine.varietal).filter(Boolean))].sort(),
-    [wines]
-  );
-  const regionOptions = useMemo(
-    () => [...new Set(wines.map((wine) => wine.region).filter(Boolean))].sort(),
-    [wines]
-  );
-  /**
-   * Las cosechas que tenés, de la más nueva a la más vieja.
-   *
-   * Faltaba, y es de las tres cosas por las que uno busca una botella (uva,
-   * región, año). Se podía escribir "2019" en el buscador —el año entró al
-   * haystack— pero eso no es lo mismo: escribir no te dice QUÉ años tenés, y
-   * acá la lista es la respuesta a esa pregunta antes de filtrar nada.
-   */
-  const vintageOptions = useMemo(
-    () =>
-      [...new Set(wines.map((wine) => wine.vintage).filter(Boolean))]
-        .sort((a, b) => b - a)
-        .map(String),
-    [wines]
-  );
+  // Las tres listas de opciones salen de una sola pasada. Ver `opcionesDe`.
+  const opciones = useMemo(() => opcionesDe(wines), [wines]);
+  const varietalOptions = opciones.varietales;
+  const regionOptions = opciones.regiones;
+  const vintageOptions = opciones.cosechas;
 
   /**
    * Un filtro guardado que ya no existe se descarta solo.
@@ -354,46 +349,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * vino. Estaban adentro del filtro, así que con 300 vinos se normalizaba y
    * partía el mismo string 300 veces en cada pulsación.
    */
-  const terms = useMemo(
-    () => normalizeSearchText(searchTerm).split(/\s+/).filter(Boolean),
-    [searchTerm]
-  );
+  const terms = useMemo(() => terminosDe(searchTerm), [searchTerm]);
 
-  /** Búsqueda y facetas (tipo, varietal, región). */
+  /** Búsqueda y facetas (tipo, varietal, región, cosecha). Ver bodegaFiltros.js. */
   const pasaBusqueda = useCallback(
-    (wine) => {
-      // Cada palabra tiene que aparecer en ALGÚN campo, no la frase entera en
-      // uno solo: así "rutini 2019" y "malbec uco" encuentran lo que
-      // corresponde, cosa que antes fallaba porque se buscaba el texto
-      // completo dentro de un único campo.
-      const haystack = [
-        wine.name,
-        wine.region,
-        wine.winery,
-        wine.varietal,
-        wine.notes,
-        // Faltaban los dos: buscar "2019" o "tinto" en tu propia bodega no
-        // devolvía nada, aunque son de las primeras cosas que uno escribe.
-        wine.vintage,
-        WINE_TYPE_LABELS[wine.type],
-        // Y estos tres tampoco estaban. Son las otras tres maneras en que uno se
-        // acuerda de una botella cuando no le viene el nombre: dónde la guardó
-        // ("heladera"), dónde la compró ("carrefour") y en qué estante la dejó.
-        wine.cellar?.location,
-        wine.purchase?.store,
-      ]
-        .map(normalizeSearchText)
-        .join(" ");
-
-      if (!terms.every((term) => haystack.includes(term))) return false;
-      if (tipoFilter !== "all" && wine.type !== tipoFilter) return false;
-      if (varietalFilter !== "all" && wine.varietal !== varietalFilter) return false;
-      if (regionFilter !== "all" && wine.region !== regionFilter) return false;
-      // El año se compara como texto porque la opción viene del combo, que
-      // maneja strings; el vino lo guarda como número.
-      if (vintageFilter !== "all" && String(wine.vintage || "") !== vintageFilter) return false;
-      return true;
-    },
+    (wine) =>
+      pasaBusquedaDe(wine, terms, {
+        tipo: tipoFilter,
+        varietal: varietalFilter,
+        region: regionFilter,
+        vintage: vintageFilter,
+      }),
     [terms, tipoFilter, varietalFilter, regionFilter, vintageFilter]
   );
 
@@ -410,13 +376,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const enLaVista = useCallback((wine) => pasaVista(vista, wine), [vista]);
 
   const pasaFiltros = useCallback(
-    (wine) => {
-      // "Favoritos" ya no es un filtro combinable: es su propia vista (ver
-      // VISTA_DESEOS en cellarViews.js), mismo trato que "Probados".
-      if (probado !== null && Boolean(wine.tasted) !== probado) return false;
-      if (soloListos && getCellarStatus(wine).status !== "peak") return false;
-      return true;
-    },
+    (wine) => pasaFiltrosDe(wine, { probado, soloListos }),
     [probado, soloListos]
   );
 
@@ -439,14 +399,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * visible —tiene su ficha con la × al lado— y pasarlo por alto sería
    * desobedecer. La vista, en cambio, casi siempre es la que quedó de antes.
    */
-  const resultados = useMemo(() => {
-    const conFiltros = wines.filter((w) => pasaFiltros(w) && pasaBusqueda(w));
-    const enVista = conFiltros.filter(enLaVista);
-    if (terms.length > 0 && enVista.length === 0 && conFiltros.length > 0) {
-      return { lista: conFiltros, ampliada: true };
-    }
-    return { lista: enVista, ampliada: false };
-  }, [wines, enLaVista, pasaFiltros, pasaBusqueda, terms]);
+  const resultados = useMemo(
+    () =>
+      resultadosDe(wines, {
+        terms,
+        enLaVista,
+        pasa: (w) => pasaFiltros(w) && pasaBusqueda(w),
+      }),
+    [wines, enLaVista, pasaFiltros, pasaBusqueda, terms]
+  );
 
   const filteredWines = resultados.lista;
 
@@ -486,52 +447,18 @@ export default function BodyPage({ initialFilter = "instock" }) {
     [effectiveGroupBy]
   );
 
-  const sortedWines = useMemo(() => {
-    const porOrden = (a, b) => {
-      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
-      if (sortBy === "year") return (b.vintage || 0) - (a.vintage || 0);
-      // Más cara primero, como "Mejor puntuados" pone la nota más alta primero.
-      // Sin precio cargado queda al final: no es una botella barata, es un dato
-      // que falta, y las dos cosas no pueden verse igual en la lista.
-      if (sortBy === "price") return (b.purchase?.price || 0) - (a.purchase?.price || 0);
-      if (sortBy === "name") return wineDisplayName(a).localeCompare(wineDisplayName(b), "es");
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    };
-
-    /**
-     * El stock manda antes que el orden elegido.
-     *
-     * Mi Bodega responde "¿qué tengo para tomar?". En las vistas que mezclan
-     * —"Todos", un tipo de uva, favoritos— lo que ya se te terminó quedaba
-     * intercalado entre lo que sí tenés, así que con 300 vinos había que ir
-     * salteando botellas vacías para encontrar una llena. Lo vacío no desaparece
-     * —sigue siendo parte de tu colección— pero deja de ser protagonista: baja al
-     * final, siempre.
-     *
-     * En "En stock" no cambia nada, porque ahí están todos llenos. Y los recién
-     * tocados también caen al final, que es justo donde corresponde que quede un
-     * vino que acabás de vaciar.
-     */
-    const conStockPrimero = (a, b) => {
-      const sa = Number(a.quantity) > 0 ? 0 : 1;
-      const sb = Number(b.quantity) > 0 ? 0 : 1;
-      if (sa !== sb) return sa - sb;
-      return porOrden(a, b);
-    };
-
-    // Con agrupación activa hay que ordenar PRIMERO por grupo: si no, los vinos
-    // de cada grupo quedan intercalados y el corte salta en cada cambio —con 92
-    // vinos aparecían 35 encabezados repitiendo "Tinto / Blanco / Tinto".
-    // El orden elegido sigue mandando, pero adentro de cada sección.
-    if (effectiveGroupBy === "none") return [...filteredWines].sort(conStockPrimero);
-
-    return [...filteredWines].sort((a, b) => {
-      const ga = groupOf(a) || "";
-      const gb = groupOf(b) || "";
-      if (ga !== gb) return ga.localeCompare(gb, "es");
-      return conStockPrimero(a, b);
-    });
-  }, [filteredWines, sortBy, effectiveGroupBy, groupOf]);
+  /**
+   * El orden vive en bodegaFiltros.js: el stock manda sobre el orden elegido, y
+   * el grupo sobre los dos. Las dos reglas y su porque estan alla, con tests.
+   */
+  const sortedWines = useMemo(
+    () =>
+      ordenarVinos(filteredWines, {
+        sortBy,
+        groupOf: effectiveGroupBy === "none" ? null : groupOf,
+      }),
+    [filteredWines, sortBy, effectiveGroupBy, groupOf]
+  );
 
   // Cuántos vinos tiene cada grupo, para poder mostrarlo en el encabezado
   // incluso cuando la sección está plegada. Se cuenta sobre el total del filtro,
