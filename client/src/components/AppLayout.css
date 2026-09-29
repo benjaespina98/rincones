@@ -55,14 +55,19 @@
   }
 }
 
+/* ── EL ECO DE LA BARRA ──────────────────────────────────────────────────────
+   Arranca invisible y aparece cuando el titulo grande ya se fue con el scroll.
+   Solo opacidad y un desplazamiento chico: nada de tamaño de fuente ni de alto
+   de barra, que obligarian a recalcular layout en cada cuadro mientras el dedo
+   arrastra.
+
+   `visibility` ademas de opacidad para que, invisible, no se pueda seleccionar
+   ni quede en el arbol de accesibilidad como texto suelto. */
 .app-topbar__title {
   flex: 1;
   min-width: 0;
   margin: 0;
-  /* El título de sección de una app, no el h1 de una página web: el h1 global
-     (index.css) llega hasta 2.8rem, que en un teléfono ocupa dos renglones y
-     empuja el contenido real fuera de la primera pantalla. */
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   line-height: 1.25;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -70,6 +75,29 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast),
+    visibility var(--transition-fast);
+}
+
+.app-topbar.is-compacto .app-topbar__title {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* ── EL TITULO GRANDE ────────────────────────────────────────────────────────
+   El encabezado real de la pantalla. Vive en el contenido, asi que se va solo
+   con el scroll — no hay que animarlo ni medirlo. */
+.app-hero-title {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-display);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
 /* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa

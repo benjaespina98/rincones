@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
+import { useHeaderCollapse } from "../hooks/useHeaderCollapse";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
@@ -31,6 +32,21 @@ const AppLayout = ({ children, pageTitle }) => {
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
   useKeyboardInset();
+  /**
+   * ── EL TÍTULO GRANDE VIVE EN EL CONTENIDO, NO EN LA BARRA ─────────────────
+   *
+   * Es el patrón de iOS, y acá además resuelve una restricción: el título
+   * grande se va con el scroll solo, porque es contenido, y el de la barra
+   * aparece por OPACIDAD. No hay que animar ni el alto de la barra ni el
+   * tamaño de la fuente — las dos cosas obligarían al navegador a recalcular
+   * layout en cada cuadro mientras el dedo arrastra, que es justo lo que no se
+   * puede hacer en un teléfono.
+   *
+   * El `h1` es el grande: es el encabezado real de la pantalla y el que tiene
+   * que leer un lector. El de la barra es un eco decorativo, y por eso va como
+   * `span` con `aria-hidden` — si fuera otro `h1` la pantalla tendría dos.
+   */
+  const compacto = useHeaderCollapse();
 
   // Los controles de volver sólo tienen sentido en pantallas de detalle;
   // en las pestañas principales la navegación es el propio tab bar.
@@ -52,7 +68,7 @@ const AppLayout = ({ children, pageTitle }) => {
 
   return (
     <div className="app-layout">
-      <header className="app-topbar">
+      <header className={`app-topbar ${compacto ? "is-compacto" : ""}`}>
         {isSubScreen && (
           <button
             className="app-topbar__nav-btn"
@@ -68,7 +84,11 @@ const AppLayout = ({ children, pageTitle }) => {
           </button>
         )}
 
-        <h1 className="app-topbar__title">{pageTitle}</h1>
+        {/* El eco de la barra: aparece cuando el grande ya se fue. Decorativo,
+            porque el encabezado de verdad es el h1 de abajo. */}
+        <span className="app-topbar__title" aria-hidden="true">
+          {pageTitle}
+        </span>
 
         {/* Tocar el avatar lleva a la sección de perfil a pantalla completa
             (no un desplegable): configuración y cerrar sesión viven ahí. */}
@@ -104,6 +124,7 @@ const AppLayout = ({ children, pageTitle }) => {
       {/* key por ruta: al navegar, el contenido se remonta y hace un fade-in
           sutil (transición de página, sin librería). */}
       <main key={location.pathname} className="app-content app-content--with-topbar app-content--enter">
+        <h1 className="app-hero-title">{pageTitle}</h1>
         {children}
       </main>
       <BottomTabNavigation />
