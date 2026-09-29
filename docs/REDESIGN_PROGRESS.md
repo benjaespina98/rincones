@@ -80,15 +80,27 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 ## Fases
 
 - [x] **Fase 0 — Preparación.** Rama creada, línea base medida, este archivo.
-- [ ] **Fase 1 — Tokens y CSS** — en curso
+- [x] **Fase 1 — Tokens y CSS**
   - [x] Canales RGB, tres superficies, sombras en capas, bordes translúcidos.
   - [x] Tokens por tipo de vino, con el hilo `data-wine-type`.
   - [x] Corrección de contraste (`--text-subtle`, `--accent-text`).
   - [x] Styleguide en `/styleguide`, solo en DEV. Verificado que no entra a `dist`.
   - [x] Fuera los 11 bordes punteados.
-  - [ ] Migrar los 84 hex y 206 `rgba()` de las hojas a tokens.
-  - [ ] Unificar las 4 convenciones de carpeta CSS.
-- [ ] **Fase 2 — Componentes base**
+    - [x] Migrados los literales: **84 hex -> 4** y **206 rgba -> 4**. Los 8 que
+        quedan son excepciones con su comentario (Spotify, Mercado Libre, y la
+        hoja de impresion, que es el unico lugar con el contraste al reves).
+  - [x] Unificadas las 4 convenciones: `components/` 31, `pages/` 16,
+        `styles/shared/` 6.
+- [ ] **Fase 2 — Componentes base** — en curso
+  - [x] Button, Card, Chip, WineTypeBadge, BottomSheet.
+  - [x] useSheet con trampa de foco (Tab que cicla).
+  - [x] Segmented con indicador deslizante.
+  - [x] WineArtwork con una forma por tipo (bordeaux, borgoña, champagne, oporto).
+  - [x] Guarda `npm run check:tokens -w client`, ya en el CI.
+  - [ ] Skeletons con la forma real del contenido.
+  - [ ] EmptyState con una ilustracion por contexto.
+  - [ ] Sumar los componentes nuevos al styleguide.
+  - [ ] Adoptarlos en las pantallas (hoy conviven con los botones viejos).
 - [ ] **Fase 3 — Shell y navegación**
 - [ ] **Fase 4 — Mi Bodega**
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
@@ -97,6 +109,14 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 - [ ] **Fase 7 — Cierre**
 
 ---
+
+## La guarda de tokens
+
+`npm run check:tokens -w client` verifica que todo `var(--x)` usado en las hojas
+este declarado. Existe por un bug propio: `--bg-rgb` y `--bg-deep-rgb` se usaban
+y nunca se declararon. Un token sin declarar **no da error** — el navegador
+descarta la regla en silencio y el estilo desaparece, sin rastro en consola y sin
+que se note mirando la pantalla. Ya corre en el CI.
 
 ## Cosas del entorno que hacen perder tiempo
 
