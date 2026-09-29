@@ -6,7 +6,7 @@ import { getCellarReady } from "../services/wineApi";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { getCellarStatus } from "../utils/cellarStatus";
 import { tapHaptic } from "../utils/haptics";
-import "../styles/components/CellarReady.css";
+import "./CellarReady.css";
 
 /**
  * "Listos para abrir": los vinos TUYOS que están en su mejor momento.

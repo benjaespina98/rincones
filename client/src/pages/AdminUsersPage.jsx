@@ -7,7 +7,7 @@ import ErrorState from "../components/ErrorState";
 import AdminPager from "../components/AdminPager";
 import Dropdown from "../components/Dropdown";
 import Icon from "../components/Icon";
-import "./styles/AdminUsersPage.css";
+import "./AdminUsersPage.css";
 
 const SORT_OPTIONS = [
   { value: "createdAt:desc", label: "Alta: más nuevos" },

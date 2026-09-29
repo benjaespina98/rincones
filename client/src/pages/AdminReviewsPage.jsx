@@ -7,7 +7,7 @@ import ErrorState from "../components/ErrorState";
 import StarRating from "../components/StarRating";
 import Icon from "../components/Icon";
 import { avatarColor } from "../utils/identity";
-import "./styles/AdminReviewsPage.css";
+import "./AdminReviewsPage.css";
 
 const RATING_FILTERS = [
   { value: "", label: "Todas" },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon from "./Icon";
-import "../styles/components/CollapsibleSection.css";
+import "./CollapsibleSection.css";
 
 /**
  * Una sección que se abre.

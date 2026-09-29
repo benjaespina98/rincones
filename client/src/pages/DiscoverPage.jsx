@@ -30,7 +30,7 @@ import ErrorState from "../components/ErrorState";
    hooks/usePromoMetrics.js para no perderse con él. */
 import { getPromotions } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
-import "../styles/pages/DiscoverPage.css";
+import "./DiscoverPage.css";
 
 // Atajos rápidos para arrancar la búsqueda sin escribir. Son pocos a propósito:
 // nueve ocupaban tres filas y empujaban el vino del día fuera de la pantalla,

@@ -2,8 +2,8 @@ import Icon from "./Icon";
 import Portal from "./Portal";
 import ConceptTerm from "./ConceptTerm";
 import { useSheet } from "../hooks/useSheet";
-import "../styles/components/SettingsSheet.css";
-import "../styles/components/WinePlan.css";
+import "../styles/shared/SettingsSheet.css";
+import "../styles/shared/WinePlan.css";
 
 /**
  * La hoja de una receta. Vivía sólo adentro de `WinePlan` (la ficha del

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import Portal from "./Portal";
-import "../styles/components/PhotoLightbox.css";
+import "./PhotoLightbox.css";
 
 /**
  * La foto, a pantalla completa.

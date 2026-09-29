@@ -17,7 +17,7 @@ import {
   revokeReportLink,
 } from "../services/promotionsApi";
 import { cantidad, diaCorto } from "../utils/format";
-import "./styles/AdminPromotionsPage.css";
+import "./AdminPromotionsPage.css";
 
 /**
  * El gestor de campañas del espacio destacado.

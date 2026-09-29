@@ -1,4 +1,4 @@
-import "../styles/components/WineArtwork.css";
+import "./WineArtwork.css";
 
 // Color del "líquido" según el tipo de vino. Reemplaza al 🍷 genérico por un
 // placeholder que se ve intencional cuando el vino no tiene foto.

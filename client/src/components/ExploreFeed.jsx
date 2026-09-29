@@ -1,6 +1,6 @@
 import TrackedCard from "./TrackedCard";
 import DailyLesson from "./DailyLesson";
-import "../styles/components/DiscoverSections.css";
+import "../styles/shared/DiscoverSections.css";
 
 /**
  * "Aprendé y explorá": un feed mixto, no una lista de enlaces.

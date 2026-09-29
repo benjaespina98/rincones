@@ -6,7 +6,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
 import { useToast } from "../context/ToastContext";
-import "../styles/components/WishlistPanel.css";
+import "./WishlistPanel.css";
 
 /**
  * La mitad de "Favoritos" que sale de la wishlist: los vinos que te gustan y

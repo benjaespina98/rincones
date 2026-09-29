@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Icon from "../components/Icon";
 import { getPublicReport } from "../services/promotionsApi";
 import { NUM, diaCorto } from "../utils/format";
-import "./styles/PromoReportPage.css";
+import "./PromoReportPage.css";
 
 /**
  * El informe que abre el anunciante con su enlace.

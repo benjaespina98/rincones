@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Portal from "./Portal";
 import Icon from "./Icon";
 import { wineDisplayName } from "../utils/wineIdentity";
-import "../styles/components/OpenBottleSheet.css";
+import "./OpenBottleSheet.css";
 
 /**
  * "Abrí una botella", dicho entero antes de hacerlo.

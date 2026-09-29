@@ -5,8 +5,8 @@ import WineRecipeSheet from "./WineRecipeSheet";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
 import { planTitle } from "../utils/momentCopy";
 import { getWineRecipe } from "../services/wineSearchApi";
-import "../styles/components/SettingsSheet.css";
-import "../styles/components/WinePlan.css";
+import "../styles/shared/SettingsSheet.css";
+import "../styles/shared/WinePlan.css";
 
 /**
  * El plan: qué hacer con esta botella.

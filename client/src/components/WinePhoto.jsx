@@ -1,6 +1,6 @@
 import { useState } from "react";
 import WineArtwork from "./WineArtwork";
-import "../styles/components/WinePhoto.css";
+import "./WinePhoto.css";
 
 /**
  * Foto de un vino con placeholder anti-flicker.

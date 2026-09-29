@@ -6,7 +6,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
 import EmptyState from "./EmptyState";
 import { getMyReviews } from "../services/reviewApi";
-import "../styles/components/MyRatings.css";
+import "./MyRatings.css";
 
 /**
  * La lista de lo que puntuaste.

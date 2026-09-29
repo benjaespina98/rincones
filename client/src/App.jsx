@@ -15,7 +15,7 @@ import "./App.css";
 // independientes: lo duplicaba entero en los dos, así que alguien que visitara
 // las dos pantallas en una sesión bajaba el mismo CSS dos veces. Importarla acá,
 // en el bundle principal que ya se carga siempre, la deja en un solo lugar.
-import "./styles/pages/WineDetailPage.css";
+import "./styles/shared/WineDetailPage.css";
 
 // Páginas cargadas de forma diferida para achicar el bundle inicial.
 const LoginPage = lazy(() => import("./pages/LoginPage"));

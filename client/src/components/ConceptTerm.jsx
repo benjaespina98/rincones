@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ConceptSheet from "./ConceptSheet";
 import { CONCEPTS } from "../data/wineConcepts";
-import "../styles/components/ConceptTerm.css";
+import "../styles/shared/ConceptTerm.css";
 
 /**
  * Una palabra que se puede tocar para saber qué significa.

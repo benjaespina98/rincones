@@ -22,7 +22,7 @@ import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
-import "../styles/pages/BodyPage.css";
+import "./BodyPage.css";
 
 /**
  * ── POR QUÉ LOS FILTROS SE SEPARARON EN EJES ────────────────────────────────

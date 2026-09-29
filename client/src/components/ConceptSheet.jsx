@@ -3,8 +3,8 @@ import Icon from "./Icon";
 import Portal from "./Portal";
 import { useSheet } from "../hooks/useSheet";
 import { CONCEPTS, conceptAnchor } from "../data/wineConcepts";
-import "../styles/components/SettingsSheet.css";
-import "../styles/components/ConceptTerm.css";
+import "../styles/shared/SettingsSheet.css";
+import "../styles/shared/ConceptTerm.css";
 
 /**
  * La hoja que explica un concepto. Sólo el panel: quién la abre es problema de

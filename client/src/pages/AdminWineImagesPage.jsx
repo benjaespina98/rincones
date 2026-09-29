@@ -7,7 +7,7 @@ import WinePhoto from "../components/WinePhoto";
 import ImagePicker from "../components/ImagePicker";
 import AdminPager from "../components/AdminPager";
 import Icon from "../components/Icon";
-import "./styles/AdminWineImagesPage.css";
+import "./AdminWineImagesPage.css";
 
 /** Misma clave que arma el pool en el server (nombre + bodega + uva). Sólo
  * para identificar qué fila se está editando del lado del cliente — la
