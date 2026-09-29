@@ -660,7 +660,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const hayRecorte = Boolean(searchTerm.trim()) || filtrosActivos.length > 0;
     if (hayRecorte) {
       return {
-        icon: "search",
+        illustration: "busqueda",
         title: "Sin resultados",
         hint: "Probá limpiando la búsqueda o cambiando los filtros.",
         actionLabel: "Limpiar filtros",
@@ -672,7 +672,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
     if (vista === "probados") {
       return {
-        icon: "check",
+        illustration: "copa",
         title: "Todavía no abriste ninguna botella",
         hint: "Los vinos que tomes van a aparecer acá.",
         actionLabel: "Ver lo que tenés",
@@ -681,7 +681,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
     if (vista === "instock") {
       return {
-        icon: "bottle",
+        illustration: "cava",
         title: "No te queda ninguna botella",
         // Lo que tomaste no se perdió: está en Probados. Decirlo acá es lo que
         // evita pensar que la app borró algo, y ahora además se puede ir de un
@@ -701,7 +701,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     // wishlist, que tiene su propio vacío si también está vacía) — lo único
     // que no hay es un vino tuyo con el corazón puesto.
     return {
-      icon: "heart",
+      illustration: "favoritos",
       title: "Ningún vino con el corazón puesto",
       hint: "Marcá un favorito desde Mi Bodega y aparece acá.",
       actionLabel: "Ver lo que tenés",
@@ -1773,7 +1773,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           se explica solo ahí. */}
       {!loading && !error && wines.length === 0 && !enFavoritos && (
         <EmptyState
-          icon="bottle"
+          illustration="cava"
           title="Todavía no cargaste ningún vino"
           hint="Escaneá la etiqueta y completamos los datos."
           actionLabel="Escanear una etiqueta"

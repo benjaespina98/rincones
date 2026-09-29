@@ -234,7 +234,7 @@ const AdminUsersPage = () => {
 
       {!loading && !error && users.length === 0 && (
         <EmptyState
-          icon="search"
+          illustration="busqueda"
           title="Sin resultados"
           hint={query ? `Nadie coincide con “${query}”.` : "Todavía no hay usuarios registrados."}
           compact

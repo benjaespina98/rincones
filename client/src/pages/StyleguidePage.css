@@ -179,3 +179,38 @@
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
+
+/* ── Piezas del styleguide para la sección de componentes ── */
+
+.sg__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.sg__botellas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-md);
+}
+
+.sg__botella {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-base);
+  text-align: center;
+}
+
+/* Las botellas necesitan alto propio: WineArtwork llena el contenedor. */
+.sg__botella .wine-artwork {
+  width: 92px;
+  height: 108px;
+  border-radius: var(--radius-md);
+}

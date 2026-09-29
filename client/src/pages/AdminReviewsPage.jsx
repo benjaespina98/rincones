@@ -115,7 +115,7 @@ const AdminReviewsPage = () => {
 
       {!loading && !error && reviews.length === 0 && (
         <EmptyState
-          icon="chat"
+          illustration="resenas"
           title={query || maxRating ? "Sin resultados" : "Todavía no hay reseñas"}
           hint={
             query

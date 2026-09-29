@@ -45,6 +45,32 @@ export function useSheet(onClose, { enabled = true } = {}) {
   useEffect(() => {
     if (!enabled) return undefined;
 
+    /**
+     * ¿Está oculto?
+     *
+     * Una sección plegada tiene controles en el DOM que no se ven, y tabular
+     * hacia ellos es perder el foco igual que perderlo fuera del panel.
+     *
+     * ── POR QUÉ NO SE MIDE CON offsetWidth ──────────────────────────────────
+     * Era lo primero que se probó y está mal por dos motivos. Uno práctico: en
+     * un entorno sin layout —jsdom, o sea los tests— todo mide cero, así que el
+     * filtro se comía la lista entera y la trampa de foco quedaba sin candidatos
+     * justo donde se la quería verificar. Y otro de criterio: medir el tamaño
+     * confunde "oculto" con "todavía no se calculó el layout", que no es lo
+     * mismo.
+     *
+     * `display` y `visibility` se resuelven sin layout y dicen exactamente lo
+     * que hace falta. Lo que este chequeo NO ve —un padre con alto cero y
+     * overflow oculto— cae del lado seguro: incluir un control de más sólo
+     * agrega una parada en el ciclo; excluirlo de más lo deja inalcanzable.
+     */
+    const oculto = (el) => {
+      const vista = el.ownerDocument?.defaultView;
+      if (!vista) return false;
+      const cs = vista.getComputedStyle(el);
+      return cs.display === "none" || cs.visibility === "hidden";
+    };
+
     /** Lo que puede recibir foco HOY dentro del panel, en orden de tabulación. */
     const enfocables = () => {
       const panel = panelRef.current;
@@ -53,15 +79,7 @@ export function useSheet(onClose, { enabled = true } = {}) {
         ...panel.querySelectorAll(
           'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
         ),
-      ].filter(
-        (el) =>
-          !el.disabled &&
-          el.getAttribute("aria-hidden") !== "true" &&
-          // Descarta lo que está oculto: una sección plegada tiene controles en
-          // el DOM que no se ven, y tabular hacia ellos es perder el foco igual
-          // que perderlo fuera del panel.
-          (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement)
-      );
+      ].filter((el) => !el.disabled && el.getAttribute("aria-hidden") !== "true" && !oculto(el));
     };
 
     const alTeclear = (e) => {

@@ -198,6 +198,17 @@ html {
   border: 1px solid var(--line-accent);
 }
 
+/* ── LA ILUSTRACIÓN NO VA EN UN CÍRCULO ────────────────────────────────────
+   El ícono viejo vivía adentro de una pastilla teñida de 84 px porque solo no
+   se sostenía: era un glifo de 34 px flotando. Una ilustración de 116 px con
+   su propia composición no necesita marco — ponerle uno la encierra y suma una
+   forma más a una pantalla cuyo problema es que no tiene nada.
+
+   Va con un respiro abajo y nada más. Ver EmptyIllustration.jsx. */
+.empty-state__ilu {
+  margin-bottom: 2px;
+}
+
 .empty-state--compact .empty-icon {
   width: 56px;
   height: 56px;

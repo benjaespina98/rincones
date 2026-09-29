@@ -74,7 +74,7 @@ export default function MyRatings() {
   if (reviews.length === 0) {
     return (
       <EmptyState
-        icon="star"
+        illustration="resenas"
         title="Todavía no puntuaste ningún vino"
         hint="Las estrellas están en la ficha de cada botella, arriba de tus momentos."
       />

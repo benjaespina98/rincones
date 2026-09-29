@@ -128,14 +128,14 @@ export default function WishlistPanel({
     // que haber buscado algo que no está en la lista.
     return buscando ? (
       <EmptyState
-        icon="search"
+        illustration="busqueda"
         title="Ninguno de tus guardados coincide"
         actionLabel="Limpiar búsqueda"
         onAction={onLimpiarBusqueda}
       />
     ) : (
       <EmptyState
-        icon="heart"
+        illustration="favoritos"
         title="Todavía no guardaste ningún vino"
         hint="Guardá los que quieras probar y quedan acá."
         actionLabel="Descubrir vinos"

@@ -361,7 +361,7 @@ export default function DiscoverPage() {
 
           {!searchLoading && searched && !searchFailed && searchResults.length === 0 && (
             <EmptyState
-              icon="search"
+              illustration="busqueda"
               title={`Sin resultados para “${query.trim()}”`}
               hint="Probá con el nombre de la bodega."
               actionLabel="Escanear etiqueta"
@@ -536,7 +536,7 @@ export default function DiscoverPage() {
       {!buscando && !loading && !loadFailed && !spotlight && (
         stats?.totals?.total === 0 ? (
           <EmptyState
-            icon="bottle"
+            illustration="cava"
             title="Todavía no cargaste ningún vino"
             hint="Con los primeros, las recomendaciones se ajustan a lo que tomás."
             actionLabel="Escanear una etiqueta"
@@ -545,7 +545,7 @@ export default function DiscoverPage() {
           />
         ) : (
           <EmptyState
-            icon="search"
+            illustration="busqueda"
             title="No hay recomendaciones ahora"
             hint="Probá buscando un vino."
             compact

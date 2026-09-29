@@ -251,7 +251,7 @@ const AdminWineImagesPage = () => {
 
       {!loading && !error && results.length === 0 && (
         <EmptyState
-          icon="image"
+          illustration="busqueda"
           title="Sin resultados"
           hint={
             query
@@ -290,7 +290,7 @@ const AdminWineImagesPage = () => {
           {!aiLoading && aiError && <ErrorState title="No se pudo buscar" onRetry={buscarConIA} compact />}
 
           {!aiLoading && aiResults && aiResults.length === 0 && (
-            <EmptyState icon="search" title="La IA tampoco lo encontró" compact />
+            <EmptyState illustration="busqueda" title="La IA tampoco lo encontró" compact />
           )}
 
           {!aiLoading && aiResults && aiResults.length > 0 && (

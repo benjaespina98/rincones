@@ -1,0 +1,23 @@
+/* Ilustraciones de estado vacío. El criterio está en EmptyIllustration.jsx. */
+
+.empty-ilu {
+  display: block;
+  /* El trazo hereda de acá: el dibujo entero es del color más tenue de la
+     escala de texto, porque un vacío no tiene que pedir atención. */
+  color: var(--text-subtle);
+}
+
+/* ── EL ÚNICO COLOR DEL DIBUJO ──────────────────────────────────────────────
+   Un solo acento por ilustración, y siempre sobre la parte que explica QUÉ
+   falta: la botella en la cava, el "más" adentro del corazón, la lupa. Si se
+   colorea todo, el vacío empieza a competir con la acción que tiene al lado,
+   que es lo único que la persona tiene que ver ahí. */
+.empty-ilu__acento {
+  color: var(--accent-text);
+}
+
+/* Dentro de un contexto con tipo de vino —una ficha, una tarjeta— el acento se
+   suma al hilo en vez de meter un violeta que no viene de ningún lado. */
+[data-wine-type] .empty-ilu__acento {
+  color: var(--type-accent);
+}
