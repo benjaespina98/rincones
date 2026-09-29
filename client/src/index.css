@@ -205,8 +205,20 @@
   --type-rgb: var(--type-unknown-rgb);
   --type-deep: var(--type-unknown-deep);
 
-  /* Recetas derivadas. Se resuelven en el punto de uso, así que toman el tipo
-     del ancestro más cercano que lo haya declarado. */
+  /* ── LAS RECETAS VAN DOS VECES, Y NO ES UN DESCUIDO ──────────────────────
+     Acá están para lo que NO declara ningún tipo: resuelven contra el
+     --type-rgb de arriba y dan el gris violáceo de "sin tipo".
+
+     La copia que de verdad tiñe está en la regla `[data-wine-type]`, más
+     abajo. Tiene que estar duplicada por cómo sustituye CSS las custom
+     properties: una variable resuelve sus `var()` internos contra el ELEMENTO
+     DONDE SE DECLARA, no donde se usa. Declarada sólo acá, `--type-gradient`
+     se congela con el --type-rgb de :root y baja heredada ya resuelta: la
+     tarjeta de un tinto quedaba con el borde rojo (que sí lee --type-rgb en su
+     propio elemento) y el gradiente, el halo y la banda del color equivocado.
+
+     Se detectó comparando estilos computados, no mirando la pantalla: los dos
+     colores son oscuros y translúcidos, y a simple vista pasaba por bien. */
   --type-gradient: linear-gradient(
     155deg,
     rgb(var(--type-rgb) / 0.22),
@@ -390,6 +402,27 @@
    el dato tal como viene del servidor y no hay una tabla de equivalencias en el
    medio que se pueda desincronizar. El "rosé" con acento es el valor real del
    enum, por eso el selector lo lleva. */
+/* Las recetas, redeclaradas en el elemento que lleva el tipo. Ver el comentario
+   largo en :root: es lo que hace que resuelvan contra el --type-rgb de ESTE
+   elemento y no contra el de la raíz. El selector es el atributo pelado, así
+   que alcanza con uno para los seis tipos. */
+[data-wine-type] {
+  --type-gradient: linear-gradient(
+    155deg,
+    rgb(var(--type-rgb) / 0.22),
+    rgb(var(--type-rgb) / 0.05) 58%,
+    transparent
+  );
+  --type-glow: 0 0 0 1px rgb(var(--type-rgb) / 0.18),
+    0 10px 28px rgb(var(--type-rgb) / 0.12);
+  --type-rail: linear-gradient(
+    180deg,
+    rgb(var(--type-rgb) / 0.95),
+    rgb(var(--type-rgb) / 0.28)
+  );
+  --type-soft: rgb(var(--type-rgb) / 0.14);
+}
+
 [data-wine-type="red"] {
   --type-accent: var(--type-red);
   --type-rgb: var(--type-red-rgb);

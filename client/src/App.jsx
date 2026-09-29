@@ -47,6 +47,20 @@ const AdminWineImagesPage = lazy(() => import("./pages/AdminWineImagesPage"));
 const AdminActivityPage = lazy(() => import("./pages/AdminActivityPage"));
 const AdminLogsPage = lazy(() => import("./pages/AdminLogsPage"));
 
+/**
+ * El styleguide, sólo en desarrollo.
+ *
+ * `import.meta.env.DEV` es una constante que Vite reemplaza literalmente al
+ * compilar, así que en el build de producción esto queda como `false &&
+ * <Route …>` y Rollup se lleva la rama entera junto con el `import()` que
+ * cuelga de ella: la página no entra al bundle ni como chunk aparte. No hay que
+ * acordarse de sacarla antes de publicar, que es la única forma en que una
+ * herramienta interna termina en producción.
+ */
+const StyleguidePage = import.meta.env.DEV
+  ? lazy(() => import("./pages/StyleguidePage"))
+  : null;
+
 // Mismo lenguaje que el arranque: al saltar entre secciones lazy se ve la
 // marca, no un spinner suelto sin contexto.
 const RouteFallback = () => <SplashScreen label="Un momento" />;
@@ -199,6 +213,13 @@ function App() {
         <Route path="/valoraciones" element={withLayout("Valoraciones", <RatingsPage />)} />
         <Route path="/vino/:id" element={withLayout("Vino", <WineDetailPage />)} />
         <Route path="/descubrir/vino" element={withLayout("Vino", <CatalogWinePage />)} />
+
+        {/* Ver el comentario de StyleguidePage arriba: en producción esta
+            línea se compila a nada. Va sin PrivateRoute a propósito — es una
+            herramienta para mirar el sistema, no una pantalla de la app. */}
+        {StyleguidePage && (
+          <Route path="/styleguide" element={<StyleguidePage />} />
+        )}
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
