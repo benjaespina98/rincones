@@ -1,3 +1,12 @@
+/* ── EL ESQUELETO TIENE QUE TENER LA FORMA DE LO QUE VIENE ───────────────────
+   Si no la tiene, al cargar hay un salto: el contenido real aparece con otro
+   alto, otro radio u otro margen, y la pantalla se reacomoda sola. Eso se lee
+   como un error aunque no lo sea.
+
+   Por eso estas medidas están atadas a las de `Card` y no elegidas aparte:
+   mismo radio, misma superficie, mismo borde y la misma banda de 3 px del tipo
+   de vino. Si `Card` cambia, esto cambia con ella. */
+
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -7,16 +16,33 @@
   }
 }
 
+/* ── POR QUÉ EL BRILLO DEJÓ DE SER VIOLETA ─────────────────────────────────
+   Era un degradado de --accent, o sea el color con el que la app dice "esto es
+   importante, tocá acá". Un bloque cargando no es ninguna de las dos cosas: es
+   un hueco. Pintarlo del color de acento hacía que una lista cargando se viera
+   más llamativa que la misma lista ya cargada.
+
+   Ahora es luz neutra sobre la superficie — que es lo que un esqueleto es: el
+   lugar donde va a haber algo. */
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgb(var(--accent-rgb) / 0.08) 0%,
-    rgb(var(--accent-light-rgb) / 0.2) 50%,
-    rgb(var(--accent-rgb) / 0.08) 100%
+    rgb(var(--paper-rgb) / 0.04) 0%,
+    rgb(var(--paper-rgb) / 0.11) 50%,
+    rgb(var(--paper-rgb) / 0.04) 100%
   );
   background-size: 1000px 100%;
   animation: shimmer 1.6s var(--ease-out) infinite;
   border-radius: var(--radius-md);
+}
+
+/* Un esqueleto que late es una animación en bucle: con reduced-motion se
+   apaga y queda el bloque quieto, que informa lo mismo. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: rgb(var(--paper-rgb) / 0.07);
+  }
 }
 
 .skeleton--image {
@@ -34,9 +60,10 @@
 
 .skeleton--badge {
   width: 80px;
-  height: 24px;
+  height: 22px;
   margin-bottom: var(--space-sm);
   display: inline-block;
+  border-radius: var(--radius-full);
 }
 
 .skeleton--text {
@@ -58,9 +85,17 @@
 
 .skeleton--button {
   width: 100%;
-  height: 44px;
+  height: var(--control-lg);
   margin-top: var(--space-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+}
+
+/* La banda del tipo: en la tarjeta real ocupa 3 px a la izquierda. Sin ella el
+   contenido entraría corrido esos 3 px al cargar. */
+.skeleton--rail {
+  flex: 0 0 3px;
+  align-self: stretch;
+  border-radius: 0;
 }
 
 .skeleton-grid {
@@ -77,20 +112,22 @@
   }
 }
 
+/* Espejo de `.card--normal`. */
 .skeleton-card {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  box-shadow: var(--shadow-sm);
 }
 
 .skeleton-card__content {
-  padding: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  padding: var(--card-pad);
 }
 
 .skeleton-detail {
@@ -110,7 +147,7 @@
   gap: var(--space-sm);
 }
 
-/* Skeleton de lista: filas con miniatura + líneas (Sommelier, buscador, etc.) */
+/* Espejo de `.card--compact` con banda: la fila de Mi Bodega y del buscador. */
 .skeleton-list {
   display: flex;
   flex-direction: column;
@@ -119,12 +156,20 @@
 
 .skeleton-row {
   display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-base);
+}
+
+.skeleton-row__cuerpo {
+  display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
+  min-width: 0;
+  padding: var(--card-pad-compact);
 }
 
 .skeleton--thumb {
@@ -139,6 +184,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .skeleton-row__lines .skeleton--text {
