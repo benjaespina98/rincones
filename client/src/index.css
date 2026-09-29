@@ -5,12 +5,23 @@
   /* Brand palette (accessible, dark + wine accent) */
   --bg: #0b0d14;
   --bg-deep: #070910;
-  --bg-soft: rgba(18, 21, 33, 0.78);
-  --surface: rgba(18, 22, 36, 0.9);
-  --surface-2: rgba(24, 28, 46, 0.94);
-  --surface-hover: rgba(27, 32, 49, 0.96);
-  --glass: rgba(20, 24, 40, 0.72);
-  --elevated: linear-gradient(160deg, rgba(30, 34, 56, 0.94), rgba(16, 19, 33, 0.94));
+  /* ── LOS NOMBRES VIEJOS, APUNTANDO AL SISTEMA NUEVO ──────────────────────
+     Estos seis están escritos en las 49 hojas de la app. En vez de buscarlos y
+     reemplazarlos uno por uno —que es el cambio que rompe cosas en pantallas
+     que nadie vuelve a abrir— se los redefine acá en términos de los tres
+     niveles de abajo. Todo el CSS existente hereda el sistema nuevo sin que se
+     toque una sola regla, y los nombres se van muriendo solos a medida que
+     cada hoja se reescriba. */
+  --bg-soft: var(--surface-base);
+  --surface: var(--surface-base);
+  --surface-2: var(--surface-raised);
+  --surface-hover: rgb(34 40 62 / 0.92);
+  --glass: var(--surface-overlay);
+  --elevated: linear-gradient(
+    160deg,
+    rgb(34 39 62 / 0.92),
+    rgb(18 21 35 / 0.92)
+  );
 
   /* ── EL FONDO DE LA APP, EN UN SOLO LUGAR ─────────────────────────────────
      Éste es el fondo de Descubrí, y ahora es el de todas las pantallas.
@@ -33,8 +44,8 @@
 
      Si mañana cambia el fondo, se cambia acá y en ningún otro lado. */
   --app-bg:
-    radial-gradient(circle at 86% 0%, rgba(167, 130, 239, 0.22), transparent 38%),
-    radial-gradient(circle at 0% 100%, rgba(198, 70, 95, 0.14), transparent 32%),
+    radial-gradient(circle at 86% 0%, rgb(var(--accent-light-rgb) / 0.22), transparent 38%),
+    radial-gradient(circle at 0% 100%, rgb(var(--wine-rgb) / 0.14), transparent 32%),
     linear-gradient(180deg, #090b13 0%, #111626 100%);
 
   /* Accent Colors */
@@ -42,7 +53,7 @@
   --accent-light: #a782ef;
   --accent-strong: #6c48b4;
   --accent-soft: #cbb5f7;
-  --accent-muted: rgba(126, 89, 201, 0.18);
+  --accent-muted: rgb(var(--accent-rgb) / 0.18);
 
   /* ── EL RELLENO DE TODO LO PRIMARIO ───────────────────────────────────────
      Un color plano, y en un solo lugar.
@@ -63,29 +74,176 @@
      El color no cambia: es el mismo violeta de siempre, lleno en vez de
      estirado. */
   --accent-fill: var(--accent);
+
+  /* ── EL VIOLETA COMO TEXTO ES OTRO VIOLETA ───────────────────────────────
+     --accent (#7e59c9) da 3.57 sobre el fondo: como TEXTO no pasa AA. Como
+     RELLENO está perfecto, porque ahí la regla es el contraste del texto que
+     va ENCIMA, no el del color contra el fondo — y por eso no se toca: es la
+     identidad de la marca y se ve en cada botón primario.
+
+     La contradicción se resuelve separando los dos usos en dos tokens en vez
+     de recordar la regla. Todo lo que sea texto, link o ícono que tenga que
+     leerse usa éste; --accent queda para pintar. Si mañana alguien escribe
+     `color: var(--accent)`, está usando el token equivocado y se ve. */
+  --accent-text: var(--accent-light);
+
   --wine: #c6465f;
-  --wine-soft: rgba(198, 70, 95, 0.16);
+  --wine-soft: rgb(var(--wine-rgb) / 0.16);
   --success: #2fb67b;
-  --success-soft: rgba(47, 182, 123, 0.16);
+  --success-soft: rgb(var(--success-rgb) / 0.16);
   --success-text: #7fe3b4;
   --gold: #f2b737;
   --gold-soft: #ffd98a;
   --danger: #e2555f;
-  --danger-soft: rgba(226, 85, 95, 0.16);
+  --danger-soft: rgb(var(--danger-rgb) / 0.16);
   --danger-text: #f0a9b6;
   --favorite: #ff6ea0;
-  --favorite-soft: rgba(255, 110, 160, 0.14);
+  --favorite-soft: rgb(var(--favorite-rgb) / 0.14);
+
+  /* ══ CANALES SUELTOS: LO QUE HACE QUE EL TOKEN MANDE ══════════════════════
+     Un color guardado como `#7e59c9` sirve para pintar y para nada más. En
+     cuanto hace falta el MISMO color con transparencia —un borde, un fondo
+     tenue, un halo— no hay de dónde derivarlo, así que se termina escribiendo
+     `rgba(126, 89, 201, 0.18)` a mano. Eso es exactamente lo que pasó acá:
+     206 `rgba()` distintos repartidos por las hojas, cada uno con los números
+     del color copiados adentro. Cambiar el violeta obligaba a cazar los 206, y
+     por eso el sistema de tokens existía sin gobernar nada.
+
+     Con los canales sueltos la transparencia se deriva donde se usa —
+     `rgb(var(--accent-rgb) / 0.18)` — y el color sigue viviendo en un solo
+     lugar. Es la diferencia entre tener tokens y que los tokens manden. */
+  --accent-rgb: 126 89 201;
+  --accent-light-rgb: 167 130 239;
+  --wine-rgb: 198 70 95;
+  --gold-rgb: 242 183 55;
+  --success-rgb: 47 182 123;
+  --danger-rgb: 226 85 95;
+  --favorite-rgb: 255 110 160;
+  /* Blanco y negro también, que son los dos que más aparecen sueltos (53 y 12
+     veces) en brillos, velos y sombras. */
+  --paper-rgb: 255 255 255;
+  --ink-rgb: 0 0 0;
+
+  /* ══ TRES NIVELES DE SUPERFICIE, Y NADA MÁS ═══════════════════════════════
+     Había seis tokens de superficie sin una regla que dijera cuál usar cuándo,
+     así que la elección la hacía cada pantalla por su cuenta y dos tarjetas de
+     la misma jerarquía terminaban con fondos distintos.
+
+     Ahora son tres, y el criterio es la ALTURA sobre el fondo:
+
+       base     lo que se apoya sobre el fondo de la app: tarjetas, filas.
+       raised   lo que se despega: tarjeta hero, popover, algo que flota.
+       overlay  lo que TAPA: hojas, modales, el velo del lightbox.
+
+     La escala es de opacidad además de color: cuanto más arriba, más opaca,
+     porque lo que tapa tiene que tapar de verdad. */
+  --surface-base: rgb(20 24 38 / 0.72);
+  --surface-raised: rgb(29 34 54 / 0.88);
+  --surface-overlay: rgb(16 19 31 / 0.96);
+
+  /* ══ BORDES: LUZ, NO LÍNEAS ═══════════════════════════════════════════════
+     Un borde en una interfaz oscura no es una línea dibujada: es el canto de
+     la superficie atrapando luz. Por eso son blancos con alfa y no un color
+     propio — así funcionan sobre cualquier fondo sin tener que recalcularse. */
+  --border-subtle: rgb(var(--paper-rgb) / 0.06);
+  --border-base: rgb(var(--paper-rgb) / 0.1);
+  --border-strong: rgb(var(--paper-rgb) / 0.16);
+
+  /* ══ EL COLOR DEL TIPO DE VINO, COMO HILO CONDUCTOR ═══════════════════════
+     El tipo de vino es el único dato que TODA botella tiene y que se reconoce
+     sin leer. Es el candidato natural para dar color a la app sin inventar una
+     paleta decorativa encima de la marca.
+
+     ── LO QUE HABÍA ────────────────────────────────────────────────────────
+     Dos fuentes que no se hablaban: `TYPE_COLORS` en WineArtwork.jsx y las
+     reglas `.wine-meta__type--*` de este archivo. Y no coincidían: el
+     ESPUMANTE era dorado (#c2a63a) en la ilustración y celeste (#8fd8e8) en
+     las listas. El mismo vino, dos colores, según dónde lo mirabas.
+
+     ── POR QUÉ EL ESPUMANTE NO ES CHAMPAGNE DORADO ─────────────────────────
+     Lo natural sería un dorado champagne. Se midió y no sirve: contra el
+     dorado pálido del vino blanco (#ffd98a) da ΔE 17, que en un punto de 6 px
+     es el mismo color. Blanco y espumante son justo los dos tipos que más se
+     confunden, así que el color tiene que SEPARARLOS, no acercarlos. Este
+     celeste platinado da ΔE 52 contra el blanco y sigue leyéndose como copa
+     flauta y burbujas — que es de donde venía el celeste original.
+
+     Los cinco acentos pasan AA sobre el peor punto del fondo (7.5 a 14.2):
+     se pueden usar como texto, no sólo como adorno.
+
+     ── CÓMO SE USA ─────────────────────────────────────────────────────────
+     Poniendo `data-wine-type="red"` en cualquier contenedor. Eso define
+     --type-accent / --type-rgb / --type-deep para todo lo que cuelgue abajo, y
+     las recetas de acá derivan solas. Un componente nuevo que quiera el hilo
+     no necesita saber qué colores existen: pone el atributo y hereda. */
+  --type-red: #f0899d;
+  --type-red-rgb: 240 137 157;
+  --type-red-deep: #7d1f38;
+
+  --type-white: #ffd98a;
+  --type-white-rgb: 255 217 138;
+  --type-white-deep: #b39235;
+
+  --type-rose: #f2a0c0;
+  --type-rose-rgb: 242 160 192;
+  --type-rose-deep: #c65a7a;
+
+  --type-sparkling: #bcd4de;
+  --type-sparkling-rgb: 188 212 222;
+  --type-sparkling-deep: #6f8f9c;
+
+  --type-fortified: #d0a878;
+  --type-fortified-rgb: 208 168 120;
+  --type-fortified-deep: #6b3318;
+
+  --type-unknown: #b9a9e8;
+  --type-unknown-rgb: 185 169 232;
+  --type-unknown-deep: #5a4a86;
+
+  /* El tipo por defecto, para lo que todavía no declaró ninguno. */
+  --type-accent: var(--type-unknown);
+  --type-rgb: var(--type-unknown-rgb);
+  --type-deep: var(--type-unknown-deep);
+
+  /* Recetas derivadas. Se resuelven en el punto de uso, así que toman el tipo
+     del ancestro más cercano que lo haya declarado. */
+  --type-gradient: linear-gradient(
+    155deg,
+    rgb(var(--type-rgb) / 0.22),
+    rgb(var(--type-rgb) / 0.05) 58%,
+    transparent
+  );
+  --type-glow: 0 0 0 1px rgb(var(--type-rgb) / 0.18),
+    0 10px 28px rgb(var(--type-rgb) / 0.12);
+  /* La banda lateral de las tarjetas: el tipo se reconoce antes de leer. */
+  --type-rail: linear-gradient(
+    180deg,
+    rgb(var(--type-rgb) / 0.95),
+    rgb(var(--type-rgb) / 0.28)
+  );
+  --type-soft: rgb(var(--type-rgb) / 0.14);
 
   /* Text Colors */
   --text: #f3f5ff;
   --text-secondary: #c3bddd;
   --text-muted: #968fb4;
-  --text-subtle: #7b7798;
+  /* ── ESTE VALOR SE CORRIGIÓ POR CONTRASTE, NO POR GUSTO ───────────────────
+     Era #7b7798 y NO pasaba AA. El fondo de la app es un degradado que va de
+     #090b13 arriba a #111626 abajo (ver --app-bg), así que el peor caso no es
+     el color de fondo nominal sino la parte de abajo de CADA pantalla: ahí
+     #7b7798 daba 4.23 contra los 4.5 que pide AA para texto normal. O sea que
+     la mitad inferior de la app tenía texto por debajo del mínimo legal, y en
+     un teléfono al sol eso no es una formalidad.
+
+     #8783a7 da 5.00 en ese mismo peor caso. Se eligió el mínimo que pasa más
+     un margen, para no aclararlo tanto que deje de leerse como el nivel más
+     tenue de la escala: sigue estando por debajo de --text-muted (5.90). */
+  --text-subtle: #8783a7;
   
   /* Borders & Lines */
-  --line: rgba(126, 89, 201, 0.2);
-  --line-strong: rgba(126, 89, 201, 0.38);
-  --line-accent: rgba(167, 130, 239, 0.28);
+  --line: rgb(var(--accent-rgb) / 0.2);
+  --line-strong: rgb(var(--accent-rgb) / 0.38);
+  --line-accent: rgb(var(--accent-light-rgb) / 0.28);
   
   /* Spacing System */
   --space-xs: 0.25rem;
@@ -129,16 +287,28 @@
      Mismo motivo que arriba: menos alcance (blur) y menos opacidad, para que
      lo que flota lo haga apenas — una separación del fondo, no un salto. El
      color de cada sombra no cambió, sólo cuánto se nota. */
-  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.22);
-  --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 22px rgba(0, 0, 0, 0.38);
-  --shadow-xl: 0 14px 30px rgba(0, 0, 0, 0.46);
+  /* ── EN CAPAS, PORQUE ASÍ CAE LA SOMBRA DE VERDAD ────────────────────────
+     Una sola sombra difusa es lo que delata a una interfaz dibujada: un objeto
+     real proyecta una sombra de contacto, corta y marcada justo abajo, y otra
+     ambiental, larga y suave. Las dos juntas dicen a qué altura está la cosa;
+     una sola dice nada más que "hay una sombra".
+
+     El alfa sale de --ink-rgb, así que dejaron de ser cuatro `rgba(0,0,0,…)`
+     con los ceros escritos a mano. */
+  --shadow-sm: 0 1px 2px rgb(var(--ink-rgb) / 0.24),
+    0 1px 3px rgb(var(--ink-rgb) / 0.14);
+  --shadow-md: 0 2px 4px rgb(var(--ink-rgb) / 0.22),
+    0 6px 16px rgb(var(--ink-rgb) / 0.26);
+  --shadow-lg: 0 4px 8px rgb(var(--ink-rgb) / 0.24),
+    0 12px 28px rgb(var(--ink-rgb) / 0.32);
+  --shadow-xl: 0 6px 12px rgb(var(--ink-rgb) / 0.26),
+    0 20px 44px rgb(var(--ink-rgb) / 0.4);
   /* La sombra de lo primario. Era violeta —un halo del color del propio botón—
      y eso es luz que no viene de ningún lado: sólo existe para que el botón
      parezca importante. Una sombra dice a qué altura está algo, así que es
      oscura, como todas las demás de esta lista. */
-  --shadow-accent: 0 4px 12px rgba(0, 0, 0, 0.35);
-  --shadow-glow: 0 0 0 1px rgba(167, 130, 239, 0.12), 0 8px 22px rgba(0, 0, 0, 0.3);
+  --shadow-accent: 0 2px 4px rgb(var(--ink-rgb) / 0.22), 0 8px 20px rgb(var(--ink-rgb) / 0.3);
+  --shadow-glow: 0 0 0 1px rgb(var(--accent-light-rgb) / 0.12), 0 8px 22px rgb(var(--ink-rgb) / 0.3);
   /* Variante dorada de --shadow-glow, para los pocos lugares donde --gold ya
      se usa (ver comentario junto a ese token) y hace falta el mismo efecto de
      halo que --shadow-glow le da al violeta. No reemplaza al violeta como
@@ -146,8 +316,8 @@
      Baja intensidad a propósito: tiene que leerse como un reflejo ambiental
      sobre la botella, no como un brillo. Un halo que se nota es decoración; uno
      que no se nota pero que se extraña si se apaga es luz. */
-  --gold-glow: rgba(242, 183, 55, 0.14);
-  --shadow-gold: 0 0 0 1px rgba(242, 183, 55, 0.16), 0 8px 22px rgba(0, 0, 0, 0.3);
+  --gold-glow: rgb(var(--gold-rgb) / 0.14);
+  --shadow-gold: 0 0 0 1px rgb(var(--gold-rgb) / 0.16), 0 8px 22px rgb(var(--ink-rgb) / 0.3);
   
   /* Safe Area (for notched phones) */
   --safe-area-inset-top: env(safe-area-inset-top, 0);
@@ -206,8 +376,55 @@
   --z-toast: 1500;
 
   /* Anillo de foco: estaba copiado 11 veces con 5 alfas y 2 colores distintos. */
-  --focus-ring: 0 0 0 3px rgba(167, 130, 239, 0.35);
-  --shadow-modal: 0 14px 32px rgba(0, 0, 0, 0.42);
+  --focus-ring: 0 0 0 3px rgb(var(--accent-light-rgb) / 0.35);
+  --shadow-modal: 0 6px 12px rgb(var(--ink-rgb) / 0.28), 0 22px 48px rgb(var(--ink-rgb) / 0.44);
+}
+
+/* ── DÓNDE SE ENCHUFA EL HILO DEL TIPO DE VINO ──────────────────────────────
+   Un atributo en el contenedor y todo lo de adentro queda teñido. Va acá y no
+   en cada hoja porque es la traducción del dato a color, y esa traducción tiene
+   que ser una sola para toda la app: es justo lo que falló antes, con el
+   espumante dorado en un lado y celeste en el otro.
+
+   Los nombres son los del modelo (`Wine.type`), sin traducir: así el JSX pasa
+   el dato tal como viene del servidor y no hay una tabla de equivalencias en el
+   medio que se pueda desincronizar. El "rosé" con acento es el valor real del
+   enum, por eso el selector lo lleva. */
+[data-wine-type="red"] {
+  --type-accent: var(--type-red);
+  --type-rgb: var(--type-red-rgb);
+  --type-deep: var(--type-red-deep);
+}
+
+[data-wine-type="white"] {
+  --type-accent: var(--type-white);
+  --type-rgb: var(--type-white-rgb);
+  --type-deep: var(--type-white-deep);
+}
+
+[data-wine-type="rosé"],
+[data-wine-type="rose"] {
+  --type-accent: var(--type-rose);
+  --type-rgb: var(--type-rose-rgb);
+  --type-deep: var(--type-rose-deep);
+}
+
+[data-wine-type="sparkling"] {
+  --type-accent: var(--type-sparkling);
+  --type-rgb: var(--type-sparkling-rgb);
+  --type-deep: var(--type-sparkling-deep);
+}
+
+[data-wine-type="fortified"] {
+  --type-accent: var(--type-fortified);
+  --type-rgb: var(--type-fortified-rgb);
+  --type-deep: var(--type-fortified-deep);
+}
+
+[data-wine-type="unknown"] {
+  --type-accent: var(--type-unknown);
+  --type-rgb: var(--type-unknown-rgb);
+  --type-deep: var(--type-unknown-deep);
 }
 
 * {
@@ -389,12 +606,12 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(138, 109, 230, 0.3);
+  background: rgb(var(--accent-light-rgb) / 0.3);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(138, 109, 230, 0.5);
+  background: rgb(var(--accent-light-rgb) / 0.5);
 }
 
 /* SVG icon base */
@@ -407,7 +624,7 @@ img {
 .spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid rgba(255, 255, 255, 0.12);
+  border: 3px solid rgb(var(--paper-rgb) / 0.12);
   border-top-color: var(--accent-light);
   border-radius: 50%;
   /* `rincon-spin` del vocabulario compartido: `appSpin` era una copia idéntica
@@ -514,11 +731,13 @@ img {
   background: currentColor;
 }
 
-.wine-meta__type--red { color: #f0899d; }
-.wine-meta__type--white { color: var(--gold-soft); }
-.wine-meta__type--rosé { color: #f2a0c0; }
-.wine-meta__type--sparkling { color: #8fd8e8; }
-.wine-meta__type--fortified { color: #d0a878; }
+/* Los cinco salen de los tokens de tipo, que son la única fuente. Antes eran
+   cinco literales acá y otros cinco distintos en WineArtwork.jsx. */
+.wine-meta__type--red { color: var(--type-red); }
+.wine-meta__type--white { color: var(--type-white); }
+.wine-meta__type--rosé { color: var(--type-rose); }
+.wine-meta__type--sparkling { color: var(--type-sparkling); }
+.wine-meta__type--fortified { color: var(--type-fortified); }
 
 .wine-meta__sep {
   color: var(--text-subtle);
@@ -563,8 +782,8 @@ img {
   gap: 4px;
   padding: 3px 9px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(12, 15, 25, 0.72);
+  border: 1px solid var(--border-strong);
+  background: rgb(12 15 25 / 0.72);
   color: #fff;
   font-size: var(--text-2xs);
   font-weight: 600;
