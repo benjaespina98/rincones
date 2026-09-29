@@ -9,6 +9,7 @@ const winesService = require("../services/wines.service");
 const { validatePasswordStrength } = require("../utils/password");
 const sessions = require("../services/session.service");
 const wineReviews = require("../services/wineReviews.service");
+const { deleteAccount } = require("../services/accountDeletion.service");
 
 
 // GET /api/users/profile - Obtener perfil del usuario actual
@@ -129,6 +130,39 @@ router.put("/profile", authenticate, async (req, res) => {
         preferences: user.preferences,
       },
     });
+  } catch (error) {
+    fail(res, error, req);
+  }
+});
+
+// DELETE /api/users/me - Baja de cuenta con borrado real de los datos.
+// Pide el email escrito a mano (y la contraseña, si la cuenta tiene) para que
+// no se pueda disparar por un toque de más ni con una sesión olvidada abierta.
+router.delete("/me", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+passwordHash email");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const confirmEmail = String(req.body?.confirmEmail || "").trim().toLowerCase();
+    if (confirmEmail !== user.email) {
+      return res.status(400).json({ message: "Escribí tu email para confirmar la baja" });
+    }
+    if (user.passwordHash) {
+      const passwordOk = await user.comparePassword(String(req.body?.password || ""));
+      if (!passwordOk) return res.status(401).json({ message: "La contraseña no es correcta" });
+    }
+
+    const result = await deleteAccount(user._id);
+    if (!result.ok) {
+      const message =
+        result.reason === "last_admin"
+          ? "Sos el único admin: no se puede dar de baja la cuenta"
+          : "Usuario no encontrado";
+      return res.status(result.reason === "last_admin" ? 400 : 404).json({ message });
+    }
+
+    sessions.clearAuthCookies(res);
+    return res.status(200).json({ message: "Tu cuenta y tus datos se eliminaron" });
   } catch (error) {
     fail(res, error, req);
   }
