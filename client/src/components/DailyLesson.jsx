@@ -3,7 +3,7 @@ import Icon from "./Icon";
 import ConceptSheet from "./ConceptSheet";
 import { CONCEPTS, pickLesson } from "../data/wineConcepts";
 import { tapHaptic } from "../utils/haptics";
-import "../styles/components/DailyLesson.css";
+import "./DailyLesson.css";
 
 /**
  * "Para aprender hoy": una cosa, elegida según tu bodega.

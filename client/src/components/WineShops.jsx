@@ -1,5 +1,5 @@
 import TrackedCard from "./TrackedCard";
-import "../styles/components/DiscoverSections.css";
+import "../styles/shared/DiscoverSections.css";
 
 /**
  * "Dónde comprar": dos o tres vinotecas, chicas.

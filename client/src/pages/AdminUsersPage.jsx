@@ -7,7 +7,7 @@ import ErrorState from "../components/ErrorState";
 import AdminPager from "../components/AdminPager";
 import Dropdown from "../components/Dropdown";
 import Icon from "../components/Icon";
-import "./styles/AdminUsersPage.css";
+import "./AdminUsersPage.css";
 
 const SORT_OPTIONS = [
   { value: "createdAt:desc", label: "Alta: más nuevos" },
@@ -234,7 +234,7 @@ const AdminUsersPage = () => {
 
       {!loading && !error && users.length === 0 && (
         <EmptyState
-          icon="search"
+          illustration="busqueda"
           title="Sin resultados"
           hint={query ? `Nadie coincide con “${query}”.` : "Todavía no hay usuarios registrados."}
           compact

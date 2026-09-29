@@ -6,7 +6,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
 import { useToast } from "../context/ToastContext";
-import "../styles/components/WishlistPanel.css";
+import "./WishlistPanel.css";
 
 /**
  * La mitad de "Favoritos" que sale de la wishlist: los vinos que te gustan y
@@ -128,14 +128,14 @@ export default function WishlistPanel({
     // que haber buscado algo que no está en la lista.
     return buscando ? (
       <EmptyState
-        icon="search"
+        illustration="busqueda"
         title="Ninguno de tus guardados coincide"
         actionLabel="Limpiar búsqueda"
         onAction={onLimpiarBusqueda}
       />
     ) : (
       <EmptyState
-        icon="heart"
+        illustration="favoritos"
         title="Todavía no guardaste ningún vino"
         hint="Guardá los que quieras probar y quedan acá."
         actionLabel="Descubrir vinos"

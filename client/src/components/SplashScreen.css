@@ -14,7 +14,7 @@
      El halo de arriba es propio: acompaña a la marca, que sólo vive acá. */
   background-color: var(--bg);
   background-image:
-    radial-gradient(120% 80% at 50% 30%, rgba(167, 130, 239, 0.16), transparent 60%),
+    radial-gradient(120% 80% at 50% 30%, rgb(var(--accent-light-rgb) / 0.16), transparent 60%),
     var(--app-bg);
   animation: rincon-fade 260ms var(--ease-out) both;
 }
@@ -25,7 +25,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  color: #efeaff;
+  color: var(--text);
 }
 
 .splash__mark::before {
@@ -34,7 +34,7 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(167, 130, 239, 0.22), transparent 68%);
+  background: radial-gradient(circle, rgb(var(--accent-light-rgb) / 0.22), transparent 68%);
   animation: splashHalo 2600ms var(--ease-out) infinite;
 }
 

@@ -53,6 +53,12 @@ jobs:
       - name: Lint (client)
         run: npm run lint -w client
 
+      # Un var(--x) sin declarar no da error: el navegador descarta la regla en
+      # silencio y el estilo desaparece. Ya pasó una vez con --bg-rgb, y no se
+      # ve mirando la pantalla. Esto lo convierte en un fallo de build.
+      - name: Tokens de CSS declarados
+        run: npm run check:tokens -w client
+
       - name: Tests del server
         run: npm test -w server
 

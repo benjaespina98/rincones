@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:tokens": "node scripts/check-tokens.cjs"
   },
   "dependencies": {
     "@sentry/react": "^10.70.0",

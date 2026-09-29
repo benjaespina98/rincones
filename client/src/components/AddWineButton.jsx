@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
 import { ADD_PATH, SIN_BOTON_ESCANEAR } from "../data/navigation";
-import "../styles/components/AddWineButton.css";
+import "./AddWineButton.css";
 
 /**
  * ── ESCANEAR: SOBRE LA BARRA, PERO NO UNA PESTAÑA ───────────────────────────

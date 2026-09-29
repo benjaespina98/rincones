@@ -1,0 +1,94 @@
+/* Sólo el formulario de acceso. El armazón del panel (sidebar, tira de
+   pestañas, tarjetas del resumen) vive en AdminLayout.css — antes estaba acá
+   mezclado porque login y panel eran el mismo componente. */
+
+.admin-login-screen {
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 2rem);
+  display: grid;
+  place-items: center;
+  /* Sin fondo propio: el de `body` (--app-bg) ya está debajo. Era el sexto
+     degradado distinto de la app, con un azul que no existe en ninguna otra
+     pantalla. */
+}
+
+.admin-login-card {
+  width: min(100%, 430px);
+  border-radius: 20px;
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.25);
+  background: rgb(var(--bg-rgb) / 0.84);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 60px rgb(var(--bg-deep-rgb) / 0.55);
+  padding: 1.3rem;
+}
+
+.admin-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgb(var(--type-unknown-rgb) / 0.95);
+  margin-bottom: 0.6rem;
+}
+
+.admin-login-card h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  color: var(--text);
+}
+
+.admin-login-card p {
+  margin: 0.6rem 0 1rem;
+  color: var(--type-unknown);
+  line-height: 1.45;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+}
+
+.admin-login-form label {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.admin-login-form input {
+  min-height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.28);
+  background: rgb(var(--surface-raised-rgb) / 0.86);
+  color: var(--text);
+  padding: 0.72rem 0.8rem;
+}
+
+.admin-login-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.admin-login-form input:focus {
+  outline: none;
+  border-color: rgb(var(--type-unknown-rgb) / 0.88);
+  box-shadow: var(--focus-ring);
+}
+
+.admin-error-text {
+  margin: 0.35rem 0;
+  color: var(--type-rose);
+  background: rgb(var(--wine-rgb) / 0.2);
+  border: 1px solid rgb(var(--favorite-rgb) / 0.35);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+
+.admin-submit {
+  margin-top: 0.5rem;
+  min-height: 47px;
+  font-size: var(--text-lg);
+}

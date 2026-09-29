@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
-import "./styles/AdminLayout.css";
+import "./AdminLayout.css";
 
 // El mismo menú en dos formas: sidebar fija de escritorio, tira que se
 // desliza en celular. Un solo array de GRUPOS evita que las dos versiones se

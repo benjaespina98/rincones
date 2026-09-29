@@ -1,0 +1,89 @@
+/* La tarjeta. Ver Card.jsx para el criterio de las variantes. */
+
+.card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  color: inherit;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.card__contenido {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* La banda del tipo de vino: se reconoce antes de leer el nombre. Sólo aparece
+   si la tarjeta declaró un tipo — si no, pintaría una franja gris sin sentido. */
+.card__rail {
+  flex: 0 0 3px;
+  background: var(--type-rail);
+}
+
+.card:not([data-wine-type]) .card__rail {
+  display: none;
+}
+
+/* ── Variantes ── */
+
+.card--hero {
+  border-radius: var(--radius-2xl);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+
+.card--hero .card__contenido {
+  padding: var(--card-pad-hero);
+}
+
+.card--normal .card__contenido {
+  padding: var(--card-pad);
+}
+
+.card--compact {
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.card--compact .card__contenido {
+  padding: var(--card-pad-compact);
+}
+
+/* El tinte del tipo, encima de la superficie. Va como background-image para no
+   pisar el background-color de la variante. */
+.card[data-wine-type] {
+  background-image: var(--type-gradient);
+  border-color: rgb(var(--type-rgb) / 0.18);
+}
+
+.card--glow[data-wine-type] {
+  box-shadow: var(--type-glow);
+}
+
+/* ── Interactiva ── */
+
+.card--interactive {
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.card--interactive:hover {
+  border-color: var(--border-base);
+  background-color: var(--surface-hover);
+}
+
+.card--interactive:active {
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card--interactive:active {
+    transform: none;
+  }
+}

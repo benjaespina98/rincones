@@ -1,6 +1,6 @@
 import Icon from "../components/Icon";
 import MyRatings from "../components/MyRatings";
-import "../styles/pages/RatingsPage.css";
+import "./RatingsPage.css";
 
 /**
  * Tus valoraciones, en su propia pantalla.

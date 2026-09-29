@@ -6,7 +6,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
 import EmptyState from "./EmptyState";
 import { getMyReviews } from "../services/reviewApi";
-import "../styles/components/MyRatings.css";
+import "./MyRatings.css";
 
 /**
  * La lista de lo que puntuaste.
@@ -74,7 +74,7 @@ export default function MyRatings() {
   if (reviews.length === 0) {
     return (
       <EmptyState
-        icon="star"
+        illustration="resenas"
         title="Todavía no puntuaste ningún vino"
         hint="Las estrellas están en la ficha de cada botella, arriba de tus momentos."
       />

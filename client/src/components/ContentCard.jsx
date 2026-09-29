@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import Icon from "./Icon";
 import { typeInfo, itemMeta } from "../data/contentTypes";
-import "../styles/components/ContentCard.css";
+import "./ContentCard.css";
 
 /**
  * La tarjeta de cualquier contenido de Descubrí.

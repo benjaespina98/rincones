@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
-import "../styles/components/Dropdown.css";
+import "./Dropdown.css";
 
 /**
  * Select custom con el look de la app (los <select> nativos abren el desplegable

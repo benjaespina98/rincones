@@ -1,0 +1,179 @@
+/* ══ Curación de fotos (pool compartido) ═══════════════════════════════════
+
+   El buscador y los botones ya NO se escriben acá: son `.admin-search` y
+   `.admin-btn`, definidos una sola vez en AdminLayout.css —el único archivo
+   que las siete secciones del panel cargan siempre—. Esta hoja sólo tiene lo
+   que es realmente propio de Fotos: el encabezado, la lista de resultados y
+   el editor inline.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.admin-wineimg__header {
+  margin-bottom: 14px;
+}
+
+.admin-wineimg__header h1 {
+  margin: 0 0 4px;
+  font-size: var(--text-xl);
+}
+
+.admin-wineimg__lead {
+  margin: 0;
+  max-width: 56ch;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.admin-wineimg__status {
+  margin: 0 0 10px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* `.admin-chip-row` (AdminLayout.css) nace pensada para ir DEBAJO de un
+   título ("Filtrar por tipo/acción"), con `margin-top` y sin `margin-bottom`
+   propio. Acá va pegada al buscador y arriba de la lista, así que necesita
+   el margen invertido. */
+.admin-wineimg > .admin-chip-row {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.admin-wineimg__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-wineimg__row {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  transition: border-color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .admin-wineimg__row:hover {
+    border-color: var(--line-accent);
+  }
+}
+
+.admin-wineimg__row.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.admin-wineimg__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-wineimg__thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.admin-wineimg__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-wineimg__name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-wineimg__meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-wineimg__badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+}
+
+.admin-wineimg__badge.is-set {
+  background: var(--accent-muted);
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+/* `.admin-wineimg__btn` (+ `--ghost` / `--primary`) se fue: es exactamente
+   `.admin-btn` (+ `--ghost` / `--primary`) de AdminLayout.css. El único
+   ajuste propio que le hacía falta a esta pantalla era no encogerse dentro
+   de la fila — eso queda abajo, sobre la clase compartida. */
+.admin-wineimg__main .admin-btn {
+  flex-shrink: 0;
+}
+
+.admin-wineimg__editor {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  /* Mismo gesto que el resto de la app para un panel que se despliega bajo
+     su disparador (LabelScanner, WinePlan, el dropdown): entra desde arriba,
+     no aparece de golpe. El panel de admin no tenía ni un solo `animation` de
+     entrada — todo lo que se mostraba, se mostraba seco. */
+  animation: rincon-enter-down 220ms var(--ease-out) both;
+}
+
+.admin-wineimg__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (min-width: 720px) {
+  .admin-wineimg__main {
+    gap: 14px;
+  }
+  .admin-wineimg__thumb {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ── Respaldo: buscar con IA ──
+   Separado del universo de arriba por espacio Y por una línea, para que no
+   se lea como más resultados del mismo filtro — es una fuente distinta
+   (Gemini, no el catálogo local) que el admin pidió a propósito. */
+.admin-wineimg__ai {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-wineimg__ai-title {
+  margin: 0 0 8px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}

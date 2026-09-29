@@ -1,0 +1,497 @@
+/* Profile Page */
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 12px calc(132px + env(safe-area-inset-bottom));
+  background: transparent;
+  min-height: 100dvh;
+}
+
+.profile-page {
+  padding-top: 18px;
+}
+
+.profile-header {
+  position: relative;
+  margin-top: 0.4rem;
+  padding: 22px;
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgb(var(--wine-rgb) / 0.24), transparent 55%),
+    linear-gradient(150deg, rgb(var(--accent-rgb) / 0.55), rgb(var(--accent-strong-rgb) / 0.9));
+  color: var(--text);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Tus iniciales sobre el color elegido (ver `.avatar-color--*` en index.css).
+   Medía 38px de fuente porque adentro iba un emoji; las iniciales son texto y
+   con dos letras en 38px la caja queda apretada. Sin el fondo blanco
+   translúcido que había: ahora el color lo pone la clase, y un velo encima se
+   lo lavaría a los siete por igual. */
+.avatar-large {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgb(var(--paper-rgb) / 0.16);
+  box-shadow: inset 0 1px 0 rgb(var(--paper-rgb) / 0.16), 0 8px 20px rgb(var(--ink-rgb) / 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  flex-shrink: 0;
+}
+
+.avatar-large--photo {
+  object-fit: cover;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.profile-info h2 {
+  margin: 2px 0;
+  font-family: var(--font-family-serif);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Cuando todavía no hay nombre: en vez del hueco que quedaba, la invitación a
+   ponerlo. Va con el tamaño del nombre que reemplaza —es lo que va a ocupar ese
+   lugar— pero subrayada y en voz más baja, porque es una acción y no un dato. */
+.profile-name-cta {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: rgb(var(--paper-rgb) / 0.72);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgb(var(--paper-rgb) / 0.35);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .profile-name-cta:hover {
+    color: var(--paper);
+  }
+}
+
+.profile-info p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.profile-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-soft);
+}
+
+.profile-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* El renglón que reemplazó a la tarjeta de nivel: un dato con fecha, no un
+   logro. Fondo apenas marcado —es una línea, no una tarjeta más— con el mismo
+   ícono de calendario que ya usa el resto de la app para "esto tiene una
+   fecha". */
+.profile-recent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.profile-recent .icon { flex-shrink: 0; color: var(--accent-soft); }
+
+/* Título que separa el bloque "Tu perfil de vino" de las acciones de cuenta. */
+.profile-section-title {
+  margin: 8px 0 -4px;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--elevated);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.2);
+  border-radius: var(--radius-lg);
+  padding: 16px 12px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  text-align: center;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-accent);
+}
+
+.stat-card .value {
+  font-family: var(--font-family-serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* La referencia que vuelve legible al número: chica, en gris, y sin competir
+   con la cifra. Es la diferencia entre "4" y "4 · 50% de tu colección". */
+.stat-card__hint {
+  font-size: var(--text-2xs);
+  line-height: 1.3;
+  color: var(--text-muted);
+  text-wrap: balance;
+}
+
+.stat-card .label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+/* Lista de acciones de cuenta (patrón app real: filas tocables). */
+/* ── La lista de ajustes ───────────────────────────────────────────────────
+   Cinco filas del mismo tipo, en una sola caja.
+
+   Antes flotaban separadas por dos píxeles de nada, cada una con su propio
+   redondeo: cinco tarjetitas apiladas en vez de una lista, y sin ninguna línea
+   que dijera dónde termina una fila y empieza la otra. Ahora es lo que hacen
+   los ajustes de iOS y de Android: una caja, filas del mismo alto, y un
+   separador de un píxel entre ellas.
+
+   El separador arranca DESPUÉS del ícono (`margin-left`) y no de punta a
+   punta: alineado con el texto, la lista se lee como una columna; de borde a
+   borde, cada fila vuelve a parecer una fila de tabla. */
+.account-list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  overflow: hidden;
+}
+
+/* `space-between` con el rótulo estirándose: el chevron queda pegado al margen
+   derecho de la caja en TODAS las filas, largo el texto o corto. */
+.account-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  /* Mismo aire vertical arriba y abajo en las cinco: era `min-height: 52px`
+     sin padding, así que una fila que llegara a dos renglones se apretaba
+     contra los bordes mientras las demás respiraban. */
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.account-item + .account-item {
+  border-top: 1px solid rgb(var(--paper-rgb) / 0.06);
+}
+
+@media (hover: hover) {
+  .account-item:hover {
+    background: rgb(var(--paper-rgb) / 0.05);
+  }
+}
+
+.account-item__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  flex-shrink: 0;
+}
+
+.account-item__label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sin la rotación de -90° que había: el ícono era `chevron-down` girado a mano
+   desde acá, o sea un dibujo pensado para abrir un acordeón puesto de costado
+   con CSS. Ahora existe `chevron-right` en el set (ver Icon.jsx) y es el mismo
+   que cierra las filas de Mi Bodega y las de Quiero probar. */
+.account-item__chevron {
+  color: var(--text-subtle);
+}
+
+/* ── La fila que lleva a una pantalla de contenido ─────────────────────────
+   Misma anatomía que las filas de cuenta, pero con caja propia y un subtítulo:
+   no es un ajuste, es una puerta a algo tuyo, y tiene que verse que hay algo
+   del otro lado. */
+/* Ésta vive SUELTA, fuera de `.account-list`, así que se devuelve el redondeo
+   que la fila base perdió al volverse parte de una lista continua. */
+.account-item--feature {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--elevated);
+  align-items: center;
+  padding: 16px;
+}
+
+.account-item--feature .account-item__icon {
+  background: rgb(var(--gold-rgb) / 0.14);
+  color: var(--gold-soft, var(--gold-soft));
+}
+
+.account-item--feature .account-item__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.account-item--feature em {
+  font-style: normal;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.account-item--danger {
+  color: var(--type-red);
+}
+
+.account-item--danger:hover {
+  background: rgb(var(--type-red-rgb) / 0.1);
+}
+
+.account-item--danger .account-item__icon {
+  background: rgb(var(--type-red-rgb) / 0.14);
+  color: var(--type-red);
+}
+
+/* Acá vivían `.profile-card` y la familia `.info-*`: la ficha de datos del
+   perfil, con sus rótulos y valores. La reemplazó `ProfileEditor`, en pantalla
+   completa y con su propio CSS — ver styles/components/ProfileEditor.css. */
+
+/* Empty profile state */
+/* Wine Insights (Spotify-style) */
+/* Type breakdown */
+/* Top list (varietals, regions) */
+/* Rating display */
+/* Tablet */
+@media (min-width: 768px) {
+  .profile-page {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .profile-header { padding: 24px; }
+  .avatar-large { width: 92px; height: 92px; font-size: 33px; border-radius: var(--radius-xl); }
+  .stats-grid { gap: 16px; }
+  .profile-card { padding: 18px; }
+}
+
+/* Desktop: focused, centered column (no sticky bar needed without bottom tabs) */
+@media (min-width: 1024px) {
+  .profile-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-bottom: 48px;
+  }
+
+  .profile-header { padding: 28px; }
+}
+
+/* ── Estados de carga y vacío del perfil ── */
+
+/* Número de stat mientras carga: una barra tenue, no "…" como texto. */
+.stat-card .value.is-loading {
+  display: inline-block;
+  min-width: 2.2ch;
+  height: 1em;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 20px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-accent);
+  background: var(--glass);
+}
+
+.profile-empty__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profile-empty__hint {
+  margin: 0;
+  max-width: 320px;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Los logros se veían clickeables (tienen `transition`) pero no reaccionaban a
+   nada. Son informativos: alcanza con un realce suave del borde. */
+@media (hover: hover) {
+  .ach__item:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+/* ── Insights ────────────────────────────────────────────────────────────────
+   Un solo bloque por idea, en vez de una tarjeta por dato. Antes eran siete
+   tarjetas del mismo peso visual y una repetía el rating promedio que ya estaba
+   en la fila de estadísticas de arriba. */
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insight {
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.insight__title {
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Uvas y regiones lado a lado: son la misma pregunta ("qué elegís") y separadas
+   ocupaban una tarjeta entera cada una. */
+.insight__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 359px) {
+  .insight__cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spend__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spend__amount {
+  font-family: var(--font-family-serif);
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.spend__sub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.spend__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.spend__row-label {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.spend__row-value {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}

@@ -6,7 +6,7 @@ import Icon from "./Icon";
 import { tapHaptic } from "../utils/haptics";
 import { displayName, initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TAB_PATHS } from "../data/navigation";
-import "../styles/AppLayout.css";
+import "./AppLayout.css";
 
 // Onboarding y verificación de email ya no se resuelven acá: son un gate de
 // ruta (ver AppGate, montado en App.jsx antes de este layout) y no un aviso

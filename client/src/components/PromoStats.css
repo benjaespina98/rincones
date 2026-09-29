@@ -63,7 +63,7 @@
 
 .pstats__period.is-active {
   border-color: var(--line-accent);
-  background: rgba(126, 89, 201, 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
   color: var(--accent-soft);
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import "./styles/AdminLoginPage.css";
+import "./AdminLoginPage.css";
 
 /**
  * Sólo el acceso. El panel en sí (Resumen, Usuarios, Reseñas…) vive ahora en

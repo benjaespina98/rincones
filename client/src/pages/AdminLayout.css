@@ -1,0 +1,934 @@
+/* ══ El armazón del panel ══════════════════════════════════════════════════
+   Sidebar fija de escritorio (el patrón de cualquier panel de admin serio:
+   Stripe, Vercel, el propio GitHub) + tira horizontal en celular, donde una
+   sidebar angosta no entra ni tiene sentido. Antes esto era una sola pantalla
+   con `activeTab` en memoria: sin URLs por sección, sin volver atrás.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.admin-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  /* El mismo fondo que la app. Tenía dos halos propios, con otros violetas y en
+     otras posiciones: el panel se veía como otro producto. Lo que lo marca como
+     zona de permisos elevados es la franja de advertencia de acá abajo, que es
+     una señal deliberada — no que el color no coincida. */
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+/* Franja de advertencia: marca todo el panel como zona de permisos elevados
+   ("no estás en tu cuenta común") sin gastar un renglón de texto por página. */
+.admin-shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: var(--z-nav);
+  background: linear-gradient(90deg, var(--gold), var(--accent-light), var(--gold));
+}
+
+/* ── Sidebar (escritorio) ── */
+.admin-sidebar {
+  display: none;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 236px;
+  padding: 1.1rem 0.9rem;
+  gap: 1.4rem;
+  border-right: 1px solid var(--line);
+  background: var(--bg-deep);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-sidebar__brand {
+  display: flex;
+}
+
+.admin-sidebar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--gold-rgb) / 0.14);
+  border: 1px solid rgb(var(--gold-rgb) / 0.4);
+  color: var(--gold-soft);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.admin-sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Mismo tratamiento que `.admin-filter-group__label` (Actividad): mayúsculas
+   chicas y apagadas, para que agrupe sin competir con el nombre de la
+   sección — el ojo tiene que ir al link, no al rótulo del grupo. */
+.admin-sidebar__group-label {
+  padding: 0 12px;
+  margin-bottom: 2px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/* El activo era un gradiente diagonal violeta — bonito una vez, pero con
+   siete secciones (y ahora tres grupos) competía con todo lo demás por
+   atención. Un dashboard denso marca "dónde estoy" con una señal chica y
+   constante (la barra a la izquierda), no con una tarjeta que se enciende:
+   así el ojo encuentra la sección activa por posición, no por brillo. */
+.admin-sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-sidebar__link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.admin-sidebar__link.is-active {
+  color: var(--text);
+  background: var(--accent-muted);
+}
+
+.admin-sidebar__link.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: var(--radius-full);
+  background: var(--accent-light);
+}
+
+.admin-sidebar__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-sidebar__who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.admin-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Barra móvil (mismo contenido, pensado para el ancho sin sidebar) ── */
+.admin-mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 0.7rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgb(var(--gold-rgb) / 0.28);
+  background: linear-gradient(145deg, rgb(var(--surface-raised-rgb) / 0.95), rgb(var(--bg-rgb) / 0.9));
+}
+
+.admin-bar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--gold-rgb) / 0.14);
+  border: 1px solid rgb(var(--gold-rgb) / 0.4);
+  color: var(--gold-soft);
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* El email se recorta con puntos suspensivos y no se parte al medio: partido
+   ("logo@e2e.loca / l") se lee como un error de la app. */
+.admin-bar__who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.admin-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.admin-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-bar__btn:hover {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.admin-bar__btn--out:hover {
+  border-color: rgb(var(--wine-rgb) / 0.5);
+  color: var(--type-red);
+}
+
+@media (max-width: 560px) {
+  .admin-mobile-bar {
+    flex-wrap: wrap;
+  }
+
+  .admin-mobile-bar .admin-bar__who {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .admin-mobile-bar .admin-bar__actions {
+    margin-left: auto;
+  }
+
+  .admin-bar__btn span {
+    display: none;
+  }
+
+  .admin-bar__btn {
+    padding: 0 13px;
+  }
+}
+
+/* ── Tira de pestañas horizontal (celular / tablet chica) ──
+   Ya scrolleaba, pero se veía como una lista CORTADA (la última pestaña a la
+   mitad) y no como una lista que se desliza — con siete secciones ese corte
+   pasó a estar siempre a la vista, no sólo en pantallas angostas. El
+   `mask-image` difumina los dos bordes: ahora se lee como "hay más para
+   cualquier lado", el mismo lenguaje que un carrusel con flechas pero sin
+   gastar el espacio de las flechas. */
+.admin-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  mask-image: linear-gradient(90deg, transparent, var(--ink) 16px, var(--ink) calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, var(--ink) 16px, var(--ink) calc(100% - 16px), transparent);
+}
+
+.admin-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  justify-content: center;
+  padding: 0 15px;
+  min-height: 44px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-accent);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-nav-tab.active {
+  color: var(--text);
+  border-color: rgb(var(--type-unknown-rgb) / 0.9);
+  background: linear-gradient(135deg, rgb(var(--accent-rgb) / 0.35), rgb(var(--accent-strong-rgb) / 0.45));
+}
+
+.admin-content {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(0.8rem, 2vw, 1.6rem);
+}
+
+.admin-panel-surface {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: clamp(0.85rem, 2vw, 1.2rem);
+  /* Entra con el mismo gesto que cualquier panel de la app al aparecer — el
+     admin no tenía ni una sola animación de entrada, cambiar de sección se
+     sentía como un salto seco en vez de una navegación. */
+  animation: rincon-fade 180ms var(--ease-out) both;
+}
+
+/* De tablet ancha para arriba: entra la sidebar, se esconde la tira. */
+@media (min-width: 900px) {
+  .admin-sidebar {
+    display: flex;
+  }
+
+  .admin-mobile-bar,
+  .admin-nav-tabs {
+    display: none;
+  }
+}
+
+/* ── Buscador del panel ──
+   Antes cada pantalla lo volvía a escribir con otro nombre —Usuarios tenía
+   `.admin-users__search`, Actividad `.admin-log-search`, misma regla letra
+   por letra (ver el comentario que había quedado ahí, admitiéndolo)—. Va acá
+   porque este archivo es el único que las siete secciones cargan siempre:
+   `AdminLayout` las monta a todas, así que una pantalla nueva no depende de
+   que alguien haya visitado antes la que "casualmente" traía el CSS. */
+.admin-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  /* control-sm (34px) y no control-md (42px): un dashboard de trabajo — Stripe,
+     Vercel, Linear — corre sus controles chicos y precisos, porque se usan
+     ciento de veces por sesión y no una vez cada tanto como un formulario.
+     Antes esto tenía la misma altura que el buscador de la app de consumo. */
+  min-height: var(--control-sm);
+  margin-bottom: 12px;
+  /* `--radius-md` y no `--radius-full`: el pill entero es lenguaje de la app
+     de consumo (Mi Bodega, Sommelier) — cálido, para tocar con el pulgar. Acá
+     el radio chico es lo que hace que un rectángulo se lea como CONTROL DE
+     DATOS y no como una pastilla decorativa más al lado de las demás. */
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: border-color var(--transition-fast);
+}
+
+.admin-search:focus-within {
+  border-color: var(--accent-light);
+}
+
+/* La regla global de App.css (`input[type="search"] { ... }`, pensada para
+   los formularios normales de la app) le pone a CUALQUIER input un padding de
+   14px, 44px de alto mínimo y ancho 100% — ninguno de los tres pensado para
+   vivir adentro de una fila flex ya paddeada. Sin pisarlos acá, el input
+   crecía más alto que su propia cápsula y sobresalía por los costados: eso
+   era el "contenedor mal rodeado", no sólo el foco. */
+.admin-search input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+/* Esa misma hoja global también le agrega a TODO input en foco su propio
+   borde violeta y un `box-shadow` de brillo (`input:focus` en App.css) —
+   pensado para un campo suelto, no para uno adentro de una cápsula que ya
+   tiene su propia señal de foco (arriba, `:focus-within`). Sin apagarlo acá,
+   el input dibujaba un segundo aro — desalineado del radio del contenedor —
+   por encima del borde que ya cambiaba de color solo. Se apaga completo
+   (outline, borde y sombra) porque las tres partes son la misma señal
+   repetida tres veces. */
+.admin-search input:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ── Botón del panel ──
+   Mismo problema, mismo arreglo: sólo Usuarios y Reseñas lo tenían
+   (AdminUsersPage.css), así que cualquier otra pantalla que lo usara
+   dependía de esa visita previa. `--primary` es nuevo: hacía falta un botón
+   "de confirmar" (ver Fotos) y no había ninguno en el panel, sólo el ghost
+   de siempre — cada acción se veía con el mismo peso visual sin importar si
+   era "guardar" o "cancelar". */
+/* El borde por defecto es `--line` (neutro), no `--line-accent`: en la
+   versión anterior CADA botón del panel tenía un aro violeta, así que el
+   color dejaba de significar nada — "esto es la acción importante" se decía
+   igual que "esto es cancelar". Acá el acento se reserva para el estado
+   (hover, foco, `--primary`) y el borde en reposo es el mismo gris que
+   cualquier otro control del panel. */
+.admin-btn {
+  min-height: var(--control-sm);
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-btn:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+.admin-btn:disabled { opacity: 0.5; cursor: default; }
+
+.admin-btn--ghost {
+  border-color: transparent;
+  background: none;
+}
+
+.admin-btn--ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.admin-btn--danger {
+  border-color: rgb(var(--wine-rgb) / 0.35);
+  color: var(--danger-text);
+}
+
+.admin-btn--danger:hover:not(:disabled) {
+  background: var(--wine-soft);
+  border-color: rgb(var(--wine-rgb) / 0.6);
+}
+
+.admin-btn--primary {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--paper);
+}
+
+.admin-btn--primary:hover:not(:disabled) {
+  background: var(--accent-light);
+  border-color: var(--accent-light);
+}
+
+/* El botón de acción de una fila cuando lleva sólo ícono: cuadrado, para que
+   no quede un rectángulo de 40px de ancho con un tacho de 14 adentro. */
+.admin-btn--icon {
+  min-width: var(--control-sm);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* ── Piezas compartidas por las páginas del panel (Resumen, Actividad) ── */
+
+.admin-section-head {
+  margin-bottom: 0.9rem;
+}
+
+.admin-section-head h1,
+.admin-section-head h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.admin-section-head p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+}
+
+.admin-metric-card,
+.admin-wide-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  padding: 0.9rem 0.95rem;
+  transition: border-color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .admin-metric-card:hover,
+  .admin-wide-card:hover {
+    border-color: var(--line-accent);
+  }
+}
+
+/* La tarjeta en gris mientras carga: mismo alto que la de verdad, para que la
+   grilla no salte cuando llegan los números. El alto sale de sumar lo que
+   ocupan el rótulo, la cifra y el pie. */
+.admin-metric-card--skel {
+  min-height: 96px;
+  background: var(--surface);
+  animation: rincon-fade 900ms var(--ease-out) infinite alternate;
+}
+
+.admin-metric-card span {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* El número es lo único que alguien viene a leer en una tarjeta de métrica —
+   todo lo demás (rótulo, pie) es contexto. Antes pesaba casi lo mismo que el
+   rótulo (1.65rem vs. el cuerpo de texto): acá gana protagonismo de verdad,
+   con números tabulares para que una fila de tarjetas no baile al cargar. */
+.admin-metric-card strong {
+  display: block;
+  margin: 0.35rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.admin-metric-card small {
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+}
+
+.admin-wide-card h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.admin-chip-row {
+  margin-top: 0.65rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-chip {
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  font-size: var(--text-xs);
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
+  color: var(--text);
+  cursor: default;
+}
+
+/* `a.admin-chip` además de `button`: en el Resumen, el desglose de la
+   actividad son enlaces al registro. Sin esto quedaban con `cursor: default`,
+   o sea con cara de dato y no de destino. */
+button.admin-chip,
+a.admin-chip {
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+a.admin-chip:hover {
+  color: var(--accent-soft);
+  border-color: var(--line-accent);
+}
+
+button.admin-chip.is-active {
+  background: var(--accent-muted);
+  color: var(--accent-soft);
+  border-color: var(--line-accent);
+}
+
+.admin-empty-state {
+  margin: 0;
+  color: var(--text-secondary);
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--glass);
+}
+
+/* ══ LA TABLA DEL PANEL ═══════════════════════════════════════════════════
+   Usuarios y Actividad mostraban sus filas como TARJETAS: cada usuario
+   ocupaba tres renglones (identidad, métricas, dos botones de ancho completo)
+   y cada movimiento del registro, cuatro (chapa + fecha, título, autor,
+   resumen). Con veinte usuarios por página eso son sesenta renglones de
+   scroll, y con treinta movimientos, ciento veinte.
+
+   El problema no es sólo el largo. Una tarjeta pone cada dato en un lugar
+   distinto de la caja, así que para comparar dos usuarios —¿cuál tiene más
+   vinos? ¿cuál se dio de alta antes?— hay que leer los dos enteros. Una
+   tabla alinea el mismo dato en la misma columna: se compara con la vista,
+   sin leer. Eso es lo que hace que una pantalla de administración aguante
+   mil filas en vez de veinte.
+
+   La tabla scrollea horizontal DENTRO de su caja (nunca la página) y el
+   encabezado queda pegado arriba, que es lo que permite seguir sabiendo qué
+   columna estás mirando en la fila 400.
+
+   `.admin-table__num` es para las columnas de números: van a la derecha y con
+   cifras de ancho fijo, así la columna se lee como una columna y no como un
+   zigzag.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.admin-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgb(var(--paper-rgb) / 0.05);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (hover: hover) {
+  .admin-table tbody tr:hover td {
+    background: rgb(var(--paper-rgb) / 0.03);
+  }
+}
+
+/* La columna que identifica la fila: es lo que se busca con la vista al
+   recorrer, así que es la única con el color de texto pleno. */
+.admin-table__id {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-table__sub {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+}
+
+.admin-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La descripción es lo único que puede ser largo: se le permite envolver y
+   se le pone un techo, para que una fila no empuje a las demás fuera de la
+   pantalla. */
+.admin-table__desc {
+  white-space: normal;
+  min-width: 240px;
+  max-width: 460px;
+  line-height: 1.35;
+}
+
+.admin-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* La fila de un log se abre tocándola entera (no hay un botón aparte): con
+   una sola acción posible por fila —ver el stack— un ícono de más sería un
+   segundo control para hacer lo mismo que ya hace tocar la fila. */
+.admin-table__row-clickable {
+  cursor: pointer;
+}
+
+/* El stack completo, sólo cuando se pidió: es la parte que de verdad
+   diagnostica un error, pero es demasiado para tener siempre a la vista —
+   una sola fila puede tener quince renglones de traza. Con scroll propio en
+   los dos ejes: una ruta de Windows o un stack de Mongo se van bien pasados
+   de los 460px que tiene la columna de mensaje. */
+.admin-log-stack {
+  margin: 0;
+  padding: 12px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  white-space: pre;
+}
+
+/* Separador de día en el registro: una fila entera que dice la fecha. Sin
+   esto, "hace cuánto pasó esto" había que deducirlo leyendo el timestamp
+   completo de cada fila. */
+.admin-table__day td {
+  padding: 7px 12px;
+  background: rgb(var(--paper-rgb) / 0.035);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Filas en gris mientras carga: la altura de la tabla no cambia al llegar los
+   datos. Antes había un "Cargando usuarios…" suelto y la página daba un salto
+   de varias pantallas cuando respondía. */
+.admin-table__skel td {
+  padding: 14px 12px;
+}
+
+.admin-table__skel span {
+  display: block;
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--paper-rgb) / 0.07);
+  animation: rincon-fade 900ms var(--ease-out) infinite alternate;
+}
+
+/* ── Grupos de filtro con su rótulo ──
+   El registro tenía nueve pastillas en una sola fila, separadas por una línea
+   de 1px puesta con un `style` inline: dos preguntas distintas ("¿de qué?" y
+   "¿qué acción?") que se leían como una lista de nueve opciones sueltas. */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.admin-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-filter-group__label {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/* El desplegable de "Admin": mismo trato que `.admin-users__sort` (ver ese
+   comentario) — es el `Dropdown` compartido, sólo se le ajusta el tamaño al
+   resto de estos chips chicos, sin la caja doble que dejaría estilarlo desde
+   afuera. Sin `margin-left: auto`: acá vive DENTRO de un grupo con rótulo,
+   no solo al final de la barra. */
+.admin-activity__actor {
+  min-width: 180px;
+}
+
+.admin-activity__actor .dropdown__trigger {
+  min-height: var(--control-sm);
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border-color: var(--line);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* El rango de fechas: dos campos nativos y un separador entre medio, del
+   mismo alto que los chips de al lado para que la fila no salte de altura. */
+.admin-date-input {
+  min-height: var(--control-sm);
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+}
+
+.admin-filter-group__sep {
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+}
+
+/* "Limpiar filtros": mismo lenguaje que la ficha de un filtro puesto en Mi
+   Bodega — un chip de más, en voz baja, que sólo aparece cuando hay algo para
+   sacar. */
+.admin-chip--clear {
+  color: var(--text-subtle);
+  text-decoration: underline;
+  border-color: transparent;
+  background: transparent;
+}
+
+.admin-log-badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.24rem 0.62rem;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-log-badge--create {
+  background: var(--success-soft);
+  border: 1px solid rgb(var(--success-rgb) / 0.42);
+  color: var(--success-text);
+}
+
+.admin-log-badge--update {
+  background: rgb(var(--info-rgb) / 0.18);
+  border: 1px solid rgb(var(--info-rgb) / 0.4);
+  color: var(--text-secondary);
+}
+
+.admin-log-badge--delete {
+  background: var(--danger-soft);
+  border: 1px solid rgb(var(--favorite-rgb) / 0.42);
+  color: var(--danger-text);
+}
+
+/* Acá vivían `.admin-log-item--admin` y `.admin-log-item__admin-tag`: una
+   tarjeta con borde dorado y una chapita "ACCIÓN SOBRE CUENTA" para distinguir
+   lo que se le hace a un usuario de lo que se le hace a un vino. Con la tabla
+   eso lo dice la columna "Tipo", que ahora existe y vale para las cuatro
+   entidades — no sólo para señalar una. */
+
+/* `.admin-log-search` se fue: era el mismo `.admin-search` de más arriba con
+   otro nombre (y `max-width: 420px` de más, que ya no hace falta — el resto
+   del panel no lo tiene y no se veía ningún problema por su ausencia). */
+
+/* `.admin-log-filters` (una sola fila con las nueve pastillas seguidas) la
+   reemplazó `.admin-filters`, que las agrupa por pregunta y las rotula. */
+
+/* ── Paginador ──
+   Anterior/Siguiente y nada más obliga a tocar veinte veces para llegar a la
+   página veinte, y no deja volver al principio. Con los números, se salta. La
+   lista se recorta alrededor de la página actual para que no crezca sin
+   límite (ver `paginas()` en AdminPager.jsx). */
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.admin-pager__total {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-pager__pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-pager__page {
+  min-width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.admin-pager__page:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  color: var(--text);
+}
+
+.admin-pager__page.is-current {
+  background: var(--accent-muted);
+  border-color: var(--line-accent);
+  color: var(--accent-soft);
+}
+
+.admin-pager__page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-pager__gap {
+  padding: 0 2px;
+  color: var(--text-subtle);
+}
+
+@media (min-width: 900px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .admin-wide-card {
+    grid-column: span 2;
+  }
+}

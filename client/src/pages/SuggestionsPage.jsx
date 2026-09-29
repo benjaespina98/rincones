@@ -16,7 +16,7 @@ import WineRecipeSheet from "../components/WineRecipeSheet";
 import { FOOD_PAIRINGS } from "../data/wineReference";
 import { tapHaptic } from "../utils/haptics";
 import { trackEvent } from "../services/analyticsApi";
-import "../styles/pages/SuggestionsPage.css";
+import "./SuggestionsPage.css";
 
 /**
  * ══ EL SOMMELIER ═══════════════════════════════════════════════════════════

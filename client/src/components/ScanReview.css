@@ -7,7 +7,7 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-accent);
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.16), transparent 55%),
+    radial-gradient(120% 90% at 50% 0%, rgb(var(--accent-light-rgb) / 0.16), transparent 55%),
     var(--elevated);
   box-shadow: var(--shadow-md);
   animation: rincon-enter-up 280ms var(--ease-out) both;
@@ -166,7 +166,7 @@
   gap: 5px;
   padding: 5px 11px;
   border-radius: var(--radius-full);
-  background: rgba(126, 89, 201, 0.14);
+  background: rgb(var(--accent-rgb) / 0.14);
   border: 1px solid var(--line);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -205,15 +205,15 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(242, 183, 55, 0.28);
-  background: rgba(242, 183, 55, 0.08);
+  border: 1px solid rgb(var(--gold-rgb) / 0.28);
+  background: rgb(var(--gold-rgb) / 0.08);
 }
 
 /* Cuando además frena el guardado, el borde se afirma: el mismo mensaje pesa
    distinto si es un aviso que si es una condición. */
 .scan-review__issues.is-blocking {
-  border-color: rgba(242, 183, 55, 0.5);
-  background: rgba(242, 183, 55, 0.12);
+  border-color: rgb(var(--gold-rgb) / 0.5);
+  background: rgb(var(--gold-rgb) / 0.12);
 }
 
 .scan-review__issues-head {
@@ -251,7 +251,7 @@
   margin-top: 4px;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(242, 183, 55, 0.45);
+  border: 1px solid rgb(var(--gold-rgb) / 0.45);
   background: transparent;
   color: var(--gold-soft);
   font-size: var(--text-2xs);
@@ -261,8 +261,8 @@
 }
 
 .scan-review__confirm-same:hover:not(:disabled) {
-  background: rgba(242, 183, 55, 0.14);
-  border-color: rgba(242, 183, 55, 0.7);
+  background: rgb(var(--gold-rgb) / 0.14);
+  border-color: rgb(var(--gold-rgb) / 0.7);
 }
 
 .scan-review__confirm-same:disabled {
@@ -323,7 +323,7 @@
 /* Marca ámbar sólo en lo dudoso: el ojo va directo a lo que hay que mirar. */
 .scan-review__field.is-review input,
 .scan-review__field.is-low input {
-  border-color: rgba(242, 183, 55, 0.4);
+  border-color: rgb(var(--gold-rgb) / 0.4);
 }
 
 .scan-review__field input:focus {
@@ -360,7 +360,7 @@
   border: 0;
   border-radius: var(--radius-md);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-size: var(--text-md);
   font-weight: 700;
   cursor: pointer;
@@ -451,7 +451,7 @@
   border: 0;
   border-radius: var(--radius-md);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-size: var(--text-md);
   font-weight: 700;
   cursor: pointer;

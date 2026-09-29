@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import { getAnalyticsSummary } from "../services/analyticsApi";
-import "./styles/AdminAnalyticsPage.css";
+import "./AdminAnalyticsPage.css";
 
 /**
  * El tablero de uso: cuánta gente entra a Rincones y qué mira.
