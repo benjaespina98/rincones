@@ -115,6 +115,11 @@
   --accent-rgb: 126 89 201;
   --accent-light-rgb: 167 130 239;
   --accent-strong-rgb: 108 72 180;
+  /* Los dos fondos, en canales. Los usan los velos y las capas translúcidas
+     que antes escribían `rgba(9, 11, 19, 0.92)` a mano — que además no era
+     exactamente --bg, sino uno de los cuatro "casi negros" que convivían. */
+  --bg-rgb: 11 13 20;
+  --bg-deep-rgb: 7 9 16;
   --success-text-rgb: 127 227 180;
   --surface-raised-rgb: 29 34 54;
   /* Azul de información. No estaba en la paleta y sin embargo se usaba: el
@@ -370,6 +375,9 @@
   --font-family-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-family-serif: var(--font-family-sans);
   --font-family-base: var(--font-family-sans);
+  /* Monoespaciada para ids, tokens y logs del panel: ahí el ancho fijo es
+     funcional, no estético — dos ids desalineados no se comparan de un vistazo. */
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
   /* Escala tipográfica. Antes había 68 tamaños distintos (0.72/0.74/0.78/0.8/
      0.82/0.85/0.86rem…), lo que hacía que dos textos del mismo rango se vieran

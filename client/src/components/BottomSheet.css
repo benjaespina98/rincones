@@ -1,0 +1,150 @@
+/* La hoja que sube desde abajo. Ver el porqué de cada decisión en
+   BottomSheet.jsx. */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet__velo {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgb(var(--ink-rgb) / 0.55);
+  /* El desenfoque es lo que separa "hay algo encima" de "la pantalla se
+     oscureció". Sin él, el velo se lee como un bajón de brillo. */
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: rincon-fade var(--transition-smooth) both;
+}
+
+.sheet__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  /* Nunca más alto que la pantalla menos un respiro: si la hoja llega al borde
+     de arriba deja de leerse como una hoja y pasa a ser otra pantalla. */
+  max-height: min(88vh, 100% - 40px);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  border: 1px solid var(--border-base);
+  border-bottom: 0;
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-modal);
+  /* El safe-area va acá y no en el cuerpo: el fondo de la hoja tiene que llegar
+     hasta el borde del teléfono, y el contenido quedar por encima de la barra
+     del sistema. */
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-subir var(--transition-smooth) var(--ease-out) both;
+  /* Sólo transform: es lo único que se anima mientras el dedo arrastra. */
+  transition: transform var(--transition-smooth) var(--ease-out);
+  will-change: transform;
+}
+
+/* Mientras el dedo manda, sin transición: la hoja tiene que ir pegada al dedo,
+   y una transición de 220 ms la deja arrastrándose atrás. */
+.sheet__panel[data-arrastrando] {
+  transition: none;
+}
+
+@keyframes sheet-subir {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* El asa: una zona de agarre de 44 px (el mínimo táctil) con una barrita
+   visible de 4. Lo que se ve y lo que se toca no tienen por qué medir igual. */
+.sheet__asa-zona {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  padding: 10px 0 6px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet__asa-zona:active {
+  cursor: grabbing;
+}
+
+.sheet__asa {
+  width: 38px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+
+.sheet__head {
+  padding: 2px var(--card-pad-hero) var(--space-sm);
+}
+
+.sheet__titulo {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.sheet__desc {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.sheet__cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-sm) var(--card-pad-hero) var(--card-pad-hero);
+}
+
+.sheet__pie {
+  padding: var(--space-md) var(--card-pad-hero);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-overlay);
+}
+
+.sheet__cerrar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sheet__cerrar:hover {
+  background: var(--surface-base);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet__panel,
+  .sheet__velo {
+    animation: none;
+  }
+
+  .sheet__panel {
+    transition: none;
+  }
+}

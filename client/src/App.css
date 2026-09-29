@@ -839,6 +839,7 @@ select:disabled {
    el botón activo se trae a la vista solo al cambiar de vista (ver
    Segmented.jsx), así que nunca queda elegido algo que no se ve. */
 .segmented {
+  position: relative;
   display: flex;
   padding: 3px;
   border-radius: var(--radius-full);
@@ -855,6 +856,8 @@ select:disabled {
 }
 
 .segmented__btn {
+  position: relative;
+  z-index: 1;
   flex: 1 0 auto;
   display: inline-flex;
   align-items: center;
@@ -876,8 +879,30 @@ select:disabled {
 }
 
 .segmented__btn.is-active {
+  color: var(--accent-text);
+}
+
+/* ── EL INDICADOR QUE SE DESLIZA ──────────────────────────────────────────
+   Ver el comentario largo en Segmented.jsx. Va detrás de los botones
+   (z-index 0 contra el 1 de ellos) y se mueve con transform, que es lo unico
+   que un navegador anima sin repintar. */
+.segmented__indicador {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  bottom: 3px;
+  z-index: 0;
+  border-radius: var(--radius-full);
   background: var(--accent-muted);
-  color: var(--accent-soft);
+  transition: transform var(--transition-smooth) var(--ease-out),
+    width var(--transition-smooth) var(--ease-out);
+  will-change: transform, width;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented__indicador {
+    transition: none;
+  }
 }
 
 /* El número de cada opción: dice qué vas a encontrar del otro lado antes de

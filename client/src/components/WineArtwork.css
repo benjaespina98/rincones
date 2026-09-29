@@ -12,3 +12,73 @@
 .wine-artwork svg {
   filter: drop-shadow(0 8px 16px rgb(var(--ink-rgb) / 0.4));
 }
+
+/* ── LAS PARTES DE LA BOTELLA ─────────────────────────────────────────────────
+   El color ya no viene de una tabla en JS: sale de los tokens de tipo, que la
+   botella hereda por `data-wine-type`. Antes esta tabla tenía sus propios
+   hexadecimales y por eso el espumante era dorado acá y celeste en las listas.
+   Ver el comentario en WineArtwork.jsx. */
+
+.wine-artwork__vidrio {
+  fill: rgb(var(--paper-rgb) / 0.05);
+  stroke: rgb(var(--paper-rgb) / 0.14);
+  stroke-width: 1.4;
+}
+
+/* El líquido va del acento (arriba, donde da la luz) al profundo (abajo). Sin
+   degradado el vino se ve plano, como un color de relleno. */
+.wine-artwork__liquido {
+  fill: var(--type-accent);
+  /* El profundo entra como sombra interior barata: un degradado de verdad
+     obligaría a un <linearGradient> con id único por instancia, y en una lista
+     de sesenta botellas eso son sesenta defs repetidos en el DOM. */
+  filter: drop-shadow(0 6px 6px rgb(var(--type-rgb) / 0.5));
+}
+
+.wine-artwork__bozal rect {
+  fill: rgb(var(--paper-rgb) / 0.22);
+}
+
+.wine-artwork__bozal path {
+  stroke: rgb(var(--paper-rgb) / 0.3);
+  stroke-width: 1.2;
+  fill: none;
+}
+
+.wine-artwork__etiqueta {
+  fill: rgb(var(--paper-rgb) / 0.88);
+}
+
+.wine-artwork__renglon {
+  fill: var(--type-deep);
+  opacity: 0.55;
+}
+
+/* Las burbujas del espumante: suben, se desvanecen y vuelven a empezar. Es la
+   única animación en bucle de la app, y por eso es lenta y de baja opacidad —
+   algo que se repite para siempre en pantalla no puede pedir atención. */
+.wine-artwork__burbujas circle {
+  fill: rgb(var(--paper-rgb) / 0.55);
+  animation: wine-burbuja 3.2s ease-in infinite;
+}
+
+@keyframes wine-burbuja {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-22px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-artwork__burbujas circle {
+    animation: none;
+    opacity: 0.55;
+  }
+}

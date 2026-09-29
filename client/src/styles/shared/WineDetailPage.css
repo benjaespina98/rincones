@@ -823,7 +823,7 @@
   align-items: center;
   gap: 10px;
   margin: 6px 0 -4px;
-  font-family: var(--font-family);
+  font-family: var(--font-family-base);
   font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.14em;
