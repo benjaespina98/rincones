@@ -120,7 +120,16 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
         superficie de Card) y brillo neutro en vez de violeta.
   - [x] Trampa de foco endurecida: ignora hidden, inert y disabled (8 tests).
   - [x] EmptyState y ErrorState adoptan Button.
-- [ ] **Fase 3 — Shell y navegación**
+- [ ] **Fase 3 — Shell y navegación** — en curso
+  - [x] Barra inferior con glass (con respaldo `@supports`) e indicador que se
+        desliza; en escritorio se apaga y queda la marca vertical del sidebar.
+  - [x] Título grande que colapsa: el grande vive en el contenido y se va con el
+        scroll, el de la barra aparece por opacidad (`useHeaderCollapse`).
+  - [ ] Botón de cámara con más carácter y `--page-pad-bottom` revisado; fade en
+        el borde inferior de las listas.
+  - [ ] Transiciones de pantalla y shared-element de la foto al abrir una ficha
+        (evaluar View Transitions con fallback, sin librería).
+  - [ ] Feedback: corazón animado al marcar favorito, toasts con deshacer.
 - [ ] **Fase 4 — Mi Bodega**
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
 - [ ] **Fase 5 — Ficha de vino unificada**
@@ -128,6 +137,21 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 - [ ] **Fase 7 — Cierre**
 
 ---
+
+## Próximo paso exacto
+
+Fase 3, lo que queda (ver arriba). Después, Fase 4 (partir `BodyPage`).
+
+**Medición al día de hoy**, para comparar al cerrar cada fase:
+
+| | |
+|---|---|
+| lint | limpio |
+| tokens | 136/136 declarados |
+| client | 227/227 (30 archivos) |
+| server | 339/339 |
+| carga inicial | entry 72,82 + vendor 35,76 + CSS 10,77 = **119,4 kB gzip** |
+| presupuesto | ~143 kB (queda margen de 23,6) |
 
 ## La guarda de tokens
 
