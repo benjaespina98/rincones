@@ -93,3 +93,10 @@ export const updatePassword = async (currentPassword, newPassword) => {
   return data;
 };
 
+
+// Baja de cuenta con borrado real. El server pide el email escrito a mano y,
+// si la cuenta tiene contraseña, también la contraseña.
+export const deleteAccount = async ({ confirmEmail, password }) => {
+  const { data } = await api.delete("/users/me", { data: { confirmEmail, password } });
+  return data;
+};
