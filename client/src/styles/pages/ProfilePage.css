@@ -17,11 +17,11 @@
   margin-top: 0.4rem;
   padding: 22px;
   background:
-    radial-gradient(120% 130% at 100% 0%, rgba(198, 70, 95, 0.24), transparent 55%),
-    linear-gradient(150deg, rgba(141, 95, 245, 0.55), rgba(54, 37, 128, 0.9));
-  color: #f6f3ff;
+    radial-gradient(120% 130% at 100% 0%, rgb(var(--wine-rgb) / 0.24), transparent 55%),
+    linear-gradient(150deg, rgb(var(--accent-rgb) / 0.55), rgb(var(--accent-strong-rgb) / 0.9));
+  color: var(--text);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(173, 144, 255, 0.3);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
   box-shadow: var(--shadow-md);
   display: flex;
   gap: 16px;
@@ -38,15 +38,15 @@
   width: 76px;
   height: 76px;
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgb(var(--paper-rgb) / 0.16);
+  box-shadow: inset 0 1px 0 rgb(var(--paper-rgb) / 0.16), 0 8px 20px rgb(var(--ink-rgb) / 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 27px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #fff;
+  color: var(--paper);
   flex-shrink: 0;
 }
 
@@ -66,7 +66,7 @@
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #d8cdff;
+  color: var(--text-secondary);
 }
 
 .profile-info h2 {
@@ -85,16 +85,16 @@
   border: 0;
   background: none;
   font: inherit;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgb(var(--paper-rgb) / 0.72);
   text-decoration: underline;
   text-underline-offset: 4px;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-decoration-color: rgb(var(--paper-rgb) / 0.35);
   cursor: pointer;
 }
 
 @media (hover: hover) {
   .profile-name-cta:hover {
-    color: #fff;
+    color: var(--paper);
   }
 }
 
@@ -161,7 +161,7 @@
 
 .stat-card {
   background: var(--elevated);
-  border: 1px solid rgba(166, 138, 248, 0.2);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.2);
   border-radius: var(--radius-lg);
   padding: 16px 12px;
   box-shadow: var(--shadow-sm);
@@ -184,7 +184,7 @@
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: #f6f3ff;
+  color: var(--text);
 }
 
 /* La referencia que vuelve legible al número: chica, en gris, y sin competir
@@ -201,7 +201,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #b7abd8;
+  color: var(--text-secondary);
 }
 
 /* Lista de acciones de cuenta (patrón app real: filas tocables). */
@@ -250,12 +250,12 @@
 }
 
 .account-item + .account-item {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgb(var(--paper-rgb) / 0.06);
 }
 
 @media (hover: hover) {
   .account-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgb(var(--paper-rgb) / 0.05);
   }
 }
 
@@ -299,8 +299,8 @@
 }
 
 .account-item--feature .account-item__icon {
-  background: rgba(242, 183, 55, 0.14);
-  color: var(--gold-soft, #e8c468);
+  background: rgb(var(--gold-rgb) / 0.14);
+  color: var(--gold-soft, var(--gold-soft));
 }
 
 .account-item--feature .account-item__label {
@@ -318,16 +318,16 @@
 }
 
 .account-item--danger {
-  color: #f0899d;
+  color: var(--type-red);
 }
 
 .account-item--danger:hover {
-  background: rgba(240, 137, 157, 0.1);
+  background: rgb(var(--type-red-rgb) / 0.1);
 }
 
 .account-item--danger .account-item__icon {
-  background: rgba(240, 137, 157, 0.14);
-  color: #ff9db0;
+  background: rgb(var(--type-red-rgb) / 0.14);
+  color: var(--type-red);
 }
 
 /* Acá vivían `.profile-card` y la familia `.info-*`: la ficha de datos del

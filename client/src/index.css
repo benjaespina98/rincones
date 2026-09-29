@@ -114,6 +114,14 @@
      lugar. Es la diferencia entre tener tokens y que los tokens manden. */
   --accent-rgb: 126 89 201;
   --accent-light-rgb: 167 130 239;
+  --accent-strong-rgb: 108 72 180;
+  --success-text-rgb: 127 227 180;
+  --surface-raised-rgb: 29 34 54;
+  /* Azul de información. No estaba en la paleta y sin embargo se usaba: el
+     panel de admin tenía dos azules distintos escritos a mano para decir lo
+     mismo. Es semántico, no decorativo — avisos que no son ni error ni éxito. */
+  --info: #76a8ff;
+  --info-rgb: 118 168 255;
   --wine-rgb: 198 70 95;
   --gold-rgb: 242 183 55;
   --success-rgb: 47 182 123;
@@ -123,6 +131,12 @@
      veces) en brillos, velos y sombras. */
   --paper-rgb: 255 255 255;
   --ink-rgb: 0 0 0;
+  /* Los mismos dos, opacos. Existen porque `#fff` aparecía suelto en 26 hojas
+     y `#000` en 5: son los literales más repetidos de la app, y se escriben
+     sin pensar justamente por ser "obvios". Con un token, el día que el blanco
+     puro moleste sobre el fondo oscuro —pasa— se baja medio punto en un lugar. */
+  --paper: rgb(var(--paper-rgb));
+  --ink: rgb(var(--ink-rgb));
 
   /* ══ TRES NIVELES DE SUPERFICIE, Y NADA MÁS ═══════════════════════════════
      Había seis tokens de superficie sin una regla que dijera cuál usar cuándo,

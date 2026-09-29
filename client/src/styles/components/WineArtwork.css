@@ -5,10 +5,10 @@
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.18), transparent 62%),
-    linear-gradient(160deg, rgba(40, 34, 60, 0.7), rgba(12, 15, 25, 0.9));
+    radial-gradient(120% 90% at 50% 0%, rgb(var(--accent-light-rgb) / 0.18), transparent 62%),
+    linear-gradient(160deg, rgb(var(--surface-raised-rgb) / 0.7), rgb(var(--bg-rgb) / 0.9));
 }
 
 .wine-artwork svg {
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 8px 16px rgb(var(--ink-rgb) / 0.4));
 }

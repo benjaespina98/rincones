@@ -10,9 +10,9 @@
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(126, 89, 201, 0.08) 0%,
-    rgba(167, 130, 239, 0.2) 50%,
-    rgba(126, 89, 201, 0.08) 100%
+    rgb(var(--accent-rgb) / 0.08) 0%,
+    rgb(var(--accent-light-rgb) / 0.2) 50%,
+    rgb(var(--accent-rgb) / 0.08) 100%
   );
   background-size: 1000px 100%;
   animation: shimmer 1.6s var(--ease-out) infinite;

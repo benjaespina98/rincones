@@ -6,7 +6,7 @@
 .open-sheet-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgb(var(--ink-rgb) / 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,8 +23,8 @@
   padding: 22px 20px 20px;
   display: grid;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(18, 22, 36, 0.98), rgba(12, 14, 22, 0.99));
-  border: 1px solid rgba(167, 130, 239, 0.2);
+  background: linear-gradient(180deg, rgb(var(--surface-raised-rgb) / 0.98), rgb(var(--bg-rgb) / 0.99));
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.2);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   animation: rincon-enter-up 240ms var(--ease-out);
@@ -135,7 +135,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-size: var(--text-lg);
   font-weight: 700;
   cursor: pointer;

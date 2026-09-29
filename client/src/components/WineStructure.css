@@ -42,7 +42,7 @@
   flex: 1;
   height: 6px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(var(--paper-rgb) / 0.08);
   transition: background var(--transition-smooth);
 }
 

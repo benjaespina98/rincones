@@ -30,9 +30,9 @@
   transform-origin: top right;
 }
 
-.toast--success { border-left-color: #4ade80; }
-.toast--error { border-left-color: #e24448; }
-.toast--warning { border-left-color: #fbbf24; }
+.toast--success { border-left-color: var(--success-text); }
+.toast--error { border-left-color: var(--danger); }
+.toast--warning { border-left-color: var(--gold); }
 .toast--info { border-left-color: var(--accent-light); }
 
 @keyframes slideIn {
@@ -73,15 +73,15 @@
 }
 
 .toast--success .toast__icon {
-  color: #4ade80;
+  color: var(--success-text);
 }
 
 .toast--error .toast__icon {
-  color: #e24448;
+  color: var(--danger);
 }
 
 .toast--warning .toast__icon {
-  color: #fbbf24;
+  color: var(--gold);
 }
 
 .toast--info .toast__icon {
@@ -105,9 +105,9 @@
 }
 
 .toast__action {
-  border: 1px solid rgba(181, 153, 255, 0.45);
-  background: rgba(132, 99, 245, 0.16);
-  color: #f2edff;
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.45);
+  background: rgb(var(--accent-rgb) / 0.16);
+  color: var(--text);
   border-radius: var(--radius-full);
   padding: 0.28rem 0.6rem;
   font-size: var(--text-sm);
@@ -125,7 +125,7 @@
 }
 
 .toast__action--secondary:hover {
-  color: #f2edff;
+  color: var(--text);
 }
 
 .toast__close {
@@ -145,7 +145,7 @@
 
   &:hover {
     color: var(--text);
-    background: rgba(138, 109, 230, 0.1);
+    background: rgb(var(--accent-rgb) / 0.1);
   }
 
   &:active {

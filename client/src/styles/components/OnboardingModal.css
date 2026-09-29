@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(6, 8, 14, 0.72);
+  background: rgb(var(--bg-deep-rgb) / 0.72);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   animation: rincon-fade 220ms var(--ease-out) both;
@@ -24,8 +24,8 @@
   border-radius: var(--radius-2xl);
   border: 1px solid var(--line-accent);
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(167, 130, 239, 0.22), transparent 55%),
-    linear-gradient(180deg, rgba(30, 24, 52, 0.98), rgba(14, 17, 30, 0.99));
+    radial-gradient(120% 90% at 50% 0%, rgb(var(--accent-light-rgb) / 0.22), transparent 55%),
+    linear-gradient(180deg, rgb(var(--surface-raised-rgb) / 0.98), rgb(var(--bg-rgb) / 0.99));
   box-shadow: var(--shadow-modal);
   animation: rincon-enter-up 320ms var(--ease-spring) both;
 }
@@ -153,7 +153,7 @@
   border: 0;
   border-radius: var(--radius-lg);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-size: var(--text-lg);
   font-weight: 700;
   cursor: pointer;

@@ -278,7 +278,7 @@
   border: 1px solid var(--line-accent);
   background:
     radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--ccard-accent) 22%, transparent), transparent 60%),
-    linear-gradient(160deg, rgba(30, 28, 56, 0.92), rgba(14, 17, 30, 0.95));
+    linear-gradient(160deg, rgb(var(--surface-raised-rgb) / 0.92), rgb(var(--bg-rgb) / 0.95));
   box-shadow: var(--shadow-md);
   overflow: hidden;
   animation: rincon-enter-up var(--transition-smooth) both;
@@ -327,8 +327,8 @@
   height: 82%;
   background: linear-gradient(
     to top,
-    rgba(9, 11, 20, 0.95) 30%,
-    rgba(9, 11, 20, 0.72) 58%,
+    rgb(var(--bg-rgb) / 0.95) 30%,
+    rgb(var(--bg-rgb) / 0.72) 58%,
     transparent 100%
   );
   pointer-events: none;
@@ -373,7 +373,7 @@
 
 .ccard--hero .ccard__cta {
   background: var(--accent);
-  color: #fff;
+  color: var(--paper);
 }
 
 @media (hover: hover) {

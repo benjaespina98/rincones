@@ -48,7 +48,7 @@
 
 .an__rango.is-active {
   background: var(--accent);
-  color: #fff;
+  color: var(--paper);
 }
 
 /* ── Tarjetas de totales ─────────────────────────────────────────────────── */
@@ -75,7 +75,7 @@
 .an__card.is-primary {
   border-color: var(--line-accent);
   background:
-    radial-gradient(120% 100% at 100% 0%, rgba(126, 89, 201, 0.18) 0%, transparent 60%),
+    radial-gradient(120% 100% at 100% 0%, rgb(var(--accent-rgb) / 0.18) 0%, transparent 60%),
     var(--elevated);
 }
 
@@ -154,7 +154,7 @@
 
 .an__toggle-btn.is-active {
   border-color: var(--line-accent);
-  background: rgba(126, 89, 201, 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
   color: var(--accent-soft);
 }
 
@@ -340,7 +340,7 @@
   width: 100%;
   min-height: 2px;
   border-radius: 3px 3px 0 0;
-  background: rgba(126, 89, 201, 0.45);
+  background: rgb(var(--accent-rgb) / 0.45);
   transition: background var(--transition-fast);
 }
 

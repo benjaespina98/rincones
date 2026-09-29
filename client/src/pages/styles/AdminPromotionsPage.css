@@ -27,7 +27,7 @@
   padding: 0 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
-  background: rgba(126, 89, 201, 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
   color: var(--accent-soft);
   font-size: var(--text-base);
   font-weight: 800;
@@ -35,7 +35,7 @@
 }
 
 .pr__new:hover {
-  background: rgba(126, 89, 201, 0.24);
+  background: rgb(var(--accent-rgb) / 0.24);
 }
 
 .pr__search {
@@ -164,8 +164,8 @@
 }
 
 .pr__group--active .pr__group-dot {
-  background: #2fb67b;
-  box-shadow: 0 0 0 3px rgba(47, 182, 123, 0.18);
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgb(var(--success-rgb) / 0.18);
 }
 
 .pr__group--scheduled .pr__group-dot {
@@ -267,7 +267,7 @@
 
 .pr__kind-btn.is-active {
   border-color: var(--line-accent);
-  background: rgba(126, 89, 201, 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
 }
 
 .pr__notice {
@@ -400,13 +400,13 @@
 }
 
 .pr__switch input:checked + .pr__switch-track {
-  background: rgba(47, 182, 123, 0.28);
-  border-color: rgba(47, 182, 123, 0.6);
+  background: rgb(var(--success-rgb) / 0.28);
+  border-color: rgb(var(--success-rgb) / 0.6);
 }
 
 .pr__switch input:checked + .pr__switch-track::after {
   transform: translateX(18px);
-  background: #7fe3b4;
+  background: var(--success-text);
 }
 
 .pr__switch input:focus-visible + .pr__switch-track {
@@ -512,7 +512,7 @@
 
 /* Lo que está al aire lleva un borde propio: la lista se escanea buscando eso. */
 .pr__group--active .pr__item {
-  border-color: rgba(47, 182, 123, 0.3);
+  border-color: rgb(var(--success-rgb) / 0.3);
 }
 
 .pr__group--ended .pr__item {
@@ -541,7 +541,7 @@
 .pr__tag-ad {
   padding: 1px 7px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(var(--paper-rgb) / 0.08);
   border: 1px solid var(--line-strong);
   font-size: var(--text-2xs);
   font-weight: 800;
@@ -641,13 +641,13 @@
 
 /* El ojo abierto dice en qué estado está, no sólo qué hace al tocarlo. */
 .pr__icon.is-on {
-  border-color: rgba(47, 182, 123, 0.45);
-  color: #7fe3b4;
+  border-color: rgb(var(--success-rgb) / 0.45);
+  color: var(--success-text);
 }
 
 .pr__icon--danger:hover:not(:disabled) {
-  border-color: rgba(198, 70, 95, 0.5);
-  color: #ff8fa3;
+  border-color: rgb(var(--wine-rgb) / 0.5);
+  color: var(--type-red);
 }
 
 /* El informe se abre debajo de su fila y no en un modal: así se puede comparar

@@ -139,7 +139,7 @@
 
 .rep__card.is-primary {
   border-color: var(--line-accent);
-  background: linear-gradient(160deg, rgba(126, 89, 201, 0.16), var(--elevated) 70%);
+  background: linear-gradient(160deg, rgb(var(--accent-rgb) / 0.16), var(--elevated) 70%);
 }
 
 .rep__label {
@@ -290,8 +290,8 @@
   :root,
   body,
   .rep {
-    background: #fff !important;
-    color: #14161f !important;
+    background: var(--paper) !important;
+    color: var(--bg) !important;
   }
 
   .rep {
@@ -308,7 +308,7 @@
   }
 
   .rep__marca {
-    color: #5b3fa8 !important;
+    color: var(--accent-strong) !important;
   }
 
   .rep__titulo,
@@ -316,10 +316,13 @@
   .rep__vacio h1,
   .rep__bloque h2,
   .rep__metodo h2 {
-    color: #14161f !important;
+    color: var(--bg) !important;
   }
 
   .rep__anunciante {
+  /* EXCEPCION: esto vive dentro de @media print. En papel el fondo es blanco,
+     asi que los tokens de texto —pensados para fondo oscuro— serian ilegibles.
+     Es el unico lugar de la app con el contraste al reves. */
     color: #3d4152 !important;
   }
 
@@ -327,22 +330,22 @@
   .rep__eje,
   .rep__pie,
   .rep__secundarios small {
-    color: #6b7080 !important;
+    color: var(--text-subtle) !important;
   }
 
   .rep__card,
   .rep__metodo,
   .rep__grafico {
-    border-color: #d7d9e0 !important;
-    background: #fff !important;
+    border-color: var(--type-sparkling) !important;
+    background: var(--paper) !important;
     /* Que no se corte una tarjeta entre dos hojas. */
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
   .rep__card.is-primary {
-    background: #f4f1fb !important;
-    border-color: #b9a8e6 !important;
+    background: var(--text) !important;
+    border-color: var(--type-unknown) !important;
   }
 
   .rep__card small,
@@ -352,16 +355,16 @@
 
   .rep__label,
   .rep__metodo dt {
-    color: #5b3fa8 !important;
+    color: var(--accent-strong) !important;
   }
 
   .rep__secundarios span {
-    color: #14161f !important;
+    color: var(--bg) !important;
   }
 
   /* Los degradados no imprimen bien: barras planas y con contraste. */
   .rep__barra {
-    background: #6b4fbb !important;
+    background: var(--accent-strong) !important;
   }
 
   .rep__metodo,

@@ -71,7 +71,7 @@
 
 @media (hover: hover) {
   .wine-score__main--tap:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgb(var(--paper-rgb) / 0.04);
   }
 }
 
@@ -228,8 +228,8 @@
   height: 26px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 1px solid rgb(var(--paper-rgb) / 0.16);
+  color: var(--paper);
   font-size: var(--text-2xs);
   font-weight: 800;
 }

@@ -109,7 +109,7 @@
   border-radius: 50%;
   border: 2px solid var(--line-accent);
   background: transparent;
-  color: #fff;
+  color: var(--paper);
   pointer-events: none;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
@@ -206,8 +206,8 @@
 }
 
 .admin-user__test {
-  background: rgba(242, 183, 55, 0.14);
-  border: 1px solid rgba(242, 183, 55, 0.3);
+  background: rgb(var(--gold-rgb) / 0.14);
+  border: 1px solid rgb(var(--gold-rgb) / 0.3);
   color: var(--gold-soft);
 }
 
@@ -306,8 +306,8 @@
   height: 22px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 1px solid rgb(var(--paper-rgb) / 0.16);
+  color: var(--paper);
   font-size: 10px;
   font-weight: 800;
 }

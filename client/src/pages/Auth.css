@@ -129,7 +129,7 @@
 .auth-input-wrap .auth-input:focus {
   outline: none;
   border-color: var(--accent-light);
-  background: rgba(13, 17, 31, 0.98);
+  background: rgb(var(--bg-rgb) / 0.98);
   box-shadow: var(--focus-ring);
 }
 
@@ -185,7 +185,7 @@
   flex: 1;
   height: 4px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(var(--paper-rgb) / 0.1);
   transition: background var(--transition-smooth);
 }
 
@@ -203,10 +203,10 @@
   width: 100%;
   min-height: 52px;
   margin-top: 4px;
-  border: 1px solid rgba(167, 130, 239, 0.3);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
   border-radius: var(--radius-md);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-size: var(--text-lg);
   font-weight: 700;
   cursor: pointer;
@@ -234,8 +234,8 @@
 .auth-spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border: 2px solid rgb(var(--paper-rgb) / 0.35);
+  border-top-color: var(--paper);
   border-radius: 50%;
   animation: rincon-spin 0.7s linear infinite;
 }
@@ -361,7 +361,7 @@
   padding: 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
-  background: rgba(126, 89, 201, 0.08);
+  background: rgb(var(--accent-rgb) / 0.08);
   display: grid;
   gap: 8px;
 }
@@ -386,8 +386,8 @@
   gap: 8px;
   padding: 11px 13px;
   border-radius: var(--radius-md);
-  background: rgba(198, 70, 95, 0.14);
-  border: 1px solid rgba(226, 85, 95, 0.35);
-  color: #ffc2cd;
+  background: rgb(var(--wine-rgb) / 0.14);
+  border: 1px solid rgb(var(--danger-rgb) / 0.35);
+  color: var(--danger-text);
   font-size: var(--text-base);
 }

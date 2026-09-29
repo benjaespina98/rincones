@@ -128,8 +128,8 @@
 
 .wine-plan__chip.is-on {
   border-color: var(--line-accent);
-  background: rgba(167, 130, 239, 0.16);
-  color: #fff;
+  background: rgb(var(--accent-light-rgb) / 0.16);
+  color: var(--paper);
 }
 
 .wine-plan__chip-x {
@@ -171,6 +171,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
+  /* EXCEPCION: verde de Spotify. Es una marca de terceros — el color
+     identifica el servicio, asi que no sale de nuestra paleta ni la sigue si
+     Spotify lo cambia. Lo mismo el verde oscuro del texto, dos lineas abajo. */
   background: #1db954;
   color: #06210f;
 }
@@ -210,8 +213,8 @@
   padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
-  background: rgba(167, 130, 239, 0.13);
-  color: #fff;
+  background: rgb(var(--accent-light-rgb) / 0.13);
+  color: var(--paper);
   font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
@@ -230,8 +233,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid rgb(var(--paper-rgb) / 0.3);
+  border-top-color: var(--paper);
   animation: rincon-spin 700ms linear infinite;
 }
 
