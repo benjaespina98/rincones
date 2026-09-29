@@ -14,7 +14,7 @@ import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
 import { successHaptic } from "../utils/haptics";
 import ScanReview from "../components/ScanReview";
 import { trackEvent } from "../services/analyticsApi";
-import "../styles/pages/ScanWinePage.css";
+import "./ScanWinePage.css";
 
 const toWinePayload = (draft) => ({
   name: draft.name?.trim() || "Vino sin nombre",

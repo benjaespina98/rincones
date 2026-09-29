@@ -1,0 +1,33 @@
+/* El badge de tipo de vino. Ver WineTypeBadge.jsx: color + palabra, nunca
+   color solo. */
+
+.wtb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--type-rgb) / 0.3);
+  background: var(--type-soft);
+  color: var(--type-accent);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.wtb--sm {
+  padding: 2px 8px;
+  font-size: var(--text-2xs);
+}
+
+.wtb--md {
+  padding: 4px 11px;
+  font-size: var(--text-xs);
+}
+
+.wtb__punto {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}

@@ -2,7 +2,7 @@ import Icon from "./Icon";
 import Portal from "./Portal";
 import Dropdown from "./Dropdown";
 import { useSheet } from "../hooks/useSheet";
-import "../styles/components/SettingsSheet.css";
+import "../styles/shared/SettingsSheet.css";
 import "./BodegaFilters.css";
 
 /**

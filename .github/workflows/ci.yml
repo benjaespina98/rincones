@@ -1,0 +1,66 @@
+# Los tests, corridos por GitHub y no por quien se acuerde.
+#
+# ── POR QUÉ ESTE ARCHIVO ────────────────────────────────────────────────────
+# La regla del proyecto es "a main sólo si pasan todos los tests", y hasta acá
+# no había nada que la verificara: los únicos checks que aparecían en un PR
+# eran los deploys de Vercel, que confirman que el build COMPILA — no que los
+# 553 tests pasen. Un PR que rompiera la suite entera se veía igual de verde.
+#
+# ── POR QUÉ ES TAN CORTO ────────────────────────────────────────────────────
+# El repo es privado, así que los minutos de Actions se cobran por uso. De ahí
+# las tres decisiones de abajo: una sola versión de Node, caché de npm, y
+# cancelar la corrida anterior cuando llega un commit nuevo.
+name: CI
+
+on:
+  # Todo PR, vaya a develop o a main.
+  pull_request:
+    branches: [develop, main]
+  # Y main después de mergear: es la rama desde la que Vercel despliega
+  # producción, así que es la que no puede quedar sin verificar. develop no
+  # lleva push aparte porque su PR ya corrió sobre el merge.
+  push:
+    branches: [main]
+
+# Dos commits seguidos a la misma rama no pagan dos corridas: la vieja se
+# cancela apenas empieza la nueva.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint y tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Node 22 y no la que tengamos puesta en la máquina: es el runtime con el
+      # que Vercel corre las funciones del server, así que romper en 22 es
+      # romper en producción aunque local ande.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` en la raíz instala los dos workspaces (client y server) desde
+      # el lockfile, sin resolver versiones de nuevo.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Primero lo más barato: si hay un error de lint, se sabe en segundos.
+      - name: Lint (client)
+        run: npm run lint -w client
+
+      # Un var(--x) sin declarar no da error: el navegador descarta la regla en
+      # silencio y el estilo desaparece. Ya pasó una vez con --bg-rgb, y no se
+      # ve mirando la pantalla. Esto lo convierte en un fallo de build.
+      - name: Tokens de CSS declarados
+        run: npm run check:tokens -w client
+
+      - name: Tests del server
+        run: npm test -w server
+
+      - name: Tests del client
+        run: npm test -w client

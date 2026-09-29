@@ -17,7 +17,7 @@ import TopRanking from "../components/TopRanking";
 import MomentsDiary from "../components/MomentsDiary";
 
 import ConfirmModal from "../components/ConfirmModal";
-import "../styles/pages/ProfilePage.css";
+import "./ProfilePage.css";
 
 export default function ProfilePage() {
   const navigate = useNavigate();

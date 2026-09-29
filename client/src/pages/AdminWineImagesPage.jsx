@@ -7,7 +7,7 @@ import WinePhoto from "../components/WinePhoto";
 import ImagePicker from "../components/ImagePicker";
 import AdminPager from "../components/AdminPager";
 import Icon from "../components/Icon";
-import "./styles/AdminWineImagesPage.css";
+import "./AdminWineImagesPage.css";
 
 /** Misma clave que arma el pool en el server (nombre + bodega + uva). Sólo
  * para identificar qué fila se está editando del lado del cliente — la
@@ -251,7 +251,7 @@ const AdminWineImagesPage = () => {
 
       {!loading && !error && results.length === 0 && (
         <EmptyState
-          icon="image"
+          illustration="busqueda"
           title="Sin resultados"
           hint={
             query
@@ -290,7 +290,7 @@ const AdminWineImagesPage = () => {
           {!aiLoading && aiError && <ErrorState title="No se pudo buscar" onRetry={buscarConIA} compact />}
 
           {!aiLoading && aiResults && aiResults.length === 0 && (
-            <EmptyState icon="search" title="La IA tampoco lo encontró" compact />
+            <EmptyState illustration="busqueda" title="La IA tampoco lo encontró" compact />
           )}
 
           {!aiLoading && aiResults && aiResults.length > 0 && (

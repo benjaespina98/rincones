@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { birthDateError, maxBirthDateForAge } from "../utils/age";
 import { AVATAR_COLORS, avatarColor, initials } from "../utils/identity";
 import Icon from "./Icon";
-import "../styles/components/ProfileEditor.css";
+import "./ProfileEditor.css";
 import Portal from "./Portal";
 
 const BIO_MAX = 180;

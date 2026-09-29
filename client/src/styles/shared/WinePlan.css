@@ -1,0 +1,383 @@
+/* ══ Plan de la noche ══════════════════════════════════════════════════════
+   La tarjeta que convierte una botella en un plan: a qué temperatura, qué poner
+   de música y qué cocinar.
+
+   Compartía el acento violeta con WineOpinion, con el argumento de que son las
+   dos cosas que se HACEN en la ficha. El argumento era cierto y el resultado no
+   servía: dos bloques marcados igual no jerarquizan nada, se disputan el ojo. El
+   acento quedó en uno solo —puntuar, que es lo único de esta pantalla que no
+   existe en ninguna otra app— y acá se fue. Ver el detalle abajo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── POR QUÉ DEJÓ DE TENER EL BORDE DE ACENTO ───────────────────────────────
+   Tenía borde violeta y un degradado radial en la esquina: era el contenedor
+   más decorado de la ficha. Y es el bloque MENOS esencial de todos —música, un
+   plato, una temperatura: cosas para explorar cuando ya sabés qué vino tenés—,
+   así que la jerarquía estaba dada vuelta. Lo complementario brillaba más que
+   el párrafo que explica a qué sabe la botella.
+
+   Sigue siendo una tarjeta, porque acá SÍ se toca (se elige un plan, se pide una
+   receta) y eso lo distingue del texto que ahora fluye sobre la página. Lo que se
+   fue es el brillo, no la caja. */
+.wine-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+}
+
+.wine-plan__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wine-plan__head h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.wine-plan__head h3 .icon {
+  color: var(--accent-soft);
+}
+
+.wine-plan__hint {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── La temperatura, en pastillas ──────────────────────────────────────────
+   Dos datos cortos que se leen de un vistazo y no una oración con dos palabras
+   subrayadas en el medio. */
+.wine-plan__serve {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wine-plan__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.wine-plan__pill .icon {
+  color: var(--accent-soft);
+}
+
+/* ── Los cuatro planes ─────────────────────────────────────────────────────
+   Un solo toque y aparece todo. No hay paso siguiente, ni "continuar": elegir el
+   plan ES la interacción.
+
+   Una fila que se desliza en vez de una grilla que se apila: con seis chips en
+   tres renglones, elegir un plan costaba media pantalla de una ficha que ya
+   pide scroll. La barra se oculta —el corte del último chip ya avisa que hay
+   más— y cada chip se engancha al arrastrar. */
+.wine-plan__chips {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /* El borde de foco de un chip no se corta contra el borde del contenedor. */
+  padding: 2px 1px;
+  margin: -2px -1px;
+}
+
+.wine-plan__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.wine-plan__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  padding: 7px 13px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.wine-plan__chip.is-on {
+  border-color: var(--line-accent);
+  background: rgb(var(--accent-light-rgb) / 0.16);
+  color: var(--paper);
+}
+
+.wine-plan__chip-x {
+  color: var(--accent-soft);
+}
+
+.wine-plan__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rincon-enter-down 200ms var(--ease-out);
+}
+
+/* ── Música ────────────────────────────────────────────────────────────────
+   Es un link a Spotify y se comporta como tal: no promete reproducir nada acá
+   adentro. Verde de Spotify sólo en el ícono — la tarjeta sigue siendo de la
+   app, no un banner de otra marca. */
+.wine-plan__music {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wine-plan__music:active {
+  transform: scale(0.99);
+}
+
+.wine-plan__music-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  /* EXCEPCION: verde de Spotify. Es una marca de terceros — el color
+     identifica el servicio, asi que no sale de nuestra paleta ni la sigue si
+     Spotify lo cambia. Lo mismo el verde oscuro del texto, dos lineas abajo. */
+  background: #1db954;
+  color: #06210f;
+}
+
+.wine-plan__music-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wine-plan__music-text strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.wine-plan__music-text em {
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.wine-plan__music > .icon:last-child {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* ── El botón de la receta ─────────────────────────────────────────────────
+   Dice qué va a pasar y para qué plan ("Qué cocinar para un asado"), no
+   "generar con IA": lo que importa es la cena, no de dónde sale. */
+.wine-plan__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-accent);
+  background: rgb(var(--accent-light-rgb) / 0.13);
+  color: var(--paper);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wine-plan__cta:active {
+  transform: scale(0.99);
+}
+
+.wine-plan__cta:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.wine-plan__spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--paper-rgb) / 0.3);
+  border-top-color: var(--paper);
+  animation: rincon-spin 700ms linear infinite;
+}
+
+.wine-plan__failed {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── La receta, en su propia hoja ───────────────────────────────────────────
+   Hereda la hoja de los filtros y las preferencias (settings-sheet): misma
+   forma, mismo cierre, mismo lugar de la X. Acá sólo va lo que es propio de una
+   receta. */
+.wine-recipe-sheet {
+  max-width: 520px;
+}
+
+/* El nombre del plato es una frase gourmet, no una palabra ("Ojo de bife con
+   reducción de malbec y puré de papas trufado"), y `--text-2xl` —pensado para
+   el título de una palabra de ConceptSheet, que comparte esta misma hoja— lo
+   estira a tres renglones en un teléfono: el encabezado se come media
+   pantalla antes de que aparezca un solo ingrediente. Achicado y con el
+   interlineado más apretado, entra en dos renglones la mayoría de las veces
+   y dejar de ser lo primero (y lo único) que se ve al abrir. */
+.wine-recipe-sheet .settings-sheet__head--feature h2 {
+  font-size: var(--text-lg);
+  line-height: 1.3;
+}
+
+.wine-recipe {
+  gap: 12px;
+}
+
+.wine-recipe__label {
+  margin: 6px 0 -2px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+/* Dos salidas, no una: la búsqueda de otras versiones (texto) y ahora el
+   video (pedido explícito, "no crítico" — por eso una búsqueda de YouTube y
+   no una API que hay que mantener y pagar). En columna y no en fila: los dos
+   textos son largos y en fila se hubieran partido en dos renglones cada uno,
+   compitiendo por el mismo ancho angosto de la hoja. */
+.wine-recipe__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.wine-recipe__web {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wine-recipe__why {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* El único término que no envuelve un rótulo existente sino que agrega una
+   pregunta. Va en el acento para que se distinga de la frase que lo precede. */
+.wine-recipe__why-term {
+  color: var(--accent-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wine-recipe__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.wine-recipe__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.wine-recipe__ingredients {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.wine-recipe__steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.wine-recipe__steps::marker,
+.wine-recipe__steps li::marker {
+  color: var(--accent-soft);
+  font-weight: 800;
+}
+
+.wine-recipe__note {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+/* La salida del final: discreta, del ancho de la hoja, para no competir con el
+   link a otras versiones del plato que está justo arriba. */
+.wine-recipe__done {
+  min-height: 44px;
+  margin-top: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-plan__body { animation: none; }
+}

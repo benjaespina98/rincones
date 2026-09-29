@@ -87,8 +87,8 @@ html {
 
 .button--primary {
   background: var(--accent-fill);
-  border-color: rgba(160, 130, 250, 0.16);
-  color: #fff;
+  border-color: rgb(var(--accent-light-rgb) / 0.16);
+  color: var(--paper);
   box-shadow: var(--shadow-accent);
 }
 
@@ -100,18 +100,18 @@ html {
 }
 
 .button--secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgb(var(--paper-rgb) / 0.06);
+  border-color: rgb(var(--paper-rgb) / 0.1);
   color: var(--text);
 }
 
 .button--secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgb(var(--paper-rgb) / 0.12);
+  border-color: rgb(var(--paper-rgb) / 0.16);
 }
 
 .button--ghost {
-  background: rgba(12, 16, 30, 0.45);
+  background: rgb(var(--bg-rgb) / 0.45);
   border-color: var(--line-strong);
   color: var(--text-secondary);
 }
@@ -123,9 +123,9 @@ html {
 }
 
 .button--danger {
-  background: linear-gradient(135deg, #d44c59, #b3384a);
-  border-color: rgba(226, 85, 95, 0.3);
-  color: #fff;
+  background: linear-gradient(135deg, var(--danger), var(--wine));
+  border-color: rgb(var(--danger-rgb) / 0.3);
+  color: var(--paper);
 }
 
 /* ── Page header (used by the Explorar screen; other pages self-style) ── */
@@ -133,7 +133,7 @@ html {
   margin-bottom: var(--space-lg);
   padding: var(--space-lg) var(--space-md) var(--space-md);
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(40, 35, 80, 0.6), rgba(25, 22, 46, 0.5));
+  background: linear-gradient(135deg, rgb(var(--surface-raised-rgb) / 0.6), rgb(var(--surface-raised-rgb) / 0.5));
   border: 1px solid var(--line-accent);
   backdrop-filter: blur(10px);
 }
@@ -198,6 +198,17 @@ html {
   border: 1px solid var(--line-accent);
 }
 
+/* ── LA ILUSTRACIÓN NO VA EN UN CÍRCULO ────────────────────────────────────
+   El ícono viejo vivía adentro de una pastilla teñida de 84 px porque solo no
+   se sostenía: era un glifo de 34 px flotando. Una ilustración de 116 px con
+   su propia composición no necesita marco — ponerle uno la encierra y suma una
+   forma más a una pantalla cuyo problema es que no tiene nada.
+
+   Va con un respiro abajo y nada más. Ver EmptyIllustration.jsx. */
+.empty-state__ilu {
+  margin-bottom: 2px;
+}
+
 .empty-state--compact .empty-icon {
   width: 56px;
   height: 56px;
@@ -221,10 +232,10 @@ html {
 .empty-cta {
   margin-top: 6px;
   padding: 12px 24px;
-  border: 1px solid rgba(167, 130, 239, 0.3);
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
   border-radius: var(--radius-full);
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   font-weight: 700;
   font-size: var(--text-md);
   cursor: pointer;
@@ -277,7 +288,7 @@ html {
   padding: 40px 20px;
   text-align: center;
   background: var(--elevated);
-  border: 1px solid rgba(242, 183, 55, 0.28);
+  border: 1px solid rgb(var(--gold-rgb) / 0.28);
   border-radius: var(--radius-xl);
 }
 
@@ -294,8 +305,8 @@ html {
   height: 60px;
   border-radius: 50%;
   color: var(--gold-soft);
-  background: rgba(242, 183, 55, 0.12);
-  border: 1px solid rgba(242, 183, 55, 0.3);
+  background: rgb(var(--gold-rgb) / 0.12);
+  border: 1px solid rgb(var(--gold-rgb) / 0.3);
 }
 
 .error-state--compact .error-state__icon {
@@ -378,7 +389,7 @@ html {
 }
 
 .stars__base {
-  color: rgba(255, 255, 255, 0.16);
+  color: rgb(var(--paper-rgb) / 0.16);
 }
 
 .stars__fill {
@@ -387,7 +398,7 @@ html {
   left: 0;
   overflow: hidden;
   color: var(--gold);
-  filter: drop-shadow(0 1px 3px rgba(242, 183, 55, 0.4));
+  filter: drop-shadow(0 1px 3px rgb(var(--gold-rgb) / 0.4));
 }
 
 .stars__value {
@@ -418,7 +429,7 @@ select {
   padding: 0.875rem var(--space-md);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
-  background: rgba(13, 17, 31, 0.98);
+  background: rgb(var(--bg-rgb) / 0.98);
   color: var(--text);
   font-size: var(--text-lg);
   font-family: var(--font-family-base);
@@ -476,8 +487,8 @@ input:-webkit-autofill:active,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-text-fill-color: var(--text);
-  -webkit-box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset;
-  box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset;
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset;
+  box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset;
   caret-color: var(--text);
   transition: background-color 9999s ease-out 0s;
 }
@@ -486,8 +497,8 @@ select:-webkit-autofill {
    propiedad, así que sin esto un campo autocompletado era el único de la app
    que no se marcaba al enfocarse. */
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset, var(--focus-ring);
-  box-shadow: 0 0 0 1000px rgba(13, 17, 31, 0.98) inset, var(--focus-ring);
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset, var(--focus-ring);
+  box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset, var(--focus-ring);
 }
 
 input[type="checkbox"],
@@ -570,7 +581,7 @@ select:disabled {
 .qty-btn:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--paper);
 }
 
 .qty-btn:active {
@@ -631,7 +642,7 @@ select:disabled {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
-  background: rgba(21, 20, 44, 0.9);
+  background: rgb(var(--surface-raised-rgb) / 0.9);
   color: var(--text);
   font-family: var(--font-family-base);
   font-size: var(--text-lg);
@@ -704,7 +715,7 @@ select:disabled {
 
 .btn-add {
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--paper);
   box-shadow: var(--shadow-accent);
 }
 
@@ -713,16 +724,16 @@ select:disabled {
 }
 
 .btn-cancel {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(var(--paper-rgb) / 0.1);
   color: var(--text);
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgb(var(--paper-rgb) / 0.16);
 }
 
 .btn-wish {
-  background: rgba(126, 89, 201, 0.14);
+  background: rgb(var(--accent-rgb) / 0.14);
   border-color: var(--line-accent);
   color: var(--accent-soft);
 }
@@ -802,16 +813,16 @@ select:disabled {
 }
 
 .toggle-chip.is-on {
-  border-color: rgba(47, 182, 123, 0.45);
-  background: rgba(47, 182, 123, 0.14);
+  border-color: rgb(var(--success-rgb) / 0.45);
+  background: rgb(var(--success-rgb) / 0.14);
   color: var(--success-text);
 }
 
 /* Favorito enciende en el color de favoritos y no en verde: son dos cosas
    distintas y compartir color las haría parecer la misma. */
 .toggle-chip.is-on--fav {
-  border-color: rgba(230, 90, 130, 0.45);
-  background: rgba(230, 90, 130, 0.14);
+  border-color: rgb(var(--favorite-rgb) / 0.45);
+  background: rgb(var(--favorite-rgb) / 0.14);
   color: var(--favorite);
 }
 
@@ -839,6 +850,7 @@ select:disabled {
    el botón activo se trae a la vista solo al cambiar de vista (ver
    Segmented.jsx), así que nunca queda elegido algo que no se ve. */
 .segmented {
+  position: relative;
   display: flex;
   padding: 3px;
   border-radius: var(--radius-full);
@@ -855,6 +867,8 @@ select:disabled {
 }
 
 .segmented__btn {
+  position: relative;
+  z-index: 1;
   flex: 1 0 auto;
   display: inline-flex;
   align-items: center;
@@ -876,8 +890,30 @@ select:disabled {
 }
 
 .segmented__btn.is-active {
+  color: var(--accent-text);
+}
+
+/* ── EL INDICADOR QUE SE DESLIZA ──────────────────────────────────────────
+   Ver el comentario largo en Segmented.jsx. Va detrás de los botones
+   (z-index 0 contra el 1 de ellos) y se mueve con transform, que es lo unico
+   que un navegador anima sin repintar. */
+.segmented__indicador {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  bottom: 3px;
+  z-index: 0;
+  border-radius: var(--radius-full);
   background: var(--accent-muted);
-  color: var(--accent-soft);
+  transition: transform var(--transition-smooth) var(--ease-out),
+    width var(--transition-smooth) var(--ease-out);
+  will-change: transform, width;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented__indicador {
+    transition: none;
+  }
 }
 
 /* El número de cada opción: dice qué vas a encontrar del otro lado antes de

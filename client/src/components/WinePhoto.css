@@ -1,0 +1,115 @@
+.wine-photo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Placeholder de botella: siempre presente, debajo de la foto. */
+.wine-photo__art {
+  position: absolute;
+  inset: 0;
+}
+
+/* La foto arranca invisible y se funde cuando terminó de cargar. */
+.wine-photo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out);
+}
+
+.wine-photo__img.is-loaded {
+  opacity: 1;
+}
+
+/* ══ Presentación de botella ═══════════════════════════════════════════════
+   `cover` recorta: las fotos de catálogo son botellas verticales, y en un marco
+   de 104×132 o en un cuadrado 1:1 el recorte se come el pico y la base. Quedaba
+   un fragmento de vidrio a sangre contra el borde — de ahí la sensación de
+   botella "chica y pegada al fondo": no era chica, estaba cortada.
+
+   Tres cosas la despegan del fondo, y ninguna es un efecto:
+     1. entra entera, con aire alrededor (contain + padding);
+     2. proyecta su propia sombra, como cualquier objeto sobre una superficie;
+     3. un halo tenue detrás le da profundidad sin iluminarla de más.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.wine-photo--contain .wine-photo__img {
+  object-fit: contain;
+  /* En % para que escale sola: el mismo aire relativo en el hero de 400px y en
+     la tarjeta de 92px. */
+  padding: 9%;
+  z-index: 2;
+  filter: drop-shadow(0 10px 18px rgb(var(--ink-rgb) / 0.5));
+}
+
+.wine-photo--contain .wine-photo__art {
+  z-index: 0;
+}
+
+/* Halo detrás de la botella. Muy por debajo del acento pleno: tiene que leerse
+   como que la botella está iluminada, no como que brilla. */
+.wine-photo--contain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(52% 46% at 50% 56%, rgb(var(--accent-light-rgb) / 0.28), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-smooth);
+}
+
+.wine-photo--contain.is-loaded::after {
+  opacity: 1;
+}
+
+/* Variante dorada del halo, para el puñado de lugares donde de verdad hace
+   falta marcar "esto es especial" (ver --gold en index.css) en vez del violeta
+   de siempre. Se pide explícitamente con esta clase — nada la activa sola.
+   Más chica y más tenue que la violeta: no es una medalla sobre la foto, es
+   luz que apenas se nota si no la buscás. */
+.wine-photo--gold.wine-photo--contain::after {
+  background: radial-gradient(40% 34% at 50% 56%, var(--gold-glow), transparent 60%);
+}
+
+/* Con la foto entera a la vista, el dibujo de respaldo asomaría por los costados
+   de la botella real: dos botellas superpuestas. Se apaga el dibujo Y su fondo,
+   para que la botella flote sobre la superficie de la tarjeta en vez de sobre un
+   rectángulo propio. Sin foto, el placeholder queda intacto. */
+.wine-photo--contain.is-loaded .wine-artwork {
+  background: none;
+}
+
+.wine-photo--contain.is-loaded .wine-artwork svg {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-photo__img,
+  .wine-photo--contain::after {
+    transition: none;
+  }
+}
+
+/* Crédito de Open Food Facts. Sus fotos son CC BY-SA 3.0 y la licencia pide
+   acreditar la fuente donde se muestran. Va discreto —una sigla en una esquina,
+   con el detalle en el title— para cumplir sin ensuciar la tarjeta. */
+.wine-photo__credito {
+  position: absolute;
+  z-index: 3;
+  right: 3px;
+  bottom: 3px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgb(var(--ink-rgb) / 0.55);
+  color: rgb(var(--paper-rgb) / 0.72);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  pointer-events: auto;
+}

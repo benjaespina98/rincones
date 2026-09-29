@@ -1,0 +1,443 @@
+/* ── LA HOJA NO PUEDE METERSE ABAJO DE LA BARRA DE ESTADO ──────────────────
+   El padding era 20px fijo y `100dvh` incluye la franja del reloj y la señal.
+   Con una hoja alta —una receta entera— el panel llegaba hasta arriba de todo y
+   el título quedaba abajo de la hora y la batería: se leía "0:51 🛏 …traña a la
+   plancha". Los insets del dispositivo se suman al margen, así que la hoja
+   arranca donde termina el sistema operativo. */
+.settings-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+    calc(20px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+  background: rgb(var(--bg-deep-rgb) / 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: rincon-fade 200ms var(--ease-out) both;
+}
+
+.settings-sheet__panel {
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(
+    100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--line-accent);
+  /* Plano y del color de las superficies elevadas. Era el único panel de la app
+     con un degradado violeta propio, que lo hacía parecer de otro producto que
+     el resto de las tarjetas. */
+  background: var(--surface-2);
+  box-shadow: var(--shadow-modal);
+  animation: rincon-enter-up 240ms var(--ease-out) both;
+}
+
+/* ══ EN TELÉFONO, LA HOJA SUBE DESDE ABAJO ════════════════════════════════
+   Era un cuadro flotando en el medio de la pantalla, con 16px de aire a cada
+   lado: la forma de un diálogo de escritorio, en el dispositivo donde vive la
+   app. Y el borde superior quedaba a media pantalla de altura, o sea que el
+   contenido más importante —el título— nacía lejos del pulgar y el botón de
+   cerrar, arriba a la derecha, en la esquina menos alcanzable de todas.
+
+   Anclada abajo se resuelve solo: aparece desde donde está la mano, ocupa el
+   ancho completo (más lugar para el texto) y el gesto de cerrarla es hacia
+   abajo, que es de donde vino. Es lo que hacen Vivino, Uber y el propio
+   sistema operativo, y por eso no hay que aprenderlo.
+
+   La barrita de arriba (`::before`) es la señal universal de "esto es una hoja
+   y se puede bajar". No arrastra —eso pide gestos y física, y sería mentirle a
+   quien lo intente—: está para que se lea como hoja y no como cuadro pegado al
+   borde de abajo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .settings-sheet {
+    align-items: flex-end;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 0 0;
+  }
+
+  .settings-sheet__panel {
+    max-width: none;
+    /* Sólo arriba: abajo se apoya contra el borde de la pantalla. */
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border-bottom: 0;
+    /* El safe area del teléfono va ADENTRO del panel, no como margen: si fuera
+       margen se vería una franja del fondo entre la hoja y el borde, y dejaría
+       de leerse como apoyada. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100dvh - 20px - env(safe-area-inset-top, 0px));
+    animation: rincon-sheet-up 260ms var(--ease-out) both;
+  }
+
+  .settings-sheet__panel::before {
+    content: "";
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: var(--radius-full);
+    background: var(--line-strong);
+  }
+
+  /* Sin el borde superior del encabezado pegado a la barrita: son dos líneas
+     horizontales a 12px una de otra y se leen como un error de dibujo. */
+  .settings-sheet__head {
+    padding-top: 10px;
+  }
+}
+
+/* Sube entera desde el borde, sin escalar: una hoja anclada abajo que además
+   crece desde el centro se ve como dos animaciones peleando. */
+@keyframes rincon-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Arriba y no al centro: un título de tres renglones —los nombres de plato lo
+   son casi siempre— empujaba la × hacia el medio del bloque, lejos de la
+   esquina donde la mano la busca. */
+.settings-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-sheet__head h2 {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-family-serif);
+  font-size: var(--text-xl);
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--text);
+  /* Un nombre largo de plato tiene que poder partirse; sin esto, en una hoja
+     angosta empujaba el ancho del panel y la × se salía. */
+  overflow-wrap: anywhere;
+}
+
+.settings-sheet__close {
+  flex-shrink: 0;
+}
+
+/* 40px: es el botón de cerrar de TODAS las hojas de la app (filtros,
+   preferencias, contraseña, receta) y estaba por debajo del mínimo de toque que
+   usa el resto. El que más se toca no puede ser el más chico. */
+.settings-sheet__close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.settings-sheet__body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-sheet__label {
+  margin: 8px 0 2px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--accent-soft);
+}
+
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast),
+    color var(--transition-fast), transform var(--transition-fast);
+}
+
+.settings-chip.is-sel {
+  border-color: var(--accent-light);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-field span {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-field input {
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--text-lg);
+}
+
+.settings-field input:focus {
+  outline: none;
+  border-color: var(--accent-light);
+}
+
+/* Medidor de fuerza + hint + error inline (mismo lenguaje que Registro). */
+.settings-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-strength__bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.settings-strength__bars span {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+  transition: background var(--transition-smooth);
+}
+
+.settings-strength__bars .is-on--weak { background: var(--wine); }
+.settings-strength__bars .is-on--medium { background: var(--gold); }
+.settings-strength__bars .is-on--strong { background: var(--success); }
+
+.settings-strength__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.settings-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.settings-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--wine-soft);
+  border: 1px solid rgb(var(--wine-rgb) / 0.35);
+  color: var(--danger-text);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.settings-sheet__footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-sheet__cancel,
+.settings-sheet__save {
+  flex: 1;
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.settings-sheet__cancel {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text-secondary);
+}
+
+.settings-sheet__save {
+  background: var(--accent-fill);
+  color: var(--paper);
+  box-shadow: var(--shadow-accent);
+}
+
+.settings-sheet__save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Preferencias de gusto ──
+   Antes eran dos hileras de etiquetas idénticas de ancho variable: dieciséis
+   controles iguales, imposibles de barrer con la vista. Ahora los tipos son
+   tarjetas con el color del vino y las uvas una grilla pareja. */
+.pref-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.pref-type {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: var(--control-lg);
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast),
+    color var(--transition-fast), transform var(--transition-fast);
+}
+
+.pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+
+.pref-type.is-sel {
+  border-color: var(--accent-light);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+/* El punto lleva el color real del vino: se reconoce sin leer. */
+.pref-type__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgb(var(--paper-rgb) / 0.2);
+}
+
+.pref-type--red    .pref-type__dot { background: var(--type-red-deep); }
+.pref-type--white  .pref-type__dot { background: var(--gold-soft); }
+.pref-type--rosé   .pref-type__dot { background: var(--danger-text); }
+.pref-type--sparkling .pref-type__dot { background: var(--type-sparkling); }
+.pref-type--fortified .pref-type__dot { background: var(--type-fortified-deep); }
+.pref-type--unknown   .pref-type__dot { background: var(--text-subtle); }
+
+.pref-type__check { margin-left: auto; color: var(--accent-soft); }
+
+.pref-grapes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 7px;
+}
+
+.pref-grape {
+  min-height: var(--control-md);
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast),
+    color var(--transition-fast), transform var(--transition-fast);
+}
+
+.pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+
+.pref-grape.is-sel {
+  border-color: var(--accent-light);
+  background: var(--accent-muted);
+  color: var(--text);
+}
+
+.settings-sheet__count {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ══ Hojas de LECTURA, no de formulario ═════════════════════════════════════
+   Un concepto de vino y una receta se leen; una contraseña o un filtro se
+   completan. Las dos familias vivían en el mismo panel plano con el mismo
+   <h2> suelto, así que abrir "Decantar o airear" se sentía igual que abrir
+   "Cambiar contraseña" — incluso cuando lo que sigue es prosa, no campos.
+   Estas cuatro clases son el vocabulario para la primera familia: un medallón
+   con el ícono de la tarjeta que la disparó (continuidad, no un diálogo
+   nuevo), un rótulo de qué TIPO de contenido es, y un fondo con una luz
+   propia en vez del plano de siempre. Ninguna hoja de formulario las usa. */
+.settings-sheet__panel--feature {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgb(var(--accent-light-rgb) / 0.14), transparent 60%),
+    var(--surface-2);
+}
+
+.settings-sheet__head--feature {
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-sheet__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--accent-soft);
+  background: var(--accent-muted);
+  border: 1px solid var(--line-accent);
+}
+
+.settings-sheet__heading {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-sheet__eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.settings-sheet__head--feature h2 {
+  font-size: var(--text-2xl);
+}

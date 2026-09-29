@@ -1,0 +1,148 @@
+/* El botón. Ver Button.jsx para el criterio de las variantes. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-family-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* ── Tamaños ──
+   El alto sale de --control-*, que es la escala de la app: antes los botones
+   iban de 32 a 50 px sin criterio. El mínimo táctil de 44 px lo garantiza
+   `md` en adelante; `sm` existe sólo para controles dentro de una fila densa,
+   donde el área de toque la pone la fila entera. */
+.btn--sm {
+  min-height: var(--control-sm);
+  padding: 0 12px;
+  font-size: var(--text-xs);
+}
+
+.btn--md {
+  min-height: var(--control-md);
+  padding: 0 18px;
+  font-size: var(--text-base);
+}
+
+.btn--lg {
+  min-height: var(--control-lg);
+  padding: 0 24px;
+  font-size: var(--text-md);
+}
+
+/* ── Variantes ── */
+
+.btn--primary {
+  /* Color lleno, no degradado: ver el comentario de --accent-fill en index.css.
+     El texto va blanco puro porque sobre el violeta pasa AA de sobra. */
+  background: var(--accent-fill);
+  color: var(--paper);
+  box-shadow: var(--shadow-accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-light);
+}
+
+.btn--secondary {
+  background: var(--surface-raised);
+  border-color: var(--border-base);
+  color: var(--text);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  border-color: var(--line-accent);
+  background: var(--surface-hover);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--surface-base);
+  color: var(--text);
+}
+
+.btn--destructive {
+  background: var(--danger-soft);
+  border-color: rgb(var(--danger-rgb) / 0.4);
+  color: var(--danger-text);
+}
+
+.btn--destructive:hover:not(:disabled) {
+  background: rgb(var(--danger-rgb) / 0.26);
+}
+
+/* El de ícono es cuadrado y sin padding lateral: el área de toque la da el
+   alto, igual en los dos ejes. */
+.btn--icon {
+  padding: 0;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--icon:hover:not(:disabled) {
+  background: var(--surface-base);
+  color: var(--text);
+}
+
+.btn--icon.btn--md {
+  width: var(--control-md);
+}
+
+.btn--icon.btn--sm {
+  width: var(--control-sm);
+}
+
+.btn--icon.btn--lg {
+  width: var(--control-lg);
+}
+
+/* ── Piezas ── */
+
+.btn__icono {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.btn__texto {
+  /* Un texto largo se corta con puntos suspensivos en vez de estirar el botón
+     fuera de la pantalla. Pasa con nombres de vino en el botón de compartir. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn__spinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border: 2px solid rgb(var(--paper-rgb) / 0.28);
+  border-top-color: currentColor;
+  border-radius: var(--radius-full);
+  animation: rincon-spin 0.7s linear infinite;
+}
+
+/* El estado deshabilitado uniforme ya vive en index.css; acá sólo se apaga el
+   hundido para que un botón inactivo no responda al toque. */
+.btn:disabled {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn__spinner {
+    animation-duration: 1.4s;
+  }
+}

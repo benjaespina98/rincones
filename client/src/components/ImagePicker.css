@@ -35,8 +35,8 @@
      un rectángulo blanco pegado, que es la diferencia entre que quede bien o mal
      en la tarjeta. */
   background:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
-    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
+    linear-gradient(45deg, rgb(var(--paper-rgb) / 0.06) 25%, transparent 25%, transparent 75%, rgb(var(--paper-rgb) / 0.06) 75%),
+    linear-gradient(45deg, rgb(var(--paper-rgb) / 0.06) 25%, transparent 25%, transparent 75%, rgb(var(--paper-rgb) / 0.06) 75%),
     var(--surface-2);
   background-position: 0 0, 6px 6px;
   background-size: 12px 12px;
@@ -77,7 +77,7 @@
   padding: 0 13px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);
-  background: rgba(126, 89, 201, 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
   color: var(--accent-soft);
   font-size: var(--text-xs);
   font-weight: 800;
@@ -86,7 +86,7 @@
 }
 
 .imgpick__btn:hover:not(:disabled) {
-  background: rgba(126, 89, 201, 0.24);
+  background: rgb(var(--accent-rgb) / 0.24);
 }
 
 .imgpick__btn:disabled {
@@ -164,5 +164,5 @@
 }
 
 .imgpick__error {
-  color: #ff8fa3;
+  color: var(--type-red);
 }

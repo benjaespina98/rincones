@@ -7,7 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
-import "../styles/components/OnboardingModal.css";
+import "../components/OnboardingModal.css";
 
 /**
  * Onboarding obligatorio de preferencias, en 2 pasos.

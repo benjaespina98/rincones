@@ -77,7 +77,7 @@ export default function CatalogWinePage() {
     return (
       <div className="wine-detail-page">
         <EmptyState
-          icon="bottle"
+          illustration="cava"
           title="Este vino no está disponible"
           hint="Volvé a la lista y elegí uno para ver su ficha."
           actionLabel="Volver"

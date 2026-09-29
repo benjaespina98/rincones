@@ -7,7 +7,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
 import { getAllMoments } from "../services/wineApi";
 import { OCCASION_LABELS, EMOTION_LABELS } from "../data/momentOptions";
-import "../styles/components/MomentsDiary.css";
+import "./MomentsDiary.css";
 
 /**
  * Tu diario: todos los momentos, de todos los vinos, en orden.

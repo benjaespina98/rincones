@@ -543,7 +543,7 @@ export default function WineDetailPage() {
     return (
       <div className="wine-detail-page">
         <EmptyState
-          icon="bottle"
+          illustration="cava"
           title="Este vino ya no está en tu bodega"
           hint="Puede que ya lo hayas eliminado de tu bodega."
           actionLabel="Volver a mi bodega"
@@ -1243,7 +1243,7 @@ export default function WineDetailPage() {
           ) : moments.length === 0 ? (
             !showMomentForm && (
               <EmptyState
-                icon="calendar"
+                illustration="diario"
                 title="Sin momentos todavía"
                 // La única frase de la sección que dice qué es un momento. El
                 // encabezado dice "Momentos · Sólo vos" y con eso no alcanza:

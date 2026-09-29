@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import "../styles/components/ConfirmModal.css";
+import "../styles/shared/ConfirmModal.css";
 import Portal from "./Portal";
 
 /**

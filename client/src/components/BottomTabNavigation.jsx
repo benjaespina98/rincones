@@ -4,7 +4,7 @@ import Logo from "./Logo";
 import AddWineButton from "./AddWineButton";
 import { tapHaptic } from "../utils/haptics";
 import { TABS, tabForPath } from "../data/navigation";
-import "../styles/BottomTabNavigation.css";
+import "./BottomTabNavigation.css";
 
 export default function BottomTabNavigation() {
   const navigate = useNavigate();

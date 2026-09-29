@@ -3,7 +3,7 @@ import { WINE_TYPES, VARIETALS } from "../data/wineReference";
 import { saveOnboarding } from "../services/authApi";
 import { useToast } from "../context/ToastContext";
 import Icon from "./Icon";
-import "../styles/components/SettingsSheet.css";
+import "../styles/shared/SettingsSheet.css";
 import Portal from "./Portal";
 import { useSheet } from "../hooks/useSheet";
 
