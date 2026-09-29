@@ -71,6 +71,18 @@ extremos del degradado de `--app-bg` (`#090b13` arriba, `#111626` abajo).
   `--accent-text`, alias de `--accent-light` (`#a782ef`, **6.07**).
 - Los cinco colores por tipo de vino ya pasaban AA (7.52 a 13.32). Sin cambios.
 
+### Cuándo se adoptan los componentes en las pantallas
+
+Las fases 4 a 6 **reescriben** BodyPage, las dos fichas de vino, ScanWine,
+Discover y Suggestions. Adoptar Button/Card/Chip ahí ahora sería hacer el mismo
+trabajo dos veces, así que la adopción va donde de verdad rinde: dentro de
+`EmptyState` y `ErrorState`, que la propagan a los veinte lugares donde hay un
+vacío o un error y que ninguna fase posterior reescribe. El resto adopta en su
+propia fase, cuando esa pantalla se toca.
+
+**Alternativa descartada:** adoptar en las doce pantallas ahora. Da un commit
+más vistoso y se tira en la fase siguiente.
+
 ### Animación
 
 Sin librería. CSS (`transform` / `opacity`) y View Transitions API para el
@@ -93,7 +105,7 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
         hoja de impresion, que es el unico lugar con el contraste al reves).
   - [x] Unificadas las 4 convenciones: `components/` 31, `pages/` 16,
         `styles/shared/` 6.
-- [ ] **Fase 2 — Componentes base** — en curso
+- [x] **Fase 2 — Componentes base**
   - [x] Button, Card, Chip, WineTypeBadge, BottomSheet.
   - [x] useSheet con trampa de foco (Tab que cicla).
   - [x] Segmented con indicador deslizante.
@@ -104,9 +116,10 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
   - [x] EmptyState conectado, y los 18 usos migrados: no queda ningun `icon=`.
   - [x] Los ocho componentes en el styleguide, con variantes Y estados.
   - [x] Tests del BottomSheet (7), que encontraron un bug del filtro de foco.
-  - [ ] Skeletons afinados a la forma nueva de la tarjeta (las variantes ya
-        existen: card, detail, list, inline — falta ajustarlas, no crearlas).
-  - [ ] Adoptar Button/Card/Chip en las pantallas (hoy conviven con los viejos).
+  - [x] Skeletons con la forma real de la tarjeta (banda del tipo, radio y
+        superficie de Card) y brillo neutro en vez de violeta.
+  - [x] Trampa de foco endurecida: ignora hidden, inert y disabled (8 tests).
+  - [x] EmptyState y ErrorState adoptan Button.
 - [ ] **Fase 3 — Shell y navegación**
 - [ ] **Fase 4 — Mi Bodega**
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
