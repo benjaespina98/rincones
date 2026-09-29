@@ -146,8 +146,8 @@
   min-height: var(--control-md);
   padding: 0 14px;
   border-radius: var(--radius-full);
-  border: 1px dashed var(--line-accent);
-  background: transparent;
+  border: 1px solid var(--line-accent);
+  background: var(--accent-muted);
   color: var(--accent-soft);
   font-size: var(--text-base);
   font-weight: 600;

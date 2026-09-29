@@ -383,7 +383,7 @@
   padding: 26px 20px;
   text-align: center;
   border-radius: var(--radius-lg);
-  border: 1px dashed var(--line-accent);
+  border: 1px solid var(--line-accent);
   background: var(--glass);
 }
 

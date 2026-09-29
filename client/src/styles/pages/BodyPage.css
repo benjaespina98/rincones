@@ -1005,7 +1005,7 @@
 }
 
 .bodega-ficha--clear {
-  border-style: dashed;
+  border-style: solid;
   background: none;
   color: var(--text-secondary);
 }
@@ -1231,7 +1231,8 @@
    "¿qué abro hoy?". Se atenúa en vez de esconderse. */
 .wine-row.is-history {
   background: var(--surface);
-  border-style: dashed;
+  border-color: var(--border-subtle);
+  opacity: 0.82;
 }
 
 .wine-row.is-history .wine-row__thumb,

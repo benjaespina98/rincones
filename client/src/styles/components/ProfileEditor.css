@@ -272,7 +272,7 @@
   margin: 0;
   padding: 12px 14px;
   border-radius: var(--radius-md);
-  border: 1px dashed var(--line);
+  border: 1px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-muted);
   font-size: var(--text-md);

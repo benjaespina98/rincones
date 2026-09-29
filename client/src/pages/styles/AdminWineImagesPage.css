@@ -134,7 +134,7 @@
 .admin-wineimg__editor {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px solid var(--border-subtle);
   /* Mismo gesto que el resto de la app para un panel que se despliega bajo
      su disparador (LabelScanner, WinePlan, el dropdown): entra desde arriba,
      no aparece de golpe. El panel de admin no tenía ni un solo `animation` de
