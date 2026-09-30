@@ -134,16 +134,41 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
         tarjetas y la ficha se reescriben en las fases 4 y 5.
   - [x] Toasts con deshacer: ya existían (`Toast` acepta `action` y
         `action.secondary`). No se construye nada; se usa donde haga falta.
-- [ ] **Fase 4 — Mi Bodega** — en curso
+- [x] **Fase 4 — Mi Bodega**
   - [x] Buscar/filtrar/ordenar a `utils/bodegaFiltros.js`, con 23 tests.
   - [x] `utils/bodegaResumen.js` + `BodegaResumen`: cabecera de métricas de lo
         que se está viendo.
   - [x] Corregida la contradicción: el botón "Sin probar" dentro de la pestaña
         Probados ahora dice "Desmarcar probado".
-  - [ ] Partir el JSX: `WineRow`/`WineCard` con React.memo, cabecera, barra de
-        selección, sheet de filtros. BodyPage sigue en ~1900 líneas.
-  - [ ] Filtros y orden en BottomSheet; toggle lista/grilla con animación.
-  - [ ] Entrada escalonada y swipe.
+  - [x] La fila sale a `WineRow` (451) + `WineRowPanel` (217), memoizada.
+        BodyPage: **1910 → 1374 líneas**. Las acciones del padre pasaron a
+        `useCallback`, y hay tests que cuentan renders para que siga siendo
+        cierto.
+  - [x] Filtros y orden en `BottomSheet`; los 13 chips propios y las fichas de
+        filtro activo pasan a `Chip`.
+  - [x] Toggle lista/grilla con transición de layout: cada fila lleva su
+        `view-transition-name`. Sin librería.
+  - [x] En grilla, la foto llega a los bordes y se funde con los datos por un
+        degradado con el color del tipo.
+  - [x] Deslizar una fila revela corazón y tacho (`hooks/useSwipeAcciones.js`).
+        Revela, no ejecuta.
+  - [x] Entrada escalonada: ya estaba en CSS (`.wine-row:nth-child(n)`), se
+        verificó que sigue viva después de partir el componente.
+  - [ ] Pendiente menor: la barra de selección múltiple sigue dentro de
+        BodyPage. No molesta —son ~40 líneas— pero es lo próximo si el archivo
+        vuelve a crecer.
+
+### Bugs que aparecieron mirando la app andando
+
+Ninguno de los tres lo habría encontrado un test, y los tres estaban en
+código propio de fases anteriores:
+
+| Qué | Dónde |
+|---|---|
+| `<button>` adentro de `<button>`: el navegador sacaba la ✕ de la cápsula | `Chip.jsx` |
+| El chip de probado salía 17px por encima de la tarjeta y el `overflow` lo cortaba al medio | `.wines-list--protagonista … .wine-row__tasted` |
+| Migrar a `Chip` bajaba la altura táctil de 40 a 34 y deshacía una corrección de accesibilidad | `Chip.css` |
+
 - [ ] **Fase 4.5 — Descubrí y Sommelier**
 - [ ] **Fase 5 — Ficha de vino unificada**
 - [ ] **Fase 6 — Estados faltantes**
@@ -153,18 +178,43 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
 
 ## Próximo paso exacto
 
-Fase 3, lo que queda (ver arriba). Después, Fase 4 (partir `BodyPage`).
+**Fase 4.5 — Descubrí y Sommelier.** Es la primera pantalla que se ve al abrir
+la app, así que define la impresión. En orden:
 
-**Medición al día de hoy**, para comparar al cerrar cada fase:
+1. `DiscoverPage`: hero del vino del día con el gradiente del tipo, tarjetas de
+   resultado con `Card`, `DailyLesson` y campañas en el mismo lenguaje.
+2. `SuggestionsPage`: burbujas y chips con el sistema nuevo, las tarjetas de
+   vino de la respuesta con la misma `Card` que Mi Bodega, y un estado
+   "pensando" más cuidado. **No tocar** `useKeyboardInset`, la persistencia en
+   `sessionStorage` ni el compositor fijo: ya están bien resueltos.
+
+**Medición al cerrar la fase 4:**
 
 | | |
 |---|---|
 | lint | limpio |
 | tokens | 136/136 declarados |
-| client | 227/227 (30 archivos) |
+| client | **264/264** (32 archivos) |
 | server | 339/339 |
-| carga inicial | entry 72,82 + vendor 35,76 + CSS 10,77 = **119,4 kB gzip** |
-| presupuesto | ~143 kB (queda margen de 23,6) |
+| carga inicial | entry 72,81 + vendor 35,76 + CSS 10,92 = **119,5 kB gzip** |
+| presupuesto | ~143 kB (queda margen de 23,5) |
+
+El presupuesto casi no se movió en toda la fase: la transición de layout y el
+gesto de deslizar no trajeron ninguna librería.
+
+## Cómo probar la app con datos, sin tocar producción
+
+El backend no arranca donde el cliente lo busca (ver más abajo). Para revisar
+pantallas con vinos de verdad:
+
+1. `PORT=4000 node src/server.js` desde `server/`. El `.env` local apunta a la
+   base **`test`**; `config/db.js` explota si falta el nombre, justamente para
+   que nunca caiga en producción por descarte.
+2. Crear un usuario de prueba por la API (`/auth/register` + `/auth/login`) y
+   cargarle unos vinos por `POST /api/wines`.
+3. El registro deja la cuenta sin verificar y la app la manda a
+   `/verificar-email`: marcar `emailVerified: true` en la base `test`.
+4. El token va en `localStorage` bajo `rincones_token` y dura 15 minutos.
 
 ## La guarda de tokens
 
