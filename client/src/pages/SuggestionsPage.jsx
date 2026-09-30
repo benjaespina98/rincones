@@ -10,6 +10,7 @@ import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
+import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
 import WineMeta from "../components/WineMeta";
@@ -240,7 +241,7 @@ export default function SuggestionsPage() {
    * `center` para no dejar la última línea flotando en el medio.
    */
   useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    irHasta(finRef.current, { block: "end" });
   }, [mensajes, pensando]);
 
   // Se guarda en cada cambio, no sólo al salir: si se cierra la pestaña de

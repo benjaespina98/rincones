@@ -17,6 +17,7 @@ import WineDetailNav from "../components/WineDetailNav";
 import WineDetailHero from "../components/WineDetailHero";
 import WineMoments from "../components/WineMoments";
 import WineDetailEditor from "../components/WineDetailEditor";
+import { irHasta } from "../utils/scroll";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -234,7 +235,7 @@ export default function WineDetailPage() {
    */
   useEffect(() => {
     if (!showMomentForm) return;
-    momentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    irHasta(momentsRef.current, { block: "start" });
   }, [showMomentForm]);
 
   // Traemos la ficha del vino (IA + cache) una vez que sabemos su nombre.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Segmented from "./Segmented";
 import { tapHaptic } from "../utils/haptics";
+import { irHasta } from "../utils/scroll";
 import "./WineDetailNav.css";
 
 /**
@@ -105,9 +106,9 @@ export default function WineDetailNav({ secciones, className = "" }) {
     temporizador.current = setTimeout(() => {
       saltando.current = false;
     }, MS_DEL_SALTO);
-    // `smooth` se degrada solo con reduced-motion: el navegador respeta la
-    // preferencia y salta sin animar.
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // `irHasta` y no `scrollIntoView` a secas: el CSS no puede apagar un
+    // `behavior: "smooth"` escrito en JS. Ver utils/scroll.js.
+    irHasta(el, { block: "start" });
   }, []);
 
   return (
