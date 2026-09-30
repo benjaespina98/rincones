@@ -13,6 +13,7 @@ import WineAbout from "../components/WineAbout";
 import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
+import WineDetailNav from "../components/WineDetailNav";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -39,6 +40,21 @@ import Dropdown from "../components/Dropdown";
 // El CSS de esta ficha se importa una sola vez, desde App.jsx: ver el
 // comentario ahí sobre por qué (la comparte CatalogWinePage y Rollup la
 // duplicaba entre los dos chunks lazy).
+
+/**
+ * Las cuatro partes de la ficha, en el orden en que están en la página.
+ *
+ * El orden es el del scroll y no el de importancia: una barra que liste
+ * "Resumen · Cata · Plan" mientras bajando aparecen en otro orden convierte el
+ * índice en un acertijo. Fuera del componente porque es una constante: adentro
+ * sería un array nuevo en cada render y el observer se rearmaría con él.
+ */
+const SECCIONES = [
+  { id: "resumen", label: "Resumen" },
+  { id: "plan", label: "Plan" },
+  { id: "cata", label: "Cata" },
+  { id: "comunidad", label: "Comunidad" },
+];
 
 const EMPTY_MOMENT = {
   occasion: "",
@@ -657,6 +673,10 @@ export default function WineDetailPage() {
         </div>
       </div>
 
+      {/* El índice de la ficha. No aparece en modo edición: ahí la pantalla es
+          un formulario y no hay secciones que recorrer. */}
+      {!editing && <WineDetailNav secciones={SECCIONES} />}
+
       <div className="wine-detail-body">
         {!editing ? (
           <>
@@ -690,7 +710,9 @@ export default function WineDetailPage() {
               </div>
             )}
 
-            <WineIdentity wine={wine} onEdit={startEditing} />
+            <div id="resumen">
+              <WineIdentity wine={wine} onEdit={startEditing} />
+            </div>
 
             {/* Las acciones, arriba de todo. Estaban novenas de once: para abrir
                 una botella había que bajar 2364px, casi tres pantallas, pasando
@@ -792,7 +814,9 @@ export default function WineDetailPage() {
                 Se muestra siempre, también sin stock: el plan es de la noche, no
                 del inventario. Una botella que se terminó es una que vas a
                 reponer, y saber qué cocinar con ella es parte de decidirlo. */}
-            <WinePlan wine={wine} info={aiInfo} />
+            <div id="plan">
+              <WinePlan wine={wine} info={aiInfo} />
+            </div>
 
             {/* ── TU EXPERIENCIA ────────────────────────────────────────────
                 Lo que puntuaste, escribiste y viviste con esta botella.
@@ -809,7 +833,7 @@ export default function WineDetailPage() {
                 (acá) y la comunidad (al final). El rótulo va en voz baja a
                 propósito: no es un título que compita con los de los bloques,
                 es un cartel de calle para saber en qué parte de la ficha estás. */}
-            <h2 className="wine-zone">Tu experiencia</h2>
+            <h2 className="wine-zone" id="cata">Tu experiencia</h2>
 
             {/* Una sola calificación: puntuar ES tu opinión pública. Antes había
                 dos widgets de estrellas en esta misma pantalla. */}
@@ -1331,7 +1355,7 @@ export default function WineDetailPage() {
             ninguna otra, quedaban abajo de un link a MercadoLibre. */}
         {!editing && (
           <>
-            <h2 className="wine-zone">La comunidad</h2>
+            <h2 className="wine-zone" id="comunidad">La comunidad</h2>
 
             {/* Las opiniones NO se envuelven en una sección plegable, aunque la
                 lista sea larga: `WineReviews` ya se pliega solo y deja el

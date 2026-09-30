@@ -61,8 +61,35 @@ export default function Segmented({ options, value, onChange, ariaLabel, classNa
     return () => ro.disconnect();
   }, [medir, options]);
 
+  /**
+   * El botón activo se mantiene a la vista DENTRO de la cápsula.
+   *
+   * ── POR QUÉ NO ES UN scrollIntoView ────────────────────────────────────────
+   * Lo era, con `block: "nearest"` justamente para no tocar el scroll vertical.
+   * No alcanza: `scrollIntoView` recorre TODOS los ancestros que scrollean, y
+   * cuando la cápsula está pegada arriba (`position: sticky`, como en la barra
+   * de secciones de la ficha del vino) el navegador usa la posición estática
+   * del elemento —la de antes de pegarse— y manda la página ahí.
+   *
+   * Se veía así: tocabas "Comunidad", la página saltaba abajo, y antes de que
+   * terminara el movimiento volvía sola al lugar donde arranca la barra. El
+   * componente que llamaba no tenía forma de enterarse; el salto lo deshacía
+   * este efecto, tres archivos más allá. Medido en el navegador: el scroll iba
+   * a 1914 y volvía a 569, que es exactamente donde empieza la cápsula.
+   *
+   * Moviendo `scrollLeft` a mano se hace lo único que se quería —correr la
+   * cápsula de costado— y no se puede tocar el scroll de nadie más.
+   */
   useEffect(() => {
-    activoRef.current?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    const cont = contenedorRef.current;
+    const btn = activoRef.current;
+    if (!cont || !btn) return;
+    const izq = btn.offsetLeft;
+    const der = izq + btn.offsetWidth;
+    const visibleIzq = cont.scrollLeft;
+    const visibleDer = visibleIzq + cont.clientWidth;
+    if (izq < visibleIzq) cont.scrollLeft = izq - 12;
+    else if (der > visibleDer) cont.scrollLeft = der - cont.clientWidth + 12;
   }, [value]);
 
   return (
