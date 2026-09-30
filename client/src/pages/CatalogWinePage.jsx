@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
+import WineDetailHero from "../components/WineDetailHero";
 import EmptyState from "../components/EmptyState";
 import WineReviews from "../components/WineReviews";
-import WinePhoto from "../components/WinePhoto";
 import WineAbout from "../components/WineAbout";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
@@ -115,14 +115,15 @@ export default function CatalogWinePage() {
 
   return (
     <div className="wine-detail-page">
-      {/* Mismo hilo que la ficha del vino propio: sin foto, el encabezado toma
-          el color del tipo en vez de un violeta igual para todos. */}
-      <div className="wine-detail-hero" data-wine-type={wine.type || undefined}>
-        <div className="wine-detail-hero__placeholder">
-          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={220} fit="contain" priority />
-        </div>
-
-        <div className="wine-detail-hero__actions">
+      {/* El mismo encabezado que la ficha del vino propio, y ahora también el
+          mismo componente: acá era una copia recortada que se fue quedando
+          atrás —sin fondo ambiental, sin el color del tipo— porque nada decía
+          que eran lo mismo. Lo único propio de esta pantalla es que la foto no
+          se amplía (el catálogo no tiene lightbox) y que la única acción es
+          compartir: un vino del catálogo no se edita. */}
+      <WineDetailHero
+        wine={wine}
+        acciones={
           <button
             type="button"
             className="wine-detail-hero__icon-btn"
@@ -135,15 +136,8 @@ export default function CatalogWinePage() {
           >
             <Icon name="share" size={16} />
           </button>
-        </div>
-
-        <div className="wine-detail-hero__overlay">
-          {/* h2: ver el comentario en WineDetailPage — el h1 de la pantalla ya
-              lo puso AppLayout en la barra superior. */}
-          <h2 className="wine-detail-hero__name">{wine.name}</h2>
-          {wine.region && <p className="wine-detail-hero__origin">{wine.region}</p>}
-        </div>
-      </div>
+        }
+      />
 
       <div className="wine-detail-body">
         {/* La misma ficha de datos que la del vino propio: la bodega con su rótulo

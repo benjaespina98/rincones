@@ -14,6 +14,7 @@ import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
 import WineDetailNav from "../components/WineDetailNav";
+import WineDetailHero from "../components/WineDetailHero";
 import { useToast } from "../context/ToastContext";
 import {
   getWineById,
@@ -33,7 +34,6 @@ import { useShareCard } from "../hooks/useShareCard";
 import { WINE_TYPES, WINERIES, REGIONS, VARIETALS, STORES } from "../data/wineReference";
 import { OCCASIONS, EMOTIONS } from "../data/momentOptions";
 import { toUploadableDataUrl } from "../utils/image";
-import WinePhoto from "../components/WinePhoto";
 import PhotoLightbox from "../components/PhotoLightbox";
 import ImagePicker from "../components/ImagePicker";
 import Dropdown from "../components/Dropdown";
@@ -582,96 +582,36 @@ export default function WineDetailPage() {
 
   return (
     <div className="wine-detail-page">
-      {/* `data-wine-type` es lo que hace que el encabezado sea de ESTE vino.
-          Importa sobre todo cuando no hay foto, que es la mayoría de las fichas
-          recién cargadas: sin esto, el fondo era el mismo violeta para un
-          Malbec que para un espumante. Con foto casi no se nota, porque el
-          fondo ambiental de la propia etiqueta lo tapa. */}
-      <div
-        className={`wine-detail-hero ${wine.image ? "has-photo" : ""}`}
-        data-wine-type={wine.type || undefined}
-      >
-        {/* El fondo sale de la propia foto, ampliada y desenfocada. El violeta
-            fijo de antes no tenía nada que ver con el vino y dejaba la foto
-            flotando como un recorte pegado sobre otra pantalla; así el borde se
-            disuelve y el encabezado toma el color de la etiqueta. */}
-        {wine.image && (
-          <div
-            className="wine-detail-hero__ambient"
-            style={{ backgroundImage: `url("${wine.image}")` }}
-            aria-hidden="true"
-          />
-        )}
-
-        {wine.image ? (
-          <button
-            type="button"
-            className="wine-detail-hero__placeholder wine-detail-hero__photo-btn"
-            onClick={() => setLightbox({ src: wine.image, alt: wineDisplayName(wine) })}
-            aria-label="Ampliar la foto del vino"
-          >
-            <WinePhoto
-              src={wine.image}
-              type={wine.type}
-              alt={wineDisplayName(wine)}
-              artSize={220}
-              fit="contain"
-              priority
-              className={avgRating >= 4.5 ? "wine-photo--gold" : ""}
-            />
-            <span className="wine-detail-hero__zoom" aria-hidden="true">
-              <Icon name="expand" size={14} />
-            </span>
-          </button>
-        ) : (
-          <div className="wine-detail-hero__placeholder">
-            <WinePhoto
-              src={wine.image}
-              type={wine.type}
-              alt={wineDisplayName(wine)}
-              artSize={220}
-              fit="contain"
-              priority
-              className={avgRating >= 4.5 ? "wine-photo--gold" : ""}
-            />
-          </div>
-        )}
-
-        {/* Sin medallas sobre la foto: "favorito" y "probado" ya están, con su
-            palabra y a un toque de distancia, en la misma pantalla y sin scrollear.
-            Eran los mismos dos estados dichos dos veces, y arriba en una versión
-            que no se podía tocar. */}
-
-        {!editing && (
-          <div className="wine-detail-hero__actions">
-            <button
-              type="button"
-              className="wine-detail-hero__icon-btn"
-              onClick={() => shareAsCard()}
-              disabled={sharingCard}
-              aria-label="Compartir vino como imagen"
-              title="Compartir"
-            >
-              <Icon name="share" size={16} />
-            </button>
-            <button type="button" className="wine-detail-hero__icon-btn" onClick={startEditing} aria-label="Editar vino" title="Editar">
-              <Icon name="pencil" size={16} />
-            </button>
-          </div>
-        )}
-
-        <div className="wine-detail-hero__overlay">
-          {/* h2: la barra superior (AppLayout) ya pone un <h1> genérico
-              ("Vino") en todas las fichas; éste, con el nombre real, es el
-              título que importa en la página pero no puede ser un segundo
-              h1. */}
-          <h2 className="wine-detail-hero__name">{wineDisplayName(wine)}</h2>
-          {/* Sólo la región acá. La bodega bajó a la ficha de datos, donde tiene su
-              rótulo y se lee sin competir con la foto. Si no hay región no se
-              anuncia el hueco: la ficha de abajo ya ofrece completar los datos. */}
-          {wine.region && <p className="wine-detail-hero__origin">{wine.region}</p>}
-        </div>
-      </div>
+      <WineDetailHero
+        wine={wine}
+        destacado={avgRating >= 4.5}
+        onAmpliar={setLightbox}
+        acciones={
+          !editing && (
+            <>
+              <button
+                type="button"
+                className="wine-detail-hero__icon-btn"
+                onClick={() => shareAsCard()}
+                disabled={sharingCard}
+                aria-label="Compartir vino como imagen"
+                title="Compartir"
+              >
+                <Icon name="share" size={16} />
+              </button>
+              <button
+                type="button"
+                className="wine-detail-hero__icon-btn"
+                onClick={startEditing}
+                aria-label="Editar vino"
+                title="Editar"
+              >
+                <Icon name="pencil" size={16} />
+              </button>
+            </>
+          )
+        }
+      />
 
       {/* El índice de la ficha. No aparece en modo edición: ahí la pantalla es
           un formulario y no hay secciones que recorrer. */}
