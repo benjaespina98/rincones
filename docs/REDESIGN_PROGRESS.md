@@ -169,7 +169,22 @@ código propio de fases anteriores:
 | El chip de probado salía 17px por encima de la tarjeta y el `overflow` lo cortaba al medio | `.wines-list--protagonista … .wine-row__tasted` |
 | Migrar a `Chip` bajaba la altura táctil de 40 a 34 y deshacía una corrección de accesibilidad | `Chip.css` |
 
-- [ ] **Fase 4.5 — Descubrí y Sommelier**
+- [x] **Fase 4.5 — Descubrí y Sommelier**
+  - [x] El hilo del tipo llega a la primera pantalla: la tarjeta destacada y
+        cada resultado de búsqueda llevan `data-wine-type`. Antes un blanco, un
+        espumante y un oporto se veían los tres violetas.
+  - [x] Las tarjetas de la respuesta del Sommelier llevan la banda de su tipo.
+  - [x] El arranque del Sommelier era dos tiras de chips separadas por 370px de
+        nada: ahora es un solo bloque.
+  - [x] El placeholder del compositor estaba cortado al medio a 375px: el campo
+        mide 41px y el texto pedía 62.
+  - [x] Migrados a `Chip` los cuatro clones de las pantallas rediseñadas
+        (`bfilters__chip`, `bodega-ficha`, `wine-search__chip`, `somm__chip`).
+        **Quedan sin migrar** `toggle-chip`, `settings-chip`, `wine-meta-chip`,
+        `admin-chip` y `sk-chip`: viven en pantallas de las fases 5 y 6 y
+        migran ahí.
+  - [x] Sin tocar, a propósito: `useKeyboardInset`, la persistencia en
+        `sessionStorage` y el compositor fijo. Ya estaban bien resueltos.
 - [ ] **Fase 5 — Ficha de vino unificada**
 - [ ] **Fase 6 — Estados faltantes**
 - [ ] **Fase 7 — Cierre**
