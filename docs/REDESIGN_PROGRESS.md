@@ -219,7 +219,34 @@ código propio de fases anteriores:
         vencido, token ausente y caída de red, y vuelve a `/login` con el
         mensaje que corresponde. Una URL de callback no se puede reintentar en
         el lugar: el código ya se consumió.
-- [ ] **Fase 7 — Cierre**
+- [x] **Fase 7 — Cierre**
+  - [x] **375×667 y 375×812**: cero scroll horizontal en Mi Bodega, Sommelier,
+        Descubrí, Agregar y Perfil. Lo único que se pasa del borde son las
+        tiras que se deslizan a propósito (`.bres`, `.somm__rail`).
+  - [x] **`prefers-reduced-motion`**: encontró un agujero real. El CSS no puede
+        apagar un `scrollIntoView({behavior:"smooth"})` escrito en JS, y había
+        tres. Sale a `utils/scroll.js` con cuatro tests.
+  - [x] **Contraste medido, no estimado** (fórmula WCAG contra el fondo real,
+        acumulando las capas translúcidas):
+
+        | | |
+        |---|---|
+        | nombre del vino / número del resumen | 17,85 |
+        | uva y año | 10,76 |
+        | chips de tipo activos | 6,22 a 9,90 |
+        | etiqueta del resumen, bodega | 6,36 |
+        | pestaña activa | 6,25 |
+        | detalle del resumen | 5,39 |
+        | chip de orden activo | 5,28 |
+
+        Todo por encima de 4,5. El más bajo es el detalle del resumen.
+  - [x] **Literales de color**: siguen siendo sólo las excepciones documentadas
+        —Spotify, Mercado Libre y la hoja de impresión—. La migración de la
+        fase 1 aguantó seis fases.
+  - [x] Borradas `.page-header`, `.btn-wish` y `.cellar-ready__hint`. Revisadas
+        una por una: el detector automático marcaba 136 clases y la mayoría
+        eran falsos positivos (`btn--${variant}` y compañía se arman en tiempo
+        de ejecución).
 
 ### Dos bugs de fondo que aparecieron en la fase 5
 
@@ -230,17 +257,43 @@ código propio de fases anteriores:
 
 ---
 
-## Próximo paso exacto
+## El rediseño está cerrado. Qué falta antes de mergear
 
-**Fase 7 — Cierre.** En orden:
+Las siete fases están hechas. Lo que queda **no es del rediseño** y conviene
+decidirlo con la cabeza fresca:
 
-1. Verificar a 390×844 y a 375×667, en standalone, con el teclado abierto y con
-   `prefers-reduced-motion` forzado.
-2. **Volver a revisar el cambio de scroll** de la fase 5 (ver la tabla de bugs):
-   es lo único de todo el rediseño que toca a todas las pantallas a la vez.
-3. Contar de nuevo los literales de color y el delta de bundle contra la línea
-   base, con los mismos comandos de arriba.
-4. Borrar el CSS que quedó sin dueño.
+1. **Probarlo en un teléfono de verdad.** Todo lo de arriba se verificó en el
+   navegador integrado con la ventana emulada a 375px. Eso alcanza para el
+   layout, el contraste y los estados; no alcanza para el gesto de deslizar una
+   fila con el pulgar, ni para el teclado real tapando el compositor, ni para
+   `standalone` en iOS.
+2. **Revisar el cambio de scroll** (fase 5). Es lo único de todo el trabajo que
+   toca todas las pantallas a la vez. Verificado a mano en las principales,
+   pero es lo primero que hay que mirar si algo se ve raro.
+3. El merge: `feat/redesign-v2` → PR a `develop` → `main`. Nada de esto está
+   pusheado todavía.
+
+Después, la **parte B** del encargo, que es funcionalidad nueva y no capa
+visual: historial del Sommelier, Descubrí, valor de los datos y exportación,
+cuenta y legales, service worker, y endurecimiento.
+
+## Medición final
+
+| | Línea base | Al cerrar |
+|---|---|---|
+| lint | limpio | limpio |
+| tokens declarados | — | 136/136 |
+| tests de client | 214 | **268** (33 archivos) |
+| tests de server | 339 | 339 |
+| carga inicial | 118,0 kB gzip | **119,5 kB** (entry 72,85 + vendor 35,76 + CSS 10,87) |
+| presupuesto | ~143 kB | sobra **23,5 kB** |
+| `BodyPage.jsx` | 1965 líneas | **1374** |
+| `WineDetailPage.jsx` | 1488 líneas | **1048** |
+| literales de color fuera de `index.css` | 84 hex · 206 rgba | 5 hex · 3 rgba, **todos con su comentario** |
+
+Cinco fases de trabajo visual por **1,5 kB**. No entró ninguna librería: las
+transiciones de layout las hace el navegador (View Transitions), el gesto de
+deslizar son 100 líneas de hook, y las ilustraciones son SVG escrito a mano.
 
 **Medición al cerrar la fase 5:**
 
