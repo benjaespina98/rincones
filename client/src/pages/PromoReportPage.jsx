@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icon from "../components/Icon";
+import ErrorState from "../components/ErrorState";
+import LoadingSkeleton from "../components/LoadingSkeleton";
 import { getPublicReport } from "../services/promotionsApi";
 import { NUM, diaCorto } from "../utils/format";
 import "./PromoReportPage.css";
@@ -43,15 +45,29 @@ export default function PromoReportPage() {
   const aMano = Boolean(desde && hasta);
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [falló, setFalló] = useState(false);
+  /**
+   * Qué falló, no sólo que falló.
+   *
+   * Era un booleano, y con eso la pantalla decía siempre lo mismo: "este
+   * informe no está disponible, el enlace puede haber caducado". Para un
+   * enlace dado de baja está bien. Para un corte de red de tres segundos es
+   * mentira y encima es un callejón sin salida — no había ningún botón para
+   * reintentar, así que quien abría el informe en el subte se iba creyendo
+   * que le habían cortado el acceso.
+   *
+   * El servidor ya distingue los dos casos: 404 o 410 es "este enlace no vale
+   * más", cualquier otra cosa —o ninguna respuesta— es un problema del camino.
+   */
+  const [falla, setFalla] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
       setCargando(true);
-      setFalló(false);
+      setFalla(null);
       setDatos(await getPublicReport(token, aMano ? { from: desde, to: hasta } : { days: dias }));
-    } catch {
-      setFalló(true);
+    } catch (error) {
+      const status = error?.response?.status;
+      setFalla(status === 404 || status === 410 ? "baja" : "conexion");
     } finally {
       setCargando(false);
     }
@@ -62,10 +78,28 @@ export default function PromoReportPage() {
   }, [cargar]);
 
   if (cargando && !datos) {
-    return <div className="rep"><p className="rep__msg">Cargando el informe…</p></div>;
+    // La forma de lo que viene —los números arriba, la serie diaria abajo— en
+    // vez de un renglón de texto centrado. Ver LoadingSkeleton.
+    return (
+      <div className="rep">
+        <LoadingSkeleton type="inline" count={3} />
+      </div>
+    );
   }
 
-  if (falló || !datos) {
+  if (falla === "conexion") {
+    return (
+      <div className="rep">
+        <ErrorState
+          title="No pudimos traer el informe"
+          hint="Puede ser tu conexión. Los números están guardados y no se pierden."
+          onRetry={cargar}
+        />
+      </div>
+    );
+  }
+
+  if (falla === "baja" || !datos) {
     return (
       <div className="rep">
         <div className="rep__vacio">
