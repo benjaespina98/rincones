@@ -95,26 +95,30 @@ regex con `\r?\n`, o `sed` por número de línea.
   subirlo, nunca bajarlo. (El panel de admin tiene seis reglas que sí bajan: es
   escritorio y quedó fuera a propósito.)
 
-### Los íconos se generan, no se importan
+### Los íconos son propios, y así se quedan
 
-`src/components/iconPaths.js` es **un archivo generado**. Para agregar o cambiar
-un ícono se toca el mapa de `client/scripts/generar-iconos.cjs` y se corre:
+`src/components/Icon.jsx` tiene el set completo dibujado a mano: SVG trazados en
+grilla de 24 con `stroke-width: 2`, más un puñado de variantes rellenas
+(`filled`) para corazón, estrella, copa y botella.
 
-```bash
-npm run iconos -w client
-```
+**Ya se probó reemplazarlo por una librería y se volvió atrás.** Se evaluaron
+tres caminos, con el bundle medido:
 
-La geometría es de **Phosphor Icons** (MIT), que está instalado como
-devDependency y sólo lo lee ese script — no entra al bundle. El paquete trae los
-seis pesos de cada ícono y no tiene entrada por peso: importarlo cuesta 35,2 kB
-gzip contra los 7,4 kB de extraer los pesos que se usan. Por eso se genera.
+| | 52 íconos gzip | |
+|---|---|---|
+| set propio (el actual) | 2,4 kB | |
+| `lucide-react` | 6,4 kB | |
+| `@phosphor-icons/react` | 35,2 kB | no entra en el presupuesto: trae los 6 pesos de cada ícono y no tiene entrada por peso |
 
-Los nombres que usa la app (`chevron-right`) no son los de Phosphor
-(`CaretRight`): la traducción vive sólo en el mapa del generador.
+Se llegó a implementar la geometría de Phosphor extrayendo sólo el peso regular
+(6,6 kB) y **se descartó por criterio visual**: los íconos rellenos de Phosphor
+no combinan con el resto de la app, que es de trazo fino. Si vuelve a salir el
+tema, la conclusión es que el problema no era el peso del bundle.
 
-**No se usan SF Symbols de Apple**: `sf-symbols-react` no existe, y la licencia
-de Apple permite usarlos para diseñar apps de plataformas Apple pero prohíbe
-copiarlos y redistribuirlos, que es lo que sería meterlos en un bundle web.
+**No se usan SF Symbols de Apple**: `sf-symbols-react` no existe en npm, y la
+licencia de Apple permite usarlos para diseñar apps de plataformas Apple pero
+prohíbe copiarlos y redistribuirlos — que es lo que sería meterlos en un bundle
+web servido a cualquier navegador.
 
 ### Una trampa de CSS que ya mordió
 

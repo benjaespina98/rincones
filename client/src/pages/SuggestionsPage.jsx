@@ -933,14 +933,10 @@ export default function SuggestionsPage() {
             disabled={texto.trim().length < 3 || pensando}
             aria-label="Enviar consulta"
           >
-            {/* La flecha en círculo y no el avión de papel: es el botón de
-                enviar de iMessage y de casi todo compositor de iOS, y a 22px
-                relleno se lee como un botón sin necesitar un fondo aparte. El
-                avión de papel es la convención de Telegram y de la web. */}
             {pensando ? (
               <span className="somm__spin" aria-hidden="true" />
             ) : (
-              <Icon name="arrow-up-circle" size={22} filled />
+              <Icon name="send" size={18} />
             )}
           </button>
         </div>
