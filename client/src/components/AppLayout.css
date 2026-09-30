@@ -1,9 +1,32 @@
 /* Sin fondo propio. Éste ERA el fondo de Descubrí —y el de toda la app— y hoy
    es el de todas las pantallas: se mudó tal cual a --app-bg (index.css), que lo
    pinta `body`. Acá quedaría tapando al de abajo con una copia idéntica. */
+/* ── QUIÉN SCROLLEA ─────────────────────────────────────────────────────────
+   Esta columna es una columna de verdad: barra arriba, contenido que scrollea,
+   barra abajo. Era un bloque suelto con `min-height`, y eso hacía que el
+   `overflow-y: auto` de `.app-content` (App.css) no sirviera para nada: un
+   bloque de alto automático nunca desborda, así que el scroll terminaba siendo
+   el del documento entero.
+
+   No era inofensivo. La app tiene tres lugares con código escrito para
+   averiguar "quién scrollea de verdad" —`useHeaderCollapse`, `useSheet` y
+   `useSwipeAcciones`— porque la respuesta cambiaba según el largo de la
+   página. Y `position: sticky` no funcionaba en ninguna pantalla: un elemento
+   pegajoso se ancla a su contenedor que scrollea, y ese contenedor existía
+   pero no scrolleaba. La barra de secciones de la ficha del vino se iba con el
+   scroll y ahí se descubrió.
+
+   `min-height: 0` en el hijo es lo que evita el otro clásico: un item de flex
+   no se encoge por debajo de su contenido salvo que se le diga, y sin eso
+   `.app-content` volvía a crecer en vez de scrollear.
+
+   A revisar en la fase 7: cambia quién scrollea en TODAS las pantallas. Lo
+   verificado hasta ahora está en docs/REDESIGN_PROGRESS.md. */
 .app-layout {
-  min-height: 100vh;
-  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ── LA BARRA DE ARRIBA ────────────────────────────────────────────────────

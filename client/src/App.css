@@ -24,6 +24,10 @@ html {
    donde está explicado por qué hay un solo dueño. */
 .app-content {
   flex: 1 1 auto;
+  /* Sin esto, un item de flex no se encoge por debajo de su contenido y este
+     `overflow-y` no llega a usarse nunca. Ver el comentario largo en
+     `.app-layout` (AppLayout.css). */
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: var(--page-pad-bottom);
