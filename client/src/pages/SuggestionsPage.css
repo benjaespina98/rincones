@@ -83,6 +83,30 @@
   padding: 18px 0 8px;
 }
 
+/* ── LAS DOS TIRAS DE CHIPS, JUNTAS ─────────────────────────────────────────
+   Había una arriba, pegada al título, y otra abajo, pegada al compositor, con
+   370px medidos de nada en el medio: la pantalla abría partida en dos y con un
+   hueco. Las dos hacían lo mismo —tocar un chip pregunta algo—, así que la de
+   abajo subió acá. El compositor se queda solo en su borde, que es donde tiene
+   que estar, y lo que se ofrece al arrancar se lee como una sola cosa.
+
+   Siguen siendo dos filas y no una: la primera son comidas y la segunda son
+   preguntas sueltas. Mezcladas, "Asado" y "¿Qué tomo con este clima?" en el
+   mismo renglón no se leen como opciones del mismo tipo. */
+.somm__otras {
+  margin-top: 6px;
+}
+
+.somm__otras-rotulo {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
 /* El saludo, chico y por encima del título: es un dato de contexto ("sé quién
    sos"), no el mensaje principal de la pantalla — ése sigue siendo el h2. */
 .somm__saludo {
@@ -393,18 +417,10 @@
 /* Mismo motivo que `.somm__comida` arriba: `--line` sobre `--surface` casi
    no se distinguía del fondo. */
 .somm__chip {
+  /* La forma, el color y el foco los pone Chip.css. Lo propio de acá es que
+     estos viven en una tira que se desliza y no pueden encogerse. */
   flex: 0 0 auto;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-strong);
-  background: var(--surface-2);
-  color: var(--text-secondary);
   font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 @media (hover: hover) {
@@ -740,4 +756,40 @@
   border-color: rgb(var(--success-rgb) / 0.34);
   color: var(--success-text);
   cursor: default;
+}
+
+/* ── EL HILO DEL TIPO EN LA RESPUESTA ───────────────────────────────────────
+   Las tarjetas que devuelve el Sommelier son vinos como los de Mi Bodega, así
+   que llevan la misma banda lateral del color de su tipo. Acá rinde el doble:
+   una respuesta de maridaje suele mezclar un tinto, un blanco y un espumante,
+   y la banda deja ver de qué está hablando antes de leer los nombres.
+
+   Al costado y no arriba —al revés que en los resultados de Descubrí— porque
+   estas tarjetas son anchas y bajas: una banda superior de 2px sobre una fila
+   de 72px de alto se lee como un subrayado suelto. */
+.suggestion-card[data-wine-type],
+.discover-card[data-wine-type] {
+  position: relative;
+  border-color: rgb(var(--type-rgb) / 0.18);
+}
+
+.suggestion-card[data-wine-type]::before,
+.discover-card[data-wine-type]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--type-rail);
+}
+
+/* El contenido se corre lo que mide la banda, para que el texto no le quede
+   encima. */
+.suggestion-card[data-wine-type] {
+  padding-left: 15px;
+}
+
+.discover-card[data-wine-type] .discover-card__row {
+  padding-left: 3px;
 }

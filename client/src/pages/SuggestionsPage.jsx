@@ -9,6 +9,7 @@ import { preguntarAlSommelier, mensajeDeError } from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
+import Chip from "../components/Chip";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
 import WineMeta from "../components/WineMeta";
@@ -607,15 +608,35 @@ export default function SuggestionsPage() {
             <h2>¿Con qué maridamos hoy?</h2>
             <div className="somm__rail">
               {COMIDAS.map((c) => (
-                <button
+                <Chip
                   key={c.label}
-                  type="button"
                   className="somm__chip"
                   onClick={() => preguntar(c.pregunta)}
                 >
                   {c.label}
-                </button>
+                </Chip>
               ))}
+            </div>
+
+            {/* Estas vivían abajo, pegadas al compositor, con la pantalla vacía
+                en el medio. Son lo mismo que las de arriba —tocar un chip
+                pregunta algo—, así que arrancar de cero es un solo bloque y no
+                dos mitades separadas por un hueco. Se mantienen como fila
+                aparte porque son otra cosa: arriba hay comidas, acá preguntas
+                sueltas. */}
+            <div className="somm__otras">
+              <span className="somm__otras-rotulo">O preguntame</span>
+              <div className="somm__rail">
+                {OTRAS_PREGUNTAS.map((s) => (
+                  <Chip
+                    key={s.label}
+                    className="somm__chip"
+                    onClick={() => preguntar(s.pregunta)}
+                  >
+                    {s.label}
+                  </Chip>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -693,6 +714,7 @@ export default function SuggestionsPage() {
                       <li
                         key={wine._id}
                         className="suggestion-card"
+                        data-wine-type={wine.type || undefined}
                         onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}
                         role="button"
                         tabIndex={0}
@@ -736,7 +758,11 @@ export default function SuggestionsPage() {
                   <p className="somm__rotulo">Para descubrir</p>
                   <ul className="somm__lista">
                     {m.descubrir.map((wine) => (
-                      <li key={wine.id} className="discover-card">
+                      <li
+                        key={wine.id}
+                        className="discover-card"
+                        data-wine-type={wine.type || undefined}
+                      >
                         <div className="discover-card__row">
                           <button
                             type="button"
@@ -814,27 +840,12 @@ export default function SuggestionsPage() {
           siempre en vez de una nueva cada vez: eso resuelve el amontonamiento
           sin tirar lo que el modelo ya pensó (ver `repreguntas` más arriba). */}
       <div className="somm__pie">
-        {mensajes.length === 0 && (
-          <div className="somm__rail">
-            {OTRAS_PREGUNTAS.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className="somm__chip"
-                onClick={() => preguntar(s.pregunta)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {mensajes.length > 0 && !pensando && repreguntas?.length > 0 && (
           <div className="somm__rail">
             {repreguntas.map((r) => (
-              <button
+              <Chip
                 key={r}
-                type="button"
                 className="somm__chip"
                 onClick={() => {
                   trackEvent("sommelier_followup_click");
@@ -842,7 +853,7 @@ export default function SuggestionsPage() {
                 }}
               >
                 {r}
-              </button>
+              </Chip>
             ))}
           </div>
         )}
@@ -874,8 +885,14 @@ export default function SuggestionsPage() {
             rows={1}
             /* Nombra la consulta más frecuente ANTES que la genérica: un campo
                que sólo dice "preguntá lo que quieras" no le hace pensar a nadie
-               en escribir "milanesas", que es justo lo que mejor contesta. */
-            placeholder="Qué vas a comer, o lo que quieras saber"
+               en escribir "milanesas", que es justo lo que mejor contesta.
+
+               Terminaba en "saber", y esa palabra sola lo pasaba de renglón: a
+               375px el campo mide 41px de alto y el texto pedía 62, así que lo
+               primero que se veía al entrar era un placeholder cortado al
+               medio. "Lo que quieras" ya dice lo mismo y entra. Medido, no
+               estimado. */
+            placeholder="Qué vas a comer, o lo que quieras"
             aria-label="Tu consulta"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
