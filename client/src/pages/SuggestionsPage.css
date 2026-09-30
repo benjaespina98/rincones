@@ -808,3 +808,13 @@
 .somm__marca .logo__wine {
   opacity: 0.75;
 }
+
+/* Las dos acciones de mantenimiento de la charla: el archivo y empezar de
+   cero. Alineadas a la derecha y apagadas, para que no compitan con la
+   pregunta de arriba. */
+.somm__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}

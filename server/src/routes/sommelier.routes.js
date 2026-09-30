@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { authenticate } = require("../middleware/auth.middleware");
 const { aiLimiter, sommelierDailyLimiter } = require("../middleware/aiLimiter");
 const sommelierController = require("../controllers/sommelier.controller");
+const historyController = require("../controllers/sommelierHistory.controller");
 
 const router = Router();
 
@@ -28,5 +29,21 @@ router.post(
   aiLimiter,
   sommelierController.ask
 );
+
+/**
+ * El historial de charlas.
+ *
+ * Sin los limitadores de IA: leer o borrar una conversación guardada no llama a
+ * ningún modelo. Ponerle el límite diario de 40 haría que mirar el archivo
+ * gastara las preguntas del día, que es exactamente al revés de lo que el
+ * historial existe para hacer.
+ *
+ * `authenticate` sí, y además cada consulta del controlador filtra por
+ * `userId`: ver el comentario de arriba de sommelierHistory.controller.js sobre
+ * por qué no alcanza con buscar por id.
+ */
+router.get("/conversations", authenticate, historyController.list);
+router.get("/conversations/:id", authenticate, historyController.getOne);
+router.delete("/conversations/:id", authenticate, historyController.remove);
 
 module.exports = router;

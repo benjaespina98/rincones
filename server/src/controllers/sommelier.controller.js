@@ -2,6 +2,7 @@ const Wine = require("../models/wine.model");
 const WineWish = require("../models/wineWish.model");
 const User = require("../models/user.model");
 const SommelierAnswer = require("../models/sommelierAnswer.model");
+const historial = require("../services/sommelierHistory.service");
 const sommelier = require("../services/sommelier.service");
 const {
   esDelDominio,
@@ -370,7 +371,26 @@ const ask = async (req, res, next) => {
       }
     }
 
-    return res.status(200).json({ data, cached: false });
+    /**
+     * El historial se escribe ACÁ, con la respuesta que de verdad salió.
+     *
+     * Va antes de responder y no después porque el id de la conversación viaja
+     * en la respuesta: el cliente lo necesita para que la siguiente pregunta se
+     * agregue a la misma charla en vez de abrir una nueva. Es una escritura de
+     * milisegundos contra una llamada a Gemini que tarda segundos, así que no
+     * cambia lo que la persona percibe.
+     *
+     * Y nunca tira: `guardarTurno` devuelve null si algo falla. Sin historial
+     * la app funciona igual — al revés no.
+     */
+    const conversationId = await historial.guardarTurno({
+      userId: req.user?.id,
+      conversationId: req.body.conversationId,
+      question,
+      data,
+    });
+
+    return res.status(200).json({ data, cached: false, conversationId });
   } catch (error) {
     return next(error);
   }

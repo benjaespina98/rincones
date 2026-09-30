@@ -33,16 +33,44 @@ const TURNOS = 3;
  */
 const TIMEOUT_MS = 25000;
 
-export const preguntarAlSommelier = async (question, history = []) => {
+export const preguntarAlSommelier = async (question, history = [], conversationId = null) => {
   const { data } = await api.post(
     "/sommelier/ask",
     {
       question,
       history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
+      /* El id de la charla, para que esta pregunta se agregue a la que ya venía
+         en vez de abrir una nueva. Nulo en la primera: lo crea el server y lo
+         devuelve acá abajo. */
+      conversationId,
     },
     { timeout: TIMEOUT_MS }
   );
+  // El id viaja al lado de la respuesta, no adentro: `data.data` es lo que la
+  // guía contestó, y el id es de la conversación que lo contiene.
+  return data?.data ? { ...data.data, conversationId: data.conversationId || conversationId } : null;
+};
+
+/**
+ * El historial de charlas.
+ *
+ * Tres funciones finitas y sin estado propio: la pantalla decide cuándo
+ * pedirlas. No hay caché acá porque el historial cambia con cada pregunta que
+ * se hace, y una lista de treinta títulos es barata de volver a traer.
+ */
+export const listarConversaciones = async () => {
+  const { data } = await api.get("/sommelier/conversations");
+  return data?.data || [];
+};
+
+export const traerConversacion = async (id) => {
+  const { data } = await api.get(`/sommelier/conversations/${id}`);
   return data?.data || null;
+};
+
+export const borrarConversacion = async (id) => {
+  await api.delete(`/sommelier/conversations/${id}`);
+  return true;
 };
 
 /**
