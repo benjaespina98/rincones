@@ -10,6 +10,7 @@ import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
+import Logo from "../components/Logo";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
@@ -649,6 +650,24 @@ export default function SuggestionsPage() {
             </p>
           ) : (
             <div key={m.id} className={`somm__resp ${m.error ? "is-error" : ""}`}>
+              {/* ── EL MONOGRAMA, QUE NO ES UN AVATAR ──────────────────────
+                  Arriba, en el encabezado de este archivo, está escrito que la
+                  respuesta no lleva avatar al lado. Eso sigue valiendo y esto
+                  no lo contradice: lo que se descartó era un avatar de ROBOT,
+                  una carita que hace que la pantalla se presente como si fuera
+                  alguien. El monograma de Rincones es la marca de quién habla,
+                  no un personaje — la misma distinción que este archivo ya hace
+                  sobre el saludo ("no es la guía saludando, es Rincones
+                  reconociendo a quien entró").
+
+                  Y resuelve algo concreto: la respuesta es texto suelto del
+                  mismo tamaño y color que el resto de la app, así que en una
+                  conversación larga no hay forma de ver de un vistazo dónde
+                  empieza cada una. El monograma marca ese arranque sin
+                  convertir el texto en una burbuja. */}
+              <span className="somm__marca" aria-hidden="true">
+                <Logo size={34} />
+              </span>
               <p className="somm__texto">{m.text}</p>
 
               {/* Sólo en la burbuja de error, y sólo si hay algo para
@@ -914,10 +933,14 @@ export default function SuggestionsPage() {
             disabled={texto.trim().length < 3 || pensando}
             aria-label="Enviar consulta"
           >
+            {/* La flecha en círculo y no el avión de papel: es el botón de
+                enviar de iMessage y de casi todo compositor de iOS, y a 22px
+                relleno se lee como un botón sin necesitar un fondo aparte. El
+                avión de papel es la convención de Telegram y de la web. */}
             {pensando ? (
               <span className="somm__spin" aria-hidden="true" />
             ) : (
-              <Icon name="send" size={18} />
+              <Icon name="arrow-up-circle" size={22} filled />
             )}
           </button>
         </div>

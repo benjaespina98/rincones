@@ -520,11 +520,22 @@ body {
   /* El único que pinta el fondo. Ver --app-bg. */
   background-color: var(--bg);
   background-image: var(--app-bg);
-  overflow-x: hidden;
+  /* ── `clip` Y NO `hidden` ──────────────────────────────────────────────────
+     Los dos esconden lo que se sale de costado, pero `hidden` además convierte
+     al elemento en un contenedor de scroll, y eso tiene una consecuencia que no
+     se ve hasta que rompe algo: un `position: sticky` se ancla al contenedor
+     que scrollea más cercano. Con `hidden` acá, cualquier cosa pegajosa de la
+     app pasa a depender de un contenedor que no scrollea nunca.
+
+     Es exactamente el bug que tuvo esta app —la barra de secciones de la ficha
+     no se pegaba— y aunque la causa de aquella vez era otra (ver `.app-layout`
+     en AppLayout.css), dejar `hidden` acá es tener la trampa armada para la
+     próxima. `clip` recorta igual y no crea contenedor. */
+  overflow-x: clip;
   /* Se hereda a todo el texto. Sin esto, una palabra larga sin espacios —el
      nombre de una bodega alemana, un mail, una URL pegada en las notas— estira
-     su caja y el `overflow-x: hidden` de arriba la corta: se ve media palabra y
-     ninguna señal de que falta el resto. Cortarla es mejor que esconderla. */
+     su caja y el recorte de arriba la corta: se ve media palabra y ninguna
+     señal de que falta el resto. Cortarla es mejor que esconderla. */
   overflow-wrap: break-word;
 }
 
@@ -656,10 +667,21 @@ button svg {
   }
 }
 
+/* ── EL PISO DE 16px, Y POR QUÉ NO ES UNA CUESTIÓN DE GUSTO ─────────────────
+   Safari en iPhone hace zoom solo cuando enfocás un campo cuya letra mide menos
+   de 16px. No es configurable ni se puede desactivar desde la página: la única
+   forma de evitarlo es no bajar de 16. Y el zoom no se va solo — queda puesto,
+   con la barra de direcciones tapando media pantalla, hasta que la persona
+   pellizca para volver.
+
+   Así que 16px es el valor por defecto de todo campo de la app. Un componente
+   puede subirlo; bajarlo es romper la pantalla en el teléfono, que es donde se
+   usa esta app. */
 input,
 textarea,
 select {
   font-family: var(--font-family-base);
+  font-size: 16px;
 }
 
 /* Responsive Images */

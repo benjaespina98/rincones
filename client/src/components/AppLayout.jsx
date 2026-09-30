@@ -4,6 +4,7 @@ import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { useHeaderCollapse } from "../hooks/useHeaderCollapse";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
+import Logo from "./Logo";
 import { tapHaptic } from "../utils/haptics";
 import { displayName, initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TAB_PATHS } from "../data/navigation";
@@ -28,6 +29,8 @@ import "./AppLayout.css";
 const AppLayout = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  /* Descubrí es la raíz: es la pantalla con la que se abre la app. */
+  const esInicio = location.pathname === "/";
   const { user } = useAuth();
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
@@ -123,8 +126,32 @@ const AppLayout = ({ children, pageTitle }) => {
 
       {/* key por ruta: al navegar, el contenido se remonta y hace un fade-in
           sutil (transición de página, sin librería). */}
+      {/* key por ruta: al navegar, el contenido se remonta y hace un fade-in
+          sutil (transición de página, sin librería). */}
       <main key={location.pathname} className="app-content app-content--with-topbar app-content--enter">
-        <h1 className="app-hero-title">{pageTitle}</h1>
+        {/* ── LA MARCA, SÓLO EN LA PANTALLA DE ENTRADA ──────────────────────
+            El rótulo "RINCONES" se sacó de la barra de arriba hace varias
+            fases, y con razón: repetir la marca en las catorce pantallas es lo
+            que hace una web, no una app — una app ya está adentro de su ícono.
+            Eso no cambia.
+
+            Lo que sí cambia es la primera pantalla. Descubrí es donde se abre
+            la app, y ahí el título grande decía "Descubrí" con el saludo justo
+            abajo, también grande: dos encabezados seguidos peleando por la
+            misma mirada. El monograma con el nombre ocupa ese lugar y resuelve
+            las dos cosas — la marca aparece UNA vez, donde tiene sentido, y el
+            saludo deja de competir.
+
+            Dónde estás parado no se pierde: lo dicen la pestaña encendida
+            abajo y el título de la barra cuando scrolleás. */}
+        {esInicio ? (
+          <h1 className="app-hero-title app-hero-title--marca">
+            <Logo size={32} aria-hidden="true" />
+            Rincones
+          </h1>
+        ) : (
+          <h1 className="app-hero-title">{pageTitle}</h1>
+        )}
         {children}
       </main>
       <BottomTabNavigation />

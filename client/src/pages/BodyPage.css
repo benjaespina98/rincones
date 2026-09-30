@@ -90,34 +90,11 @@
   color: var(--text);
 }
 
-/* Controls (selects) */
-.filter-select,
-.sort-select {
-  flex: 1;
-  min-width: 0;
-  padding: 11px 36px 11px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  background-color: var(--glass);
-  color: var(--text);
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a782ef' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.filter-select:focus,
-.sort-select:focus {
-  outline: none;
-  border-color: var(--accent-light);
-  box-shadow: var(--focus-ring);
-}
+/* Acá vivían `.filter-select` y `.sort-select`: los dos combos que había arriba
+   de la lista antes de que el orden y el tipo se fueran a la hoja de filtros
+   (ver BodegaFilters). Ningún JSX los usaba desde entonces, y encima uno era de
+   los pocos campos de la app con letra de 14px — abajo de 16, iOS hace zoom
+   solo al tocarlos. Se van los dos, con su chevron en base64 incluido. */
 
 /* Quick filter chips */
 .active-filter-note {

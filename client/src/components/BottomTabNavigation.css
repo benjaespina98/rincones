@@ -22,9 +22,20 @@
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .bottom-tabs-container {
-    background: rgb(var(--bg-rgb) / 0.62);
-    backdrop-filter: blur(18px) saturate(1.3);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    /* ── LA RECETA DE UN MATERIAL DE iOS ────────────────────────────────────
+       Tres números que van juntos y que no son arbitrarios: un desenfoque
+       grande (26px) para que lo de atrás sea color y no forma, la saturación
+       levantada (1.8) para que ese color no se apague al difuminarse, y una
+       opacidad apenas más alta (0.65) para que las etiquetas se lean sobre lo
+       que pase por debajo.
+
+       Con blur chico se adivinan las letras de atrás y parece un vidrio sucio;
+       sin la saturación, el desenfoque lava el color y queda gris. Es lo que
+       hacen los materiales del sistema en iOS, y es lo que hace que una barra
+       se sienta parte del teléfono y no un rectángulo pegado encima. */
+    background: rgb(var(--bg-rgb) / 0.65);
+    backdrop-filter: blur(26px) saturate(1.8);
+    -webkit-backdrop-filter: blur(26px) saturate(1.8);
   }
 }
 

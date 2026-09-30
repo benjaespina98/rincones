@@ -104,7 +104,12 @@
   border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--text-lg);
+  /* 16px y no 17. Inter es un pelo más ancha que la familia anterior, y con 17
+     el placeholder —"Buscar vinos, bodegas, uvas"— pedía 231px donde hay 229:
+     se cortaba la última letra. Medido. 16 es además el piso exacto abajo del
+     cual iOS hace zoom al enfocar, así que es el valor más chico disponible sin
+     romper otra cosa. */
+  font-size: 16px;
 }
 
 .discover-search .discover-search__input::placeholder {

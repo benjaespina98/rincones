@@ -145,7 +145,10 @@
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font-size: var(--text-sm, var(--text-base));
+  /* 16px y no 14: abajo de ese umbral, Safari en iPhone hace zoom solo al
+     enfocar el campo, y después hay que pellizcar para volver. Era uno de los
+     dos únicos campos de la app que lo tenía. */
+  font-size: 16px;
 }
 
 .imgpick__url input:focus {

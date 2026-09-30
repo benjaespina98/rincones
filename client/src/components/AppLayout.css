@@ -125,6 +125,20 @@
   color: var(--text);
 }
 
+/* El monograma al lado del nombre, sólo en la pantalla de entrada (ver
+   AppLayout.jsx). El logo se alinea por su caja, no por la línea de base del
+   texto: es un dibujo, y apoyarlo en la base lo deja flotando alto. */
+.app-hero-title--marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-hero-title--marca .logo {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
 /* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa
    (no un desplegable) — ahí viven configuración y cerrar sesión.
 

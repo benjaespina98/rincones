@@ -793,3 +793,18 @@
 .discover-card[data-wine-type] .discover-card__row {
   padding-left: 3px;
 }
+
+/* El monograma que encabeza cada respuesta. Ver SuggestionsPage.jsx: marca
+   quién habla, no es un avatar de personaje.
+
+   Apagado y chico: tiene que ordenar la conversación, no pedir atención. El
+   texto sigue siendo lo primero que se lee. */
+.somm__marca {
+  display: block;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.somm__marca .logo__wine {
+  opacity: 0.75;
+}
