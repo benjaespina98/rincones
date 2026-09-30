@@ -566,7 +566,15 @@ export default function WineDetailPage() {
 
   return (
     <div className="wine-detail-page">
-      <div className={`wine-detail-hero ${wine.image ? "has-photo" : ""}`}>
+      {/* `data-wine-type` es lo que hace que el encabezado sea de ESTE vino.
+          Importa sobre todo cuando no hay foto, que es la mayoría de las fichas
+          recién cargadas: sin esto, el fondo era el mismo violeta para un
+          Malbec que para un espumante. Con foto casi no se nota, porque el
+          fondo ambiental de la propia etiqueta lo tapa. */}
+      <div
+        className={`wine-detail-hero ${wine.image ? "has-photo" : ""}`}
+        data-wine-type={wine.type || undefined}
+      >
         {/* El fondo sale de la propia foto, ampliada y desenfocada. El violeta
             fijo de antes no tenía nada que ver con el vino y dejaba la foto
             flotando como un recorte pegado sobre otra pantalla; así el borde se

@@ -115,7 +115,9 @@ export default function CatalogWinePage() {
 
   return (
     <div className="wine-detail-page">
-      <div className="wine-detail-hero">
+      {/* Mismo hilo que la ficha del vino propio: sin foto, el encabezado toma
+          el color del tipo en vez de un violeta igual para todos. */}
+      <div className="wine-detail-hero" data-wine-type={wine.type || undefined}>
         <div className="wine-detail-hero__placeholder">
           <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={220} fit="contain" priority />
         </div>
