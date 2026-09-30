@@ -9,6 +9,7 @@ import { normalizeSearchText } from "../utils/text";
 import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nombreDeFila } from "../utils/viewTransition";
+import { useSwipeAcciones } from "../hooks/useSwipeAcciones";
 
 /**
  * Una fila de Mi Bodega.
@@ -129,6 +130,15 @@ function WineRow({
    */
   const enSuPunto = esVitrina && getCellarStatus(wine).status === "peak";
 
+  /**
+   * Deslizar para llegar al corazón y al tacho sin desplegar la fila.
+   *
+   * Sólo en lista: en grilla la celda mide media pantalla de ancho y correrla
+   * descoloca a las vecinas. Y no durante la selección múltiple, donde el gesto
+   * horizontal ya significa otra cosa.
+   */
+  const swipe = useSwipeAcciones({ habilitado: !esGrilla && !modoSeleccion && !isPending });
+
   return (
     <article
       /* `wine-row--vitrina` marca la fila que SE DESPLIEGA: lista (no
@@ -158,7 +168,62 @@ function WineRow({
           expandir la fila o entrar a la ficha, tres toques para un dato
           que es de una palabra. Un botón adentro de otro botón no es
           HTML válido, y por eso son hermanos y no anidados. */}
-      <div className="wine-row__head">
+      {/* ── LO QUE APARECE DETRÁS AL DESLIZAR ──────────────────────────────
+          Va debajo de la cabecera en el marcado y detrás en pantalla: la
+          cabecera se corre y esto queda a la vista. `inert` cuando está
+          cerrada — no alcanza con que no se vea: sin eso, el Tab del teclado
+          y el lector de pantalla siguen encontrando dos botones escondidos
+          abajo de cada fila de la lista.
+
+          Son los mismos dos del panel desplegable, a propósito: el gesto es un
+          atajo para quien lo conoce, no la única puerta. Quien no lo descubra
+          llega igual por el chevron. */}
+      {!esGrilla && (
+        <div
+          className="wine-row__swipe"
+          /* Se descubre exactamente lo que el dedo corrió: la capa está
+             recortada y sólo se ve la franja que la cabecera dejó libre. Así
+             no hace falta pintar la cabecera de un color opaco para tapar los
+             botones —las superficies de la app son translúcidas a propósito, y
+             taparla habría sido romper eso para esconder un problema de capas. */
+          style={{ "--revelado": `${-swipe.desplazamiento}px` }}
+          inert={!swipe.abierta}
+        >
+          <button
+            type="button"
+            className={`wine-row__swipe-btn ${wine.favorite ? "is-fav" : ""}`}
+            onClick={() => {
+              onToggleFavorite(wine);
+              swipe.cerrar();
+            }}
+            aria-label={
+              wine.favorite
+                ? `Quitar ${wineDisplayName(wine)} de favoritos`
+                : `Marcar ${wineDisplayName(wine)} como favorito`
+            }
+          >
+            <Icon name="heart" filled={wine.favorite} size={19} />
+          </button>
+          <button
+            type="button"
+            className="wine-row__swipe-btn wine-row__swipe-btn--danger"
+            onClick={() => {
+              onEliminar(wine._id);
+              swipe.cerrar();
+            }}
+            aria-label={`Eliminar ${wineDisplayName(wine)}`}
+          >
+            <Icon name="trash" size={19} />
+          </button>
+        </div>
+      )}
+
+      <div
+        className="wine-row__head"
+        style={swipe.desplazamiento ? { transform: `translateX(${swipe.desplazamiento}px)` } : undefined}
+        data-arrastrando={swipe.arrastrando ? "" : undefined}
+        {...swipe.manejadores}
+      >
         {/* Tocar la fila SIEMPRE abre la ficha, en lista y en grilla
             por igual — es lo que espera cualquiera que use una app
             hoy, y obligar a un segundo toque en "Ver ficha
@@ -172,6 +237,10 @@ function WineRow({
           type="button"
           className="wine-row__main"
           onClick={() => {
+            // Con las acciones a la vista, el primer toque las guarda. Si no,
+            // el gesto para asomarlas te deja a un toque de irte de la
+            // pantalla sin querer, que es el error más caro de esta lista.
+            if (swipe.abierta) return swipe.cerrar();
             if (modoSeleccion) return onSeleccionar(wine._id);
             // El vino viaja con la navegación: la ficha lo tiene
             // entero en memoria y puede pintar en el primer frame en

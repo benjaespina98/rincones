@@ -1698,3 +1698,66 @@
   background: var(--wine-soft);
   border-color: rgb(var(--wine-rgb) / 0.5);
 }
+
+/* ══ DESLIZAR UNA FILA ══════════════════════════════════════════════════════
+   La capa de acciones vive detrás de la cabecera, pegada al borde derecho, y
+   se descubre cuando la cabecera se corre. Ver hooks/useSwipeAcciones.js: el
+   gesto REVELA, no ejecuta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wine-row__swipe {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  /* 2 × 56: es lo que el hook usa como tope del arrastre (ANCHO_ACCIONES). */
+  width: 112px;
+  /* Se ve sólo la franja que la cabecera dejó libre: `--revelado` lo pone el
+     componente con lo que el dedo corrió, y cerrada la capa queda recortada
+     del todo. */
+  clip-path: inset(0 0 0 calc(100% - var(--revelado, 0px)));
+}
+
+/* La cabecera se corre y deja la capa a la vista. No lleva fondo propio: las
+   superficies de esta app son translúcidas a propósito, y pintarla opaca para
+   que tape los botones habría sido romper eso para esconder un problema de
+   capas — que el recorte de arriba no tiene. */
+.wine-row__head {
+  position: relative;
+  transition: transform var(--transition-smooth);
+}
+
+/* Mientras el dedo manda no hay transición: la fila tiene que ir donde está el
+   dedo, no donde estaba hace 180ms. */
+.wine-row__head[data-arrastrando] {
+  transition: none;
+}
+
+.wine-row__swipe-btn {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  border: 0;
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.wine-row__swipe-btn.is-fav {
+  color: var(--favorite);
+}
+
+.wine-row__swipe-btn--danger {
+  background: rgb(var(--danger-rgb) / 0.16);
+  color: var(--danger);
+}
+
+/* Quien activó reduced-motion pierde el deslizamiento animado, no el gesto: la
+   fila salta a su lugar y los botones quedan igual de disponibles. */
+@media (prefers-reduced-motion: reduce) {
+  .wine-row__head {
+    transition: none;
+  }
+}

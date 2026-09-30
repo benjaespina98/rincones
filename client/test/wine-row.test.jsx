@@ -145,3 +145,89 @@ describe("lo que la fila muestra según la vista", () => {
     expect(screen.getByRole("button", { name: /como favorito/i })).toBeTruthy();
   });
 });
+
+/**
+ * El gesto de deslizar. Lo que se cuida acá no es la animación —eso se mira—
+ * sino las tres reglas que lo hacen usable y que se rompen sin hacer ruido:
+ * que no le robe el gesto al scroll, que revelar no sea ejecutar, y que la
+ * fila abierta no te mande a otra pantalla con el toque siguiente.
+ */
+describe("deslizar para llegar a las acciones", () => {
+  beforeEach(() => displaySpy.mockClear());
+
+  const deslizar = (head, { dx, dy = 0 }) => {
+    fireEvent.pointerDown(head, { clientX: 300, clientY: 100, pointerType: "touch", pointerId: 1 });
+    fireEvent.pointerMove(head, { clientX: 300 + dx / 3, clientY: 100 + dy / 3, pointerType: "touch", pointerId: 1 });
+    fireEvent.pointerMove(head, { clientX: 300 + dx, clientY: 100 + dy, pointerType: "touch", pointerId: 1 });
+    fireEvent.pointerUp(head, { clientX: 300 + dx, clientY: 100 + dy, pointerType: "touch", pointerId: 1 });
+  };
+
+  const cabecera = (c) => c.querySelector(".wine-row__head");
+  const capa = (c) => c.querySelector(".wine-row__swipe");
+
+  it("arrastrar a la izquierda deja las acciones a la vista", () => {
+    const { container } = render(<WineRow {...base} />);
+    expect(capa(container).getAttribute("inert")).not.toBeNull();
+
+    deslizar(cabecera(container), { dx: -90 });
+
+    expect(cabecera(container).style.transform).toBe("translateX(-112px)");
+    expect(capa(container).getAttribute("inert")).toBeNull();
+  });
+
+  it("un gesto que arranca vertical es scroll y no toca la fila", () => {
+    // Sin este candado, cada scroll con el pulgar torcido abría media docena
+    // de filas al pasar.
+    const { container } = render(<WineRow {...base} />);
+
+    deslizar(cabecera(container), { dx: -90, dy: -140 });
+
+    expect(cabecera(container).style.transform).toBe("");
+  });
+
+  it("un arrastre corto vuelve solo", () => {
+    const { container } = render(<WineRow {...base} />);
+
+    deslizar(cabecera(container), { dx: -20 });
+
+    expect(cabecera(container).style.transform).toBe("");
+  });
+
+  it("revelar no borra: el tacho sigue pidiendo confirmación", () => {
+    const onEliminar = vi.fn();
+    const { container } = render(<WineRow {...base} onEliminar={onEliminar} />);
+
+    deslizar(cabecera(container), { dx: -90 });
+    // El gesto solo no llama a nadie.
+    expect(onEliminar).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Eliminar/ }));
+    expect(onEliminar).toHaveBeenCalledWith(VINO._id);
+  });
+
+  it("con las acciones a la vista, el toque las guarda en vez de abrir la ficha", () => {
+    const onAbrirFicha = vi.fn();
+    const { container } = render(<WineRow {...base} onAbrirFicha={onAbrirFicha} />);
+
+    deslizar(cabecera(container), { dx: -90 });
+    fireEvent.click(container.querySelector(".wine-row__main"));
+
+    expect(onAbrirFicha).not.toHaveBeenCalled();
+    expect(cabecera(container).style.transform).toBe("");
+  });
+
+  it("en grilla no hay gesto: correr una celda descoloca a las vecinas", () => {
+    const { container } = render(<WineRow {...base} esGrilla />);
+    expect(capa(container)).toBeNull();
+  });
+
+  it("con el mouse tampoco: en escritorio hay hover y no hace falta esconder nada", () => {
+    const { container } = render(<WineRow {...base} />);
+
+    fireEvent.pointerDown(cabecera(container), { clientX: 300, clientY: 100, pointerType: "mouse" });
+    fireEvent.pointerMove(cabecera(container), { clientX: 200, clientY: 100, pointerType: "mouse" });
+    fireEvent.pointerUp(cabecera(container), { clientX: 200, clientY: 100, pointerType: "mouse" });
+
+    expect(cabecera(container).style.transform).toBe("");
+  });
+});
