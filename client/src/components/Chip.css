@@ -60,7 +60,52 @@
   background: rgb(var(--paper-rgb) / 0.1);
 }
 
-/* Cuando el chip es un span (no se toca), no debe parecer tocable. */
-span.chip {
+/* Cuando el chip es un span (no se toca), no debe parecer tocable. El quitable
+   también es un span, pero ahí los controles están adentro. */
+span.chip:not(.chip--quitable) {
   cursor: default;
+}
+
+/* ── El chip con ✕ ─────────────────────────────────────────────────────────
+   La cápsula pasa a ser un span que contiene los controles; ver Chip.jsx. El
+   padding se va al cuerpo para que tocar el texto sea tocar el botón y no el
+   borde del span. */
+.chip--quitable {
+  padding: 0 10px 0 0;
+}
+
+.chip__cuerpo {
+  min-height: var(--control-sm);
+  padding: 0 4px 0 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El cuerpo no se dibuja como control aparte: el marco es la cápsula. El foco
+   sí, porque sin eso no se ve dónde está parado el teclado. */
+.chip__cuerpo:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--radius-full);
+}
+
+/* La ✕ se dibuja de 18px y se TOCA de 44: el área crece con un pseudo-elemento
+   en vez de agrandar el ícono, así la pastilla no engorda y el pulgar igual
+   acierta (mínimo AA para targets). */
+.chip__quitar {
+  position: relative;
+}
+
+.chip__quitar::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
