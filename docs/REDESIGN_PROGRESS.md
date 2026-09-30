@@ -185,25 +185,48 @@ código propio de fases anteriores:
         migran ahí.
   - [x] Sin tocar, a propósito: `useKeyboardInset`, la persistencia en
         `sessionStorage` y el compositor fijo. Ya estaban bien resueltos.
-- [ ] **Fase 5 — Ficha de vino unificada**
+- [x] **Fase 5 — Ficha de vino unificada**
+  - [x] El encabezado toma el color del tipo. Importa sobre todo sin foto, que
+        es la mayoría de las fichas recién cargadas.
+  - [x] `WineDetailHero`: un solo encabezado para las dos fichas. La del
+        catálogo era una copia recortada que se había quedado atrás (sin fondo
+        ambiental, sin marco dorado, sin color del tipo).
+  - [x] `WineDetailNav`: barra pegajosa con Resumen · Plan · Cata · Comunidad.
+        Navega, no esconde — ver el porqué en el componente.
+  - [x] `WineMoments` (269) y `WineDetailEditor` (252) salen de la página.
+        **`WineDetailPage`: 1488 → 1048 líneas.** Movidos tal cual, sin
+        renombrar: un refactor que mueve y reescribe a la vez no se revisa.
+  - [ ] Queda sin hacer: partir el modo lectura en Resumen / Cata / Comunidad.
+        La página ya está en 1048 y los tres bloques que faltan comparten
+        mucho estado con la pantalla; conviene hacerlo con una necesidad real
+        adelante, no por el número.
 - [ ] **Fase 6 — Estados faltantes**
 - [ ] **Fase 7 — Cierre**
+
+### Dos bugs de fondo que aparecieron en la fase 5
+
+| Qué | Dónde |
+|---|---|
+| **`position: sticky` no funcionaba en ninguna pantalla.** `.app-content` dice ser el área que scrollea (`overflow-y`, `scroll-padding-bottom`, `-webkit-overflow-scrolling`) pero su padre era un bloque suelto, así que crecía con el contenido y el que scrolleaba era el documento. Son cuatro líneas de CSS. **Cambia quién scrollea en todas las pantallas** — verificado a mano en las cuatro principales, más el colapso del título, una hoja y la barra inferior. | `AppLayout.css`, `App.css` |
+| `Segmented` movía el scroll VERTICAL de la página al cambiar de opción: su `scrollIntoView` recorre todos los ancestros y, con la cápsula pegajosa, usa la posición estática. Se veía como que la página volvía sola. Nunca se había notado porque era la primera vez que una cápsula era sticky. | `Segmented.jsx` |
 
 ---
 
 ## Próximo paso exacto
 
-**Fase 4.5 — Descubrí y Sommelier.** Es la primera pantalla que se ve al abrir
-la app, así que define la impresión. En orden:
+**Fase 6 — Estados faltantes.** En orden:
 
-1. `DiscoverPage`: hero del vino del día con el gradiente del tipo, tarjetas de
-   resultado con `Card`, `DailyLesson` y campañas en el mismo lenguaje.
-2. `SuggestionsPage`: burbujas y chips con el sistema nuevo, las tarjetas de
-   vino de la respuesta con la misma `Card` que Mi Bodega, y un estado
-   "pensando" más cuidado. **No tocar** `useKeyboardInset`, la persistencia en
-   `sessionStorage` ni el compositor fijo: ya están bien resueltos.
+1. `ScanWinePage`: hoy los fallos del escaneo son sólo un toast que desaparece.
+   Tiene que quedar un error en pantalla, con reintentar.
+2. `OnboardingPage`, `GoogleCallbackPage`, `PromoReportPage`: loading, error y
+   vacío con `EmptyState` / `ErrorState` / `LoadingSkeleton`.
+3. Admin: sólo lo que caiga solo por los tokens nuevos.
 
-**Medición al cerrar la fase 4:**
+Después, **Fase 7 — Cierre**: verificar 390×844 y 375×667, standalone, teclado
+abierto y `prefers-reduced-motion`; borrar CSS obsoleto; y **volver a revisar el
+cambio de scroll** (ver la tabla de bugs de la fase 5).
+
+**Medición al cerrar la fase 5:**
 
 | | |
 |---|---|
@@ -211,11 +234,11 @@ la app, así que define la impresión. En orden:
 | tokens | 136/136 declarados |
 | client | **264/264** (32 archivos) |
 | server | 339/339 |
-| carga inicial | entry 72,81 + vendor 35,76 + CSS 10,92 = **119,5 kB gzip** |
-| presupuesto | ~143 kB (queda margen de 23,5) |
+| carga inicial | entry 72,83 + vendor 35,76 + CSS 10,97 = **119,6 kB gzip** |
+| presupuesto | ~143 kB (queda margen de 23,4) |
 
-El presupuesto casi no se movió en toda la fase: la transición de layout y el
-gesto de deslizar no trajeron ninguna librería.
+El presupuesto casi no se movió en cinco fases: la transición de layout, el
+gesto de deslizar y la barra de secciones no trajeron ninguna librería.
 
 ## Cómo probar la app con datos, sin tocar producción
 
