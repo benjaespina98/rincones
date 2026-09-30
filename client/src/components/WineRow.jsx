@@ -8,6 +8,7 @@ import { getCellarStatus } from "../utils/cellarStatus";
 import { normalizeSearchText } from "../utils/text";
 import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../utils/cellarTime";
 import { wineDisplayName } from "../utils/wineIdentity";
+import { nombreDeFila } from "../utils/viewTransition";
 
 /**
  * Una fila de Mi Bodega.
@@ -141,6 +142,14 @@ function WineRow({
       } ${isPending ? "is-pending" : ""} ${
         Number(wine.quantity) <= 0 ? "is-history" : ""
       } ${elegido ? "is-selected" : ""}`}
+      /* El nombre que hace que pasar de lista a grilla sea un movimiento y no
+         un parpadeo: el navegador reconoce la misma fila en las dos formas y la
+         lleva de una a la otra. Ver utils/viewTransition.js.
+
+         Va inline y no en la hoja porque el valor es distinto en cada fila: un
+         `view-transition-name` repetido hace que el navegador descarte la
+         transición entera, sin decir nada. */
+      style={{ viewTransitionName: nombreDeFila(wine._id) }}
     >
       {/* La cabecera tiene DOS controles hermanos: el cuerpo, que
           expande, y el chip de probado, que cambia el dato ahí mismo.

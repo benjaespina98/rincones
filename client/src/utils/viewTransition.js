@@ -66,3 +66,21 @@ export function nombreDeFoto(wineId) {
   const limpio = String(wineId).replace(/[^a-zA-Z0-9-]/g, "");
   return limpio ? `foto-vino-${limpio}` : undefined;
 }
+
+/**
+ * El nombre de una FILA de la lista, para que cambiar de lista a grilla sea un
+ * movimiento y no un parpadeo.
+ *
+ * Es la "animación de layout" que el plan reservaba para una librería si CSS no
+ * alcanzaba. No hizo falta: el navegador ya sabe llevar un elemento de donde
+ * estaba a donde quedó, si los dos se llaman igual. Cero kilobytes.
+ *
+ * Distinto de `nombreDeFoto` a propósito: la foto viaja a la ficha del vino y
+ * la fila se reacomoda dentro de la lista. Dos recorridos distintos del mismo
+ * vino, y un nombre no puede repetirse en la misma pantalla.
+ */
+export function nombreDeFila(wineId) {
+  if (!wineId) return undefined;
+  const limpio = String(wineId).replace(/[^a-zA-Z0-9-]/g, "");
+  return limpio ? `fila-vino-${limpio}` : undefined;
+}

@@ -31,6 +31,7 @@ import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
+import { conTransicion } from "../utils/viewTransition";
 import "./BodyPage.css";
 
 /**
@@ -725,6 +726,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
     [navigate]
   );
 
+  /**
+   * Lista o grilla.
+   *
+   * Va adentro de una transición para que las tarjetas se REACOMODEN en vez de
+   * parpadear: cada fila lleva su propio `view-transition-name` (ver WineRow),
+   * así que el navegador reconoce la misma fila en las dos formas y la lleva de
+   * donde estaba a donde queda. Es la animación de layout que el plan reservaba
+   * para una librería si CSS no alcanzaba — no hizo falta ninguna.
+   */
+  const cambiarModo = useCallback(() => {
+    tapHaptic();
+    conTransicion(() => setViewMode((m) => (m === "grid" ? "list" : "grid")));
+  }, []);
+
   const handleToggleFavorite = useCallback(
     (wine) =>
       withPendingAction(wine._id, async () => {
@@ -952,10 +967,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         <button
           type="button"
           className="bodega-modo"
-          onClick={() => {
-            tapHaptic();
-            setViewMode((m) => (m === "grid" ? "list" : "grid"));
-          }}
+          onClick={cambiarModo}
           aria-label={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
           title={viewMode === "grid" ? "Ver como lista" : "Ver como grilla"}
         >
