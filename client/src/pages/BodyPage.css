@@ -1016,16 +1016,57 @@
   position: relative;
 }
 
+/* ── LA FOTO ES LA TARJETA ───────────────────────────────────────────────────
+   La foto iba con 10px de aire alrededor, como una ilustración pegada adentro
+   de una ficha. Pero la grilla existe para reconocer una etiqueta de un
+   vistazo: si la foto está enmarcada, lo primero que se ve es el marco.
+
+   Ahora llega a los tres bordes y el texto vive abajo, con su propio padding.
+   El degradado del final de la foto la funde con el bloque de datos en vez de
+   cortarla con una línea: sin eso, la tarjeta se lee como dos piezas apiladas
+   —una imagen y un pie— y no como una sola cosa. */
 .wines-list--grid .wine-row__main {
   flex-direction: column;
   align-items: stretch;
-  gap: 9px;
-  padding: 10px;
+  gap: 0;
+  padding: 0;
 }
 
 .wines-list--grid .wine-row__thumb {
+  position: relative;
   width: 100%;
   height: 130px;
+  border-radius: 0;
+}
+
+.wines-list--grid .wine-row__thumb::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46px;
+  pointer-events: none;
+  /* Del color de la superficie de la tarjeta hacia arriba, con un rastro del
+     color del tipo: el mismo hilo que recorre el resto de la app.
+
+     El opaco dura poco —los últimos píxeles— y el resto se va rápido. Con una
+     rampa larga, el degradado le comía el tercio de abajo a la botella
+     dibujada, que está centrada en el marco: la etiqueta quedaba nítida y el
+     culo de la botella lavado, como si la foto estuviera mal recortada. */
+  background: linear-gradient(
+    to top,
+    var(--surface-raised) 8%,
+    rgb(var(--surface-raised-rgb) / 0.45) 34%,
+    rgb(var(--type-rgb) / 0.08) 70%,
+    transparent
+  );
+}
+
+.wines-list--grid .wine-row__info {
+  padding: 0 11px 11px;
+}
+
+.wines-list--grid .wine-row__right {
+  padding: 0 11px 11px;
 }
 
 /* ── LA GRILLA GANA, SIEMPRE ─────────────────────────────────────────────────
@@ -1042,6 +1083,7 @@
 .wines-list--grid.wines-list--archivo .wine-row__thumb {
   width: 100%;
   height: 130px;
+  border-radius: 0;
 }
 
 .wines-list--grid .wine-row__right {
@@ -1296,9 +1338,15 @@
    cabecera vieja —una celda de cuadrícula no se despliega, así que ahí no hubo
    nada que reordenar— y sin estas dos el chip se le caía al pie de la tarjeta.
 
-   El `:not()` es lo que las deja sólo donde siguen sirviendo: `wine-row--vitrina`
-   se pone únicamente en lista (ver BodyPage.jsx). */
-.wines-list--protagonista .wine-row:not(.wine-row--vitrina) .wine-row__tasted {
+   Los `:not()` son lo que las deja sólo donde siguen sirviendo. El primero es
+   la grilla: ahí el chip NO está en el flujo —es una insignia absoluta sobre la
+   foto (ver más arriba)— así que estos -34px lo sacaban 17px por encima del
+   borde de la tarjeta, donde el `overflow: hidden` de la fila lo cortaba al
+   medio. El segundo es `wine-row--vitrina`, que se pone únicamente en lista
+   (ver BodyPage.jsx). */
+.wines-list--protagonista:not(.wines-list--grid)
+  .wine-row:not(.wine-row--vitrina)
+  .wine-row__tasted {
   margin-top: -34px;
   margin-left: auto;
 }
