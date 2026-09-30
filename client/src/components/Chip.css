@@ -4,8 +4,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: var(--control-sm);
+  /* 40px y no --control-sm (34): un chip es algo que se toca, y los dos lugares
+     que lo usan —la hoja de filtros y las fichas sobre la lista— ya habían
+     subido a 40 por su cuenta. Se toca de 44, ver abajo. */
+  min-height: 40px;
   padding: 0 12px;
+  position: relative;
   border: 1px solid var(--border-base);
   border-radius: var(--radius-full);
   background: var(--surface-base);
@@ -36,9 +40,17 @@
   color: var(--type-accent);
 }
 
+/* En fila y no como texto suelto: el contenido puede traer un ícono al lado de
+   la palabra —la ✕ de las fichas de filtro, por ejemplo— y como inline se
+   apilaba en dos renglones adentro de la cápsula. */
 .chip__texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip__quitar {
@@ -75,6 +87,7 @@ span.chip:not(.chip--quitable) {
 }
 
 .chip__cuerpo {
+  position: relative;
   min-height: var(--control-sm);
   padding: 0 4px 0 12px;
   border: 0;
@@ -109,3 +122,13 @@ span.chip:not(.chip--quitable) {
   height: 44px;
   transform: translate(-50%, -50%);
 }
+
+/* ── POR QUÉ 40 Y NO 44 ───────────────────────────────────────────────────
+   La ✕ se agranda con un pseudo-elemento porque 18px es un blanco imposible.
+   El cuerpo del chip no: 40px ya pasa AA con holgura —el mínimo de la pauta
+   2.5.8 es 24px— y estirarlo a 44 con el mismo truco no sale gratis. El área
+   invisible se mete 2px en lo que venga debajo, que en una fila de fichas
+   arriba de la lista es la lista misma: o el chip le roba el toque al primer
+   vino, o hay que ponerle z-index y empezar a pelear capas por cuatro
+   píxeles. Se dibuja de 40, se toca de 40, y queda dicho acá para que no se
+   "arregle" de nuevo. */

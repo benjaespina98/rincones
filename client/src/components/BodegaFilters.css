@@ -1,6 +1,6 @@
 /* ══ Hoja de filtros de Mi Bodega ═════════════════════════════════════════
-   Se apoya en SettingsSheet.css —la misma hoja que usan preferencias y
-   contraseña— y sólo agrega lo propio: los grupos y los chips.
+   Se apoya en BottomSheet —la hoja compartida, con arrastre y trampa de foco—
+   y sólo agrega lo propio: los grupos. Los chips son el componente Chip.
 
    Todo es un chip y no un combo, a propósito: en una hoja hay lugar, y un chip
    se toca de una mientras que un desplegable son dos toques y tapa el resto de
@@ -8,8 +8,11 @@
    y región, donde la lista puede tener treinta valores.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.bfilters__body {
+/* El cuerpo de la hoja lo pone BottomSheet; acá sólo se separa los grupos. */
+.bfilters .sheet__cuerpo {
+  display: grid;
   gap: 18px;
+  align-content: start;
 }
 
 .bfilters__group {
@@ -29,35 +32,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-}
-
-.bfilters__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  /* 40px de área táctil, como todos los controles de la app. */
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast),
-    color var(--transition-fast), transform var(--transition-fast);
-}
-
-.bfilters__chip:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
-}
-
-.bfilters__chip.is-active {
-  border-color: var(--line-accent);
-  background: var(--accent-muted);
-  color: var(--accent-soft);
 }
 
 .bfilters__combos {

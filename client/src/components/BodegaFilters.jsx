@@ -1,8 +1,7 @@
-import Icon from "./Icon";
-import Portal from "./Portal";
+import BottomSheet from "./BottomSheet";
+import Button from "./Button";
+import Chip from "./Chip";
 import Dropdown from "./Dropdown";
-import { useSheet } from "../hooks/useSheet";
-import "../styles/shared/SettingsSheet.css";
 import "./BodegaFilters.css";
 
 /**
@@ -15,9 +14,15 @@ import "./BodegaFilters.css";
  * lo mismo, y por la misma razón: filtrar es un momento aparte, no algo que
  * convive con el resultado.
  *
- * Reusa la hoja que ya existía para preferencias y contraseña (SettingsSheet):
- * misma forma, mismo cierre, mismo lugar del botón de guardar. Una app con dos
- * clases de modal se siente hecha por dos personas distintas.
+ * ── DE HOJA PROPIA A LA HOJA DE TODOS ───────────────────────────────────────
+ * Esto armaba su Portal, su velo y su cabecera a mano sobre `SettingsSheet.css`.
+ * Andaba, pero era la quinta copia del mismo marcado, y ninguna de las cinco
+ * tenía las dos cosas que la gente prueba primero en un teléfono: bajarla con
+ * el pulgar y que el Tab no se escape al fondo de la página. Ahora las pone
+ * `BottomSheet`, y acá queda sólo lo que es de los filtros.
+ *
+ * Los chips también salieron: eran `bfilters__chip`, un botón con estilo propio
+ * que hacía exactamente lo que hace `Chip`. Trece controles menos que mantener.
  *
  * ── POR QUÉ EL BOTÓN DICE CUÁNTOS VINOS ─────────────────────────────────────
  * "Ver 12 vinos" contesta antes de cerrar la pregunta que uno se hace al filtrar
@@ -81,12 +86,6 @@ export default function BodegaFilters({
   hayFiltros,
   onLimpiar,
 }) {
-  // Escape, bloqueo del scroll de atrás y foco: ver hooks/useSheet. Acá vivía
-  // sólo el Escape, escrito a mano — igual que en las otras cuatro hojas.
-  const panelRef = useSheet(onClose, { enabled: abierto });
-
-  if (!abierto) return null;
-
   // Qué facetas tienen algo para elegir en ESTA bodega.
   const facetas = [
     varietalOptions.length > 1 && "uva",
@@ -95,170 +94,137 @@ export default function BodegaFilters({
   ].filter(Boolean);
 
   return (
-    <Portal>
-      {/* Tocar afuera cierra: es lo que espera cualquiera que abrió una hoja. */}
-      <div className="settings-sheet" onClick={onClose} role="presentation">
-        <div
-          ref={panelRef}
-          tabIndex={-1}
-          className="settings-sheet__panel bfilters"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Filtros y orden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="settings-sheet__head">
-            <h2>Filtros y orden</h2>
-            <button type="button" className="settings-sheet__close" onClick={onClose} aria-label="Cerrar">
-              <Icon name="x" size={16} />
-            </button>
-          </div>
-
-          <div className="settings-sheet__body bfilters__body">
-            <section className="bfilters__group">
-              <span className="bfilters__label">Ordenar por</span>
-              <div className="bfilters__chips">
-                {ORDENES.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    className={`bfilters__chip ${sortBy === o.value ? "is-active" : ""}`}
-                    aria-pressed={sortBy === o.value}
-                    onClick={() => setSortBy(o.value)}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="bfilters__group">
-              <span className="bfilters__label">Mostrar sólo</span>
-              <div className="bfilters__chips">
-                {/* Ni "Favoritos" ni "Probados" están acá, y es la misma razón
-                    para las dos: cada una ya es su propia vista arriba, en el
-                    segmentado. Repetirla como filtro sería la misma pregunta
-                    dos veces con dos nombres — que es justo lo que se vino a
-                    sacar (ver el comentario grande sobre VISTA_DESEOS en
-                    cellarViews.js). Sólo "sin probar" queda: no tiene vista
-                    propia, y por eso tampoco aparece adentro de "Probados" —
-                    "los probados sin probar" no es una consulta, es una
-                    contradicción que devuelve cero. */}
-                {vista !== "probados" && (
-                  <button
-                    type="button"
-                    className={`bfilters__chip ${probado === false ? "is-active" : ""}`}
-                    aria-pressed={probado === false}
-                    onClick={() => setProbado(probado === false ? null : false)}
-                  >
-                    Sin probar
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={`bfilters__chip ${soloListos ? "is-active" : ""}`}
-                  aria-pressed={soloListos}
-                  onClick={() => setSoloListos((v) => !v)}
-                >
-                  Listos para abrir
-                </button>
-              </div>
-            </section>
-
-            <section className="bfilters__group">
-              <span className="bfilters__label">Tipo</span>
-              <div className="bfilters__chips">
-                {TIPOS.map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    className={`bfilters__chip ${tipoFilter === t.value ? "is-active" : ""}`}
-                    aria-pressed={tipoFilter === t.value}
-                    onClick={() => setTipoFilter(t.value)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Uva, región y cosecha aparecen sólo si tenés más de una: con tres
-                vinos, un combo de "todas las regiones" es un control que no filtra
-                nada y hay que leer igual.
-
-                El rótulo se arma con lo que de verdad se está mostrando. Decía
-                siempre "Uva y región" y, si todos tus vinos eran Malbec, quedaba
-                anunciando un filtro por uva que no estaba abajo: el usuario lo
-                buscaba y no existía. */}
-            {facetas.length > 0 && (
-              <section className="bfilters__group">
-                <span className="bfilters__label">{rotuloFacetas(facetas)}</span>
-                <div className="bfilters__combos">
-                  {facetas.includes("uva") && (
-                    <Dropdown
-                      ariaLabel="Filtrar por uva"
-                      value={varietalFilter}
-                      onChange={setVarietalFilter}
-                      options={[
-                        { value: "all", label: "Todas las uvas" },
-                        ...varietalOptions.map((v) => ({ value: v, label: v })),
-                      ]}
-                    />
-                  )}
-                  {facetas.includes("region") && (
-                    <Dropdown
-                      ariaLabel="Filtrar por región"
-                      value={regionFilter}
-                      onChange={setRegionFilter}
-                      options={[
-                        { value: "all", label: "Todas las regiones" },
-                        ...regionOptions.map((r) => ({ value: r, label: r })),
-                      ]}
-                    />
-                  )}
-                  {facetas.includes("cosecha") && (
-                    <Dropdown
-                      ariaLabel="Filtrar por cosecha"
-                      value={vintageFilter}
-                      onChange={setVintageFilter}
-                      options={[
-                        { value: "all", label: "Todas las cosechas" },
-                        ...vintageOptions.map((v) => ({ value: v, label: v })),
-                      ]}
-                    />
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* ── LISTA / GRILLA SE FUE DE ACÁ ───────────────────────────────
-                Estaba al fondo de este panel, después de siete filtros. Pero no
-                es un filtro: no recorta nada, no cambia qué vinos ves, y se toca
-                mucho más seguido que cualquier faceta —es "quiero ver las
-                etiquetas" contra "quiero leer los nombres"—. Enterrado acá
-                costaba tres toques (abrir, bajar, elegir) y otro para cerrar.
-
-                Ahora vive en la barra de arriba, al lado del buscador, donde se
-                ve el estado actual sin abrir nada. Ver `.bodega-modo` en
-                BodyPage.jsx. */}
-          </div>
-
-          <div className="settings-sheet__footer">
-            <button
-              type="button"
-              className="settings-sheet__cancel"
-              onClick={onLimpiar}
-              disabled={!hayFiltros}
-            >
-              Limpiar
-            </button>
-            {/* El número contesta "¿me va a quedar algo?" antes de cerrar. */}
-            <button type="button" className="settings-sheet__save" onClick={onClose}>
-              Ver {resultados} {resultados === 1 ? "vino" : "vinos"}
-            </button>
-          </div>
+    <BottomSheet
+      isOpen={abierto}
+      onClose={onClose}
+      title="Filtros y orden"
+      className="bfilters"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onLimpiar} disabled={!hayFiltros}>
+            Limpiar
+          </Button>
+          {/* El número contesta "¿me va a quedar algo?" antes de cerrar. */}
+          <Button variant="primary" onClick={onClose}>
+            Ver {resultados} {resultados === 1 ? "vino" : "vinos"}
+          </Button>
+        </>
+      }
+    >
+      <section className="bfilters__group">
+        <span className="bfilters__label">Ordenar por</span>
+        <div className="bfilters__chips">
+          {ORDENES.map((o) => (
+            <Chip key={o.value} active={sortBy === o.value} onClick={() => setSortBy(o.value)}>
+              {o.label}
+            </Chip>
+          ))}
         </div>
-      </div>
-    </Portal>
+      </section>
+
+      <section className="bfilters__group">
+        <span className="bfilters__label">Mostrar sólo</span>
+        <div className="bfilters__chips">
+          {/* Ni "Favoritos" ni "Probados" están acá, y es la misma razón
+              para las dos: cada una ya es su propia vista arriba, en el
+              segmentado. Repetirla como filtro sería la misma pregunta
+              dos veces con dos nombres — que es justo lo que se vino a
+              sacar (ver el comentario grande sobre VISTA_DESEOS en
+              cellarViews.js). Sólo "sin probar" queda: no tiene vista
+              propia, y por eso tampoco aparece adentro de "Probados" —
+              "los probados sin probar" no es una consulta, es una
+              contradicción que devuelve cero. */}
+          {vista !== "probados" && (
+            <Chip
+              active={probado === false}
+              onClick={() => setProbado(probado === false ? null : false)}
+            >
+              Sin probar
+            </Chip>
+          )}
+          <Chip active={soloListos} onClick={() => setSoloListos((v) => !v)}>
+            Listos para abrir
+          </Chip>
+        </div>
+      </section>
+
+      <section className="bfilters__group">
+        <span className="bfilters__label">Tipo</span>
+        <div className="bfilters__chips">
+          {TIPOS.map((t) => (
+            <Chip
+              key={t.value}
+              /* El chip del tipo toma el color del tipo cuando está elegido: en
+                 una fila de filtros por tipo, el color ES la información. */
+              type={t.value === "all" ? undefined : t.value}
+              active={tipoFilter === t.value}
+              onClick={() => setTipoFilter(t.value)}
+            >
+              {t.label}
+            </Chip>
+          ))}
+        </div>
+      </section>
+
+      {/* Uva, región y cosecha aparecen sólo si tenés más de una: con tres
+          vinos, un combo de "todas las regiones" es un control que no filtra
+          nada y hay que leer igual.
+
+          El rótulo se arma con lo que de verdad se está mostrando. Decía
+          siempre "Uva y región" y, si todos tus vinos eran Malbec, quedaba
+          anunciando un filtro por uva que no estaba abajo: el usuario lo
+          buscaba y no existía. */}
+      {facetas.length > 0 && (
+        <section className="bfilters__group">
+          <span className="bfilters__label">{rotuloFacetas(facetas)}</span>
+          <div className="bfilters__combos">
+            {facetas.includes("uva") && (
+              <Dropdown
+                ariaLabel="Filtrar por uva"
+                value={varietalFilter}
+                onChange={setVarietalFilter}
+                options={[
+                  { value: "all", label: "Todas las uvas" },
+                  ...varietalOptions.map((v) => ({ value: v, label: v })),
+                ]}
+              />
+            )}
+            {facetas.includes("region") && (
+              <Dropdown
+                ariaLabel="Filtrar por región"
+                value={regionFilter}
+                onChange={setRegionFilter}
+                options={[
+                  { value: "all", label: "Todas las regiones" },
+                  ...regionOptions.map((r) => ({ value: r, label: r })),
+                ]}
+              />
+            )}
+            {facetas.includes("cosecha") && (
+              <Dropdown
+                ariaLabel="Filtrar por cosecha"
+                value={vintageFilter}
+                onChange={setVintageFilter}
+                options={[
+                  { value: "all", label: "Todas las cosechas" },
+                  ...vintageOptions.map((v) => ({ value: v, label: v })),
+                ]}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── LISTA / GRILLA SE FUE DE ACÁ ───────────────────────────────
+          Estaba al fondo de este panel, después de siete filtros. Pero no
+          es un filtro: no recorta nada, no cambia qué vinos ves, y se toca
+          mucho más seguido que cualquier faceta —es "quiero ver las
+          etiquetas" contra "quiero leer los nombres"—. Enterrado acá
+          costaba tres toques (abrir, bajar, elegir) y otro para cerrar.
+
+          Ahora vive en la barra de arriba, al lado del buscador, donde se
+          ve el estado actual sin abrir nada. Ver `.bodega-modo` en
+          BodyPage.jsx. */}
+    </BottomSheet>
   );
 }

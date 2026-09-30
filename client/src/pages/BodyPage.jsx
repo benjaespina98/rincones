@@ -11,6 +11,7 @@ import ErrorState from "../components/ErrorState";
 import WishlistPanel from "../components/WishlistPanel";
 import BodegaResumen from "../components/BodegaResumen";
 import WineRow from "../components/WineRow";
+import Chip from "../components/Chip";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
 import { useWishlist } from "../hooks/useWishlist";
@@ -1029,16 +1030,28 @@ export default function BodyPage({ initialFilter = "instock" }) {
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (
         <div className="bodega-fichas" role="group" aria-label="Filtros aplicados">
+          {/* La ficha entera saca el filtro, y no sólo la ✕: acá la pastilla
+              tiene UNA acción —quitar esto— y partirla en dos controles daría
+              un blanco de 18px para lo único que se puede hacer. Por eso usa
+              `onClick` y no `onRemove` (ver Chip.jsx, que separa los dos casos),
+              con la ✕ adentro como señal de qué va a pasar y el aria-label
+              diciéndolo con todas las letras. */}
           {filtrosActivos.map((f) => (
-            <button key={f.id} type="button" className="bodega-ficha" onClick={f.quitar}>
+            <Chip
+              key={f.id}
+              active
+              className="bodega-ficha"
+              onClick={f.quitar}
+              aria-label={`Quitar el filtro ${f.label}`}
+            >
               {f.label}
               <Icon name="x" size={12} />
-            </button>
+            </Chip>
           ))}
           {filtrosActivos.length > 1 && (
-            <button type="button" className="bodega-ficha bodega-ficha--clear" onClick={clearAllFilters}>
+            <Chip className="bodega-ficha--clear" onClick={clearAllFilters}>
               Limpiar todo
-            </button>
+            </Chip>
           )}
         </div>
       )}
