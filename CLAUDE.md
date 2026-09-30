@@ -89,6 +89,32 @@ regex con `\r?\n`, o `sed` por número de línea.
   ícono. El contraste se **mide**, no se estima.
 - Copy en **español rioplatense, de vos**.
 - Sin `dangerouslySetInnerHTML`. La salida de Gemini es dato no confiable.
+- **Todo campo de texto va en 16px o más.** No es estético: abajo de ese umbral
+  Safari en iPhone hace zoom solo al enfocarlo, y no se puede desactivar desde
+  la página. El valor por defecto está en `index.css`; un componente puede
+  subirlo, nunca bajarlo. (El panel de admin tiene seis reglas que sí bajan: es
+  escritorio y quedó fuera a propósito.)
+
+### Los íconos se generan, no se importan
+
+`src/components/iconPaths.js` es **un archivo generado**. Para agregar o cambiar
+un ícono se toca el mapa de `client/scripts/generar-iconos.cjs` y se corre:
+
+```bash
+npm run iconos -w client
+```
+
+La geometría es de **Phosphor Icons** (MIT), que está instalado como
+devDependency y sólo lo lee ese script — no entra al bundle. El paquete trae los
+seis pesos de cada ícono y no tiene entrada por peso: importarlo cuesta 35,2 kB
+gzip contra los 7,4 kB de extraer los pesos que se usan. Por eso se genera.
+
+Los nombres que usa la app (`chevron-right`) no son los de Phosphor
+(`CaretRight`): la traducción vive sólo en el mapa del generador.
+
+**No se usan SF Symbols de Apple**: `sf-symbols-react` no existe, y la licencia
+de Apple permite usarlos para diseñar apps de plataformas Apple pero prohíbe
+copiarlos y redistribuirlos, que es lo que sería meterlos en un bundle web.
 
 ### Una trampa de CSS que ya mordió
 

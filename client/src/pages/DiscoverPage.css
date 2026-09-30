@@ -174,6 +174,22 @@
   animation: rincon-enter-up var(--transition-smooth) both;
 }
 
+/* Vidrio esmerilado, con el mismo criterio que la barra inferior: desenfoque
+   grande para que el fondo de la app sea color y no forma, y la saturación
+   levantada para que ese color no se apague al difuminarse. Detrás de esta
+   tarjeta pasa el degradado radial de `--app-bg`, así que el blur lo convierte
+   en una luz difusa en vez de un borde visible.
+
+   Va aparte y no en la regla de arriba porque donde no hay soporte el fondo
+   tiene que quedar más opaco: con la misma opacidad y sin blur, el degradado de
+   atrás se ve nítido a través y la tarjeta deja de leerse como una superficie. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .spotlight {
+    backdrop-filter: blur(22px) saturate(1.6);
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  }
+}
+
 /* Placeholder del vino del día mientras carga.
    Reserva el alto exacto de la tarjeta armada —botella (156) + padding (20×2) +
    acciones (40) + gaps (14×2)— así la home no salta cuando llegan los datos. Y
@@ -334,7 +350,11 @@
   padding: 0 18px;
   border: 0;
   border-radius: var(--radius-md);
-  background: var(--accent-fill);
+  /* Degradado y no color plano: es el único botón primario de la pantalla de
+     entrada y tiene que leerse como el que se toca. El violeta va del claro al
+     de marca en diagonal — el mismo sentido que el halo de la tarjeta, así que
+     la luz de todo el bloque parece venir del mismo lado. */
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
   color: var(--paper);
   font-size: var(--text-md);
   font-weight: 700;
