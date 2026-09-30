@@ -364,15 +364,28 @@
   --transition-slow: 320ms var(--ease-out);
   
   /* Typography
-     Una sola familia para toda la app. Antes convivían Manrope (UI) y Fraunces
-     (títulos): Fraunces es una serif expresiva y editorial, que le daba un aire
-     de boutique en vez de app moderna. Plus Jakarta Sans es geométrica y de x
-     alta — la familia de Uber Move y las apps de delivery —, y aguanta bien
-     tanto en 0.7rem como en un display de 2rem.
+     Una sola familia para toda la app. Pasó por Manrope + Fraunces (una serif
+     editorial que le daba aire de boutique en vez de app) y después por Plus
+     Jakarta Sans, que ya era una buena familia de UI.
+
+     Ahora es **Inter**, y el motivo es el contexto: esta app se usa casi
+     siempre en un teléfono, al lado de la interfaz del sistema. Inter está
+     dibujada para eso —x alta grande, aperturas anchas, números tabulares
+     reales— y comparte tantas decisiones con San Francisco que en un iPhone la
+     transición entre la barra del sistema y la app deja de notarse. Plus
+     Jakarta es más geométrica y más "de marca": linda en un display, un poco
+     más cansadora en una lista de cincuenta vinos.
+
+     El fallback arranca por las del sistema, en este orden a propósito: si la
+     de Google todavía no llegó, en un iPhone se dibuja con San Francisco en vez
+     de con la genérica — o sea, con la fuente a la que Inter se parece. El
+     cambio al cargar es casi imperceptible.
+
      `--font-family-serif` se mantiene como alias para no romper las ~40
-     referencias que ya existen; los títulos ahora se distinguen por peso y
-     tracking, no por cambio de familia. */
-  --font-family-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+     referencias que ya existen; los títulos se distinguen por peso y tracking,
+     no por cambio de familia. */
+  --font-family-sans: "Inter", -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto,
+    sans-serif;
   --font-family-serif: var(--font-family-sans);
   --font-family-base: var(--font-family-sans);
   /* Monoespaciada para ids, tokens y logs del panel: ahí el ancho fijo es
@@ -391,7 +404,13 @@
   --text-xl: 1.15rem;
   --text-2xl: 1.3rem;
   --text-3xl: 1.55rem;
-  --text-display: clamp(1.6rem, 5vw, 2.1rem);
+  /* El título de pantalla. Pisa en 30px en un teléfono y crece hasta 36 en
+     pantallas grandes. Antes arrancaba en 25,6: con el título grande de la
+     fase 3 —que es el que se lleva la primera mirada al entrar a una sección—
+     ese tamaño quedaba a mitad de camino entre un encabezado y un subtítulo, y
+     no mandaba. El salto a 30 es lo que lo vuelve el primer elemento de la
+     jerarquía sin tener que agregarle color ni adorno. */
+  --text-display: clamp(1.875rem, 5.5vw, 2.25rem);
 
   /* Alturas de control: los botones iban de 32 a 50px sin criterio. */
   --control-sm: 34px;
