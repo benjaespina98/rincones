@@ -31,11 +31,8 @@
   color: var(--accent-soft);
 }
 
-.cellar-ready__hint {
-  margin: 0;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-}
+/* Acá vivía `.cellar-ready__hint`: el renglón que explicaba qué es "listo para
+   abrir". Se fue del marcado cuando el título pasó a decirlo solo. */
 
 /* Scroll horizontal con las tarjetas ancladas: en un teléfono entran dos y
    media, así que la tercera asomando es lo que avisa que hay más sin necesidad
