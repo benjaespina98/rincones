@@ -200,7 +200,25 @@ código propio de fases anteriores:
         La página ya está en 1048 y los tres bloques que faltan comparten
         mucho estado con la pantalla; conviene hacerlo con una necesidad real
         adelante, no por el número.
-- [ ] **Fase 6 — Estados faltantes**
+- [x] **Fase 6 — Estados faltantes**
+  - [x] **`PromoReportPage`**: tenía un solo booleano para "falló", así que un
+        corte de red decía "el enlace puede haber caducado" y no ofrecía
+        reintentar. Ahora distingue 404/410 (el enlace no vale más) de
+        cualquier otra cosa (el camino), y esta última tiene `ErrorState` con
+        reintentar. El "Cargando…" pasa a `LoadingSkeleton`. Verificado
+        apagando la API de verdad.
+  - [x] **`ScanWinePage`: ya estaba resuelto** antes de esta fase, al revés de
+        lo que decía el plan. `LabelScanner` guarda el error en estado y dibuja
+        un bloque persistente con "Sacar otra foto" y "Cargar a mano".
+        Comprobado con la API apagada y una imagen inyectada: el error queda en
+        pantalla, no es un toast.
+  - [x] `OnboardingPage`: cada tipo de vino se enciende con su color. Sus
+        estados ya eran correctos (el fallo deja el botón habilitado para
+        reintentar).
+  - [x] `GoogleCallbackPage`: sin cambios. Ya distingue cancelación, nonce
+        vencido, token ausente y caída de red, y vuelve a `/login` con el
+        mensaje que corresponde. Una URL de callback no se puede reintentar en
+        el lugar: el código ya se consumió.
 - [ ] **Fase 7 — Cierre**
 
 ### Dos bugs de fondo que aparecieron en la fase 5
@@ -214,17 +232,15 @@ código propio de fases anteriores:
 
 ## Próximo paso exacto
 
-**Fase 6 — Estados faltantes.** En orden:
+**Fase 7 — Cierre.** En orden:
 
-1. `ScanWinePage`: hoy los fallos del escaneo son sólo un toast que desaparece.
-   Tiene que quedar un error en pantalla, con reintentar.
-2. `OnboardingPage`, `GoogleCallbackPage`, `PromoReportPage`: loading, error y
-   vacío con `EmptyState` / `ErrorState` / `LoadingSkeleton`.
-3. Admin: sólo lo que caiga solo por los tokens nuevos.
-
-Después, **Fase 7 — Cierre**: verificar 390×844 y 375×667, standalone, teclado
-abierto y `prefers-reduced-motion`; borrar CSS obsoleto; y **volver a revisar el
-cambio de scroll** (ver la tabla de bugs de la fase 5).
+1. Verificar a 390×844 y a 375×667, en standalone, con el teclado abierto y con
+   `prefers-reduced-motion` forzado.
+2. **Volver a revisar el cambio de scroll** de la fase 5 (ver la tabla de bugs):
+   es lo único de todo el rediseño que toca a todas las pantallas a la vez.
+3. Contar de nuevo los literales de color y el delta de bundle contra la línea
+   base, con los mismos comandos de arriba.
+4. Borrar el CSS que quedó sin dueño.
 
 **Medición al cerrar la fase 5:**
 
