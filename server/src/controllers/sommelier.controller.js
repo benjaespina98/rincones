@@ -305,11 +305,11 @@ const armarRespuesta = async ({
 };
 
 // POST /api/sommelier/ask { question, history? }
-const ask = async (req, res, next) => {
+const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
   try {
     const question = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
     if (question.length < MIN_PREGUNTA) {
-      return res.status(400).json({ message: "Escribí tu consulta" });
+      return enviar(400, { message: "Escribí tu consulta" });
     }
 
     const history = sommelier.recortarHistorial(req.body.history);
@@ -335,7 +335,7 @@ const ask = async (req, res, next) => {
      * latencia, ni una consulta a la base. Ver data/sommelierDomain.js.
      */
     if (!esDelDominio(question, history.length > 0)) {
-      return res.status(200).json({ data: FUERA_DE_TEMA, cached: false });
+      return enviar(200, { data: FUERA_DE_TEMA, cached: false });
     }
 
     /**
@@ -384,7 +384,7 @@ const ask = async (req, res, next) => {
             question,
             data: deCache,
           });
-          return res.status(200).json({
+          return enviar(200, {
             data: deCache,
             cached: true,
             conversationId: detCache?.id ?? null,
@@ -433,7 +433,7 @@ const ask = async (req, res, next) => {
         data: inventario,
         reemplazaMensajeId,
       });
-      return res.status(200).json({
+      return enviar(200, {
         data: inventario,
         cached: false,
         conversationId: detInv?.id ?? null,
@@ -443,7 +443,7 @@ const ask = async (req, res, next) => {
 
     let resultado;
     try {
-      resultado = await sommelier.preguntar({
+      resultado = await llamarModelo({
         question,
         history,
         wines,
@@ -462,18 +462,19 @@ const ask = async (req, res, next) => {
       console.error("[sommelier]", error?.message || error);
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
-      return res.status(503).json({
+      return enviar(503, {
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
       });
     }
 
     if (!resultado) {
-      return res.status(503).json({
+      return enviar(503, {
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
       });
     }
 
-    return res.status(200).json(
+    return enviar(
+      200,
       await armarRespuesta({
         req,
         resultado,
@@ -487,6 +488,95 @@ const ask = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+};
+
+/**
+ * POST /api/sommelier/ask — la respuesta de una sola vez (JSON).
+ *
+ * La lógica vive en `resolverPregunta`, que no sabe cómo se ENTREGA la respuesta: recibe
+ * `enviar(status, cuerpo)` y `llamarModelo(args)`. Esta es la versión de siempre; la que
+ * va escribiéndose es `askStream`.
+ */
+const ask = (req, res, next) =>
+  resolverPregunta(req, {
+    next,
+    enviar: (status, cuerpo) => res.status(status).json(cuerpo),
+    llamarModelo: (args) => sommelier.preguntar(args),
+  });
+
+/**
+ * POST /api/sommelier/ask-stream — la misma pregunta, con la respuesta escribiéndose.
+ *
+ * Server-Sent Events: tres tipos de evento.
+ *   texto   { delta }          un pedazo más de la respuesta (sólo el texto, no el JSON).
+ *   final   { status, ...cuerpo }   el mismo cuerpo que devuelve `ask`, con los vinos,
+ *                              las repreguntas y los ids del historial. Cierra el stream.
+ *   error   { status, message }     algo falló DESPUÉS de haber empezado a escribir.
+ *
+ * Todo lo que se decide antes de llamar al modelo (el portero, la caché, el inventario, los
+ * límites) es EXACTAMENTE lo mismo que en `ask`: esas respuestas salen como un único evento
+ * `final`. Un error previo a empezar (un 400, un 503) sale como JSON normal, no como evento:
+ * el cliente ya sabe leerlo.
+ *
+ * Si la persona se va a mitad de la respuesta, se corta la llamada a Gemini.
+ */
+const askStream = async (req, res, next) => {
+  let abierto = false;
+  let terminado = false;
+
+  const abrir = () => {
+    if (abierto) return;
+    abierto = true;
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      // `no-transform`: que ningún intermediario recomprima o junte los trozos.
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders?.();
+  };
+
+  const evento = (nombre, datos) => {
+    if (terminado) return;
+    abrir();
+    res.write(`event: ${nombre}\ndata: ${JSON.stringify(datos)}\n\n`);
+    res.flush?.();
+  };
+
+  const cerrar = () => {
+    terminado = true;
+    res.end();
+  };
+
+  const cancelacion = new AbortController();
+  res.on("close", () => cancelacion.abort());
+
+  let enviado = 0;
+
+  await resolverPregunta(req, {
+    next: (error) => {
+      if (!abierto) return next(error);
+      evento("error", { status: 500, message: "No pude terminar la respuesta. Probá de nuevo." });
+      return cerrar();
+    },
+    enviar: (status, cuerpo) => {
+      // Un error ANTES de empezar sale como JSON normal.
+      if (status !== 200 && !abierto) return res.status(status).json(cuerpo);
+      evento(status === 200 ? "final" : "error", { status, ...cuerpo });
+      return cerrar();
+    },
+    llamarModelo: (args) =>
+      sommelier.preguntarEnVivo({
+        ...args,
+        signal: cancelacion.signal,
+        onTexto: (texto) => {
+          if (texto.length <= enviado) return;
+          evento("texto", { delta: texto.slice(enviado) });
+          enviado = texto.length;
+        },
+      }),
+  });
 };
 
 /**
@@ -591,6 +681,7 @@ const askPhoto = async (req, res, next) => {
 
 module.exports = {
   ask,
+  askStream,
   askPhoto,
   atarPicks,
   encontrarVino,

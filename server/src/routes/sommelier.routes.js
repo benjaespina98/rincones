@@ -44,6 +44,18 @@ router.post(
 );
 
 /**
+ * POST /api/sommelier/ask-stream — la misma pregunta con la respuesta escribiéndose (SSE).
+ * Mismos límites, mismo orden: una consulta en vivo cuenta como una consulta.
+ */
+router.post(
+  "/ask-stream",
+  authenticate,
+  sommelierDailyLimiter,
+  aiLimiter,
+  sommelierController.askStream
+);
+
+/**
  * POST /api/sommelier/photo — la foto de una carta, un plato o una botella.
  * Los mismos dos límites y el mismo orden que `ask`: una foto cuenta como una consulta.
  */

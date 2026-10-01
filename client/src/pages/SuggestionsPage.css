@@ -918,3 +918,24 @@
 .somm__vos--foto > span {
   padding: 2px 8px 4px;
 }
+
+/* ── LA RESPUESTA ESCRIBIÉNDOSE ──────────────────────────────────────────────
+   Un cursor al final del texto mientras llegan los pedazos. Parpadea con opacidad (nada
+   que fuerce layout) y prefers-reduced-motion lo deja fijo desde index.css. */
+.somm__texto.is-escribiendo::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent-text);
+  animation: somm-cursor 900ms steps(2, start) infinite;
+}
+
+@keyframes somm-cursor {
+  to {
+    opacity: 0;
+  }
+}

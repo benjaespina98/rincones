@@ -28,7 +28,8 @@
  *   7. Límite diario        Por usuario, en el router.
  */
 
-const { generateJson, isGeminiConfigured } = require("./gemini.service");
+const { generateJson, streamJson, isGeminiConfigured } = require("./gemini.service");
+const { extraerRespuestaParcial } = require("../utils/respuestaParcial");
 
 /**
  * ── ACÁ LA VELOCIDAD ES UNA FUNCIONALIDAD ───────────────────────────────────
@@ -393,6 +394,56 @@ const preguntar = async ({
 };
 
 /**
+ * Lo mismo que `preguntar`, pero la respuesta se entrega MIENTRAS se escribe.
+ *
+ * `onTexto` recibe el texto de la respuesta (sólo el campo "answer", ya decodificado)
+ * cada vez que Gemini suma algo; el resultado final —con los vinos elegidos y las
+ * repreguntas, que vienen después del texto— es lo que devuelve la promesa. Si algo
+ * falla DESPUÉS de haber entregado texto, el error sale marcado con `parcial` (ver
+ * `streamJson`).
+ *
+ * `signal` corta la llamada a Gemini si la persona se va: se deja de pagar por una
+ * respuesta que nadie va a leer.
+ */
+const preguntarEnVivo = async ({
+  question,
+  history = [],
+  wines = [],
+  wishes = [],
+  preferences = {},
+  evitar = "",
+  onTexto,
+  signal,
+}) => {
+  if (!isGeminiConfigured()) return null;
+
+  const parsed = await streamJson({
+    parts: [
+      {
+        text: armarPrompt({
+          question,
+          history: recortarHistorial(history),
+          cellar: resumirBodega(wines),
+          taste: resumirGusto(preferences),
+          wishlist: resumirGuardados(wishes),
+          evitar,
+        }),
+      },
+    ],
+    schema: RESPONSE_SCHEMA,
+    timeoutMs: TIMEOUT_MS,
+    budgetMs: BUDGET_MS,
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    temperature: evitar ? 0.85 : 0.45,
+    sinPensamiento: true,
+    signal,
+    onTexto: (acumulado) => onTexto?.(extraerRespuestaParcial(acumulado).texto),
+  });
+
+  return aResultado(parsed);
+};
+
+/**
  * Foto de una carta, un plato o una botella.
  *
  * Misma salida que `preguntar` (respuesta, picks de su bodega, repreguntas), así que el
@@ -440,6 +491,7 @@ const preguntarConFoto = async ({
 
 module.exports = {
   preguntar,
+  preguntarEnVivo,
   preguntarConFoto,
   aResultado,
   resumirBodega,

@@ -31,6 +31,7 @@ import {
 } from "../utils/atajosDeArranque";
 import FilaDeAtajos from "../components/FilaDeAtajos";
 import { resizeImage } from "../utils/image";
+import { preguntarEnVivo, SinStreaming } from "../services/sommelierStream";
 import { usePlaceholderRotativo } from "../hooks/usePlaceholderRotativo";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
@@ -252,6 +253,9 @@ export default function SuggestionsPage() {
   const raizRef = useRef(null);
   // La foto: el selector de archivos (oculto) y la última que se mandó, para reintentar.
   const fotoRef = useRef(null);
+  // Cancela la respuesta en vivo si la persona se va de la pantalla: se corta la llamada a
+  // Gemini en vez de seguir pagando una respuesta que nadie va a leer.
+  const cancelarRef = useRef(null);
   const ultimaFotoRef = useRef(null);
   const pieRef = useRef(null);
   const inputRef = useRef(null);
@@ -315,7 +319,8 @@ export default function SuggestionsPage() {
   // había hasta el último mensaje, no la de la última vez que alguien
   // recordó guardarla.
   useEffect(() => {
-    guardarSesion(user?.id, { mensajes, conversacionId });
+    // Un mensaje a medio escribir no se guarda: al volver se vería una respuesta cortada.
+    guardarSesion(user?.id, { mensajes: mensajes.filter((m) => !m.escribiendo), conversacionId });
   }, [mensajes, conversacionId, user?.id]);
 
   /* El alto REAL del compositor, para reservar ese lugar al final de la lista. El
@@ -332,6 +337,8 @@ export default function SuggestionsPage() {
     observador.observe(pie);
     return () => observador.disconnect();
   }, []);
+
+  useEffect(() => () => cancelarRef.current?.abort(), []);
 
   const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
@@ -442,6 +449,46 @@ export default function SuggestionsPage() {
        */
       const pBodega = comida ? getSuggestedWines({ food: comida.food }).catch(() => []) : null;
 
+      /* ── LA RESPUESTA ESCRIBIÉNDOSE ───────────────────────────────────────────
+         Una pregunta común se transmite: el texto aparece a medida que se genera, en un
+         mensaje provisorio (`escribiendo`) que al llegar el final se reemplaza por el
+         mensaje completo, con los vinos y las repreguntas. Si el streaming no se puede
+         (el navegador, la red, un intermediario, la sesión vencida), se vuelve a la vía
+         de siempre sin que la persona lo note. La foto y "otra opción" no se transmiten. */
+      let idEnVivo = null;
+      const consultarEnVivo = async () => {
+        cancelarRef.current?.abort();
+        const cancelar = new AbortController();
+        cancelarRef.current = cancelar;
+        try {
+          return await preguntarEnVivo(limpia, previos, conversacionId, {
+            signal: cancelar.signal,
+            onTexto: (delta) => {
+              if (!idEnVivo) {
+                idEnVivo = nuevoId();
+                const id = idEnVivo;
+                setMensajes((prev) => [
+                  ...prev,
+                  { id, role: "guia", text: delta, escribiendo: true, wines: [], descubrir: [], followups: [] },
+                ]);
+              } else {
+                const id = idEnVivo;
+                setMensajes((prev) => prev.map((m) => (m.id === id ? { ...m, text: m.text + delta } : m)));
+              }
+            },
+          });
+        } catch (error) {
+          if (!(error instanceof SinStreaming)) throw error;
+          // Se saca lo provisorio (si lo hubo) y se repite por la vía normal.
+          if (idEnVivo) {
+            const id = idEnVivo;
+            idEnVivo = null;
+            setMensajes((prev) => prev.filter((m) => m.id !== id));
+          }
+          return preguntarAlSommelier(limpia, previos, conversacionId);
+        }
+      };
+
       try {
         if (foto) ultimaFotoRef.current = foto;
         const data = foto
@@ -450,18 +497,13 @@ export default function SuggestionsPage() {
               history: previos,
               conversationId: conversacionId,
             })
-          : await preguntarAlSommelier(
-              limpia,
-              previos,
-              conversacionId,
-              regenerar
-                ? {
-                    regenerar: true,
-                    evitar: regenerar.evitar,
-                    reemplazaMensajeId: regenerar.reemplazaMensajeId,
-                  }
-                : {}
-            );
+          : regenerar
+            ? await preguntarAlSommelier(limpia, previos, conversacionId, {
+                regenerar: true,
+                evitar: regenerar.evitar,
+                reemplazaMensajeId: regenerar.reemplazaMensajeId,
+              })
+            : await consultarEnVivo();
         if (!data) throw new Error("sin respuesta");
         /* La primera pregunta crea la conversación del lado del server y su id
            vuelve acá, para que la siguiente se agregue a la misma en vez de
@@ -478,7 +520,7 @@ export default function SuggestionsPage() {
          * tiempo de lo accesorio. Las tarjetas aparecen solas un momento
          * después, debajo de algo que ya se está leyendo.
          */
-        const id = nuevoId();
+        const id = idEnVivo || nuevoId();
         const nueva = {
             id,
             role: "guia",
@@ -501,11 +543,12 @@ export default function SuggestionsPage() {
             // aparte, sólo si se toca el botón (ver pedirReceta más abajo).
             recipeWine: data.recipeWine || null,
         };
-        setMensajes((prev) =>
-          regenerar
-            ? prev.map((m) => (m.id === regenerar.reemplazaId ? nueva : m))
-            : [...prev, nueva]
-        );
+        setMensajes((prev) => {
+          if (regenerar) return prev.map((m) => (m.id === regenerar.reemplazaId ? nueva : m));
+          // Si se venía escribiendo, el mensaje completo ocupa ese mismo lugar.
+          if (idEnVivo) return prev.map((m) => (m.id === idEnVivo ? nueva : m));
+          return [...prev, nueva];
+        });
         // Se apaga acá y no al final: con el texto en pantalla ya no hay nada
         // que esperar para volver a preguntar, y dejar el campo bloqueado
         // mientras cargan unas tarjetas de abajo sería cobrarle a la persona el
@@ -529,6 +572,13 @@ export default function SuggestionsPage() {
           );
         }
       } catch (error) {
+        // La persona se fue de la pantalla: no hay nada que mostrar.
+        if (error?.name === "AbortError") return;
+        // Si se venía escribiendo, el texto a medias se saca: o hay respuesta o hay error.
+        if (idEnVivo) {
+          const id = idEnVivo;
+          setMensajes((prev) => prev.filter((m) => m.id !== id));
+        }
         // El error va COMO MENSAJE y no como un aviso que se va solo: es la
         // respuesta a lo que la persona acaba de preguntar, y tiene que quedar
         // en el lugar donde quedó la pregunta. Un toast dejaría la
@@ -964,6 +1014,9 @@ export default function SuggestionsPage() {
             <div
               key={m.id}
               className={`somm__resp ${m.error ? "is-error" : ""} ${m.regenerando ? "is-regenerando" : ""}`}
+              // Mientras se escribe, un lector de pantalla espera a que termine en vez de leer cada
+              // pedazo.
+              aria-busy={m.escribiendo ? "true" : undefined}
             >
               {/* ── EL MONOGRAMA, QUE NO ES UN AVATAR ──────────────────────
                   Arriba, en el encabezado de este archivo, está escrito que la
@@ -983,9 +1036,9 @@ export default function SuggestionsPage() {
               <span className="somm__marca" aria-hidden="true">
                 <Logo size={34} />
               </span>
-              <p className="somm__texto">{m.text}</p>
+              <p className={`somm__texto${m.escribiendo ? " is-escribiendo" : ""}`}>{m.text}</p>
 
-              {!m.error && (
+              {!m.error && !m.escribiendo && (
                 <RespuestaAcciones
                   mensaje={m}
                   esUltima={m.id === idUltimaRespuesta && !preguntaEsFoto(m.id)}
@@ -1158,7 +1211,7 @@ export default function SuggestionsPage() {
             más de cuatro segundos deja de leerse como "está pensando" y
             empieza a leerse como "se colgó", aunque adentro (ver
             sommelier.service.js) todavía esté dentro de lo esperado. */}
-        {pensando && (
+        {pensando && !mensajes.some((m) => m.escribiendo) && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
             {pensandoLargo ? "Sigue pensando, ya casi…" : "Buscando la mejor respuesta…"}
