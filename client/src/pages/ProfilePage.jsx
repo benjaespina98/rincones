@@ -236,6 +236,12 @@ export default function ProfilePage() {
             obliga a elegir entre irse y conservar lo propio — y lo propio acá
             son años de cargar botellas con lo que se pagó, dónde está guardada
             cada una y con quién se tomó. */}
+        <button className="account-item" type="button" onClick={() => navigate("/privacidad")}>
+          <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+          <span className="account-item__label">Privacidad y términos</span>
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
+        </button>
+
         <button className="account-item" type="button" onClick={exportarDatos} disabled={exportando}>
           <span className="account-item__icon"><Icon name="arrow-right" size={18} /></span>
           <span className="account-item__label">

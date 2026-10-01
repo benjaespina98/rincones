@@ -391,3 +391,22 @@
   color: var(--danger-text);
   font-size: var(--text-base);
 }
+
+/* Los enlaces legales del pie. Apagados a propósito: son la letra que casi
+   nadie lee, y el que la busca la encuentra igual. Lo que no puede pasar es
+   que no estén — la decisión de entregar los datos se toma en esta pantalla. */
+.auth-legal {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+}
+
+.auth-legal__link {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-legal__link:hover {
+  color: var(--text-secondary);
+}

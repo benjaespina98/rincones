@@ -110,6 +110,16 @@ const LoginPage = () => {
             <Link to="/register" className="auth-link">Crear cuenta</Link>
           </div>
           <Link to="/forgot-password" className="auth-link">¿Olvidaste tu contraseña?</Link>
+
+          {/* Acá y no sólo en el perfil: la decisión de entregar tus datos se
+              toma ANTES de crear la cuenta, así que los enlaces tienen que
+              estar donde se toma. Apagados y chicos, porque son la letra que
+              casi nadie lee y el que la busca la encuentra igual. */}
+          <p className="auth-legal">
+            <Link to="/terminos" className="auth-legal__link">Términos</Link>
+            <span aria-hidden="true"> · </span>
+            <Link to="/privacidad" className="auth-legal__link">Privacidad</Link>
+          </p>
         </div>
       </div>
     </div>

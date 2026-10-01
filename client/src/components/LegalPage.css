@@ -1,0 +1,120 @@
+/* El marco de las páginas legales. El criterio está en LegalPage.jsx. */
+
+.legal {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: var(--space-2xl);
+}
+
+.legal__barra {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px var(--page-pad-x);
+  background: rgb(var(--bg-rgb) / 0.88);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .legal__barra {
+    background: rgb(var(--bg-rgb) / 0.62);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+}
+
+.legal__volver {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.legal__titulo {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ── LA COLUMNA DE LECTURA ──────────────────────────────────────────────────
+   Topeada en 62 caracteres de ancho. No es una cifra de diseño: arriba de eso
+   el ojo pierde el renglón al volver al margen izquierdo, y estas páginas son
+   justo las que alguien lee entera cuando algo le preocupa. En un teléfono el
+   tope no se alcanza nunca; existe para la pantalla grande. */
+.legal__cuerpo {
+  max-width: 62ch;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--page-pad-x) 0;
+  font-size: var(--text-md);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.legal__fecha {
+  margin: 0 0 var(--space-lg);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.legal__cuerpo h2 {
+  margin: var(--space-xl) 0 var(--space-sm);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+.legal__cuerpo p {
+  margin: 0 0 var(--space-md);
+}
+
+.legal__cuerpo ul {
+  margin: 0 0 var(--space-md);
+  padding-left: 1.1em;
+}
+
+.legal__cuerpo li {
+  margin-bottom: var(--space-sm);
+}
+
+/* Lo que está en negrita dentro de una lista es el ENCABEZADO de ese punto, no
+   un énfasis: por eso toma el color del texto principal y se despega del
+   párrafo que lo sigue. */
+.legal__cuerpo li strong,
+.legal__cuerpo p strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.legal__cuerpo em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+/* El cruce entre privacidad y términos. Al pie, porque es para el que terminó
+   de leer una y quiere la otra — no para el que recién llega. */
+.legal__otra {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  font-weight: 600;
+}
+
+.legal__otra a {
+  color: var(--accent-text);
+}
