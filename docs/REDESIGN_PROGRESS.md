@@ -300,33 +300,24 @@ decidirlo con la cabeza fresca:
       **fuera del gate de sesión**: la decisión de entregar los datos se toma
       antes de crear la cuenta.
 
-### Lo único que falta: cinco datos
+### Los datos del responsable
 
-Las páginas legales tienen cinco marcadores `[COMPLETAR: …]` que no están en el
-código y no se pueden inventar:
+Completos en las dos páginas: responsable, domicilio (ciudad), email de contacto
+(una casilla propia de la app, no la personal), jurisdicción (Argentina) y
+autoridad de control (AAIP, Ley 25.326). Si alguno cambia, se cambia en
+`PrivacidadPage.jsx` **y** en `TerminosPage.jsx`, que repite los mismos datos.
 
-| | |
-|---|---|
-| responsable | nombre o razón social |
-| domicilio | del responsable |
-| contacto | email para reclamos de datos |
-| jurisdicción | país cuya ley aplica |
-| autoridad de control | dónde se reclama si no cumplimos |
-
-Hasta completarlos, **las páginas no se deberían anunciar como definitivas**.
-Se encuentran con:
-
-```bash
-grep -rn "COMPLETAR" client/src/pages/PrivacidadPage.jsx client/src/pages/TerminosPage.jsx
-```
-
+**Fuera del código, y a cargo del titular:** la ley argentina suele pedir
+registrar la base de datos de usuarios ante la AAIP (Registro Nacional de Bases
+de Datos). No es algo que la app pueda hacer sola; conviene confirmarlo con un
+profesional antes de anunciar las páginas como definitivas.
 ## Medición final
 
 | | Línea base | Al cerrar |
 |---|---|---|
 | lint | limpio | limpio |
 | tokens declarados | — | 136/136 |
-| tests de client | 214 | **274** (34 archivos) |
+| tests de client | 214 | **284** (35 archivos) |
 | tests de server | 339 | **355** |
 | carga inicial | 118,0 kB gzip | **119,5 kB** (entry 72,85 + vendor 35,76 + CSS 10,87) |
 | presupuesto | ~143 kB | sobra **23,5 kB** |
@@ -392,7 +383,10 @@ necesitan datos, levantar el server aparte con el puerto explícito.
 
 ## Pendientes conocidos, ajenos a este trabajo
 
-- `DeleteAccountModal.jsx` sigue sin montar: `DELETE /api/users/me` es accesible
-  solo por API, no desde el perfil.
+- `client/vercel.json` apunta el rewrite de `/api` a la API de **producción** también
+  en los previews, y la API de producción rechaza por CORS cualquier origen que no
+  esté en su lista. Resultado: un preview de rama no puede iniciar sesión, y aunque
+  pudiera escribiría en la base real. Para probar se usa el entorno local contra la
+  base `test`; una API de preview con su propia base es una decisión de infraestructura.
 - El check de CI existe pero no bloquea hasta marcarlo como requerido en la
   protección de rama.
