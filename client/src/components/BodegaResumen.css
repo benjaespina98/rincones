@@ -1,89 +1,14 @@
-/* El resumen de Mi Bodega. El criterio está en BodegaResumen.jsx.
-
-   Es UNA tarjeta, con los mismos cuatro valores de superficie que `.wine-row`
-   (radio, borde, fondo, sombra): antes era una tira suelta con márgenes
-   negativos y un filtro de lado a lado, y se leía como un renglón perdido al
-   lado de las tarjetas de abajo. */
+/* La línea de resumen de Mi Bodega. El criterio está en BodegaResumen.jsx.
+   Era una tarjeta con números grandes; ahora es un dato sutil, del tamaño de una leyenda. */
 
 .bres {
-  margin: 0 0 var(--space-md);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--elevated);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-/* Las métricas numéricas, en columnas iguales: el ojo compara valores, y con
-   anchos distintos cada número queda en un lugar al azar. */
-.bres__fila {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-}
-
-.bres__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 2px;
-  min-width: 0;
-  padding: 12px 6px;
-  text-align: center;
-}
-
-.bres__item + .bres__item {
-  border-left: 1px solid var(--border-subtle);
-}
-
-.bres__valor {
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: var(--text);
-  /* Números de ancho fijo: sin esto, la tarjeta se mueve sola cada vez que un
-     contador pasa de 9 a 10. */
-  font-variant-numeric: tabular-nums;
-}
-
-.bres__etiqueta {
-  font-size: var(--text-xs);
+  margin: 0;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-muted);
-}
-
-.bres__detalle {
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  color: var(--text-subtle);
-}
-
-/* La región es texto, no un número: va abajo, en su propio renglón, donde un
-   nombre largo tiene el ancho entero de la tarjeta. Metida en una columna de
-   67px se cortaba ("Salta | Argentina") o se veía de otro tamaño que el resto. */
-.bres__pie {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: var(--text-sm);
-}
-
-.bres__pie-etiqueta {
-  flex: none;
-  color: var(--text-muted);
-}
-
-.bres__pie-valor {
   min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }

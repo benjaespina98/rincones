@@ -36,37 +36,37 @@ const LECTURA = {
 };
 
 describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
-  it("por defecto arranca en cero: se guarda como probado, sin botellas", () => {
+  // Arranca en UNA botella: casi todo el mundo escanea para guardar en su bodega. Lo
+  // tomado afuera (un restaurante, la casa de alguien) es bajar el contador a cero.
+  it("por defecto arranca en una: se guarda con stock", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
 
-    // El botón ya nombra la consecuencia del cero: no hace falta elegir nada
-    // aparte para llegar a "lo tomé".
-    const guardar = screen.getByRole("button", { name: /guardarlo como probado/i });
+    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+    expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
+  });
+
+  it("bajar el contador a cero lo anota como ya tomado, sin botellas", () => {
+    const onConfirm = vi.fn();
+    render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
+
+    // El botón cambia de nombre solo, con el número: es lo que hace que la
+    // consecuencia se lea ANTES de tocarlo, y no después en un aviso.
+    const guardar = screen.getByRole("button", { name: /anotarlo como ya tomado/i });
     fireEvent.click(guardar);
     expect(onConfirm.mock.calls[0][0].quantity).toBe(0);
   });
 
-  it("subir el contador a uno pasa a sumar la botella a la bodega", () => {
-    const onConfirm = vi.fn();
-    render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /una botella más/i }));
-
-    // El botón cambia de nombre solo, con el número: es lo que hace que la
-    // consecuencia se lea ANTES de tocarlo, y no después en un aviso.
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega/i });
-    fireEvent.click(guardar);
-    expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
-  });
-
   it("la frase de abajo del contador cambia con el número", () => {
     render(<ScanReview reading={LECTURA} onConfirm={vi.fn()} />);
-    expect(screen.getByText(/queda anotado entre tus probados/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /una botella más/i }));
-    expect(screen.queryByText(/queda anotado entre tus probados/i)).toBeNull();
     expect(screen.getByText(/entra a tu bodega, con stock/i)).toBeInTheDocument();
+    expect(screen.queryByText(/queda en «ya tomados»/i)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
+    expect(screen.getByText(/queda en «ya tomados»/i)).toBeInTheDocument();
+    expect(screen.queryByText(/entra a tu bodega, con stock/i)).toBeNull();
   });
 });
 

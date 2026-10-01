@@ -120,10 +120,10 @@ describe("lo que la fila muestra según la vista", () => {
 
   it("en Probados no hay chip de probado: sería una columna repitiendo la misma palabra", () => {
     const { rerender } = render(<WineRow {...base} vista="instock" />);
-    expect(screen.getByRole("button", { name: /como probado/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /como ya tomado/i })).toBeTruthy();
 
     rerender(<WineRow {...base} vista="probados" />);
-    expect(screen.queryByRole("button", { name: /como probado/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /como ya tomado/i })).toBeNull();
   });
 
   it("sin stock no se ofrece abrir una botella", () => {

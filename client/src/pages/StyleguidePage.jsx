@@ -296,7 +296,7 @@ export default function StyleguidePage() {
           onChange={setVista}
           options={[
             { id: "instock", label: "En stock", count: 12 },
-            { id: "probados", label: "Probados", count: 34 },
+            { id: "probados", label: "Ya tomados", count: 34 },
             { id: "quiero-probar", label: "Favoritos", count: 5 },
           ]}
         />

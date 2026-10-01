@@ -478,7 +478,7 @@ export default function WineDetailPage() {
       await deleteWine(id);
       showSuccess(
         `"${wineDisplayName(wine)}" eliminado de ${
-          nuncaEstuvoEnTuCava(wine) ? "tus probados" : "tu bodega"
+          nuncaEstuvoEnTuCava(wine) ? "tus ya tomados" : "tu bodega"
         }`
       );
       navigate("/bodega");
@@ -626,7 +626,7 @@ export default function WineDetailPage() {
                     <Icon name="sparkle" size={14} />{" "}
                     {/* Lo que acaba de pasar, dicho como pasó: un vino tomado
                         afuera no entró a la bodega, entró al historial. */}
-                    {noEsTuyo ? "Anotado entre tus probados" : "Ya está en tu bodega"}
+                    {noEsTuyo ? "Anotado como ya tomado" : "Ya está en tu bodega"}
                   </span>
                   <button
                     type="button"
@@ -1017,13 +1017,13 @@ export default function WineDetailPage() {
            que hace dudar antes de confirmar. */
         message={
           moments.length > 0
-            ? `Se quita "${wineDisplayName(wine)}" de ${noEsTuyo ? "tus probados" : "tu bodega"}. ${
+            ? `Se quita "${wineDisplayName(wine)}" de ${noEsTuyo ? "tus ya tomados" : "tu bodega"}. ${
                 moments.length === 1
                   ? "El momento que escribiste queda"
                   : `Los ${moments.length} momentos que escribiste quedan`
               } en tu diario, y el vino sigue existiendo en el catálogo de Rincones.`
             : `Se quita "${wineDisplayName(wine)}" de ${
-                noEsTuyo ? "tus probados" : "tu bodega"
+                noEsTuyo ? "tus ya tomados" : "tu bodega"
               }. El vino sigue existiendo en el catálogo de Rincones.`
         }
         confirmText="Eliminar"

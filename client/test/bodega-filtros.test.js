@@ -8,7 +8,7 @@ import {
   ordenarVinos,
   resultadosDe,
 } from "../src/utils/bodegaFiltros";
-import { resumenDeBodega } from "../src/utils/bodegaResumen";
+import { resumenDeBodega, frasesDelResumen } from "../src/utils/bodegaResumen";
 
 /**
  * Estas reglas salieron de bugs reportados desde la app, no de un diseño. Vivían
@@ -220,5 +220,39 @@ describe("resumen de la cabecera", () => {
   it("con la bodega vacía no inventa nada", () => {
     const r = resumenDeBodega([]);
     expect(r).toMatchObject({ total: 0, botellas: 0, promedio: null, regionFrecuente: null });
+  });
+});
+
+describe("la línea de resumen", () => {
+  const frases = (vinos) => frasesDelResumen(resumenDeBodega(vinos));
+
+  it("con botellas dice cuántas, en cuántos vinos y cuántas uvas", () => {
+    expect(
+      frases([
+        vino({ quantity: 3, varietal: "Malbec" }),
+        vino({ quantity: 1, varietal: "Bonarda" }),
+      ])
+    ).toEqual(["4 botellas en 2 vinos", "2 uvas"]);
+  });
+
+  it("con una botella por vino no repite el número", () => {
+    expect(frases([vino({ quantity: 1, varietal: "Malbec" }), vino({ quantity: 1, varietal: "Malbec" })])[0]).toBe(
+      "2 botellas"
+    );
+  });
+
+  it("sin botellas (los ya tomados) cuenta vinos, no botellas", () => {
+    expect(frases([vino({ quantity: 0, tasted: true }), vino({ quantity: 0, tasted: true })])).toEqual([
+      "2 vinos ya tomados",
+      "1 uva",
+    ]);
+  });
+
+  it("no mete el promedio: la línea tiene que entrar en un renglón del teléfono", () => {
+    expect(frases([vino({ quantity: 1, rating: 4.4 })]).some((f) => f.includes("★"))).toBe(false);
+  });
+
+  it("sin nada que contar no dice nada", () => {
+    expect(frases([])).toEqual([]);
   });
 });

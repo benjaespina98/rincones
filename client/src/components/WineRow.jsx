@@ -411,16 +411,16 @@ function WineRow({
           // El tooltip dice el ESTADO; que se pueda tocar lo dice que
           // sea un botón. "Tocá para desmarcarlo" es la app narrando
           // una interacción que el control ya ofrece.
-          title={wine.tasted ? "Probado" : "Sin probar"}
+          title={wine.tasted ? "Ya lo tomé" : "Todavía no lo tomé: tocá cuando lo hayas tomado, sea tuyo o no"}
           aria-label={
             wine.tasted
-              ? `Marcar ${wineDisplayName(wine)} como no probado`
-              : `Marcar ${wineDisplayName(wine)} como probado`
+              ? `Marcar ${wineDisplayName(wine)} como sin tomar`
+              : `Marcar ${wineDisplayName(wine)} como ya tomado`
           }
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Probado" : "Sin probar"}
+            {wine.tasted ? "Ya lo tomé" : "Sin tomar"}
           </span>
         </button>
         )}

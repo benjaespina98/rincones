@@ -237,80 +237,74 @@
   padding-right: 0;
 }
 
-/* ── EL CHIP DE PROBADO: A LA DERECHA, Y FUERA DEL CAMINO DEL DEDO ──────────
-   Colgaba del título, indentado 96px (el ancho de la columna de la foto), y ahí
-   caía justo en el medio de la tarjeta: leído de un vistazo no se sabía si era
-   un dato del vino o un botón suelto, y era la única cosa de la fila que no
-   estaba ni a la izquierda con la identidad ni a la derecha con el estado. El
-   estado va a la derecha, que es donde ya están el stock y la flecha, y donde
-   la grilla lo pone desde siempre.
+/* ── LA FILA DE ABAJO DE LA TARJETA: EL ESTADO Y EL "MÁS" ────────────────────
+   La tarjeta tenía TRES renglones: el vino, un chip suelto a la derecha y una franja
+   de ancho completo con un divisor y un chevron. Eso dejaba un hueco grande entre el
+   texto y el borde de abajo, con un chip flotando solo.
 
-   Y sale del flujo. Ocupaba un renglón entero para él, así que la mitad
-   izquierda de ese renglón era una franja muerta EN EL MEDIO de la tarjeta:
-   tocabas ahí —dentro de la card, sobre nada— y no pasaba nada. Ahora el chip
-   se apoya encima y el botón grande de abajo (`wine-row__main`, el que abre la
-   ficha) se estira con un padding para cubrir esa franja: cualquier punto de la
-   tarjeta que no sea el chip ni la flecha abre el vino.
+   Ahora es UNO, de 56px: el estado ("Ya lo tomé") alineado con la columna de texto —lo
+   que lo hace leerse como un dato DE este vino— y el "más" como un botón redondo chico
+   a la derecha. Sin franja, sin divisor. El chip sale del flujo (es hermano del botón
+   que abre la ficha, no puede ir adentro) y ese botón reserva abajo el lugar con un
+   padding, así que cualquier punto de la tarjeta que no sea el chip ni el "más" abre el
+   vino.
 
-   Los 40px de abajo son lo que mide la franja del chevron (26px + 2px de
-   margen) más el padding inferior de la cabecera (10px): el chip se apoya justo
-   arriba de ella. Si cambia el alto de `.wine-row--vitrina .wine-row__disclosure`,
-   cambia acá. */
+   `left` es la columna de texto: 12px de la cabecera + 72px de la foto + 13px de hueco.
+   Si cambia el ancho de la foto (`.wines-list--protagonista .wine-row__thumb`), cambia acá. */
 .wine-row--vitrina .wine-row__tasted {
   position: absolute;
-  right: var(--card-pad-compact);
-  bottom: 40px;
+  left: 97px;
+  bottom: 8px;
   z-index: 1;
   margin: 0;
 }
 
-/* El lugar que el chip ya no ocupa en el flujo, reservado desde adentro del
-   botón que abre la ficha. Sin esto la tarjeta se encogería 42px y el chip
-   quedaría pisando la bodega o las estrellas.
-
-   Las tres clases no son decoración: más abajo, `.wines-list--protagonista
-   .wine-row__main` declara `padding` en atajo, y con dos clases contra dos
-   ganaba por venir después — el padding de acá se perdía entero. */
 .wines-list--protagonista .wine-row--vitrina .wine-row__main {
-  padding-bottom: 46px;
+  padding-bottom: 52px;
 }
 
-/* En teléfonos angostos el chip se queda SIN texto por una regla general de más
-   arriba: cuando compartía renglón con el nombre, la palabra "Sin probar" le
-   comía el ancho al título y se dejaba sólo el ícono. Acá ya no comparte
-   renglón con nadie, así que esconderla es perder la palabra sin ganar nada —
-   y un círculo hueco solo, sin rótulo, no significa absolutamente nada. */
+/* En teléfonos angostos el chip se queda sin texto por una regla general: un círculo
+   hueco solo no significa nada. Acá ya no comparte renglón con el nombre, así que
+   esconder la palabra es perderla sin ganar nada. */
 .wine-row--vitrina .wine-row__tasted-text {
   display: inline;
 }
 
-/* El chevron pasa a ser una franja al pie del bloque: ancho completo, centrado
-   y bajo. Ocupa el lugar donde va a aparecer el panel, que es lo que un chevron
-   hacia abajo promete. */
+/* Sin marcar es la mayoría: que no se lea como un botón a medio apretar. En ghost, sin
+   relleno ni color; sólo cuando está marcado se enciende (en verde, ver .toggle-chip). */
+.wine-row--vitrina .wine-row__tasted:not(.is-on) {
+  background: transparent;
+  color: var(--text-subtle);
+}
+
+/* Y marcado, más callado que el verde lleno del chip común: es lo que tiene casi toda la
+   lista, y repetido en cada tarjeta competía con el vino. */
+.wine-row--vitrina .wine-row__tasted.is-on {
+  background: rgb(var(--success-rgb) / 0.07);
+  border-color: rgb(var(--success-rgb) / 0.3);
+}
+
 .wine-row--vitrina .wine-row__disclosure {
-  width: auto;
-  height: 26px;
-  margin: 2px 0 0;
-  border-radius: 0;
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-top: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: rgb(var(--paper-rgb) / 0.05);
   color: var(--text-subtle);
 }
 
 @media (hover: hover) {
   .wine-row--vitrina .wine-row__disclosure:hover:not(:disabled) {
-    background: rgb(var(--paper-rgb) / 0.04);
-    border-color: var(--line);
+    background: rgb(var(--paper-rgb) / 0.1);
     color: var(--text);
   }
 }
 
-/* Con el panel abierto, la línea de arriba del chevron sobra: la del panel ya
-   hace el corte y dos líneas paralelas a 26px de distancia se leen como un
-   error de alineación. */
-.wine-row.is-expanded .wine-row__disclosure {
-  border-top-color: transparent;
-}
 
 /* En pantallas angostas queda sólo el ícono: el chip completo le comía el ancho
    al nombre del vino, que es lo que hay que poder leer. */
@@ -1476,8 +1470,15 @@
 
 .bodega-seleccion-entrada {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: -4px 0 -2px;
+}
+
+/* Sin resumen (nada que contar), el botón sigue a la derecha. */
+.bodega-seleccion-entrada .bodega-seleccionar {
+  margin-left: auto;
 }
 
 .bodega-seleccionar {
@@ -1737,4 +1738,11 @@
   .wine-row__head {
     transition: none;
   }
+}
+
+/* La frase que explica la pestaña "Ya tomados": una línea, sin peso. */
+.bodega-nota {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
 }
