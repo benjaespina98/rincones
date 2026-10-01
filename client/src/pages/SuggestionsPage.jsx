@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWishlist } from "../hooks/useWishlist";
@@ -18,9 +19,17 @@ import Chip from "../components/Chip";
 import Logo from "../components/Logo";
 import SommelierChats from "../components/SommelierChats";
 import RespuestaAcciones from "../components/RespuestaAcciones";
+import { TopbarContext } from "../context/TopbarContext";
 import { useWineStats } from "../hooks/useWineStats";
 import { getCellarReady } from "../services/wineApi";
-import { atajosDeArranque, azarConSemilla } from "../utils/atajosDeArranque";
+import {
+  atajosDeArranque,
+  azarConSemilla,
+  otraComida,
+  otraPregunta,
+} from "../utils/atajosDeArranque";
+import FilaDeAtajos from "../components/FilaDeAtajos";
+import { usePlaceholderRotativo } from "../hooks/usePlaceholderRotativo";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
@@ -100,6 +109,17 @@ import "./SuggestionsPage.css";
    dependen del momento del día, el día y la estación; las preguntas, de lo que hay en tu
    bodega de verdad. */
 
+/* El texto de ayuda del campo, rotando entre ejemplos (ver usePlaceholderRotativo.js). La
+   primera es la de siempre; las otras enseñan todo lo que se le puede preguntar. Cortas a
+   propósito: el campo es de un renglón y un texto de ayuda que no entra se corta. */
+const FRASES_DEL_CAMPO = [
+  "Qué vas a comer, o lo que quieras",
+  "Preguntame qué abrir hoy",
+  "Contame qué cocinás hoy",
+  "Malbec o Cabernet, ¿cuál?",
+  "¿Qué va con empanadas?",
+];
+
 let contador = 0;
 const nuevoId = () => `m${(contador += 1)}`;
 
@@ -143,6 +163,8 @@ export default function SuggestionsPage() {
   const { user } = useAuth();
   const { addWish } = useWishlist();
   const { showError, showSuccess } = useToast();
+  // Las acciones de la charla viven en la barra superior (ver context/TopbarContext.js).
+  const { izquierda: barraIzq, derecha: barraDer } = useContext(TopbarContext);
 
   // El nombre de pila, con la misma cascada que ya usa el resto de la app para
   // firmar algo con quien sos (ver `author.name` en catalog.controller.js): si
@@ -184,6 +206,14 @@ export default function SuggestionsPage() {
     };
   }, []);
   const datosListos = listos !== null && !statsCargando;
+
+  /* El campo y las filas de atajos conviven: mientras se escribe o el campo tiene foco no
+     se renueva nada solo (ver FilaDeAtajos.jsx y usePlaceholderRotativo.js). */
+  const [campoEnfocado, setCampoEnfocado] = useState(false);
+  const placeholder = usePlaceholderRotativo(FRASES_DEL_CAMPO, {
+    activo: !campoEnfocado && texto === "",
+  });
+  const escribiendo = campoEnfocado || texto.trim().length > 0;
   const atajos = useMemo(
     () =>
       atajosDeArranque({
@@ -769,23 +799,9 @@ export default function SuggestionsPage() {
           cuanto desaparecía, silencio: nada avisaba que la respuesta ya
           estaba. */}
       <div className="somm__feed" aria-live="polite">
-        {/* Dos acciones de mantenimiento, en el mismo renglón y apagadas: no
-            compiten con "¿Con qué maridamos hoy?". El archivo aparece siempre
-            —también con la pantalla en blanco, que es justo cuando alguien
-            quiere releer algo— y "Nueva conversación" sólo con charla en curso,
-            porque sin nada que limpiar no dice nada. */}
-        <div className="somm__acciones">
-          <button type="button" className="somm__nueva" onClick={() => setHistorialAbierto(true)}>
-            <Icon name="chat" size={13} />
-            Conversaciones
-          </button>
-          {mensajes.length > 0 && (
-            <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
-              <Icon name="plus" size={13} />
-              Nueva conversación
-            </button>
-          )}
-        </div>
+        {/* "Conversaciones" y "Nueva conversación" ya no viven acá: son íconos de la barra
+            superior, como en cualquier chat de IA (ver el portal más abajo). Dibujadas en el
+            cuerpo se iban con el scroll justo cuando la charla se hacía larga. */}
 
         {mensajes.length === 0 && (
           /* ── EL ARRANQUE: EL TÍTULO YA DICE PARA QUÉ SIRVE TOCAR UN CHIP ────
@@ -804,18 +820,21 @@ export default function SuggestionsPage() {
                 vez de saludar a nadie. */}
             {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
             <h2>¿Con qué maridamos hoy?</h2>
-            <div className="somm__rail">
-              {atajos.comidas.map((c, i) => (
+            <FilaDeAtajos
+              className="somm__rail"
+              inicial={atajos.comidas}
+              siguiente={(actuales) => otraComida({ excluir: actuales.map((a) => a.label) })}
+              pausado={escribiendo}
+              renderItem={(c, { entra, saliendo }) => (
                 <Chip
-                  key={c.label}
-                  className="somm__chip somm__chip--entra"
-                  style={{ "--i": i }}
+                  className={`somm__chip somm__chip--entra${saliendo ? " atajo--sale" : ""}`}
+                  style={{ "--i": entra }}
                   onClick={() => preguntar(c.pregunta)}
                 >
                   {c.label}
                 </Chip>
-              ))}
-            </div>
+              )}
+            />
 
             {/* Estas vivían abajo, pegadas al compositor, con la pantalla vacía
                 en el medio. Son lo mismo que las de arriba —tocar un chip
@@ -826,18 +845,30 @@ export default function SuggestionsPage() {
             {datosListos && (
               <div className="somm__otras">
                 <span className="somm__otras-rotulo">O preguntame</span>
-                <div className="somm__rail">
-                  {atajos.preguntas.map((p, i) => (
+                {/* La `key` cambia si cambian los datos de los que depende (llegó la bodega):
+                    la fila se vuelve a armar. Las preguntas que dependen de la bodega son
+                    fijas; las demás rotan solas. */}
+                <FilaDeAtajos
+                  key={atajos.preguntas.map((p) => p.label).join("|")}
+                  className="somm__rail"
+                  inicial={atajos.preguntas}
+                  siguiente={(actuales) =>
+                    otraPregunta({
+                      excluir: actuales.map((a) => a.label),
+                      uvasFrecuentes: (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean),
+                    })
+                  }
+                  pausado={escribiendo}
+                  renderItem={(p, { entra, saliendo }) => (
                     <Chip
-                      key={p.label}
-                      className="somm__chip somm__chip--entra"
-                      style={{ "--i": i + atajos.comidas.length }}
+                      className={`somm__chip somm__chip--entra${saliendo ? " atajo--sale" : ""}`}
+                      style={{ "--i": entra + atajos.comidas.length }}
                       onClick={() => preguntar(p.pregunta)}
                     >
                       {p.label}
                     </Chip>
-                  ))}
-                </div>
+                  )}
+                />
               </div>
             )}
           </div>
@@ -1125,7 +1156,9 @@ export default function SuggestionsPage() {
                primero que se veía al entrar era un placeholder cortado al
                medio. "Lo que quieras" ya dice lo mismo y entra. Medido, no
                estimado. */
-            placeholder="Qué vas a comer, o lo que quieras"
+            placeholder={placeholder}
+            onFocus={() => setCampoEnfocado(true)}
+            onBlur={() => setCampoEnfocado(false)}
             aria-label="Tu consulta"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -1169,6 +1202,35 @@ export default function SuggestionsPage() {
             />
           ) : null;
         })()}
+
+      {/* En la barra superior: el menú de conversaciones a la izquierda y "nueva" a la
+          derecha, antes del avatar. Sólo en el teléfono: en escritorio las conversaciones
+          son una columna fija y esos controles viven adentro de ella. */}
+      {barraIzq &&
+        createPortal(
+          <button
+            type="button"
+            className="somm-icono"
+            aria-label="Ver conversaciones"
+            onClick={() => setHistorialAbierto(true)}
+          >
+            <Icon name="menu" size={22} />
+          </button>,
+          barraIzq
+        )}
+      {barraDer &&
+        createPortal(
+          <button
+            type="button"
+            className="somm-icono"
+            aria-label="Nueva conversación"
+            disabled={mensajes.length === 0}
+            onClick={nuevaConversacion}
+          >
+            <Icon name="compose" size={21} />
+          </button>,
+          barraDer
+        )}
 
       <SommelierChats
         abierto={historialAbierto}

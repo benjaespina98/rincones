@@ -848,45 +848,10 @@
 
 /* ── LOS ATAJOS CON VIDA ─────────────────────────────────────────────────────
    Cada atajo entra de a uno, desde la derecha y un poco más tarde que el
-   anterior (--i), y "otras ideas" los renueva con la misma entrada. Sólo
+   anterior (--i), y después se renuevan solos, de a uno (FilaDeAtajos.jsx). Sólo
    transform y opacity; reduced-motion lo apaga desde index.css. */
 .wine-search__chip {
   flex: 0 0 auto;
   animation: rincon-entra-lado 420ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 55ms + 120ms);
-}
-
-/* El botón que renueva los atajos: un círculo del mismo alto que las fichas. */
-.wine-search__otras {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.wine-search__otras:active {
-  transform: scale(0.94);
-}
-
-.wine-search__otras:active .icon {
-  animation: rincon-vuelta 420ms var(--ease-out);
-}
-
-@media (hover: hover) {
-  .wine-search__otras:hover {
-    color: var(--text);
-    border-color: var(--line-accent);
-  }
-}
-
-.wine-search__otras:focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: 2px;
 }

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { atajosDeArranque, momentoDelDia, esFinde, azarConSemilla } from "../src/utils/atajosDeArranque";
+import {
+  atajosDeArranque,
+  momentoDelDia,
+  esFinde,
+  azarConSemilla,
+  otraComida,
+  otraPregunta,
+} from "../src/utils/atajosDeArranque";
 
 /**
  * Los atajos de arranque del Sommelier tienen que mirar quién sos y cuándo es:
@@ -188,5 +195,60 @@ describe("azarConSemilla", () => {
       azar: azarConSemilla(7),
     });
     expect(despues.comidas).toEqual(antes.comidas);
+  });
+});
+
+describe("renovar de a una (otraComida / otraPregunta)", () => {
+  it("otraComida no repite ninguna de las que están a la vista", () => {
+    const vistas = ["Asado", "Pasta", "Pizza", "Milanesas"];
+    for (let i = 0; i < 100; i += 1) {
+      const c = otraComida({ ahora: martesMediodia, excluir: vistas, azar: generador(i) });
+      expect(vistas).not.toContain(c.label);
+      expect(c.pregunta).toMatch(/^¿Qué tomo con /);
+    }
+  });
+
+  it("otraComida devuelve null cuando no queda ninguna distinta", () => {
+    const todas = ["Asado","Pasta","Pizza","Milanesas","Pollo","Pescado","Ensalada","Mariscos","Picada","Quesos","Postre"];
+    expect(otraComida({ excluir: todas })).toBeNull();
+  });
+
+  it("otraComida respeta el momento: al mediodía sale más ensalada que de noche", () => {
+    const sale = (hora) => {
+      let n = 0;
+      for (let i = 0; i < 500; i += 1) {
+        const c = otraComida({ ahora: new Date(2026, 2, 10, hora), excluir: ["Asado"], azar: generador(i) });
+        if (c.label === "Ensalada") n += 1;
+      }
+      return n;
+    };
+    expect(sale(13)).toBeGreaterThan(sale(21));
+  });
+
+  it("otraPregunta sólo ofrece preguntas que NO dependen de la bodega", () => {
+    const personales = ["¿Qué abro hoy?", "¿Qué vinos tengo?", "¿Qué tomé antes?"];
+    for (let i = 0; i < 100; i += 1) {
+      const p = otraPregunta({ excluir: [], azar: generador(i) });
+      expect(personales).not.toContain(p.label);
+      expect(p.label).not.toMatch(/^¿Qué le va a mi /);
+    }
+  });
+
+  it("otraPregunta no repite lo que está a la vista y devuelve null si se acabaron", () => {
+    for (let i = 0; i < 50; i += 1) {
+      const p = otraPregunta({ excluir: ["Malbec o Cabernet", "Un tinto para regalar"], azar: generador(i) });
+      expect(["Malbec o Cabernet", "Un tinto para regalar"]).not.toContain(p.label);
+    }
+    const todas = ["Malbec o Cabernet","Malbec o Bonarda","Syrah o Merlot","Torrontés o Chardonnay","Pinot Noir o Malbec","¿Qué tomo con este clima?","¿Qué me recomendás comprar?","Un tinto para regalar"];
+    expect(otraPregunta({ excluir: todas })).toBeNull();
+  });
+
+  it("las preguntas que dependen de la bodega vienen marcadas como fijas: no rotan", () => {
+    const { preguntas } = atajosDeArranque({ hayStock: true, probados: 2, listos: [{ varietal: "Malbec" }], azar: generador(3) });
+    const fijas = preguntas.filter((p) => p.fijo).map((p) => p.label);
+    expect(fijas).toContain("¿Qué abro hoy?");
+    expect(fijas).toContain("¿Qué tomé antes?");
+    // Las de relleno (comparaciones, generales) sí rotan.
+    expect(preguntas.some((p) => !p.fijo)).toBe(true);
   });
 });

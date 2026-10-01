@@ -121,6 +121,58 @@ const nombreCorto = (vino) => {
   return base.length > 22 ? `${base.slice(0, 21).trimEnd()}…` : base;
 };
 
+/** Cuánto encaja un plato con este momento: la hora, el día y la estación. */
+const pesoDeComida = (c, { momento, finde, estacion }) => {
+  let p = 1;
+  if (c.momentos.includes(momento)) p += 1.5;
+  if (finde) p += c.finde;
+  if (estacion !== "todo" && c.clima === estacion) p += 1.2;
+  // Un plato de la otra estación pesa menos, no cero: una ensalada en invierno
+  // no está mal, sólo es menos probable.
+  if (estacion !== "todo" && c.clima !== "todo" && c.clima !== estacion) p -= 0.5;
+  return p;
+};
+
+const contexto = (ahora) => ({
+  momento: momentoDelDia(ahora.getHours()),
+  finde: esFinde(ahora),
+  estacion: estacionDe(ahora.getMonth()),
+});
+
+/**
+ * "Una comida más": para ir renovando la fila de a una, sin repetir las que están a
+ * la vista. Devuelve null si no queda ninguna distinta.
+ */
+export const otraComida = ({ ahora = new Date(), excluir = [], azar = Math.random } = {}) => {
+  const fuera = new Set(excluir.map(norm));
+  const ctx = contexto(ahora);
+  const [elegida] = muestrear(
+    COMIDAS.filter((c) => !fuera.has(norm(c.label))),
+    (c) => pesoDeComida(c, ctx),
+    1,
+    azar
+  );
+  return elegida ? { label: elegida.label, pregunta: elegida.pregunta } : null;
+};
+
+/**
+ * "Una pregunta más": sólo de las que NO dependen de la bodega (comparaciones y
+ * generales). Las personales no rotan: son las que hacen que la fila sea de esta
+ * persona, y que "¿Qué abro hoy?" desaparezca y vuelva sería ruido.
+ */
+export const otraPregunta = ({ excluir = [], uvasFrecuentes = [], azar = Math.random } = {}) => {
+  const fuera = new Set(excluir.map(norm));
+  const frecuentes = new Set(uvasFrecuentes.map(norm));
+  const candidatas = [...COMPARACIONES, ...GENERALES].filter((p) => !fuera.has(norm(p.label)));
+  const [elegida] = muestrear(
+    candidatas,
+    (p) => 1 + (p.uvas && p.uvas.some((u) => frecuentes.has(u)) ? 1.5 : 0),
+    1,
+    azar
+  );
+  return elegida ? { label: elegida.label, pregunta: elegida.pregunta } : null;
+};
+
 export const atajosDeArranque = ({
   ahora = new Date(),
   listos = [],
@@ -131,41 +183,31 @@ export const atajosDeArranque = ({
   cantidadComidas = 4,
   cantidadPreguntas = 5,
 } = {}) => {
-  const momento = momentoDelDia(ahora.getHours());
-  const finde = esFinde(ahora);
-  const estacion = estacionDe(ahora.getMonth());
+  const ctx = contexto(ahora);
 
-  const comidas = muestrear(
-    COMIDAS,
-    (c) => {
-      let p = 1;
-      if (c.momentos.includes(momento)) p += 1.5;
-      if (finde) p += c.finde;
-      if (estacion !== "todo" && c.clima === estacion) p += 1.2;
-      // Un plato de la otra estación pesa menos, no cero: una ensalada en invierno
-      // no está mal, sólo es menos probable.
-      if (estacion !== "todo" && c.clima !== "todo" && c.clima !== estacion) p -= 0.5;
-      return p;
-    },
-    cantidadComidas,
-    azar
-  ).map(({ label, pregunta }) => ({ label, pregunta }));
+  const comidas = muestrear(COMIDAS, (c) => pesoDeComida(c, ctx), cantidadComidas, azar).map(
+    ({ label, pregunta }) => ({ label, pregunta })
+  );
 
   // ── Las preguntas: primero las personales, que dependen de lo que hay ──────
   const personales = [];
   if (hayStock || listos.length > 0) {
-    personales.push({ label: "¿Qué abro hoy?", pregunta: "¿Qué abro hoy?" });
+    personales.push({ label: "¿Qué abro hoy?", pregunta: "¿Qué abro hoy?", fijo: true });
   }
   const listo = listos.find((v) => nombreCorto(v));
   if (listo) {
     const nombre = nombreCorto(listo);
-    personales.push({ label: `¿Qué le va a mi ${nombre}?`, pregunta: `¿Qué plato le va a mi ${nombre}?` });
+    personales.push({
+      label: `¿Qué le va a mi ${nombre}?`,
+      pregunta: `¿Qué plato le va a mi ${nombre}?`,
+      fijo: true,
+    });
   }
   if (probados > 0) {
-    personales.push({ label: "¿Qué tomé antes?", pregunta: "¿Qué tomé antes?" });
+    personales.push({ label: "¿Qué tomé antes?", pregunta: "¿Qué tomé antes?", fijo: true });
   }
   if (hayStock) {
-    personales.push({ label: "¿Qué vinos tengo?", pregunta: "¿Qué vinos tengo?" });
+    personales.push({ label: "¿Qué vinos tengo?", pregunta: "¿Qué vinos tengo?", fijo: true });
   }
 
   // ── El resto se completa al azar, favoreciendo la comparación con SUS uvas ──

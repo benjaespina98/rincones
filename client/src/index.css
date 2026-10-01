@@ -659,6 +659,17 @@ button svg {
   to { opacity: 1; transform: none; }
 }
 
+/* La salida de un atajo que se renueva (ver FilaDeAtajos.jsx): se corre un poco a la
+   izquierda y se apaga. Dura lo mismo que el temporizador del componente (240ms). */
+@keyframes rincon-sale-lado {
+  to { opacity: 0; transform: translateX(-10px) scale(0.96); }
+}
+
+.atajo--sale {
+  animation: rincon-sale-lado 240ms var(--ease-out) both !important;
+  pointer-events: none;
+}
+
 /* Una barra que se llena: crece desde la izquierda. Sólo `transform`, así que no
    fuerza layout; el ancho final ya es el correcto, lo que anima es la escala. */
 @keyframes rincon-crece {
