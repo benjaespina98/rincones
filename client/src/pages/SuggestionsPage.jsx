@@ -5,13 +5,19 @@ import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { searchWines, getWineRecipe } from "../services/wineSearchApi";
 import { getSuggestedWines } from "../services/wineApi";
-import { preguntarAlSommelier, mensajeDeError , traerConversacion } from "../services/sommelierApi";
+import {
+  preguntarAlSommelier,
+  mensajeDeError,
+  traerConversacion,
+  enviarFeedback,
+} from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
 import Logo from "../components/Logo";
 import SommelierChats from "../components/SommelierChats";
+import RespuestaAcciones from "../components/RespuestaAcciones";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
@@ -311,9 +317,14 @@ export default function SuggestionsPage() {
   }, []);
 
   const preguntar = useCallback(
-    async (pregunta) => {
+    async (pregunta, opciones = {}) => {
       const limpia = pregunta.trim();
       if (limpia.length < 3 || pensando) return;
+
+      /* "Otra opción": en vez de agregar un turno, REEMPLAZA la última respuesta en su
+         lugar. La pregunta no se repite en pantalla y el modelo recibe la respuesta
+         anterior para no volver a darla. Forma: { evitar, reemplazaId, reemplazaMensajeId }. */
+      const regenerar = opciones.regenerar || null;
 
       tapHaptic();
       setTexto("");
@@ -322,11 +333,20 @@ export default function SuggestionsPage() {
       // El historial que viaja son los mensajes que YA estaban: el nuevo va
       // aparte, como la pregunta. Se arma antes de tocar el estado para no
       // depender de que React haya aplicado el `set` de arriba.
-      const previos = mensajes
+      const iReemplazo = regenerar ? mensajes.findIndex((m) => m.id === regenerar.reemplazaId) : -1;
+      const base = iReemplazo > 0 ? mensajes.slice(0, iReemplazo - 1) : mensajes;
+      const previos = base
         .filter((m) => !m.error)
         .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }));
 
-      setMensajes((prev) => [...prev, { id: nuevoId(), role: "user", text: limpia }]);
+      if (regenerar) {
+        // La respuesta vieja queda a la vista, atenuada, hasta que llegue la nueva.
+        setMensajes((prev) =>
+          prev.map((m) => (m.id === regenerar.reemplazaId ? { ...m, regenerando: true } : m))
+        );
+      } else {
+        setMensajes((prev) => [...prev, { id: nuevoId(), role: "user", text: limpia }]);
+      }
 
       /**
        * ── LAS TRES CONSULTAS ARRANCAN JUNTAS ────────────────────────────────
@@ -352,7 +372,18 @@ export default function SuggestionsPage() {
       const pBodega = comida ? getSuggestedWines({ food: comida.food }).catch(() => []) : null;
 
       try {
-        const data = await preguntarAlSommelier(limpia, previos, conversacionId);
+        const data = await preguntarAlSommelier(
+          limpia,
+          previos,
+          conversacionId,
+          regenerar
+            ? {
+                regenerar: true,
+                evitar: regenerar.evitar,
+                reemplazaMensajeId: regenerar.reemplazaMensajeId,
+              }
+            : {}
+        );
         if (!data) throw new Error("sin respuesta");
         /* La primera pregunta crea la conversación del lado del server y su id
            vuelve acá, para que la siguiente se agregue a la misma en vez de
@@ -370,11 +401,13 @@ export default function SuggestionsPage() {
          * después, debajo de algo que ya se está leyendo.
          */
         const id = nuevoId();
-        setMensajes((prev) => [
-          ...prev,
-          {
+        const nueva = {
             id,
             role: "guia",
+            // El id del mensaje en el historial y el pulgar de la persona (ver
+            // RespuestaAcciones.jsx). Sin historial guardado no hay a qué apuntar.
+            mensajeId: data.mensajeId || null,
+            feedback: null,
             text: data.answer,
             wines: data.wines || [],
             descubrir: [],
@@ -389,8 +422,12 @@ export default function SuggestionsPage() {
             // sommelier.service.js). La receta en sí NO viaja acá — se pide
             // aparte, sólo si se toca el botón (ver pedirReceta más abajo).
             recipeWine: data.recipeWine || null,
-          },
-        ]);
+        };
+        setMensajes((prev) =>
+          regenerar
+            ? prev.map((m) => (m.id === regenerar.reemplazaId ? nueva : m))
+            : [...prev, nueva]
+        );
         // Se apaga acá y no al final: con el texto en pantalla ya no hay nada
         // que esperar para volver a preguntar, y dejar el campo bloqueado
         // mientras cargan unas tarjetas de abajo sería cobrarle a la persona el
@@ -429,6 +466,14 @@ export default function SuggestionsPage() {
         // reintentar no cambia nada — el límite sigue puesto, así que el
         // botón fallaría otra vez en el acto. Ofrecerlo igual sería prometer
         // una salida que no existe.
+        if (regenerar) {
+          // La respuesta anterior sigue valiendo: se la restaura y se avisa aparte.
+          setMensajes((prev) =>
+            prev.map((m) => (m.id === regenerar.reemplazaId ? { ...m, regenerando: false } : m))
+          );
+          showError(mensajeDeError(error));
+          return;
+        }
         const esLimite = error?.response?.status === 429;
         setMensajes((prev) => [
           ...prev,
@@ -444,7 +489,7 @@ export default function SuggestionsPage() {
         setPensando(false);
       }
     },
-    [mensajes, pensando, buscarParaDescubrir, conversacionId]
+    [mensajes, pensando, buscarParaDescubrir, conversacionId, showError]
   );
 
   /**
@@ -550,6 +595,9 @@ export default function SuggestionsPage() {
     return null;
   }, [mensajes]);
 
+  // La última respuesta de la guía (no un error): la única a la que se le pide "otra opción".
+  const idUltimaRespuesta = [...mensajes].reverse().find((m) => m.role !== "user" && !m.error)?.id;
+
   /**
    * Volver a empezar. Antes no hacía falta un botón para esto: salir de la
    * pantalla YA borraba la charla (era memoria del componente, nada más). Con
@@ -565,6 +613,46 @@ export default function SuggestionsPage() {
     setTexto("");
     setHistorialAbierto(false);
     inputRef.current?.focus();
+  };
+
+  /**
+   * "Otra opción" para la última respuesta: la misma pregunta, otra respuesta, en su
+   * lugar. Ver RespuestaAcciones.jsx.
+   */
+  const otraOpcion = () => {
+    const iUltima = mensajes.map((m) => m.role !== "user" && !m.error).lastIndexOf(true);
+    if (iUltima < 1 || pensando) return;
+    const ultima = mensajes[iUltima];
+    const pregunta = mensajes[iUltima - 1];
+    if (pregunta?.role !== "user") return;
+    trackEvent("sommelier_otra_opcion");
+    preguntar(pregunta.text, {
+      regenerar: {
+        evitar: ultima.text,
+        reemplazaId: ultima.id,
+        reemplazaMensajeId: ultima.mensajeId,
+      },
+    });
+  };
+
+  /**
+   * El pulgar. Se actualiza en pantalla de inmediato y se avisa al servidor; si falla,
+   * vuelve a como estaba. Tocar el mismo pulgar dos veces lo quita.
+   */
+  const darPulgar = async (mensaje, valor) => {
+    if (!conversacionId || !mensaje.mensajeId) return;
+    const anterior = mensaje.feedback || null;
+    const nuevo = anterior === valor ? null : valor;
+    const poner = (v) =>
+      setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? { ...m, feedback: v } : m)));
+    poner(nuevo);
+    trackEvent("sommelier_feedback", { valor: nuevo || "quitado" });
+    try {
+      await enviarFeedback(conversacionId, mensaje.mensajeId, nuevo);
+    } catch {
+      poner(anterior);
+      showError("No pudimos guardar tu opinión. Probá de nuevo.");
+    }
   };
 
   /**
@@ -606,10 +694,15 @@ export default function SuggestionsPage() {
       setMensajes(
         charla.messages.map((m, i) => ({
           id: `${id}-${i}`,
-          role: m.role,
+          // La pantalla llama "guia" a la respuesta; el historial, "assistant". Sin
+          // traducir, las repreguntas de una charla restaurada no se encontraban.
+          role: m.role === "user" ? "user" : "guia",
           text: m.text,
           wines: m.deTuBodega || [],
           descubrir: m.paraDescubrir || [],
+          followups: m.repreguntas || [],
+          mensajeId: m._id ? String(m._id) : null,
+          feedback: m.feedback || null,
         }))
       );
       setConversacionId(id);
@@ -729,7 +822,10 @@ export default function SuggestionsPage() {
               {m.text}
             </p>
           ) : (
-            <div key={m.id} className={`somm__resp ${m.error ? "is-error" : ""}`}>
+            <div
+              key={m.id}
+              className={`somm__resp ${m.error ? "is-error" : ""} ${m.regenerando ? "is-regenerando" : ""}`}
+            >
               {/* ── EL MONOGRAMA, QUE NO ES UN AVATAR ──────────────────────
                   Arriba, en el encabezado de este archivo, está escrito que la
                   respuesta no lleva avatar al lado. Eso sigue valiendo y esto
@@ -749,6 +845,16 @@ export default function SuggestionsPage() {
                 <Logo size={34} />
               </span>
               <p className="somm__texto">{m.text}</p>
+
+              {!m.error && (
+                <RespuestaAcciones
+                  mensaje={m}
+                  esUltima={m.id === idUltimaRespuesta}
+                  ocupado={pensando}
+                  onPulgar={darPulgar}
+                  onOtra={otraOpcion}
+                />
+              )}
 
               {/* Sólo en la burbuja de error, y sólo si hay algo para
                   reintentar: vuelve a mandar la MISMA pregunta, no reabre el

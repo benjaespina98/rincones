@@ -12,6 +12,19 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
+  // Pulgares (me sirvió / no me sirvió): trazados al estilo del resto del set.
+  "thumb-up": (
+    <>
+      <path d="M7 10v11" />
+      <path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9Z" />
+    </>
+  ),
+  "thumb-down": (
+    <>
+      <path d="M17 14V3" />
+      <path d="M9 18.1 10 14H4.2a2 2 0 0 1-1.9-2.6l2.3-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.8a2 2 0 0 0-1.8 1.1L12 22a3.1 3.1 0 0 1-3-3.9Z" />
+    </>
+  ),
   // Tres puntos: el menú de acciones de un elemento ("más opciones"). Con trazo de 2 y
   // radio 1 salen puntos de 4px, del mismo peso que el resto del set.
   more: (

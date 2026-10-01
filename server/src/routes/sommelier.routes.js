@@ -45,6 +45,8 @@ router.post(
 router.get("/conversations", authenticate, historyController.list);
 router.get("/conversations/:id", authenticate, historyController.getOne);
 router.delete("/conversations/:id", authenticate, historyController.remove);
+// El pulgar sobre una respuesta (se apunta al mensaje por id; ver el controlador).
+router.patch("/conversations/:id/feedback", authenticate, historyController.feedback);
 // Sin id: todo el historial de quien pide. Se declara aparte de `/:id` a propósito,
 // con otro nombre de handler, para que nunca se confunda con borrar una.
 router.delete("/conversations", authenticate, historyController.removeAll);

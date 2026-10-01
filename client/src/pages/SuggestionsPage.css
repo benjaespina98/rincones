@@ -846,3 +846,11 @@
     display: none;
   }
 }
+
+/* "Otra opción": la respuesta que se está reemplazando queda a la vista pero apagada,
+   para que se entienda que algo está pasando sin que el lugar quede en blanco. */
+.somm__resp.is-regenerando {
+  opacity: 0.45;
+  transition: opacity var(--transition-smooth);
+  pointer-events: none;
+}

@@ -250,7 +250,14 @@ En "followups" poné hasta 3 repreguntas cortas (máximo 5 palabras) que sigan e
  * pregunta va ahí, y las reglas al principio quedan lejos del texto que escribe
  * el usuario — que es la posición donde es más difícil pisarlas.
  */
-const armarPrompt = ({ question, history = [], cellar = "", taste = "", wishlist = "" }) => {
+const armarPrompt = ({
+  question,
+  history = [],
+  cellar = "",
+  taste = "",
+  wishlist = "",
+  evitar = "",
+}) => {
   const partes = [SISTEMA];
 
   if (taste) partes.push(`GUSTO DECLARADO: ${taste}`);
@@ -264,6 +271,15 @@ const armarPrompt = ({ question, history = [], cellar = "", taste = "", wishlist
       .map((m) => `${m.role === "user" ? "Persona" : "Vos"}: ${String(m.text || "").slice(0, LARGO_MENSAJE_VIEJO)}`)
       .join("\n");
     partes.push(`LO QUE VENÍAN HABLANDO\n${charla}`);
+  }
+
+  /* "Otra opción": la persona leyó una respuesta y pidió otra. Se le muestra lo que
+     ya se le dijo para que NO lo repita; sin eso, con temperatura baja el modelo
+     devolvería casi la misma frase y el botón parecería roto. */
+  if (evitar) {
+    partes.push(
+      `OTRA OPCIÓN — la persona no quedó conforme con esta respuesta y pidió otra. NO la repitas ni la reformules: proponé una alternativa distinta (otra uva, otro estilo u otra botella de su bodega). Respuesta anterior: «${String(evitar).slice(0, 400)}»`
+    );
   }
 
   partes.push(`PREGUNTA\n${question}`);
@@ -296,7 +312,14 @@ const limpiarLista = (valor, tope, largo) =>
  * Le pregunta al modelo. Devuelve null si Gemini no está configurado.
  * Lanza si falla la llamada, para que el controlador decida qué mostrar.
  */
-const preguntar = async ({ question, history = [], wines = [], wishes = [], preferences = {} }) => {
+const preguntar = async ({
+  question,
+  history = [],
+  wines = [],
+  wishes = [],
+  preferences = {},
+  evitar = "",
+}) => {
   if (!isGeminiConfigured()) return null;
 
   const parsed = await generateJson({
@@ -308,6 +331,7 @@ const preguntar = async ({ question, history = [], wines = [], wishes = [], pref
           cellar: resumirBodega(wines),
           taste: resumirGusto(preferences),
           wishlist: resumirGuardados(wishes),
+          evitar,
         }),
       },
     ],
@@ -320,7 +344,9 @@ const preguntar = async ({ question, history = [], wines = [], wishes = [], pref
     // pregunta hecha de dos formas parecidas devuelve la misma frase calcada, y
     // eso se lee como una plantilla. Un valor bajo alcanza para que suene a
     // alguien contestando sin que empiece a inventar.
-    temperature: 0.45,
+    // Más suelto cuando se pide otra opción: con la temperatura de siempre vuelve a
+    // la misma respuesta aunque el prompt le pida cambiar.
+    temperature: evitar ? 0.85 : 0.45,
   });
 
   const answer = String(parsed?.answer || "").trim();

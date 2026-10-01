@@ -210,6 +210,19 @@ const ask = async (req, res, next) => {
     const history = sommelier.recortarHistorial(req.body.history);
 
     /**
+     * "OTRA OPCIÓN": la persona pidió una alternativa a una respuesta que ya leyó.
+     *
+     *   · `evitar` es esa respuesta, para que el modelo no la repita.
+     *   · `reemplazaMensajeId` es el mensaje del historial que se reemplaza, en su
+     *     mismo lugar, en vez de agregar un turno (la pregunta no se repite).
+     *   · No se lee ni se escribe la caché: la caché devuelve LA respuesta de
+     *     esa pregunta, que es justo la que se está descartando.
+     */
+    const regenerar = req.body.regenerar === true;
+    const evitar = regenerar ? String(req.body.evitar || "").trim().slice(0, 500) : "";
+    const reemplazaMensajeId = regenerar ? String(req.body.reemplazaMensajeId || "") : "";
+
+    /**
      * MEDIDA 1 — el portero local.
      *
      * Antes de cualquier otra cosa, y sin red de por medio. Una pregunta que no
@@ -240,7 +253,7 @@ const ask = async (req, res, next) => {
      * cosa distinta según lo anterior, así que su texto normalizado no alcanza
      * como clave.
      */
-    const cacheable = !personal && history.length === 0;
+    const cacheable = !personal && history.length === 0 && !regenerar;
     if (cacheable) {
       try {
         const guardada = await SommelierAnswer.findOne({ key }).lean();
@@ -260,13 +273,18 @@ const ask = async (req, res, next) => {
            * más frecuente —las preguntas genéricas son las que más se repiten—
            * así que dejarlo afuera habría vaciado el historial de casi todo.
            */
-          const idCache = await historial.guardarTurno({
+          const detCache = await historial.guardarTurnoDetallado({
             userId: req.user?.id,
             conversationId: req.body.conversationId,
             question,
             data: deCache,
           });
-          return res.status(200).json({ data: deCache, cached: true, conversationId: idCache });
+          return res.status(200).json({
+            data: deCache,
+            cached: true,
+            conversationId: detCache?.id ?? null,
+            mensajeId: detCache?.mensajeId ?? null,
+          });
         }
       } catch {
         // Sin caché: se genera. Nunca se cae la respuesta por esto.
@@ -321,13 +339,19 @@ const ask = async (req, res, next) => {
       // También va al historial: "¿qué Malbec tengo?" es una consulta como
       // cualquier otra, y que la haya contestado la base en vez del modelo no
       // cambia nada para quien preguntó.
-      const idInv = await historial.guardarTurno({
+      const detInv = await historial.guardarTurnoDetallado({
         userId: req.user?.id,
         conversationId: req.body.conversationId,
         question,
         data: inventario,
+        reemplazaMensajeId,
       });
-      return res.status(200).json({ data: inventario, cached: false, conversationId: idInv });
+      return res.status(200).json({
+        data: inventario,
+        cached: false,
+        conversationId: detInv?.id ?? null,
+        mensajeId: detInv?.mensajeId ?? null,
+      });
     }
 
     let resultado;
@@ -338,6 +362,7 @@ const ask = async (req, res, next) => {
         wines,
         wishes,
         preferences: user?.preferences || {},
+        evitar,
       });
     } catch (error) {
       // Gemini sin cuota, caído o lento. Se dice lo que pasó y qué hacer, en
@@ -406,14 +431,21 @@ const ask = async (req, res, next) => {
      * Y nunca tira: `guardarTurno` devuelve null si algo falla. Sin historial
      * la app funciona igual — al revés no.
      */
-    const conversationId = await historial.guardarTurno({
+    const guardado = await historial.guardarTurnoDetallado({
       userId: req.user?.id,
       conversationId: req.body.conversationId,
       question,
       data,
+      reemplazaMensajeId,
     });
 
-    return res.status(200).json({ data, cached: false, conversationId });
+    return res.status(200).json({
+      data,
+      cached: false,
+      conversationId: guardado?.id ?? null,
+      // El id del mensaje del asistente: el pulgar y "otra opción" apuntan a él.
+      mensajeId: guardado?.mensajeId ?? null,
+    });
   } catch (error) {
     return next(error);
   }
