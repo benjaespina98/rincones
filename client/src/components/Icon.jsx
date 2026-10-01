@@ -12,6 +12,15 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
+  // Menú de conversaciones (tres renglones, el de abajo más corto) y "nueva" (un
+  // cuadrado con lápiz): los dos gestos que cualquier chat de IA pone en su barra.
+  menu: <path d="M4 6h16M4 12h16M4 18h10" />,
+  compose: (
+    <>
+      <path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
+      <path d="m18.4 2.6 3 3L12 15l-4 1 1-4Z" />
+    </>
+  ),
   // Pulgares (me sirvió / no me sirvió): trazados al estilo del resto del set.
   "thumb-up": (
     <>

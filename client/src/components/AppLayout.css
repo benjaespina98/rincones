@@ -295,3 +295,16 @@
     padding-left: calc(264px + 24px);
   }
 }
+
+/* Las ranuras de la barra superior (ver context/TopbarContext.js). Vacías no ocupan
+   nada; con contenido, alinean sus botones de 44px. La izquierda se corre hacia el
+   borde para que el ÍCONO —no la caja del botón— quede sobre el margen del contenido. */
+.app-topbar__ranura {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.app-topbar__ranura--izq {
+  margin-left: -10px;
+}
