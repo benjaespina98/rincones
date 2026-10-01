@@ -329,13 +329,33 @@ export default function ScanReview({
     return set;
   }, [issues]);
 
-  // Campos a mostrar como input: los dudosos, los vacíos y los que arreglan un
-  // problema. El resto va en chips.
-  const needsReview = EDITABLE_FIELDS.filter(
-    (f) => levelOf(f) !== "trusted" || forcedFields.has(f)
+  /**
+   * ── QUÉ CAMPOS SE MUESTRAN COMO INPUT, Y POR QUÉ SE DECIDE UNA SOLA VEZ ────
+   * Los dudosos, los vacíos y los que arreglan un problema. El resto va en
+   * chips.
+   *
+   * Esto se calculaba en cada render con `levelOf`, y ahí estaba el bug que se
+   * reportó como "se desmorona y pierde el foco al escribir": `setField` marca
+   * el campo como TOCADO en cada tecla, y `levelOf` devuelve "trusted" apenas
+   * está tocado. O sea que a la primera letra el campo salía de esta lista, el
+   * input se desmontaba —con el cursor adentro— y reaparecía abajo como chip.
+   * Escribías una letra y el campo desaparecía.
+   *
+   * Qué campos necesitan revisión es una propiedad de LO QUE LEYÓ EL ESCÁNER,
+   * no de lo que la persona está tipeando. Así que se congela con el primer
+   * render y no se vuelve a mirar. Sólo puede crecer: si el servidor reporta un
+   * problema nuevo, `forcedFields` suma ese campo.
+   */
+  const [camposDeEntrada] = useState(
+    () => new Set(EDITABLE_FIELDS.filter((f) => levelOf(f) !== "trusted"))
   );
+  const needsReview = EDITABLE_FIELDS.filter(
+    (f) => camposDeEntrada.has(f) || forcedFields.has(f)
+  );
+  /* Un campo que ya está arriba como input no baja además a los chips: sería el
+     mismo dato dos veces en la misma pantalla. */
   const trusted = EDITABLE_FIELDS.filter(
-    (f) => levelOf(f) === "trusted" && valueOf(f) && !forcedFields.has(f)
+    (f) => !needsReview.includes(f) && valueOf(f)
   );
   const visible = showAll ? EDITABLE_FIELDS : needsReview;
 

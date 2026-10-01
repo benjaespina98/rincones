@@ -43,14 +43,28 @@
   background: var(--accent-fill);
   color: var(--paper);
   cursor: pointer;
-  /* Tres capas. El anillo oscuro de 3px lo recorta contra la barra —sin él, un
-     círculo violeta apoyado sobre un fondo casi negro se ve pegoteado al
-     borde—; las dos sombras le dan altura sin brillar. */
+  /* ── CUATRO CAPAS, Y LA PRIMERA ES UN ARREGLO ───────────────────────────
+     El anillo recorta el botón contra la barra: sin él, un círculo violeta
+     apoyado sobre el fondo se ve pegoteado al borde. Estaba al 92% de
+     opacidad, que era correcto cuando la barra era casi sólida — pero desde
+     que la barra es glass (62% + blur), un anillo opaco a su alrededor se
+     lee como un parche oscuro pegado encima de un vidrio. Ahora usa la misma
+     opacidad que la barra, así el recorte sigue existiendo y el botón sigue
+     perteneciendo a ella.
+
+     El halo de acento es lo que le da carácter sin romper la regla de que los
+     rellenos primarios son planos: no es un degradado adentro del botón, es
+     luz alrededor. Va muy tenue a propósito — un halo que se nota es
+     decoración; uno que no se nota pero que se extraña si se apaga es luz.
+
+     Las dos sombras oscuras dan altura sin brillar. */
   box-shadow:
-    0 0 0 3px rgb(var(--bg-rgb) / 0.92),
+    0 0 0 3px rgb(var(--bg-rgb) / 0.62),
+    0 0 0 5px rgb(var(--accent-rgb) / 0.14),
     0 2px 6px rgb(var(--ink-rgb) / 0.4),
     0 8px 20px rgb(var(--ink-rgb) / 0.45);
-  transition: transform var(--transition-fast), background var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .add-fab:active {
@@ -62,6 +76,13 @@
 @media (hover: hover) {
   .add-fab:hover {
     background: var(--accent-light);
+    /* El halo crece apenas. Es el único cambio: agrandar el botón lo movería
+       de lugar respecto de la barra en la que está apoyado. */
+    box-shadow:
+      0 0 0 3px rgb(var(--bg-rgb) / 0.62),
+      0 0 0 7px rgb(var(--accent-rgb) / 0.22),
+      0 2px 6px rgb(var(--ink-rgb) / 0.4),
+      0 10px 24px rgb(var(--ink-rgb) / 0.45);
   }
 }
 

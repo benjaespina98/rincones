@@ -1,16 +1,73 @@
+/* ── GLASS, NO UN RECTANGULO OSCURO ──────────────────────────────────────────
+   Estaba al 92-98% de opacidad, o sea practicamente una barra solida pegada
+   abajo: el contenido desaparecia detras de ella y la barra se leia como otra
+   pantalla apoyada encima. Con el desenfoque, lo que pasa por debajo se
+   insinua, y eso es lo que dice "hay mas lista ahi abajo" sin escribirlo.
+
+   El respaldo importa: el desenfoque de fondo no esta en todos lados, asi que
+   el fondo base queda al 88% y solo baja al 62% donde hay soporte (ver el
+   @supports). Sin esa distincion, donde no hay blur la barra queda translucida
+   y el texto de atras se mezcla con las etiquetas. */
 .bottom-tabs-container {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(180deg, rgb(var(--bg-rgb) / 0.92), rgb(var(--bg-rgb) / 0.98));
-  border-top: 1px solid rgb(var(--accent-light-rgb) / 0.25);
-  box-shadow: 0 -14px 26px rgb(var(--bg-deep-rgb) / 0.5);
+  background: rgb(var(--bg-rgb) / 0.88);
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -8px 24px rgb(var(--bg-deep-rgb) / 0.45);
   z-index: var(--z-nav);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .bottom-tabs-container {
+    /* ── LA RECETA DE UN MATERIAL DE iOS ────────────────────────────────────
+       Tres números que van juntos y que no son arbitrarios: un desenfoque
+       grande (26px) para que lo de atrás sea color y no forma, la saturación
+       levantada (1.8) para que ese color no se apague al difuminarse, y una
+       opacidad apenas más alta (0.65) para que las etiquetas se lean sobre lo
+       que pase por debajo.
+
+       Con blur chico se adivinan las letras de atrás y parece un vidrio sucio;
+       sin la saturación, el desenfoque lava el color y queda gris. Es lo que
+       hacen los materiales del sistema en iOS, y es lo que hace que una barra
+       se sienta parte del teléfono y no un rectángulo pegado encima. */
+    background: rgb(var(--bg-rgb) / 0.65);
+    backdrop-filter: blur(26px) saturate(1.8);
+    -webkit-backdrop-filter: blur(26px) saturate(1.8);
+  }
+}
+
+/* ── EL FADE DEL BORDE INFERIOR ──────────────────────────────────────────────
+   Sin esto, una lista larga se CORTA con un filo recto justo donde empieza la
+   barra: la última fila queda partida al medio y parece un error de recorte.
+   Con el degradado, el contenido se desvanece antes de llegar — que además es
+   la pista de que hay más abajo.
+
+   ── POR QUÉ CUELGA DE LA BARRA Y NO DEL CONTENEDOR QUE SCROLLEA ───────────
+   Lo natural sería un `mask-image` en `.app-content`. No sirve acá: ese
+   elemento NO siempre es el que scrollea —a veces desborda el documento— y en
+   ese caso la máscara se aplicaría al alto total del contenido en vez de al
+   borde de la pantalla, difuminando el final del documento y no lo que pasa
+   por debajo de la barra. Es la misma trampa que ya mordió en useSheet.
+
+   Colgado de la barra, que es `fixed`, el degradado siempre está donde tiene
+   que estar sin importar quién scrollee. `pointer-events: none` para que no se
+   coma los toques de la última fila. */
+.bottom-tabs-container::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(var(--bg-rgb) / 0.72), transparent);
+}
+
 .bottom-tabs {
+  position: relative;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -35,7 +92,9 @@
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  /* Solo color: el resto de esta fila no cambia, y "all" obliga al navegador
+     a vigilar cada propiedad por las dudas. */
+  transition: color var(--transition-fast);
   position: relative;
   -webkit-user-select: none;
   user-select: none;
@@ -50,20 +109,34 @@
   color: var(--text);
 }
 
-/* El indicador va ARRIBA del ícono, no abajo.
-   Estaba a 7px del fondo, que es justo donde vive la etiqueta: en las pestañas
-   de nombre largo ("Sommelier") la barra de 28px cruzaba el texto por el medio y
-   se leía como un tachado. */
-.tab-button.active::before {
-  content: "";
+/* ── UN INDICADOR QUE SE DESLIZA ────────────────────────────────────────────
+   Antes cada pestaña dibujaba el suyo con un ::before que aparecia y
+   desaparecia: dos eventos sueltos que no cuentan de donde venis. Ahora es uno
+   solo que se mueve, y por eso vive en la fila y no en el boton.
+
+   Va ARRIBA del icono y no abajo: a 7px del fondo vive la etiqueta, y en las
+   pestañas de nombre largo ("Sommelier") la barra cruzaba el texto por el
+   medio y se leia como un tachado.
+
+   Se mueve con transform, que es lo unico que un navegador anima sin
+   recalcular layout. El translateX(-50%) lo centra sobre el boton sin tener
+   que saber cuanto mide. */
+.bottom-tabs__indicador {
   position: absolute;
   top: 0;
+  left: 0;
   width: 22px;
   height: 3px;
-  /* Una barra de 22×3 px no tiene lugar para que se vea un degradado: lo único
-     que hacía era ser una excepción más al color de acento. */
-  background: var(--accent-light);
   border-radius: var(--radius-full);
+  background: var(--accent-light);
+  transition: transform var(--transition-smooth) var(--ease-out);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-tabs__indicador {
+    transition: none;
+  }
 }
 
 /* 22px y no 20: con tres pestañas en vez de cinco hay ancho de sobra, y el
@@ -230,8 +303,23 @@
     color: var(--accent-light);
   }
 
-  /* Active indicator: vertical bar on the left edge */
+  /* ── EN ESCRITORIO EL INDICADOR NO SE DESLIZA ────────────────────────────
+     La barra es una columna, y una barrita corriendo de arriba abajo entre
+     items separados por 4 px no dice nada: el recorrido es tan corto que se
+     lee como un parpadeo. Acá el activo se distingue por su fondo, y el
+     indicador es una marca vertical fija en el canto izquierdo.
+
+     Por eso el que se desliza se apaga y este se declara entero (incluido el
+     `content`, que en teléfono lo ponía la regla base que ya no existe). */
+  .bottom-tabs__indicador,
+  /* En una columna no hay borde inferior contra el que se corte nada. */
+  .bottom-tabs-container::before {
+    display: none;
+  }
+
   .tab-button.active::before {
+    content: "";
+    position: absolute;
     left: 4px;
     top: 22%;
     height: 56%;

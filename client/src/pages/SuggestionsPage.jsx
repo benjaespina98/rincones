@@ -5,10 +5,14 @@ import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { searchWines, getWineRecipe } from "../services/wineSearchApi";
 import { getSuggestedWines } from "../services/wineApi";
-import { preguntarAlSommelier, mensajeDeError } from "../services/sommelierApi";
+import { preguntarAlSommelier, mensajeDeError , traerConversacion } from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
+import Chip from "../components/Chip";
+import Logo from "../components/Logo";
+import SommelierHistorial from "../components/SommelierHistorial";
+import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
 import WineMeta from "../components/WineMeta";
@@ -172,6 +176,11 @@ export default function SuggestionsPage() {
   });
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
+  /* El archivo de charlas: la hoja abierta o cerrada, y a qué conversación
+     guardada pertenece la de ahora. `null` significa "todavía no se guardó
+     ninguna": la crea el server con la primera pregunta y devuelve su id. */
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+  const [conversacionId, setConversacionId] = useState(null);
   // Segunda frase de "pensando", sólo si de verdad se hace largo. Ver
   // PENSANDO_LARGO_MS.
   const [pensandoLargo, setPensandoLargo] = useState(false);
@@ -239,7 +248,7 @@ export default function SuggestionsPage() {
    * `center` para no dejar la última línea flotando en el medio.
    */
   useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    irHasta(finRef.current, { block: "end" });
   }, [mensajes, pensando]);
 
   // Se guarda en cada cambio, no sólo al salir: si se cierra la pestaña de
@@ -339,8 +348,13 @@ export default function SuggestionsPage() {
       const pBodega = comida ? getSuggestedWines({ food: comida.food }).catch(() => []) : null;
 
       try {
-        const data = await preguntarAlSommelier(limpia, previos);
+        const data = await preguntarAlSommelier(limpia, previos, conversacionId);
         if (!data) throw new Error("sin respuesta");
+        /* La primera pregunta crea la conversación del lado del server y su id
+           vuelve acá, para que la siguiente se agregue a la misma en vez de
+           abrir otra. Si el guardado falló, viene null y la charla sigue
+           andando igual: el historial es lo accesorio. */
+        if (data.conversationId) setConversacionId(data.conversationId);
 
         /**
          * El texto se pinta APENAS LLEGA, sin esperar a los vinos.
@@ -426,7 +440,7 @@ export default function SuggestionsPage() {
         setPensando(false);
       }
     },
-    [mensajes, pensando, buscarParaDescubrir]
+    [mensajes, pensando, buscarParaDescubrir, conversacionId]
   );
 
   /**
@@ -543,8 +557,40 @@ export default function SuggestionsPage() {
   const nuevaConversacion = () => {
     trackEvent("sommelier_reset");
     setMensajes([]);
+    setConversacionId(null);
     setTexto("");
     inputRef.current?.focus();
+  };
+
+  /**
+   * Abrir una charla del archivo.
+   *
+   * Los mensajes vuelven con la forma con que se guardaron (ver el modelo
+   * `SommelierConversation`), que no es la del estado de esta pantalla: hay que
+   * traducir. Los vinos guardados son un resumen —id, nombre, bodega, tipo,
+   * foto— y eso es a propósito: el stock y el puntaje de hace un mes mostrados
+   * como actuales serían peor que no mostrarlos. La tarjeta lleva a la ficha,
+   * que tiene la verdad de hoy.
+   */
+  const abrirConversacion = async (id) => {
+    setHistorialAbierto(false);
+    try {
+      const charla = await traerConversacion(id);
+      if (!charla) return;
+      setMensajes(
+        charla.messages.map((m, i) => ({
+          id: `${id}-${i}`,
+          role: m.role,
+          text: m.text,
+          wines: m.deTuBodega || [],
+          descubrir: m.paraDescubrir || [],
+        }))
+      );
+      setConversacionId(id);
+      trackEvent("sommelier_historial_abrir");
+    } catch {
+      showError("No pudimos abrir esa consulta. Probá de nuevo.");
+    }
   };
 
   const handleWant = async (wine) => {
@@ -581,12 +627,23 @@ export default function SuggestionsPage() {
           cuanto desaparecía, silencio: nada avisaba que la respuesta ya
           estaba. */}
       <div className="somm__feed" aria-live="polite">
-        {mensajes.length > 0 && (
-          <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
-            <Icon name="plus" size={13} />
-            Nueva conversación
+        {/* Dos acciones de mantenimiento, en el mismo renglón y apagadas: no
+            compiten con "¿Con qué maridamos hoy?". El archivo aparece siempre
+            —también con la pantalla en blanco, que es justo cuando alguien
+            quiere releer algo— y "Nueva conversación" sólo con charla en curso,
+            porque sin nada que limpiar no dice nada. */}
+        <div className="somm__acciones">
+          <button type="button" className="somm__nueva" onClick={() => setHistorialAbierto(true)}>
+            <Icon name="chat" size={13} />
+            Tus consultas
           </button>
-        )}
+          {mensajes.length > 0 && (
+            <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
+              <Icon name="plus" size={13} />
+              Nueva conversación
+            </button>
+          )}
+        </div>
 
         {mensajes.length === 0 && (
           /* ── EL ARRANQUE: EL TÍTULO YA DICE PARA QUÉ SIRVE TOCAR UN CHIP ────
@@ -607,15 +664,35 @@ export default function SuggestionsPage() {
             <h2>¿Con qué maridamos hoy?</h2>
             <div className="somm__rail">
               {COMIDAS.map((c) => (
-                <button
+                <Chip
                   key={c.label}
-                  type="button"
                   className="somm__chip"
                   onClick={() => preguntar(c.pregunta)}
                 >
                   {c.label}
-                </button>
+                </Chip>
               ))}
+            </div>
+
+            {/* Estas vivían abajo, pegadas al compositor, con la pantalla vacía
+                en el medio. Son lo mismo que las de arriba —tocar un chip
+                pregunta algo—, así que arrancar de cero es un solo bloque y no
+                dos mitades separadas por un hueco. Se mantienen como fila
+                aparte porque son otra cosa: arriba hay comidas, acá preguntas
+                sueltas. */}
+            <div className="somm__otras">
+              <span className="somm__otras-rotulo">O preguntame</span>
+              <div className="somm__rail">
+                {OTRAS_PREGUNTAS.map((s) => (
+                  <Chip
+                    key={s.label}
+                    className="somm__chip"
+                    onClick={() => preguntar(s.pregunta)}
+                  >
+                    {s.label}
+                  </Chip>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -627,6 +704,24 @@ export default function SuggestionsPage() {
             </p>
           ) : (
             <div key={m.id} className={`somm__resp ${m.error ? "is-error" : ""}`}>
+              {/* ── EL MONOGRAMA, QUE NO ES UN AVATAR ──────────────────────
+                  Arriba, en el encabezado de este archivo, está escrito que la
+                  respuesta no lleva avatar al lado. Eso sigue valiendo y esto
+                  no lo contradice: lo que se descartó era un avatar de ROBOT,
+                  una carita que hace que la pantalla se presente como si fuera
+                  alguien. El monograma de Rincones es la marca de quién habla,
+                  no un personaje — la misma distinción que este archivo ya hace
+                  sobre el saludo ("no es la guía saludando, es Rincones
+                  reconociendo a quien entró").
+
+                  Y resuelve algo concreto: la respuesta es texto suelto del
+                  mismo tamaño y color que el resto de la app, así que en una
+                  conversación larga no hay forma de ver de un vistazo dónde
+                  empieza cada una. El monograma marca ese arranque sin
+                  convertir el texto en una burbuja. */}
+              <span className="somm__marca" aria-hidden="true">
+                <Logo size={34} />
+              </span>
               <p className="somm__texto">{m.text}</p>
 
               {/* Sólo en la burbuja de error, y sólo si hay algo para
@@ -693,6 +788,7 @@ export default function SuggestionsPage() {
                       <li
                         key={wine._id}
                         className="suggestion-card"
+                        data-wine-type={wine.type || undefined}
                         onClick={() => navigate(`/vino/${wine._id}`, { state: { wine } })}
                         role="button"
                         tabIndex={0}
@@ -736,7 +832,11 @@ export default function SuggestionsPage() {
                   <p className="somm__rotulo">Para descubrir</p>
                   <ul className="somm__lista">
                     {m.descubrir.map((wine) => (
-                      <li key={wine.id} className="discover-card">
+                      <li
+                        key={wine.id}
+                        className="discover-card"
+                        data-wine-type={wine.type || undefined}
+                      >
                         <div className="discover-card__row">
                           <button
                             type="button"
@@ -814,27 +914,12 @@ export default function SuggestionsPage() {
           siempre en vez de una nueva cada vez: eso resuelve el amontonamiento
           sin tirar lo que el modelo ya pensó (ver `repreguntas` más arriba). */}
       <div className="somm__pie">
-        {mensajes.length === 0 && (
-          <div className="somm__rail">
-            {OTRAS_PREGUNTAS.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className="somm__chip"
-                onClick={() => preguntar(s.pregunta)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {mensajes.length > 0 && !pensando && repreguntas?.length > 0 && (
           <div className="somm__rail">
             {repreguntas.map((r) => (
-              <button
+              <Chip
                 key={r}
-                type="button"
                 className="somm__chip"
                 onClick={() => {
                   trackEvent("sommelier_followup_click");
@@ -842,7 +927,7 @@ export default function SuggestionsPage() {
                 }}
               >
                 {r}
-              </button>
+              </Chip>
             ))}
           </div>
         )}
@@ -874,8 +959,14 @@ export default function SuggestionsPage() {
             rows={1}
             /* Nombra la consulta más frecuente ANTES que la genérica: un campo
                que sólo dice "preguntá lo que quieras" no le hace pensar a nadie
-               en escribir "milanesas", que es justo lo que mejor contesta. */
-            placeholder="Qué vas a comer, o lo que quieras saber"
+               en escribir "milanesas", que es justo lo que mejor contesta.
+
+               Terminaba en "saber", y esa palabra sola lo pasaba de renglón: a
+               375px el campo mide 41px de alto y el texto pedía 62, así que lo
+               primero que se veía al entrar era un placeholder cortado al
+               medio. "Lo que quieras" ya dice lo mismo y entra. Medido, no
+               estimado. */
+            placeholder="Qué vas a comer, o lo que quieras"
             aria-label="Tu consulta"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -919,6 +1010,12 @@ export default function SuggestionsPage() {
             />
           ) : null;
         })()}
+
+      <SommelierHistorial
+        abierto={historialAbierto}
+        onClose={() => setHistorialAbierto(false)}
+        onAbrir={abrirConversacion}
+      />
     </div>
   );
 }

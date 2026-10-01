@@ -5,7 +5,7 @@
       "destination": "https://rincones-api.vercel.app/api/:path*"
     },
     {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!assets/|sw\\.js).*)",
       "destination": "/index.html"
     }
   ],
@@ -20,6 +20,13 @@
       "source": "/(favicon.svg|manifest.webmanifest|icon-maskable.svg|icon-192.png|icon-512.png|icon-maskable-192.png|icon-maskable-512.png|apple-touch-icon.png|og-image.png|vite.svg)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
       ]
     },
     {

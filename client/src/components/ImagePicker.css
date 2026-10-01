@@ -29,6 +29,18 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+  /* ── LA CAJA MIDE LO MISMO VACÍA QUE LLENA ─────────────────────────────────
+     No tenía tamaño: sólo lo tenían las variantes `--wide` y `--logo`. En la
+     variante por defecto —la foto del vino en el formulario de edición— la
+     altura salía del contenido, así que al elegir una foto el bloque entero
+     pasaba de 211px a 169px. Medido: el formulario se achicaba 42px y, con la
+     página scrolleada a la mitad, todo lo de abajo saltaba bajo el dedo justo
+     cuando la persona estaba mirando ahí.
+
+     3/4 porque una botella es vertical: es la proporción que la foto va a tener
+     de verdad, así que reservar eso no deja aire de más ni recorta. */
+  width: 92px;
+  aspect-ratio: 3 / 4;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   /* Un tablero claro detrás: sobre él se ve si el logo tiene fondo transparente o
@@ -43,14 +55,18 @@
   color: var(--text-secondary);
 }
 
+/* Las dos variantes de admin tienen su propia caja fija, asi que apagan la
+   proporcion de arriba en vez de heredarla. */
 .imgpick--wide .imgpick__thumb {
   width: 84px;
   height: 56px;
+  aspect-ratio: auto;
 }
 
 .imgpick--logo .imgpick__thumb {
   width: 56px;
   height: 56px;
+  aspect-ratio: auto;
 }
 
 .imgpick__thumb img {
@@ -129,7 +145,10 @@
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text);
-  font-size: var(--text-sm, var(--text-base));
+  /* 16px y no 14: abajo de ese umbral, Safari en iPhone hace zoom solo al
+     enfocar el campo, y después hay que pellizcar para volver. Era uno de los
+     dos únicos campos de la app que lo tenía. */
+  font-size: 16px;
 }
 
 .imgpick__url input:focus {
@@ -165,4 +184,33 @@
 
 .imgpick__error {
   color: var(--type-red);
+}
+
+/* ── SIN FOTO: UN MARCO, NO UN HUECO ────────────────────────────────────────
+   El estado vacío era el mismo tablero a cuadros que el resto —pensado para
+   juzgar la transparencia de un logo— y en la ficha de un vino no significaba
+   nada: parecía un error de carga.
+
+   Ahora es un degradado propio con la botella al medio. El degradado NO va con
+   los hexadecimales sueltos que se pidieron: son exactamente los dos tonos que
+   ya existen como `--surface-raised` y `--bg-deep`, y escribirlos a mano los
+   desengancharía del tema la próxima vez que la paleta se mueva. */
+.imgpick__thumb.is-empty {
+  background: linear-gradient(
+    160deg,
+    rgb(var(--surface-raised-rgb)),
+    rgb(var(--bg-deep-rgb))
+  );
+  border-color: rgb(var(--paper-rgb) / 0.08);
+  color: var(--text-subtle);
+}
+
+/* La franja que se turna entre el campo de enlace y la línea de "imagen
+   cargada". El alto es el de la más grande: ver el porqué en ImagePicker.jsx.
+   `align-content: center` para que la línea corta, que es la mitad de alta,
+   no quede pegada arriba con un hueco debajo. */
+.imgpick__franja {
+  display: grid;
+  align-content: center;
+  min-height: 58px;
 }

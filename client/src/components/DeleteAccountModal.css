@@ -1,0 +1,216 @@
+/* La baja de cuenta. Reusa el velo y la caja de ConfirmModal.css; lo que está
+   acá es lo que ese diálogo no tiene: un cuerpo en COLUMNA.
+
+   `.confirm-modal__body` es un flex en fila con `align-items: center`, pensado
+   para un mensaje solo. Meterle un párrafo, dos campos y un error lo ponía todo
+   en una línea, con los inputs apretados al lado del texto. Por eso este modal
+   no usa esa clase y arma su propio cuerpo. */
+
+.delete-account {
+  display: flex;
+  flex-direction: column;
+  /* Scrollea sólo el cuerpo: el título y los botones quedan siempre a la vista,
+     porque en un teléfono bajo o con el teclado abierto un modal que scrollea
+     entero manda el botón de confirmar fuera de la pantalla. */
+  overflow: hidden;
+  outline: none;
+}
+
+.delete-account__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 20px 20px 4px;
+}
+
+.delete-account__icono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.delete-account__titulo {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.delete-account__cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) 20px 20px;
+}
+
+.delete-account__aviso {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.delete-account__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+/* Una "x" chica en el color de peligro: la lista se lee como "esto se va" y no
+   como una lista de funciones. */
+.delete-account__lista li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.delete-account__lista li::before {
+  content: "×";
+  position: absolute;
+  left: 4px;
+  top: -1px;
+  font-weight: 800;
+  color: var(--danger-text);
+}
+
+.delete-account__exportar {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-account__exportar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.delete-account__campo {
+  display: grid;
+  gap: 4px;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.delete-account__campo + .delete-account__campo {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.delete-account__label {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* El email a escribir, entero y sin cortarse: puede ser largo y en un teléfono
+   se parte en dos renglones antes que recortarse. */
+.delete-account__email {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgb(var(--paper-rgb) / 0.05);
+  color: var(--text);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.delete-account__ayuda {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+
+/* 16px o más, siempre: abajo de eso Safari en iPhone hace zoom al enfocar. */
+.delete-account__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+  background: rgb(var(--ink-rgb) / 0.25);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.delete-account__input:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.delete-account__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+/* Cancelar a la izquierda y la acción destructiva a la derecha, como en el
+   resto de la app. El ConfirmModal compartido las invierte con `row-reverse`,
+   y acá se veía el rojo donde se espera el "no". */
+.delete-account__pie {
+  flex: none;
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md) 20px 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.delete-account__pie .confirm-modal__cancel,
+.delete-account__pie .confirm-modal__confirm {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+.delete-account__pie .confirm-modal__confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* El ConfirmModal compartido baja los textos a 14px en pantallas angostas.
+   Acá lo que se lee es una advertencia: no se achica. */
+@media (max-width: 480px) {
+  .delete-account__header {
+    padding: 16px 16px 4px;
+  }
+
+  .delete-account__cuerpo {
+    padding: var(--space-md) 16px 16px;
+  }
+
+  .delete-account__pie {
+    padding: 12px 16px 16px;
+  }
+
+  .delete-account__pie .confirm-modal__cancel,
+  .delete-account__pie .confirm-modal__confirm {
+    font-size: var(--text-md);
+  }
+}

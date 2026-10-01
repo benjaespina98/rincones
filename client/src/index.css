@@ -364,15 +364,28 @@
   --transition-slow: 320ms var(--ease-out);
   
   /* Typography
-     Una sola familia para toda la app. Antes convivían Manrope (UI) y Fraunces
-     (títulos): Fraunces es una serif expresiva y editorial, que le daba un aire
-     de boutique en vez de app moderna. Plus Jakarta Sans es geométrica y de x
-     alta — la familia de Uber Move y las apps de delivery —, y aguanta bien
-     tanto en 0.7rem como en un display de 2rem.
+     Una sola familia para toda la app. Pasó por Manrope + Fraunces (una serif
+     editorial que le daba aire de boutique en vez de app) y después por Plus
+     Jakarta Sans, que ya era una buena familia de UI.
+
+     Ahora es **Inter**, y el motivo es el contexto: esta app se usa casi
+     siempre en un teléfono, al lado de la interfaz del sistema. Inter está
+     dibujada para eso —x alta grande, aperturas anchas, números tabulares
+     reales— y comparte tantas decisiones con San Francisco que en un iPhone la
+     transición entre la barra del sistema y la app deja de notarse. Plus
+     Jakarta es más geométrica y más "de marca": linda en un display, un poco
+     más cansadora en una lista de cincuenta vinos.
+
+     El fallback arranca por las del sistema, en este orden a propósito: si la
+     de Google todavía no llegó, en un iPhone se dibuja con San Francisco en vez
+     de con la genérica — o sea, con la fuente a la que Inter se parece. El
+     cambio al cargar es casi imperceptible.
+
      `--font-family-serif` se mantiene como alias para no romper las ~40
-     referencias que ya existen; los títulos ahora se distinguen por peso y
-     tracking, no por cambio de familia. */
-  --font-family-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+     referencias que ya existen; los títulos se distinguen por peso y tracking,
+     no por cambio de familia. */
+  --font-family-sans: "Inter", -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto,
+    sans-serif;
   --font-family-serif: var(--font-family-sans);
   --font-family-base: var(--font-family-sans);
   /* Monoespaciada para ids, tokens y logs del panel: ahí el ancho fijo es
@@ -391,7 +404,13 @@
   --text-xl: 1.15rem;
   --text-2xl: 1.3rem;
   --text-3xl: 1.55rem;
-  --text-display: clamp(1.6rem, 5vw, 2.1rem);
+  /* El título de pantalla. Pisa en 30px en un teléfono y crece hasta 36 en
+     pantallas grandes. Antes arrancaba en 25,6: con el título grande de la
+     fase 3 —que es el que se lleva la primera mirada al entrar a una sección—
+     ese tamaño quedaba a mitad de camino entre un encabezado y un subtítulo, y
+     no mandaba. El salto a 30 es lo que lo vuelve el primer elemento de la
+     jerarquía sin tener que agregarle color ni adorno. */
+  --text-display: clamp(1.875rem, 5.5vw, 2.25rem);
 
   /* Alturas de control: los botones iban de 32 a 50px sin criterio. */
   --control-sm: 34px;
@@ -501,11 +520,22 @@ body {
   /* El único que pinta el fondo. Ver --app-bg. */
   background-color: var(--bg);
   background-image: var(--app-bg);
-  overflow-x: hidden;
+  /* ── `clip` Y NO `hidden` ──────────────────────────────────────────────────
+     Los dos esconden lo que se sale de costado, pero `hidden` además convierte
+     al elemento en un contenedor de scroll, y eso tiene una consecuencia que no
+     se ve hasta que rompe algo: un `position: sticky` se ancla al contenedor
+     que scrollea más cercano. Con `hidden` acá, cualquier cosa pegajosa de la
+     app pasa a depender de un contenedor que no scrollea nunca.
+
+     Es exactamente el bug que tuvo esta app —la barra de secciones de la ficha
+     no se pegaba— y aunque la causa de aquella vez era otra (ver `.app-layout`
+     en AppLayout.css), dejar `hidden` acá es tener la trampa armada para la
+     próxima. `clip` recorta igual y no crea contenedor. */
+  overflow-x: clip;
   /* Se hereda a todo el texto. Sin esto, una palabra larga sin espacios —el
      nombre de una bodega alemana, un mail, una URL pegada en las notas— estira
-     su caja y el `overflow-x: hidden` de arriba la corta: se ve media palabra y
-     ninguna señal de que falta el resto. Cortarla es mejor que esconderla. */
+     su caja y el recorte de arriba la corta: se ve media palabra y ninguna
+     señal de que falta el resto. Cortarla es mejor que esconderla. */
   overflow-wrap: break-word;
 }
 
@@ -637,10 +667,21 @@ button svg {
   }
 }
 
+/* ── EL PISO DE 16px, Y POR QUÉ NO ES UNA CUESTIÓN DE GUSTO ─────────────────
+   Safari en iPhone hace zoom solo cuando enfocás un campo cuya letra mide menos
+   de 16px. No es configurable ni se puede desactivar desde la página: la única
+   forma de evitarlo es no bajar de 16. Y el zoom no se va solo — queda puesto,
+   con la barra de direcciones tapando media pantalla, hasta que la persona
+   pellizca para volver.
+
+   Así que 16px es el valor por defecto de todo campo de la app. Un componente
+   puede subirlo; bajarlo es romper la pantalla en el teléfono, que es donde se
+   usa esta app. */
 input,
 textarea,
 select {
   font-family: var(--font-family-base);
+  font-size: 16px;
 }
 
 /* Responsive Images */
@@ -886,5 +927,36 @@ img {
 @media (min-width: 1024px) {
   :root {
     --page-pad-bottom: 56px;
+  }
+}
+
+/* ══ TRANSICIONES ENTRE PANTALLAS ══════════════════════════════════════════
+   Ver utils/viewTransition.js para el porqué de usar la API del navegador en
+   vez de una librería. Acá sólo se ajusta el tiempo: el default son 250 ms de
+   cross-fade, que en un teléfono se siente lento — una navegación tiene que
+   sentirse instantánea y la animación estar para suavizar el corte, no para
+   que se la mire. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* La foto que viaja de la tarjeta a la ficha. Un poco más lenta que el fondo:
+   es el elemento que cuenta de dónde viene la pantalla, y si va al mismo ritmo
+   que el cross-fade no se llega a leer el recorrido. */
+::view-transition-group(*) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* El guard de reduced-motion vive también en JS (la transición ni se inicia),
+   pero se repite acá por si algo la dispara por otro camino: una animación de
+   media pantalla es justo lo que le hace mal a quien activó esta preferencia. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

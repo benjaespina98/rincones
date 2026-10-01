@@ -85,7 +85,11 @@ export default function ImagePicker({
           {value ? (
             <img src={value} alt="" onError={() => setFalla(true)} onLoad={() => setFalla(false)} />
           ) : (
-            <Icon name="image" size={18} />
+            /* La botella y no un ícono de "imagen": lo que falta acá no es un
+               archivo, es la foto de un vino. Y a 26px porque el marco ahora
+               tiene 92×123 reservados — con 18 quedaba un puntito perdido en
+               el medio de una caja vacía. */
+            <Icon name="bottle" size={26} />
           )}
         </div>
 
@@ -153,6 +157,19 @@ export default function ImagePicker({
         </div>
       </div>
 
+      {/* ── LA FRANJA QUE SE INTERCAMBIA, CON ALTURA RESERVADA ─────────────
+          Acá abajo conviven dos cosas que se turnan: el campo para pegar un
+          enlace (58px) cuando no hay imagen, y la línea de "imagen cargada"
+          (17px) cuando sí. Al elegir una foto, una reemplaza a la otra y el
+          bloque entero se achicaba 41px — medido — así que todo lo que está
+          debajo en el formulario saltaba hacia arriba justo en el momento en
+          que la persona está mirando ahí.
+
+          Reservando el alto de la más grande, elegir o quitar una foto ya no
+          mueve nada de lo de abajo. Es el mismo criterio que el marco de la
+          miniatura: en un formulario, lo que cambia de estado no tiene que
+          cambiar de tamaño. */}
+      <div className="imgpick__franja">
       {mostrarEnlace ? (
         <label className="imgpick__url">
           <span>o pegá un enlace</span>
@@ -175,6 +192,7 @@ export default function ImagePicker({
           </button>
         </small>
       )}
+      </div>
 
       {falla && value && (
         <small className="imgpick__error">

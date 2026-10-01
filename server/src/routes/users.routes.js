@@ -10,6 +10,7 @@ const { validatePasswordStrength } = require("../utils/password");
 const sessions = require("../services/session.service");
 const wineReviews = require("../services/wineReviews.service");
 const { deleteAccount } = require("../services/accountDeletion.service");
+const { exportAccount } = require("../services/accountExport.service");
 
 
 // GET /api/users/profile - Obtener perfil del usuario actual
@@ -130,6 +131,32 @@ router.put("/profile", authenticate, async (req, res) => {
         preferences: user.preferences,
       },
     });
+  } catch (error) {
+    fail(res, error, req);
+  }
+});
+
+/**
+ * GET /api/users/me/export — llevarse los datos propios.
+ *
+ * Va acá y no en un endpoint de admin porque es de la persona, no de la
+ * operación: la única consulta posible es por `req.user.id`, así que no hay
+ * forma de pedir los datos de otro ni equivocándose.
+ *
+ * `Content-Disposition: attachment` para que el navegador lo baje como archivo
+ * en vez de mostrarlo: un JSON de doscientos vinos abierto en una pestaña no le
+ * sirve a nadie, y en un teléfono directamente no se puede guardar desde ahí.
+ */
+router.get("/me/export", authenticate, async (req, res) => {
+  try {
+    const datos = await exportAccount(req.user.id);
+    if (!datos) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="rincones-${fecha}.json"`);
+    // Indentado: el archivo es para que lo lea una persona, no una máquina.
+    return res.status(200).send(JSON.stringify(datos, null, 2));
   } catch (error) {
     fail(res, error, req);
   }

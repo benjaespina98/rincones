@@ -2,6 +2,7 @@ const Wine = require("../models/wine.model");
 const WineWish = require("../models/wineWish.model");
 const User = require("../models/user.model");
 const SommelierAnswer = require("../models/sommelierAnswer.model");
+const historial = require("../services/sommelierHistory.service");
 const sommelier = require("../services/sommelier.service");
 const {
   esDelDominio,
@@ -244,15 +245,28 @@ const ask = async (req, res, next) => {
       try {
         const guardada = await SommelierAnswer.findOne({ key }).lean();
         if (guardada?.answer) {
-          return res.status(200).json({
-            data: {
-              answer: guardada.answer,
-              wines: [],
-              followups: guardada.followups || [],
-              offTopic: false,
-            },
-            cached: true,
+          const deCache = {
+            answer: guardada.answer,
+            wines: [],
+            followups: guardada.followups || [],
+            offTopic: false,
+          };
+          /**
+           * Al historial también.
+           *
+           * Que la respuesta venga de la caché es un detalle de implementación
+           * nuestro: para quien preguntó es una respuesta igual que cualquier
+           * otra, y tiene que poder volver a leerla. Y es justamente el camino
+           * más frecuente —las preguntas genéricas son las que más se repiten—
+           * así que dejarlo afuera habría vaciado el historial de casi todo.
+           */
+          const idCache = await historial.guardarTurno({
+            userId: req.user?.id,
+            conversationId: req.body.conversationId,
+            question,
+            data: deCache,
           });
+          return res.status(200).json({ data: deCache, cached: true, conversationId: idCache });
         }
       } catch {
         // Sin caché: se genera. Nunca se cae la respuesta por esto.
@@ -303,7 +317,17 @@ const ask = async (req, res, next) => {
      * pidió su bodega, `wines` viene vacío y no hay nada que listar.
      */
     if (personal && esPreguntaDeInventario(question)) {
-      return res.status(200).json({ data: armarInventario(wines, question), cached: false });
+      const inventario = armarInventario(wines, question);
+      // También va al historial: "¿qué Malbec tengo?" es una consulta como
+      // cualquier otra, y que la haya contestado la base en vez del modelo no
+      // cambia nada para quien preguntó.
+      const idInv = await historial.guardarTurno({
+        userId: req.user?.id,
+        conversationId: req.body.conversationId,
+        question,
+        data: inventario,
+      });
+      return res.status(200).json({ data: inventario, cached: false, conversationId: idInv });
     }
 
     let resultado;
@@ -370,7 +394,26 @@ const ask = async (req, res, next) => {
       }
     }
 
-    return res.status(200).json({ data, cached: false });
+    /**
+     * El historial se escribe ACÁ, con la respuesta que de verdad salió.
+     *
+     * Va antes de responder y no después porque el id de la conversación viaja
+     * en la respuesta: el cliente lo necesita para que la siguiente pregunta se
+     * agregue a la misma charla en vez de abrir una nueva. Es una escritura de
+     * milisegundos contra una llamada a Gemini que tarda segundos, así que no
+     * cambia lo que la persona percibe.
+     *
+     * Y nunca tira: `guardarTurno` devuelve null si algo falla. Sin historial
+     * la app funciona igual — al revés no.
+     */
+    const conversationId = await historial.guardarTurno({
+      userId: req.user?.id,
+      conversationId: req.body.conversationId,
+      question,
+      data,
+    });
+
+    return res.status(200).json({ data, cached: false, conversationId });
   } catch (error) {
     return next(error);
   }

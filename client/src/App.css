@@ -24,6 +24,10 @@ html {
    donde está explicado por qué hay un solo dueño. */
 .app-content {
   flex: 1 1 auto;
+  /* Sin esto, un item de flex no se encoge por debajo de su contenido y este
+     `overflow-y` no llega a usarse nunca. Ver el comentario largo en
+     `.app-layout` (AppLayout.css). */
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: var(--page-pad-bottom);
@@ -128,27 +132,10 @@ html {
   color: var(--paper);
 }
 
-/* ── Page header (used by the Explorar screen; other pages self-style) ── */
-.page-header {
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg) var(--space-md) var(--space-md);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgb(var(--surface-raised-rgb) / 0.6), rgb(var(--surface-raised-rgb) / 0.5));
-  border: 1px solid var(--line-accent);
-  backdrop-filter: blur(10px);
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  line-height: 1.2;
-}
-
-.page-header p {
-  margin: var(--space-sm) 0 0;
-  color: var(--text-secondary);
-  font-size: var(--text-lg);
-}
+/* Acá vivían `.page-header` y sus dos descendientes: una cápsula con blur para
+   el encabezado de "Explorar", pantalla que ya no existe. Ninguna página la
+   usaba —el encabezado de cada una lo pone AppLayout— y con el título grande de
+   la fase 3 ya no hay a qué volver. */
 
 /* ── Badge ── */
 .badge {
@@ -229,51 +216,29 @@ html {
   line-height: 1.5;
 }
 
+
+
+
+/* ── LO QUE QUEDA DE ESTOS TRES BOTONES ES SU LUGAR ──────────────────────────
+   El aspecto lo pone `Button` (primary para la acción, ghost para la salida
+   lateral, secondary para el reintento). Acá vivían tres botones dibujados a
+   mano con su propio alto, su propio radio y su propia transición — y por eso
+   el botón de reintentar se veía distinto según en qué pantalla fallara la
+   carga. De todo eso sobrevive únicamente la separación respecto del texto de
+   arriba, que sí es de este bloque y no del botón.
+
+   El porqué de que la salida lateral pese menos está en EmptyState.jsx, al
+   lado de la decisión. */
 .empty-cta {
   margin-top: 6px;
-  padding: 12px 24px;
-  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
-  border-radius: var(--radius-full);
-  background: var(--accent-fill);
-  color: var(--paper);
-  font-weight: 700;
-  font-size: var(--text-md);
-  cursor: pointer;
-  box-shadow: var(--shadow-accent);
-  transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.empty-cta:hover {
-  background: var(--accent-light);
-}
-
-.empty-cta:active {
-  transform: scale(0.97);
-}
-
-/* La salida lateral del estado vacío: un enlace y no un segundo botón. Dos
-   botones del mismo peso obligan a elegir entre dos cosas que no compiten —una
-   es lo que la pantalla propone hacer, la otra es "en realidad venía a otra
-   cosa"—. */
 .empty-alt {
   margin-top: 2px;
-  padding: 8px 12px;
-  border: 0;
-  background: none;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--line-strong);
-  cursor: pointer;
-  transition: color var(--transition-fast);
 }
 
-@media (hover: hover) {
-  .empty-alt:hover {
-    color: var(--text);
-  }
+.error-state__retry {
+  margin-top: 4px;
 }
 
 /* ── Shared error state with retry (ErrorState component) ──
@@ -329,35 +294,9 @@ html {
   line-height: 1.5;
 }
 
-.error-state__retry {
-  margin-top: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 44px;
-  padding: 0 22px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
-  background: var(--glass);
-  color: var(--text);
-  font-size: var(--text-md);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
 
-.error-state__retry:hover:not(:disabled) {
-  background: var(--accent-muted);
-}
 
-.error-state__retry:active:not(:disabled) {
-  transform: scale(0.97);
-}
 
-.error-state__retry:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 
 /* ── Star rating (StarRating component) ── */
 /* ── Estrellas de sólo lectura ────────────────────────────────────────────
@@ -698,8 +637,7 @@ select:disabled {
 }
 
 .btn-add,
-.btn-cancel,
-.btn-wish {
+.btn-cancel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -732,21 +670,17 @@ select:disabled {
   background: rgb(var(--paper-rgb) / 0.16);
 }
 
-.btn-wish {
-  background: rgb(var(--accent-rgb) / 0.14);
-  border-color: var(--line-accent);
-  color: var(--accent-soft);
-}
+/* Acá vivía `.btn-wish`, el botón de "lo quiero probar" de la pantalla de
+   resultados del escaneo. Esa acción se hace hoy desde el corazón de la
+   tarjeta, y la clase ya no la usaba nadie. */
 
 .btn-add:active,
-.btn-cancel:active,
-.btn-wish:active {
+.btn-cancel:active {
   transform: scale(0.97);
 }
 
 .btn-add:disabled,
-.btn-cancel:disabled,
-.btn-wish:disabled {
+.btn-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

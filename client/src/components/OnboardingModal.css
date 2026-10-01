@@ -125,6 +125,15 @@
   color: var(--text);
 }
 
+/* Los chips de TIPO se encienden con su propio color (ver OnboardingPage.jsx).
+   Los de uva no: una uva no tiene color en este sistema, y pintarlas todas de
+   violeta al lado de tipos de colores distintos se leería como que el violeta
+   significa algo que no significa. */
+.onb__chip[data-wine-type].is-sel {
+  border-color: rgb(var(--type-rgb) / 0.6);
+  background: rgb(var(--type-rgb) / 0.16);
+}
+
 .onb__actions {
   display: flex;
   gap: 10px;

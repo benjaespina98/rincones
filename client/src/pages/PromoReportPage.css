@@ -376,13 +376,18 @@
 
 /* Fechas a mano: el anunciante pide exactamente el período que se le facturó. */
 .rep__fecha input {
-  min-height: 36px;
+  /* 44px y no 36: es un campo de fecha que se toca con el pulgar en un
+     teléfono, y era de los pocos controles de la app por debajo del mínimo. */
+  min-height: 44px;
   padding: 0 10px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--text-xs);
+  /* 16px: abajo de eso, Safari en iPhone hace zoom al enfocar. En un campo de
+     fecha se nota el doble, porque el zoom queda puesto mientras elegís el día
+     en el selector nativo. */
+  font-size: 16px;
   font-family: inherit;
   cursor: pointer;
 }

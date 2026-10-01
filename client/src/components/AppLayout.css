@@ -1,9 +1,32 @@
 /* Sin fondo propio. Éste ERA el fondo de Descubrí —y el de toda la app— y hoy
    es el de todas las pantallas: se mudó tal cual a --app-bg (index.css), que lo
    pinta `body`. Acá quedaría tapando al de abajo con una copia idéntica. */
+/* ── QUIÉN SCROLLEA ─────────────────────────────────────────────────────────
+   Esta columna es una columna de verdad: barra arriba, contenido que scrollea,
+   barra abajo. Era un bloque suelto con `min-height`, y eso hacía que el
+   `overflow-y: auto` de `.app-content` (App.css) no sirviera para nada: un
+   bloque de alto automático nunca desborda, así que el scroll terminaba siendo
+   el del documento entero.
+
+   No era inofensivo. La app tiene tres lugares con código escrito para
+   averiguar "quién scrollea de verdad" —`useHeaderCollapse`, `useSheet` y
+   `useSwipeAcciones`— porque la respuesta cambiaba según el largo de la
+   página. Y `position: sticky` no funcionaba en ninguna pantalla: un elemento
+   pegajoso se ancla a su contenedor que scrollea, y ese contenedor existía
+   pero no scrolleaba. La barra de secciones de la ficha del vino se iba con el
+   scroll y ahí se descubrió.
+
+   `min-height: 0` en el hijo es lo que evita el otro clásico: un item de flex
+   no se encoge por debajo de su contenido salvo que se le diga, y sin eso
+   `.app-content` volvía a crecer en vez de scrollear.
+
+   A revisar en la fase 7: cambia quién scrollea en TODAS las pantallas. Lo
+   verificado hasta ahora está en docs/REDESIGN_PROGRESS.md. */
 .app-layout {
-  min-height: 100vh;
-  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ── LA BARRA DE ARRIBA ────────────────────────────────────────────────────
@@ -55,14 +78,19 @@
   }
 }
 
+/* ── EL ECO DE LA BARRA ──────────────────────────────────────────────────────
+   Arranca invisible y aparece cuando el titulo grande ya se fue con el scroll.
+   Solo opacidad y un desplazamiento chico: nada de tamaño de fuente ni de alto
+   de barra, que obligarian a recalcular layout en cada cuadro mientras el dedo
+   arrastra.
+
+   `visibility` ademas de opacidad para que, invisible, no se pueda seleccionar
+   ni quede en el arbol de accesibilidad como texto suelto. */
 .app-topbar__title {
   flex: 1;
   min-width: 0;
   margin: 0;
-  /* El título de sección de una app, no el h1 de una página web: el h1 global
-     (index.css) llega hasta 2.8rem, que en un teléfono ocupa dos renglones y
-     empuja el contenido real fuera de la primera pantalla. */
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   line-height: 1.25;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -70,6 +98,45 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast),
+    visibility var(--transition-fast);
+}
+
+.app-topbar.is-compacto .app-topbar__title {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* ── EL TITULO GRANDE ────────────────────────────────────────────────────────
+   El encabezado real de la pantalla. Vive en el contenido, asi que se va solo
+   con el scroll — no hay que animarlo ni medirlo. */
+.app-hero-title {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-display);
+  line-height: 1.1;
+  font-weight: 800;
+  /* Inter a 30px necesita un pelo menos de tracking que Plus Jakarta: sus
+     contraformas son mas anchas y a ese tamanio el titulo se ve suelto. */
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+
+/* El monograma al lado del nombre, sólo en la pantalla de entrada (ver
+   AppLayout.jsx). El logo se alinea por su caja, no por la línea de base del
+   texto: es un dibujo, y apoyarlo en la base lo deja flotando alto. */
+.app-hero-title--marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-hero-title--marca .logo {
+  flex-shrink: 0;
+  color: var(--text);
 }
 
 /* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa
