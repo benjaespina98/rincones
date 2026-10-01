@@ -223,8 +223,13 @@ export const atajosDeArranque = ({
 
   // Las personales mandan, pero no ocupan toda la fila: siempre queda lugar para
   // que algo cambie de una visita a otra.
-  const maxPersonales = Math.max(cantidadPreguntas - 2, 0);
-  const preguntas = [...personales.slice(0, maxPersonales), ...relleno].slice(0, cantidadPreguntas);
+  // Cinco lugares: hasta DOS personales, la foto (fija) y al menos DOS que rotan. Con más
+  // fijos, la fila casi no se movería y perdería lo que la hace parecer viva.
+  const maxPersonales = Math.max(cantidadPreguntas - 3, 0);
+  // La foto de un menú: una función, no una pregunta, así que va siempre (fija) y no rota.
+  // Es la forma de que quien no sabe que existe la encuentre.
+  const foto = { label: "Foto de un menú", accion: "foto", fijo: true };
+  const preguntas = [...personales.slice(0, maxPersonales), foto, ...relleno].slice(0, cantidadPreguntas);
 
   return { comidas, preguntas };
 };

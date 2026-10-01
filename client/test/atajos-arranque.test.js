@@ -160,7 +160,7 @@ describe("atajosDeArranque: las preguntas", () => {
 
   it("todas las preguntas son del dominio y están en primera persona o son comparaciones", () => {
     const { preguntas } = atajosDeArranque({ hayStock: true, probados: 1, listos: [{ name: "X" }], azar: generador(9) });
-    for (const p of preguntas) {
+    for (const p of preguntas.filter((x) => !x.accion)) {
       expect(p.pregunta.length).toBeGreaterThanOrEqual(3);
       expect(p.pregunta).not.toMatch(/\b(tenés|querés|preferís)\b/i);
     }
@@ -247,8 +247,34 @@ describe("renovar de a una (otraComida / otraPregunta)", () => {
     const { preguntas } = atajosDeArranque({ hayStock: true, probados: 2, listos: [{ varietal: "Malbec" }], azar: generador(3) });
     const fijas = preguntas.filter((p) => p.fijo).map((p) => p.label);
     expect(fijas).toContain("¿Qué abro hoy?");
-    expect(fijas).toContain("¿Qué tomé antes?");
+    expect(fijas).toContain("Foto de un menú");
+    // Hasta dos personales: el resto de la fila tiene que poder moverse.
+    expect(fijas.filter((l) => l !== "Foto de un menú").length).toBeLessThanOrEqual(2);
     // Las de relleno (comparaciones, generales) sí rotan.
     expect(preguntas.some((p) => !p.fijo)).toBe(true);
+  });
+});
+
+describe("el chip de la foto", () => {
+  it("siempre está, sea cual sea la bodega: es una función, no una pregunta", () => {
+    for (const args of [{}, { hayStock: true, probados: 3, listos: [{ varietal: "Malbec" }] }]) {
+      const { preguntas } = atajosDeArranque({ azar: generador(5), ...args });
+      const foto = preguntas.find((p) => p.accion === "foto");
+      expect(foto).toBeTruthy();
+      expect(foto.label).toBe("Foto de un menú");
+      expect(foto.fijo).toBe(true);
+    }
+  });
+
+  it("no rota y ninguna renovación ofrece otro chip de foto", () => {
+    for (let i = 0; i < 50; i += 1) {
+      const p = otraPregunta({ azar: generador(i) });
+      expect(p.accion).toBeUndefined();
+    }
+  });
+
+  it("sigue sin pasar de cinco preguntas", () => {
+    const { preguntas } = atajosDeArranque({ hayStock: true, probados: 5, listos: [{ varietal: "Malbec" }], azar: generador(2) });
+    expect(preguntas.length).toBeLessThanOrEqual(5);
   });
 });

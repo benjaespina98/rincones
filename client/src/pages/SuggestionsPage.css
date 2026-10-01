@@ -433,8 +433,8 @@
      todo —pegado a la línea que se está escribiendo—, no flotando en el
      medio de una cápsula que ya no es chica. */
   align-items: flex-end;
-  gap: 8px;
-  padding: 5px 5px 5px 18px;
+  gap: 6px;
+  padding: 5px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line-strong);
   background: var(--surface-2);
@@ -863,4 +863,58 @@
   .somm-icono {
     display: none;
   }
+}
+
+/* ── LA FOTO ─────────────────────────────────────────────────────────────────
+   El botón de la cámara, adentro de la cápsula y a la izquierda, del mismo tamaño que el
+   de enviar (40px). Sin relleno: es secundario, el protagonista es el campo. */
+.somm__foto {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.somm__foto:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .somm__foto:hover:not(:disabled) {
+    color: var(--text);
+    background: rgb(var(--paper-rgb) / 0.08);
+  }
+}
+
+.somm__foto:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+/* La foto que mandaste, en tu burbuja: la miniatura arriba y el texto abajo, si lo hay. */
+.somm__vos--foto {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+
+.somm__vos-foto {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.somm__vos--foto > span {
+  padding: 2px 8px 4px;
 }

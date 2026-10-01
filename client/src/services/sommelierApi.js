@@ -92,6 +92,41 @@ export const traerConversacion = async (id) => {
   return data?.data || null;
 };
 
+/**
+ * Una foto de la carta de un restaurante, de un plato o de una botella.
+ *
+ * Va como multipart (la imagen NO se codifica a texto: pesaría un tercio más) con el
+ * texto opcional y el historial reciente. La respuesta tiene la misma forma que la de
+ * `preguntarAlSommelier`. La imagen la reduce antes quien llama (ver `resizeImage`); el
+ * servidor la descarta apenas la procesa.
+ *
+ * Más tiempo que una pregunta escrita: mirar una imagen tarda más que leer una frase.
+ */
+const FOTO_TIMEOUT_MS = 40000;
+
+export const preguntarConFoto = async (
+  blob,
+  { question = "", history = [], conversationId = null } = {}
+) => {
+  const form = new FormData();
+  form.append("file", blob, blob?.name || "foto.jpg");
+  if (question) form.append("question", question);
+  if (conversationId) form.append("conversationId", conversationId);
+  form.append(
+    "history",
+    JSON.stringify(history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })))
+  );
+
+  const { data } = await api.post("/sommelier/photo", form, { timeout: FOTO_TIMEOUT_MS });
+  return data?.data
+    ? {
+        ...data.data,
+        conversationId: data.conversationId || conversationId,
+        mensajeId: data.mensajeId || null,
+      }
+    : null;
+};
+
 /** El pulgar sobre una respuesta: "up", "down" o null para quitarlo. */
 export const enviarFeedback = async (conversationId, mensajeId, valor) => {
   await api.patch(`/sommelier/conversations/${conversationId}/feedback`, { mensajeId, valor });

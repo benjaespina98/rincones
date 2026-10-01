@@ -80,6 +80,10 @@ export default function PrivacidadPage() {
         <li>
           <strong>Tu ubicación.</strong> No pedimos ni guardamos geolocalización.
         </li>
+        <li>
+          <strong>Las fotos que le mandás al Sommelier.</strong> Se analizan y se descartan: no
+          quedan guardadas, ni en tu historial —ahí queda sólo el texto— ni en ningún otro lado.
+        </li>
       </ul>
 
       <h2>Cookies</h2>
@@ -94,8 +98,8 @@ export default function PrivacidadPage() {
       <p>Con tres servicios, cada uno para una cosa puntual:</p>
       <ul>
         <li>
-          <strong>Google (Gemini)</strong> — procesa las fotos de etiquetas que escaneás y las
-          consultas que le hacés al Sommelier. Cuando preguntás algo sobre tu propia bodega,
+          <strong>Google (Gemini)</strong> — procesa las fotos de etiquetas que escaneás, las fotos de
+          cartas o platos que le mandás al Sommelier y las consultas que le hacés. Cuando preguntás algo sobre tu propia bodega,
           viaja también la lista de tus vinos para que la respuesta tenga sentido. No se le
           manda tu email ni tu nombre.
         </li>
