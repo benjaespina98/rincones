@@ -11,7 +11,7 @@ import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
 import Logo from "../components/Logo";
-import SommelierHistorial from "../components/SommelierHistorial";
+import SommelierChats from "../components/SommelierChats";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
@@ -559,7 +559,21 @@ export default function SuggestionsPage() {
     setMensajes([]);
     setConversacionId(null);
     setTexto("");
+    setHistorialAbierto(false);
     inputRef.current?.focus();
+  };
+
+  /**
+   * Se borró una conversación del panel. Si era la que estaba abierta, la
+   * pantalla vuelve a empezar: dejarla ahí mostraría una charla que ya no existe
+   * y la próxima pregunta abriría una nueva sin que se note el cambio. No se
+   * enfoca el campo: quien borra está mirando el panel, no escribiendo.
+   */
+  const alBorrarConversacion = (id) => {
+    if (id !== conversacionId) return;
+    setMensajes([]);
+    setConversacionId(null);
+    setTexto("");
   };
 
   /**
@@ -635,7 +649,7 @@ export default function SuggestionsPage() {
         <div className="somm__acciones">
           <button type="button" className="somm__nueva" onClick={() => setHistorialAbierto(true)}>
             <Icon name="chat" size={13} />
-            Tus consultas
+            Conversaciones
           </button>
           {mensajes.length > 0 && (
             <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
@@ -1011,10 +1025,15 @@ export default function SuggestionsPage() {
           ) : null;
         })()}
 
-      <SommelierHistorial
+      <SommelierChats
         abierto={historialAbierto}
         onClose={() => setHistorialAbierto(false)}
+        activoId={conversacionId}
+        // Cada respuesta nueva cambia la charla activa o su largo: el panel se refresca.
+        version={`${conversacionId}:${mensajes.length}`}
         onAbrir={abrirConversacion}
+        onNueva={nuevaConversacion}
+        onBorrada={alBorrarConversacion}
       />
     </div>
   );

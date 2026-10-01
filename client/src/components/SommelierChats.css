@@ -1,0 +1,291 @@
+/* Las conversaciones del Sommelier. El criterio está en SommelierChats.jsx.
+
+   Móvil: un cajón que entra desde la izquierda. Escritorio (≥1024px): una
+   columna fija pegada al sidebar de navegación. */
+
+.schats__velo {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-overlay) - 1);
+  background: rgb(var(--ink-rgb) / 0.55);
+  animation: rincon-fade 200ms var(--ease-out);
+}
+
+.schats {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: min(86vw, 320px);
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: linear-gradient(180deg, rgb(var(--surface-raised-rgb) / 0.98), rgb(var(--bg-rgb) / 0.99));
+  border-right: 1px solid var(--line);
+  box-shadow: var(--shadow-modal);
+  outline: none;
+  /* Sólo se dibuja abierto (cerrado, en el teléfono, no existe): entra desde la
+     izquierda. */
+  animation: rincon-desliza 260ms var(--ease-out) both;
+}
+
+@keyframes rincon-desliza {
+  from { transform: translateX(-102%); }
+  to { transform: none; }
+}
+
+.schats__cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.schats__nueva {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-md);
+  background: rgb(var(--accent-rgb) / 0.14);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.schats__nueva:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .schats__nueva:hover {
+    background: rgb(var(--accent-rgb) / 0.22);
+  }
+}
+
+.schats__cerrar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* ── La lista ─────────────────────────────────────────────────────────────── */
+
+.schats__lista {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Aire abajo: el menú "⋯" de la última fila se abre hacia abajo y no tiene que
+     quedar cortado por el borde de la lista. */
+  padding: var(--space-xs) 0 56px;
+}
+
+.schats__grupo + .schats__grupo {
+  margin-top: var(--space-md);
+}
+
+.schats__grupo-titulo {
+  margin: 0 0 4px;
+  padding: 0 10px;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.schats__items {
+  display: grid;
+  /* `minmax(0, 1fr)` y no la columna automática: un ítem de grilla no baja de su
+     contenido mínimo, y un título en una sola línea lo ensanchaba hasta sacar el
+     "⋯" del panel. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schats__item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .schats__item:hover {
+    background: rgb(var(--paper-rgb) / 0.05);
+  }
+}
+
+.schats__item--activo,
+.schats__item--activo:hover {
+  background: rgb(var(--accent-rgb) / 0.16);
+}
+
+/* Cada fila son dos controles hermanos: el cuerpo abre, el "⋯" abre el menú. */
+.schats__abrir {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Un renglón, con puntos suspensivos: es una lista para recorrer y no para leer.
+   El título completo está en el nombre accesible del botón. */
+.schats__titulo {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.schats__item--activo .schats__titulo {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.schats__mas {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .schats__mas:hover {
+    color: var(--text);
+    background: rgb(var(--paper-rgb) / 0.08);
+  }
+}
+
+.schats__item--menu .schats__mas {
+  color: var(--text);
+  background: rgb(var(--paper-rgb) / 0.08);
+}
+
+/* ── El menú "⋯" ──────────────────────────────────────────────────────────── */
+
+.schats__menu {
+  position: absolute;
+  top: calc(100% - 4px);
+  right: 6px;
+  z-index: 2;
+  min-width: 160px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: rgb(var(--surface-raised-rgb));
+  box-shadow: var(--shadow-md);
+  animation: rincon-enter-down 160ms var(--ease-out);
+}
+
+.schats__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schats__menu-item--peligro {
+  color: var(--danger-text);
+}
+
+.schats__menu-item:hover,
+.schats__menu-item:focus-visible {
+  background: var(--danger-soft);
+}
+
+/* ── El pie ───────────────────────────────────────────────────────────────── */
+
+.schats__nota {
+  flex: none;
+  margin: 0;
+  padding: var(--space-sm) 10px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--text-subtle);
+}
+
+/* El foco visible de los controles, con el mismo anillo del resto de la app. */
+.schats__nueva:focus-visible,
+.schats__abrir:focus-visible,
+.schats__mas:focus-visible,
+.schats__cerrar:focus-visible,
+.schats__menu-item:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+/* ── Escritorio: una columna fija, pegada al sidebar ─────────────────────────
+   Va por debajo del título (z-sticky) y arranca más abajo que él, así que el
+   título grande y la barra superior no se pisan con la lista. */
+@media (min-width: 1024px) {
+  .schats__velo {
+    display: none;
+  }
+
+  .schats {
+    z-index: var(--z-base);
+    left: 240px;
+    width: 264px;
+    padding-top: 84px;
+    padding-bottom: 16px;
+    background: transparent;
+    box-shadow: none;
+    border-right: 1px solid var(--border-subtle);
+    animation: none;
+  }
+
+  .schats__lista {
+    padding-bottom: var(--space-md);
+  }
+}
+

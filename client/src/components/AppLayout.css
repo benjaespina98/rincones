@@ -285,3 +285,13 @@
     margin-inline: auto;
   }
 }
+
+/* El Sommelier en escritorio lleva el panel de conversaciones a la izquierda: su
+   columna es 288px más ancha (ver SuggestionsPage.css) y el título se corre lo
+   mismo para seguir sobre la misma línea que el contenido. */
+@media (min-width: 1024px) {
+  .app-content:has(> .somm) > .app-hero-title {
+    max-width: calc(264px + 24px + 780px);
+    padding-left: calc(264px + 24px);
+  }
+}
