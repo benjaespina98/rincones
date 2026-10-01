@@ -349,7 +349,7 @@ export default function ProfilePage() {
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
             {statsLoading ? "" : <Contador valor={wineStats?.totals?.consumed || 0} />}
           </div>
-          <div className="label">Probados</div>
+          <div className="label">Ya tomados</div>
           {/* Antes era un porcentaje ("50% de tu colección"): pide una cuenta
               mental para volver al número de arriba. "1 de 2 vinos" usa el
               mismo par de cifras que ya está a la vista, sin traducirlas. */}

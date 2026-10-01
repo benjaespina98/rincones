@@ -139,7 +139,7 @@ export default function BodegaFilters({
               active={probado === false}
               onClick={() => setProbado(probado === false ? null : false)}
             >
-              Sin probar
+              Sin tomar
             </Chip>
           )}
           <Chip active={soloListos} onClick={() => setSoloListos((v) => !v)}>

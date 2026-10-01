@@ -96,3 +96,29 @@ export const resumenDeBodega = (wines = []) => {
     puntuados,
   };
 };
+
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+/**
+ * Las frases de la línea de resumen de Mi Bodega (ver BodegaResumen.jsx): botellas —o, sin
+ * ninguna, vinos ya tomados— y uvas. Lo que no se puede contestar no aparece.
+ *
+ * El promedio de puntajes no está: en un teléfono la línea comparte renglón con el botón
+ * "Seleccionar" y con tres datos se partía en dos, que es justo lo que se quería evitar. El
+ * promedio vive en el perfil.
+ */
+export const frasesDelResumen = (r) => {
+  const partes = [];
+
+  if (r.botellas > 0) {
+    const enVinos =
+      r.vinosConStock > 0 && r.vinosConStock !== r.botellas ? ` en ${r.vinosConStock} vinos` : "";
+    partes.push(`${plural(r.botellas, "botella", "botellas")}${enVinos}`);
+  } else if (r.probados > 0) {
+    partes.push(plural(r.probados, "vino ya tomado", "vinos ya tomados"));
+  }
+
+  if (r.uvasDistintas > 0) partes.push(plural(r.uvasDistintas, "uva", "uvas"));
+
+  return partes;
+};

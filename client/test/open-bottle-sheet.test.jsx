@@ -21,7 +21,7 @@ describe("OpenBottleSheet", () => {
     render(<OpenBottleSheet wine={vino} onConfirm={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.getByText(/se descuenta de tu stock/i)).toBeInTheDocument();
-    expect(screen.getByText(/queda marcado como probado/i)).toBeInTheDocument();
+    expect(screen.getByText(/queda marcado como ya tomado/i)).toBeInTheDocument();
     expect(screen.getByText(/se registra el consumo/i)).toBeInTheDocument();
   });
 
@@ -78,8 +78,8 @@ describe("OpenBottleSheet", () => {
       />
     );
 
-    expect(screen.getByText(/ya figura como probado/i)).toBeInTheDocument();
-    expect(screen.queryByText(/queda marcado como probado/i)).toBeNull();
+    expect(screen.getByText(/ya figura como ya tomado/i)).toBeInTheDocument();
+    expect(screen.queryByText(/queda marcado como ya tomado/i)).toBeNull();
   });
 
   it("se puede salir con Escape", () => {

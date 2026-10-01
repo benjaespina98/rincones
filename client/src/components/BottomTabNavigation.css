@@ -17,7 +17,9 @@
   border-top: 1px solid var(--border-subtle);
   box-shadow: 0 -8px 24px rgb(var(--bg-deep-rgb) / 0.45);
   z-index: var(--z-nav);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Reserva menos que la zona segura entera (ver --nav-safe-bottom en index.css): la barra
+     queda más abajo y deja de flotar arriba de un hueco. */
+  padding-bottom: var(--nav-safe-bottom);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -195,12 +197,6 @@
 
   .tab-button.active {
     background: rgb(var(--accent-rgb) / 0.16);
-  }
-}
-
-@supports (padding-bottom: max(0px)) {
-  .bottom-tabs-container {
-    padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
 }
 
