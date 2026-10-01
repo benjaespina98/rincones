@@ -81,6 +81,40 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("saltea lo que está declarado como fuera de juego: hidden, inert y disabled", () => {
+    // Los tres dicen lo mismo con palabras distintas: "esto no participa". Si
+    // el ciclo los incluye, el foco cae en un control que no se ve ni responde
+    // y la persona queda tabulando contra la nada sin ninguna pista.
+    render(
+      <BottomSheet isOpen onClose={() => {}} title="Filtros">
+        <button type="button">Visible</button>
+        <button type="button" hidden>
+          Oculto
+        </button>
+        <button type="button" disabled>
+          Apagado
+        </button>
+        <div inert="">
+          <button type="button">Adentro de un bloque inerte</button>
+        </div>
+      </BottomSheet>
+    );
+
+    const panel = screen.getByRole("dialog");
+    const visible = screen.getByText("Visible");
+    const cerrar = panel.querySelector(".sheet__cerrar");
+
+    // Con esos tres descartados, el ciclo queda entre "Visible" y el botón de
+    // cerrar: desde el último, Tab vuelve al primero.
+    cerrar.focus();
+    tab();
+    expect(document.activeElement).toBe(visible);
+
+    visible.focus();
+    tab({ shift: true });
+    expect(document.activeElement).toBe(cerrar);
+  });
+
   it("cerrada no renderiza nada", () => {
     render(
       <BottomSheet isOpen={false} onClose={() => {}} title="Filtros">

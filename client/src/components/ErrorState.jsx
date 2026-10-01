@@ -1,4 +1,5 @@
 import Icon from "./Icon";
+import Button from "./Button";
 
 /**
  * Estado de error con reintento.
@@ -22,9 +23,21 @@ export default function ErrorState({
       <p className="error-state__title">{title}</p>
       {hint && <p className="error-state__hint">{hint}</p>}
       {onRetry && (
-        <button type="button" className="error-state__retry" onClick={onRetry} disabled={retrying}>
-          {retrying ? "Reintentando…" : "Reintentar"}
-        </button>
+        /* Un Button y no un <button> con su propia clase: es la MISMA acción en
+           veinte pantallas, y tenerla dibujada aparte era lo que hacía que el
+           botón de reintentar se viera distinto según dónde fallara la carga.
+           El spinner reemplaza al cambio de texto: dice que está pasando algo
+           sin que el botón cambie de ancho a mitad de la acción. */
+        <Button
+          variant="secondary"
+          size={compact ? "sm" : "md"}
+          onClick={onRetry}
+          disabled={retrying}
+          loading={retrying}
+          className="error-state__retry"
+        >
+          {retrying ? "Reintentando" : "Reintentar"}
+        </Button>
       )}
     </div>
   );

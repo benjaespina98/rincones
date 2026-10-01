@@ -98,6 +98,12 @@ export default function OnboardingPage() {
                   key={value}
                   type="button"
                   className={`onb__chip ${types.includes(value) ? "is-sel" : ""}`}
+                  /* La primera vez que alguien ve la app, "Tinto" y "Blanco"
+                     son dos palabras iguales en un violeta igual. Con el tipo
+                     puesto, cada una se enciende con SU color al elegirla: es
+                     la misma clave que despues va a usar para reconocer un vino
+                     en la lista, y se aprende acá sin que nadie la explique. */
+                  data-wine-type={value}
                   onClick={() => { tapHaptic(); setTypes((t) => toggle(t, value)); }}
                   aria-pressed={types.includes(value)}
                 >

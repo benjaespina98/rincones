@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { initErrorMonitoring } from "./services/errorMonitoring";
 import { observarBuildViejo } from "./utils/staleBuild";
+import { registrarSW } from "./utils/registrarSW";
 
 // Sin VITE_SENTRY_DSN no hace nada (ver services/errorMonitoring.js): no
 // bloquea el render, así que va suelta y no adentro del árbol de componentes.
@@ -18,6 +19,17 @@ initErrorMonitoring();
 // enganchara adentro del árbol, el primer import fallido —el de la propia
 // pantalla que se está abriendo— ya habría pasado de largo. Ver utils/staleBuild.js.
 observarBuildViejo();
+
+/**
+ * El service worker va DESPUÉS de `observarBuildViejo`, y el orden importa.
+ *
+ * Los dos atienden el mismo problema por lados opuestos: el observador
+ * reacciona a un chunk que no bajó, el SW evita tener que bajarlo. Si el SW se
+ * registrara primero y rompiera algo, el observador todavía no estaría
+ * escuchando y volveríamos al síntoma viejo —la pantalla muerta— sin la
+ * recuperación automática.
+ */
+registrarSW();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

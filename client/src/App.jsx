@@ -22,6 +22,8 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const PrivacidadPage = lazy(() => import("./pages/PrivacidadPage"));
+const TerminosPage = lazy(() => import("./pages/TerminosPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
 const VerifyRequiredPage = lazy(() => import("./pages/VerifyRequiredPage"));
@@ -165,6 +167,14 @@ function App() {
         {/* El informe del anunciante. Sin sesión y sin la navegación de la app:
             lo abre alguien de afuera que sólo quiere ver sus números. */}
         <Route path="/informe/:token" element={<PromoReportPage />} />
+
+        {/* Privacidad y términos, FUERA del gate de sesión.
+            Alguien tiene que poder leer qué se hace con sus datos antes de
+            crear la cuenta —que es justo cuando la decisión se toma— y también
+            después de darse de baja. Por eso se alcanzan desde el pie del login
+            y desde el perfil, y el enlace se puede compartir por mensaje. */}
+        <Route path="/privacidad" element={<PrivacidadPage />} />
+        <Route path="/terminos" element={<TerminosPage />} />
 
         {/* Gates obligatorios: necesitan sesión (por eso van con PrivateRoute),
             pero NO pasan por AppGate — si lo hicieran, cada una redirigiría a

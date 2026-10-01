@@ -186,9 +186,28 @@
    La más densa y la que más se repite. Sin caja propia: sólo una línea que la
    separa de la siguiente. Diez cajas con borde, una debajo de la otra, hacen
    mucho ruido para poco contenido. */
+/* ── LA FILA ES UNA TARJETA, COMO TODAS LAS DEMÁS ───────────────────────────
+   Era lo único de Descubrí sin superficie: ícono y texto apoyados directamente
+   sobre el fondo de la app, con 4px de padding lateral. Funcionaba cuando toda
+   la pantalla se veía así, pero arriba quedó la tarjeta destacada con cristal y
+   el color del tipo, y las de resultado con su banda — y entonces los videos y
+   los cursos pasaron a leerse como texto que alguien se olvidó de maquetar.
+
+   Los cuatro valores son los mismos que usa la fila de Mi Bodega (ver
+   `.wine-row` en BodyPage.css), a propósito: una fila que se toca y lleva a
+   otro lado se ve igual en toda la app. */
 .ccard--row {
   align-items: flex-start;
-  padding: 11px 4px;
+  padding: 11px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+/* La misma respuesta al toque que el resto de la app: se hunde apenas. */
+.ccard--row.is-clickable:active {
+  transform: scale(0.985);
 }
 
 .ccard--row .ccard__figure {

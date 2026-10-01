@@ -18,6 +18,7 @@ import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import { elegirOtroDistinto } from "../utils/discovery";
 import Icon from "../components/Icon";
+import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
@@ -331,15 +332,14 @@ export default function DiscoverPage() {
             {QUICK_VARIETALS.map((v) => {
               const activo = query.trim().toLowerCase() === v.toLowerCase();
               return (
-                <button
+                <Chip
                   key={v}
-                  type="button"
-                  className={`wine-search__chip ${activo ? "is-active" : ""}`}
-                  aria-pressed={activo}
+                  active={activo}
+                  className="wine-search__chip"
                   onClick={() => { tapHaptic(); setQuery(activo ? "" : v); }}
                 >
                   {v}
-                </button>
+                </Chip>
               );
             })}
           </div>
@@ -381,8 +381,17 @@ export default function DiscoverPage() {
 
           {searchResults.length > 0 && (
             <ul className="wine-search__results">
+              {/* Cada tarjeta lleva `data-wine-type`: mismo hilo que en Mi
+                  Bodega y que en el destacado de arriba. El tipo pinta la banda
+                  y el fondo de su propia tarjeta, y en una grilla de resultados
+                  eso es lo que deja separar de un vistazo un blanco de un tinto
+                  sin leer la etiqueta de cada uno. */}
               {searchResults.map((r) => (
-                <li key={r.id} className={`wine-result-card ${r.owned ? "is-owned" : ""}`}>
+                <li
+                  key={r.id}
+                  className={`wine-result-card ${r.owned ? "is-owned" : ""}`}
+                  data-wine-type={r.type || undefined}
+                >
                   <button
                     type="button"
                     className="wine-result-card__open"
@@ -553,9 +562,15 @@ export default function DiscoverPage() {
         )
       )}
 
-      {/* Vino del día / Sorpresa: tarjeta destacada dinámica */}
+      {/* Vino del día / Sorpresa: tarjeta destacada dinámica.
+
+          `data-wine-type` es lo que hace que la tarjeta sea de ESTE vino y no
+          de la app: el borde y el halo salen del color del tipo (ver los
+          tokens `--type-*` en index.css). Hasta acá, la primera pantalla era
+          la única de la app donde el hilo del tipo no llegaba — un blanco, un
+          espumante y un oporto se veían los tres violetas. */}
       {!buscando && !loading && spotlight && (
-        <section className="spotlight" key={spotlight.id}>
+        <section className="spotlight" data-wine-type={spotlight.type} key={spotlight.id}>
           <button
             type="button"
             className="spotlight__open"

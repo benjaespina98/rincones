@@ -10,6 +10,7 @@ import EmptyIllustration, { NOMBRES_ILUSTRACION } from "../components/EmptyIllus
 import ErrorState from "../components/ErrorState";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import WineArtwork from "../components/WineArtwork";
+import BodegaResumen from "../components/BodegaResumen";
 import "./StyleguidePage.css";
 
 /**
@@ -36,6 +37,14 @@ const TIPOS = [
   { id: "sparkling", label: "Espumante" },
   { id: "fortified", label: "Fortificado" },
   { id: "unknown", label: "Sin tipo" },
+];
+
+/** Vinos de mentira para las piezas que necesitan datos. */
+const VINOS_DEMO = [
+  { _id: "1", varietal: "Malbec", region: "Lujan de Cuyo, Mendoza", quantity: 3, tasted: true, rating: 4 },
+  { _id: "2", varietal: "Malbec", region: "Lujan de Cuyo, Mendoza", quantity: 2, tasted: true, rating: 5 },
+  { _id: "3", varietal: "Bonarda", region: "Valle de Uco, Mendoza", quantity: 0, tasted: true, rating: 3 },
+  { _id: "4", varietal: "Torrontes", region: "Cafayate, Salta", quantity: 1, tasted: false, rating: 0 },
 ];
 
 const TEXTO = [
@@ -342,6 +351,20 @@ export default function StyleguidePage() {
             </div>
           ))}
         </div>
+      </Seccion>
+
+      <Seccion
+        titulo="BodegaResumen"
+        nota="Describe lo que se esta viendo y no la coleccion entera: con un filtro puesto, un numero traido del servidor hablaria de otra cosa que la lista de abajo."
+      >
+        <BodegaResumen wines={VINOS_DEMO} />
+        <p className="sg__nota">
+          Sin nada puntuado el promedio no aparece: un cero se lee como “mis vinos
+          son malos” en vez de “todavia no puntuaste”.
+        </p>
+        <BodegaResumen wines={VINOS_DEMO.map((w) => ({ ...w, rating: 0 }))} />
+        <p className="sg__nota">Y con la bodega vacia no dibuja ningun marco.</p>
+        <BodegaResumen wines={[]} />
       </Seccion>
 
       <Seccion titulo="Estados" nota="Vacío, error y cargando, que son los que nadie mira hasta que fallan.">

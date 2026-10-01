@@ -1,6 +1,7 @@
 # Rediseño v2 — progreso
 
-Rama: `feat/redesign-v2`, sacada de `develop`. Sin push ni merge.
+Rama: `feat/redesign-v2`. Las fases 0 a 2 ya estan en `main` (PR #104 a develop,
+#105 a main); la rama se recreo desde ahi para seguir con las fases 3 a 7.
 
 Este archivo existe para poder retomar el trabajo en otra sesión: qué está hecho,
 qué se decidió y por qué, y qué queda.
@@ -70,6 +71,18 @@ extremos del degradado de `--app-bg` (`#090b13` arriba, `#111626` abajo).
   `--accent-text`, alias de `--accent-light` (`#a782ef`, **6.07**).
 - Los cinco colores por tipo de vino ya pasaban AA (7.52 a 13.32). Sin cambios.
 
+### Cuándo se adoptan los componentes en las pantallas
+
+Las fases 4 a 6 **reescriben** BodyPage, las dos fichas de vino, ScanWine,
+Discover y Suggestions. Adoptar Button/Card/Chip ahí ahora sería hacer el mismo
+trabajo dos veces, así que la adopción va donde de verdad rinde: dentro de
+`EmptyState` y `ErrorState`, que la propagan a los veinte lugares donde hay un
+vacío o un error y que ninguna fase posterior reescribe. El resto adopta en su
+propia fase, cuando esa pantalla se toca.
+
+**Alternativa descartada:** adoptar en las doce pantallas ahora. Da un commit
+más vistoso y se tira en la fase siguiente.
+
 ### Animación
 
 Sin librería. CSS (`transform` / `opacity`) y View Transitions API para el
@@ -92,7 +105,7 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
         hoja de impresion, que es el unico lugar con el contraste al reves).
   - [x] Unificadas las 4 convenciones: `components/` 31, `pages/` 16,
         `styles/shared/` 6.
-- [ ] **Fase 2 — Componentes base** — en curso
+- [x] **Fase 2 — Componentes base**
   - [x] Button, Card, Chip, WineTypeBadge, BottomSheet.
   - [x] useSheet con trampa de foco (Tab que cicla).
   - [x] Segmented con indicador deslizante.
@@ -103,17 +116,246 @@ de layout que CSS no resuelve, se reevalúa `motion` y se justifica acá.
   - [x] EmptyState conectado, y los 18 usos migrados: no queda ningun `icon=`.
   - [x] Los ocho componentes en el styleguide, con variantes Y estados.
   - [x] Tests del BottomSheet (7), que encontraron un bug del filtro de foco.
-  - [ ] Skeletons afinados a la forma nueva de la tarjeta (las variantes ya
-        existen: card, detail, list, inline — falta ajustarlas, no crearlas).
-  - [ ] Adoptar Button/Card/Chip en las pantallas (hoy conviven con los viejos).
-- [ ] **Fase 3 — Shell y navegación**
-- [ ] **Fase 4 — Mi Bodega**
-- [ ] **Fase 4.5 — Descubrí y Sommelier**
-- [ ] **Fase 5 — Ficha de vino unificada**
-- [ ] **Fase 6 — Estados faltantes**
-- [ ] **Fase 7 — Cierre**
+  - [x] Skeletons con la forma real de la tarjeta (banda del tipo, radio y
+        superficie de Card) y brillo neutro en vez de violeta.
+  - [x] Trampa de foco endurecida: ignora hidden, inert y disabled (8 tests).
+  - [x] EmptyState y ErrorState adoptan Button.
+- [x] **Fase 3 — Shell y navegación**
+  - [x] Barra inferior con glass (con respaldo `@supports`) e indicador que se
+        desliza; en escritorio se apaga y queda la marca vertical del sidebar.
+  - [x] Título grande que colapsa: el grande vive en el contenido y se va con el
+        scroll, el de la barra aparece por opacidad (`useHeaderCollapse`).
+  - [x] Botón de cámara: halo de acento y anillo corregido (estaba al 92% de
+        opacidad contra una barra que ahora es glass al 62%).
+  - [x] Fade en el borde inferior, colgado de la barra y no del contenedor que
+        scrollea — ese no siempre es el que scrollea.
+  - [x] Base de transiciones con View Transitions (`utils/viewTransition.js`).
+        El shared-element de la foto queda sin cablear a propósito: las
+        tarjetas y la ficha se reescriben en las fases 4 y 5.
+  - [x] Toasts con deshacer: ya existían (`Toast` acepta `action` y
+        `action.secondary`). No se construye nada; se usa donde haga falta.
+- [x] **Fase 4 — Mi Bodega**
+  - [x] Buscar/filtrar/ordenar a `utils/bodegaFiltros.js`, con 23 tests.
+  - [x] `utils/bodegaResumen.js` + `BodegaResumen`: cabecera de métricas de lo
+        que se está viendo.
+  - [x] Corregida la contradicción: el botón "Sin probar" dentro de la pestaña
+        Probados ahora dice "Desmarcar probado".
+  - [x] La fila sale a `WineRow` (451) + `WineRowPanel` (217), memoizada.
+        BodyPage: **1910 → 1374 líneas**. Las acciones del padre pasaron a
+        `useCallback`, y hay tests que cuentan renders para que siga siendo
+        cierto.
+  - [x] Filtros y orden en `BottomSheet`; los 13 chips propios y las fichas de
+        filtro activo pasan a `Chip`.
+  - [x] Toggle lista/grilla con transición de layout: cada fila lleva su
+        `view-transition-name`. Sin librería.
+  - [x] En grilla, la foto llega a los bordes y se funde con los datos por un
+        degradado con el color del tipo.
+  - [x] Deslizar una fila revela corazón y tacho (`hooks/useSwipeAcciones.js`).
+        Revela, no ejecuta.
+  - [x] Entrada escalonada: ya estaba en CSS (`.wine-row:nth-child(n)`), se
+        verificó que sigue viva después de partir el componente.
+  - [ ] Pendiente menor: la barra de selección múltiple sigue dentro de
+        BodyPage. No molesta —son ~40 líneas— pero es lo próximo si el archivo
+        vuelve a crecer.
+
+### Bugs que aparecieron mirando la app andando
+
+Ninguno de los tres lo habría encontrado un test, y los tres estaban en
+código propio de fases anteriores:
+
+| Qué | Dónde |
+|---|---|
+| `<button>` adentro de `<button>`: el navegador sacaba la ✕ de la cápsula | `Chip.jsx` |
+| El chip de probado salía 17px por encima de la tarjeta y el `overflow` lo cortaba al medio | `.wines-list--protagonista … .wine-row__tasted` |
+| Migrar a `Chip` bajaba la altura táctil de 40 a 34 y deshacía una corrección de accesibilidad | `Chip.css` |
+
+- [x] **Fase 4.5 — Descubrí y Sommelier**
+  - [x] El hilo del tipo llega a la primera pantalla: la tarjeta destacada y
+        cada resultado de búsqueda llevan `data-wine-type`. Antes un blanco, un
+        espumante y un oporto se veían los tres violetas.
+  - [x] Las tarjetas de la respuesta del Sommelier llevan la banda de su tipo.
+  - [x] El arranque del Sommelier era dos tiras de chips separadas por 370px de
+        nada: ahora es un solo bloque.
+  - [x] El placeholder del compositor estaba cortado al medio a 375px: el campo
+        mide 41px y el texto pedía 62.
+  - [x] Migrados a `Chip` los cuatro clones de las pantallas rediseñadas
+        (`bfilters__chip`, `bodega-ficha`, `wine-search__chip`, `somm__chip`).
+        **Quedan sin migrar** `toggle-chip`, `settings-chip`, `wine-meta-chip`,
+        `admin-chip` y `sk-chip`: viven en pantallas de las fases 5 y 6 y
+        migran ahí.
+  - [x] Sin tocar, a propósito: `useKeyboardInset`, la persistencia en
+        `sessionStorage` y el compositor fijo. Ya estaban bien resueltos.
+- [x] **Fase 5 — Ficha de vino unificada**
+  - [x] El encabezado toma el color del tipo. Importa sobre todo sin foto, que
+        es la mayoría de las fichas recién cargadas.
+  - [x] `WineDetailHero`: un solo encabezado para las dos fichas. La del
+        catálogo era una copia recortada que se había quedado atrás (sin fondo
+        ambiental, sin marco dorado, sin color del tipo).
+  - [x] `WineDetailNav`: barra pegajosa con Resumen · Plan · Cata · Comunidad.
+        Navega, no esconde — ver el porqué en el componente.
+  - [x] `WineMoments` (269) y `WineDetailEditor` (252) salen de la página.
+        **`WineDetailPage`: 1488 → 1048 líneas.** Movidos tal cual, sin
+        renombrar: un refactor que mueve y reescribe a la vez no se revisa.
+  - [ ] Queda sin hacer: partir el modo lectura en Resumen / Cata / Comunidad.
+        La página ya está en 1048 y los tres bloques que faltan comparten
+        mucho estado con la pantalla; conviene hacerlo con una necesidad real
+        adelante, no por el número.
+- [x] **Fase 6 — Estados faltantes**
+  - [x] **`PromoReportPage`**: tenía un solo booleano para "falló", así que un
+        corte de red decía "el enlace puede haber caducado" y no ofrecía
+        reintentar. Ahora distingue 404/410 (el enlace no vale más) de
+        cualquier otra cosa (el camino), y esta última tiene `ErrorState` con
+        reintentar. El "Cargando…" pasa a `LoadingSkeleton`. Verificado
+        apagando la API de verdad.
+  - [x] **`ScanWinePage`: ya estaba resuelto** antes de esta fase, al revés de
+        lo que decía el plan. `LabelScanner` guarda el error en estado y dibuja
+        un bloque persistente con "Sacar otra foto" y "Cargar a mano".
+        Comprobado con la API apagada y una imagen inyectada: el error queda en
+        pantalla, no es un toast.
+  - [x] `OnboardingPage`: cada tipo de vino se enciende con su color. Sus
+        estados ya eran correctos (el fallo deja el botón habilitado para
+        reintentar).
+  - [x] `GoogleCallbackPage`: sin cambios. Ya distingue cancelación, nonce
+        vencido, token ausente y caída de red, y vuelve a `/login` con el
+        mensaje que corresponde. Una URL de callback no se puede reintentar en
+        el lugar: el código ya se consumió.
+- [x] **Fase 7 — Cierre**
+  - [x] **375×667 y 375×812**: cero scroll horizontal en Mi Bodega, Sommelier,
+        Descubrí, Agregar y Perfil. Lo único que se pasa del borde son las
+        tiras que se deslizan a propósito (`.bres`, `.somm__rail`).
+  - [x] **`prefers-reduced-motion`**: encontró un agujero real. El CSS no puede
+        apagar un `scrollIntoView({behavior:"smooth"})` escrito en JS, y había
+        tres. Sale a `utils/scroll.js` con cuatro tests.
+  - [x] **Contraste medido, no estimado** (fórmula WCAG contra el fondo real,
+        acumulando las capas translúcidas):
+
+        | | |
+        |---|---|
+        | nombre del vino / número del resumen | 17,85 |
+        | uva y año | 10,76 |
+        | chips de tipo activos | 6,22 a 9,90 |
+        | etiqueta del resumen, bodega | 6,36 |
+        | pestaña activa | 6,25 |
+        | detalle del resumen | 5,39 |
+        | chip de orden activo | 5,28 |
+
+        Todo por encima de 4,5. El más bajo es el detalle del resumen.
+  - [x] **Literales de color**: siguen siendo sólo las excepciones documentadas
+        —Spotify, Mercado Libre y la hoja de impresión—. La migración de la
+        fase 1 aguantó seis fases.
+  - [x] Borradas `.page-header`, `.btn-wish` y `.cellar-ready__hint`. Revisadas
+        una por una: el detector automático marcaba 136 clases y la mayoría
+        eran falsos positivos (`btn--${variant}` y compañía se arman en tiempo
+        de ejecución).
+
+### Dos bugs de fondo que aparecieron en la fase 5
+
+| Qué | Dónde |
+|---|---|
+| **`position: sticky` no funcionaba en ninguna pantalla.** `.app-content` dice ser el área que scrollea (`overflow-y`, `scroll-padding-bottom`, `-webkit-overflow-scrolling`) pero su padre era un bloque suelto, así que crecía con el contenido y el que scrolleaba era el documento. Son cuatro líneas de CSS. **Cambia quién scrollea en todas las pantallas** — verificado a mano en las cuatro principales, más el colapso del título, una hoja y la barra inferior. | `AppLayout.css`, `App.css` |
+| `Segmented` movía el scroll VERTICAL de la página al cambiar de opción: su `scrollIntoView` recorre todos los ancestros y, con la cápsula pegajosa, usa la posición estática. Se veía como que la página volvía sola. Nunca se había notado porque era la primera vez que una cápsula era sticky. | `Segmented.jsx` |
 
 ---
+
+## El rediseño está cerrado. Qué falta antes de mergear
+
+Las siete fases están hechas. Lo que queda **no es del rediseño** y conviene
+decidirlo con la cabeza fresca:
+
+1. **Probarlo en un teléfono de verdad.** Todo lo de arriba se verificó en el
+   navegador integrado con la ventana emulada a 375px. Eso alcanza para el
+   layout, el contraste y los estados; no alcanza para el gesto de deslizar una
+   fila con el pulgar, ni para el teclado real tapando el compositor, ni para
+   `standalone` en iOS.
+2. **Revisar el cambio de scroll** (fase 5). Es lo único de todo el trabajo que
+   toca todas las pantallas a la vez. Verificado a mano en las principales,
+   pero es lo primero que hay que mirar si algo se ve raro.
+3. El merge: `feat/redesign-v2` → PR a `develop` → `main`.
+
+## Parte B — funcionalidad nueva, no capa visual
+
+- [x] **B1 · Historial del Sommelier.** Modelo, tres endpoints, guardado del
+      lado del servidor y hoja de archivo. Lo escribe el server y no el cliente
+      para que nadie pueda guardarse una respuesta que la app nunca dio, y
+      **ninguna consulta busca sólo por `_id`** — una charla tiene lo más
+      personal que guarda la app.
+- [x] **B3 · Llevarse los datos.** `GET /api/users/me/export`, con un test que
+      compara el inventario del export contra el del borrado para que no se
+      desincronicen.
+- [x] **B4 · Cuenta.** `DeleteAccountModal` estaba escrito y **no lo montaba
+      ninguna pantalla**: la baja sólo se alcanzaba por API.
+- [x] **B5 · Service worker.** Escrito alrededor del bug que esta app ya tuvo:
+      el documento se pide siempre a la red primero, y sólo se cachean los
+      assets con hash, que son inmutables. `/api` no se toca.
+- [x] **B6 · Endurecimiento.** Límite propio para la exportación (10/hora,
+      verificado). **Prettier evaluado y descartado** — ver CLAUDE.md.
+- [x] **B2 · Descubrí.** Las filas de videos, cursos y vinotecas no tenían
+      superficie —eran ícono y texto sobre el fondo— al lado de la tarjeta
+      destacada ya rediseñada. Ahora usan los mismos cuatro valores que la fila
+      de Mi Bodega. Y los tres encabezados de sección estaban en 17/700, 18/800
+      y 21/800: ahora los tres en 18/800.
+- [x] **Legales.** `/privacidad` y `/terminos`, escritas auditando el código que
+      las cumple — en el comentario de cada página están los archivos citados,
+      para que si alguno cambia se note que la página quedó mintiendo. Van
+      **fuera del gate de sesión**: la decisión de entregar los datos se toma
+      antes de crear la cuenta.
+
+### Los datos del responsable
+
+Completos en las dos páginas: responsable, domicilio (ciudad), email de contacto
+(una casilla propia de la app, no la personal), jurisdicción (Argentina) y
+autoridad de control (AAIP, Ley 25.326). Si alguno cambia, se cambia en
+`PrivacidadPage.jsx` **y** en `TerminosPage.jsx`, que repite los mismos datos.
+
+**Fuera del código, y a cargo del titular:** la ley argentina suele pedir
+registrar la base de datos de usuarios ante la AAIP (Registro Nacional de Bases
+de Datos). No es algo que la app pueda hacer sola; conviene confirmarlo con un
+profesional antes de anunciar las páginas como definitivas.
+## Medición final
+
+| | Línea base | Al cerrar |
+|---|---|---|
+| lint | limpio | limpio |
+| tokens declarados | — | 136/136 |
+| tests de client | 214 | **284** (35 archivos) |
+| tests de server | 339 | **355** |
+| carga inicial | 118,0 kB gzip | **119,5 kB** (entry 72,85 + vendor 35,76 + CSS 10,87) |
+| presupuesto | ~143 kB | sobra **23,5 kB** |
+| `BodyPage.jsx` | 1965 líneas | **1374** |
+| `WineDetailPage.jsx` | 1488 líneas | **1048** |
+| literales de color fuera de `index.css` | 84 hex · 206 rgba | 5 hex · 3 rgba, **todos con su comentario** |
+
+Cinco fases de trabajo visual por **1,5 kB**. No entró ninguna librería: las
+transiciones de layout las hace el navegador (View Transitions), el gesto de
+deslizar son 100 líneas de hook, y las ilustraciones son SVG escrito a mano.
+
+**Medición al cerrar la fase 5:**
+
+| | |
+|---|---|
+| lint | limpio |
+| tokens | 136/136 declarados |
+| client | **264/264** (32 archivos) |
+| server | 339/339 |
+| carga inicial | entry 72,83 + vendor 35,76 + CSS 10,97 = **119,6 kB gzip** |
+| presupuesto | ~143 kB (queda margen de 23,4) |
+
+El presupuesto casi no se movió en cinco fases: la transición de layout, el
+gesto de deslizar y la barra de secciones no trajeron ninguna librería.
+
+## Cómo probar la app con datos, sin tocar producción
+
+El backend no arranca donde el cliente lo busca (ver más abajo). Para revisar
+pantallas con vinos de verdad:
+
+1. `PORT=4000 node src/server.js` desde `server/`. El `.env` local apunta a la
+   base **`test`**; `config/db.js` explota si falta el nombre, justamente para
+   que nunca caiga en producción por descarte.
+2. Crear un usuario de prueba por la API (`/auth/register` + `/auth/login`) y
+   cargarle unos vinos por `POST /api/wines`.
+3. El registro deja la cuenta sin verificar y la app la manda a
+   `/verificar-email`: marcar `emailVerified: true` en la base `test`.
+4. El token va en `localStorage` bajo `rincones_token` y dura 15 minutos.
 
 ## La guarda de tokens
 
@@ -141,8 +383,10 @@ necesitan datos, levantar el server aparte con el puerto explícito.
 
 ## Pendientes conocidos, ajenos a este trabajo
 
-- El merge `develop` → `main` quedó sin hacer (11 commits).
-- `DeleteAccountModal.jsx` sigue sin montar: `DELETE /api/users/me` es accesible
-  solo por API, no desde el perfil.
+- `client/vercel.json` apunta el rewrite de `/api` a la API de **producción** también
+  en los previews, y la API de producción rechaza por CORS cualquier origen que no
+  esté en su lista. Resultado: un preview de rama no puede iniciar sesión, y aunque
+  pudiera escribiría en la base real. Para probar se usa el entorno local contra la
+  base `test`; una API de preview con su propia base es una decisión de infraestructura.
 - El check de CI existe pero no bloquea hasta marcarlo como requerido en la
   protección de rama.

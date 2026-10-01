@@ -90,34 +90,11 @@
   color: var(--text);
 }
 
-/* Controls (selects) */
-.filter-select,
-.sort-select {
-  flex: 1;
-  min-width: 0;
-  padding: 11px 36px 11px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  background-color: var(--glass);
-  color: var(--text);
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a782ef' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.filter-select:focus,
-.sort-select:focus {
-  outline: none;
-  border-color: var(--accent-light);
-  box-shadow: var(--focus-ring);
-}
+/* Acá vivían `.filter-select` y `.sort-select`: los dos combos que había arriba
+   de la lista antes de que el orden y el tipo se fueran a la hoja de filtros
+   (ver BodegaFilters). Ningún JSX los usaba desde entonces, y encima uno era de
+   los pocos campos de la app con letra de 14px — abajo de 16, iOS hace zoom
+   solo al tocarlos. Se van los dos, con su chevron en base64 incluido. */
 
 /* Quick filter chips */
 .active-filter-note {
@@ -981,33 +958,22 @@
   gap: 6px;
 }
 
+/* La ficha es un Chip: la forma, el color del activo y el foco los pone
+   Chip.css. Acá queda sólo lo propio de esta fila —va arriba de la lista y no
+   adentro de una hoja, así que se lee más chica— y el caso que no es un
+   filtro. */
 .bodega-ficha {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
-     toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
-     salir del modo selección, marcar todos— se habían quedado en 34. */
-  min-height: 40px;
-  padding: 0 10px 0 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
-  background: var(--accent-muted);
-  color: var(--accent-soft);
+  padding-right: 10px;
   font-size: var(--text-2xs);
   font-weight: 700;
-  cursor: pointer;
 }
 
-.bodega-ficha:hover {
-  border-color: var(--accent-light);
-  color: var(--text);
-}
-
+/* "Limpiar todo" no es un filtro puesto: es la salida. Sin relleno ni color de
+   acento, para que no se lea como una ficha más de las que está sacando. */
 .bodega-ficha--clear {
-  border-style: solid;
   background: none;
   color: var(--text-secondary);
+  font-size: var(--text-2xs);
 }
 
 
@@ -1027,16 +993,57 @@
   position: relative;
 }
 
+/* ── LA FOTO ES LA TARJETA ───────────────────────────────────────────────────
+   La foto iba con 10px de aire alrededor, como una ilustración pegada adentro
+   de una ficha. Pero la grilla existe para reconocer una etiqueta de un
+   vistazo: si la foto está enmarcada, lo primero que se ve es el marco.
+
+   Ahora llega a los tres bordes y el texto vive abajo, con su propio padding.
+   El degradado del final de la foto la funde con el bloque de datos en vez de
+   cortarla con una línea: sin eso, la tarjeta se lee como dos piezas apiladas
+   —una imagen y un pie— y no como una sola cosa. */
 .wines-list--grid .wine-row__main {
   flex-direction: column;
   align-items: stretch;
-  gap: 9px;
-  padding: 10px;
+  gap: 0;
+  padding: 0;
 }
 
 .wines-list--grid .wine-row__thumb {
+  position: relative;
   width: 100%;
   height: 130px;
+  border-radius: 0;
+}
+
+.wines-list--grid .wine-row__thumb::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46px;
+  pointer-events: none;
+  /* Del color de la superficie de la tarjeta hacia arriba, con un rastro del
+     color del tipo: el mismo hilo que recorre el resto de la app.
+
+     El opaco dura poco —los últimos píxeles— y el resto se va rápido. Con una
+     rampa larga, el degradado le comía el tercio de abajo a la botella
+     dibujada, que está centrada en el marco: la etiqueta quedaba nítida y el
+     culo de la botella lavado, como si la foto estuviera mal recortada. */
+  background: linear-gradient(
+    to top,
+    var(--surface-raised) 8%,
+    rgb(var(--surface-raised-rgb) / 0.45) 34%,
+    rgb(var(--type-rgb) / 0.08) 70%,
+    transparent
+  );
+}
+
+.wines-list--grid .wine-row__info {
+  padding: 0 11px 11px;
+}
+
+.wines-list--grid .wine-row__right {
+  padding: 0 11px 11px;
 }
 
 /* ── LA GRILLA GANA, SIEMPRE ─────────────────────────────────────────────────
@@ -1053,6 +1060,7 @@
 .wines-list--grid.wines-list--archivo .wine-row__thumb {
   width: 100%;
   height: 130px;
+  border-radius: 0;
 }
 
 .wines-list--grid .wine-row__right {
@@ -1307,9 +1315,15 @@
    cabecera vieja —una celda de cuadrícula no se despliega, así que ahí no hubo
    nada que reordenar— y sin estas dos el chip se le caía al pie de la tarjeta.
 
-   El `:not()` es lo que las deja sólo donde siguen sirviendo: `wine-row--vitrina`
-   se pone únicamente en lista (ver BodyPage.jsx). */
-.wines-list--protagonista .wine-row:not(.wine-row--vitrina) .wine-row__tasted {
+   Los `:not()` son lo que las deja sólo donde siguen sirviendo. El primero es
+   la grilla: ahí el chip NO está en el flujo —es una insignia absoluta sobre la
+   foto (ver más arriba)— así que estos -34px lo sacaban 17px por encima del
+   borde de la tarjeta, donde el `overflow: hidden` de la fila lo cortaba al
+   medio. El segundo es `wine-row--vitrina`, que se pone únicamente en lista
+   (ver BodyPage.jsx). */
+.wines-list--protagonista:not(.wines-list--grid)
+  .wine-row:not(.wine-row--vitrina)
+  .wine-row__tasted {
   margin-top: -34px;
   margin-left: auto;
 }
@@ -1660,4 +1674,67 @@
 .bodega-barra__accion--peligro:hover:not(:disabled) {
   background: var(--wine-soft);
   border-color: rgb(var(--wine-rgb) / 0.5);
+}
+
+/* ══ DESLIZAR UNA FILA ══════════════════════════════════════════════════════
+   La capa de acciones vive detrás de la cabecera, pegada al borde derecho, y
+   se descubre cuando la cabecera se corre. Ver hooks/useSwipeAcciones.js: el
+   gesto REVELA, no ejecuta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wine-row__swipe {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  /* 2 × 56: es lo que el hook usa como tope del arrastre (ANCHO_ACCIONES). */
+  width: 112px;
+  /* Se ve sólo la franja que la cabecera dejó libre: `--revelado` lo pone el
+     componente con lo que el dedo corrió, y cerrada la capa queda recortada
+     del todo. */
+  clip-path: inset(0 0 0 calc(100% - var(--revelado, 0px)));
+}
+
+/* La cabecera se corre y deja la capa a la vista. No lleva fondo propio: las
+   superficies de esta app son translúcidas a propósito, y pintarla opaca para
+   que tape los botones habría sido romper eso para esconder un problema de
+   capas — que el recorte de arriba no tiene. */
+.wine-row__head {
+  position: relative;
+  transition: transform var(--transition-smooth);
+}
+
+/* Mientras el dedo manda no hay transición: la fila tiene que ir donde está el
+   dedo, no donde estaba hace 180ms. */
+.wine-row__head[data-arrastrando] {
+  transition: none;
+}
+
+.wine-row__swipe-btn {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  border: 0;
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.wine-row__swipe-btn.is-fav {
+  color: var(--favorite);
+}
+
+.wine-row__swipe-btn--danger {
+  background: rgb(var(--danger-rgb) / 0.16);
+  color: var(--danger);
+}
+
+/* Quien activó reduced-motion pierde el deslizamiento animado, no el gesto: la
+   fila salta a su lugar y los botones quedan igual de disponibles. */
+@media (prefers-reduced-motion: reduce) {
+  .wine-row__head {
+    transition: none;
+  }
 }

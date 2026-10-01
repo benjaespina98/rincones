@@ -8,6 +8,7 @@ const WineReview = require("../src/models/wineReview.model");
 const WinePrice = require("../src/models/winePrice.model");
 const AnalyticsEvent = require("../src/models/analyticsEvent.model");
 const RefreshToken = require("../src/models/refreshToken.model");
+const SommelierConversation = require("../src/models/sommelierConversation.model");
 const { deleteAccount } = require("../src/services/accountDeletion.service");
 
 const stubModels = (role, admins) => {
@@ -24,6 +25,10 @@ const stubModels = (role, admins) => {
     ["Wine", Wine], ["WineWish", WineWish], ["WineMoment", WineMoment],
     ["WineReview", WineReview], ["WinePrice", WinePrice],
     ["AnalyticsEvent", AnalyticsEvent], ["RefreshToken", RefreshToken],
+    // Las charlas con la guia. Si manana se agrega otra coleccion al borrado y
+    // no a esta lista, este test explota con un CastError — que es como se
+    // descubrio que faltaba esta.
+    ["SommelierConversation", SommelierConversation],
   ]) {
     stub(model, "deleteMany", async (f) => calls.push([label, f]));
   }
@@ -38,7 +43,20 @@ test("la baja borra los datos del usuario y la cuenta queda para lo último", as
     assert.equal(result.ok, true);
     assert.deepEqual(
       calls.map((c) => c[0]).sort(),
-      ["AnalyticsEvent", "RefreshToken", "User", "Wine", "WineMoment", "WinePrice", "WineReview", "WineWish"]
+      [
+        "AnalyticsEvent",
+        "RefreshToken",
+        // Las charlas con la guía: lo más personal que guarda la app, y con una
+        // retención de 180 días que no alcanza acá — quien se da de baja pidió
+        // que se vaya ahora, no dentro de medio año.
+        "SommelierConversation",
+        "User",
+        "Wine",
+        "WineMoment",
+        "WinePrice",
+        "WineReview",
+        "WineWish",
+      ]
     );
     assert.equal(calls.at(-1)[0], "User");
     assert.deepEqual(calls.find((c) => c[0] === "WinePrice")[1], { user: "u1" });

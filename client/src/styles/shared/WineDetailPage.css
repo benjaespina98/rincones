@@ -25,6 +25,25 @@
   border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
 }
 
+/* ── EL FONDO LO PONE EL VINO, NO LA APP ────────────────────────────────────
+   El degradado de arriba es el respaldo para cuando no se sabe el tipo. Con
+   `data-wine-type` (ver WineDetailPage.jsx y CatalogWinePage.jsx) el color sale
+   del vino.
+
+   Donde más se nota es en las fichas SIN foto, que son la mayoría de las recién
+   cargadas: ahí el encabezado ocupa media pantalla y era el mismo violeta para
+   un Malbec que para un espumante. Con foto la diferencia es mínima, porque el
+   fondo ambiental de la propia etiqueta lo tapa casi entero.
+
+   El violeta de la marca no se va: se corre a la esquina y baja de intensidad.
+   Con puro color del tipo, la ficha dejaba de parecer de Rincones. */
+.wine-detail-hero[data-wine-type] {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(var(--type-rgb) / 0.34), transparent 66%),
+    radial-gradient(90% 70% at 0% 10%, rgb(var(--accent-light-rgb) / 0.16), transparent 60%),
+    linear-gradient(160deg, rgb(var(--type-rgb) / 0.2) 0%, rgb(var(--bg-rgb) / 0.95) 100%);
+}
+
 /* Degradado de cinco paradas, no de dos. `transparent 40% → 0.75 100%` es una
    rampa lineal, y el ojo detecta dónde arranca: se veía una banda gris cruzando
    la foto. Escalonándola (imitando una curva) el oscurecimiento no tiene
@@ -146,9 +165,12 @@
   margin: 0;
   font-family: var(--font-family-serif);
   font-size: clamp(1.7rem, 6vw, 2.3rem);
-  font-weight: 700;
+  /* 800 y no 700: es el nombre de la botella sobre su propia foto, y tiene que
+     ganarle a una etiqueta que puede ser de cualquier color. Con 700 competía
+     de igual a igual con la región de abajo. */
+  font-weight: 800;
   line-height: 1.08;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--paper);
   text-shadow: 0 2px 18px rgb(var(--ink-rgb) / 0.55);
 }

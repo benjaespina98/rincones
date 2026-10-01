@@ -40,10 +40,15 @@ const LoadingSkeleton = ({ type = "card", count = 3 }) => {
       <div className="skeleton-list">
         {items.map((_, i) => (
           <div key={i} className="skeleton-row">
-            <div className="skeleton skeleton--thumb"></div>
-            <div className="skeleton-row__lines">
-              <div className="skeleton skeleton--text" style={{ width: "62%" }}></div>
-              <div className="skeleton skeleton--text skeleton--small" style={{ width: "42%" }}></div>
+            {/* La banda del tipo. Va acá porque la fila real la tiene: sin ella
+                el contenido entraría corrido 3 px al terminar de cargar. */}
+            <div className="skeleton skeleton--rail"></div>
+            <div className="skeleton-row__cuerpo">
+              <div className="skeleton skeleton--thumb"></div>
+              <div className="skeleton-row__lines">
+                <div className="skeleton skeleton--text" style={{ width: "62%" }}></div>
+                <div className="skeleton skeleton--text skeleton--small" style={{ width: "42%" }}></div>
+              </div>
             </div>
           </div>
         ))}

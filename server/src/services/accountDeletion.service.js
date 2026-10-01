@@ -6,6 +6,7 @@ const WineReview = require("../models/wineReview.model");
 const WinePrice = require("../models/winePrice.model");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
 const RefreshToken = require("../models/refreshToken.model");
+const SommelierConversation = require("../models/sommelierConversation.model");
 
 /**
  * Baja de cuenta con borrado real: el usuario y todo lo que le pertenece.
@@ -37,6 +38,11 @@ const deleteAccount = async (userId) => {
     WineReview.deleteMany({ userId }),
     WinePrice.deleteMany({ user: userId }),
     AnalyticsEvent.deleteMany({ userId }),
+    /* Las charlas con la guía. Es de lo más personal que guarda la app —con qué
+       come, con quién, qué puede pagar— y el archivo tiene una retención de 180
+       días que NO alcanza acá: quien se da de baja pidió que se vaya ahora, no
+       dentro de medio año. */
+    SommelierConversation.deleteMany({ userId }),
   ]);
   await User.deleteOne({ _id: userId });
   return { ok: true };

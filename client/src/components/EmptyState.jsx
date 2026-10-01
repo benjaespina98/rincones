@@ -1,5 +1,6 @@
 import Icon from "./Icon";
 import EmptyIllustration from "./EmptyIllustration";
+import Button from "./Button";
 
 /**
  * Estado vacío estándar: dibujo + título + explicación + acción opcional.
@@ -51,14 +52,22 @@ export default function EmptyState({
       <p className="empty-title">{title}</p>
       {hint && <p className="empty-subtitle">{hint}</p>}
       {actionLabel && onAction && (
-        <button type="button" className="empty-cta" onClick={onAction}>
+        <Button
+          variant="primary"
+          size={compact ? "sm" : "md"}
+          onClick={onAction}
+          className="empty-cta"
+        >
           {actionLabel}
-        </button>
+        </Button>
       )}
       {secondaryLabel && onSecondary && (
-        <button type="button" className="empty-alt" onClick={onSecondary}>
+        /* Ghost y no primary: es la salida LATERAL. Dos botones con el mismo
+           peso obligan a elegir entre dos cosas que no son equivalentes, y acá
+           una es la que la pantalla propone y la otra la que quizá quería. */
+        <Button variant="ghost" size="sm" onClick={onSecondary} className="empty-alt">
           {secondaryLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

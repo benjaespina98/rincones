@@ -1,0 +1,78 @@
+/* El archivo de consultas del Sommelier. El criterio está en el .jsx. */
+
+.shist__lista {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada fila son dos controles hermanos: el cuerpo abre, el tacho borra. */
+.shist__item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: var(--radius-md);
+}
+
+.shist__item:hover {
+  background: rgb(var(--paper-rgb) / 0.04);
+}
+
+.shist__abrir {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  text-align: left;
+  min-height: 56px;
+  padding: 10px 4px 10px 10px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* Dos renglones como mucho: un título de consulta puede ser largo, pero cuatro
+   líneas convierten una lista en un muro. */
+.shist__titulo {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.shist__meta {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  /* La primera letra de "Hoy" y del día de la semana: `toLocaleDateString`
+     devuelve "jueves" en minúscula y acá arranca renglón. */
+  text-transform: capitalize;
+}
+
+.shist__borrar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  /* 44px, el mínimo con el que un pulgar acierta — y acá importa más que en
+     otros lados, porque al lado hay un control que hace algo muy distinto. */
+  width: 44px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.shist__borrar:hover {
+  color: var(--danger);
+  background: rgb(var(--danger-rgb) / 0.12);
+}

@@ -65,6 +65,12 @@ export function useSheet(onClose, { enabled = true } = {}) {
      * agrega una parada en el ciclo; excluirlo de más lo deja inalcanzable.
      */
     const oculto = (el) => {
+      // `hidden` e `inert` son declaraciones explícitas de quien escribió el
+      // marcado: dicen "esto no participa", y hay que creerles antes de mirar
+      // estilos. `inert` además se hereda, así que se pregunta por el ancestro
+      // más cercano — un panel entero puede estar inerte mientras se anima.
+      if (el.hidden || el.closest?.("[inert]")) return true;
+
       const vista = el.ownerDocument?.defaultView;
       if (!vista) return false;
       const cs = vista.getComputedStyle(el);
