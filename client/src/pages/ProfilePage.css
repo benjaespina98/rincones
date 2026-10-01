@@ -5,7 +5,7 @@
   gap: 18px;
   /* El margen lateral es el de todas las pantallas (--page-pad-x). Tenía 12px fijos,
      8 menos que el título grande, y las tarjetas del perfil quedaban pegadas al borde. */
-  padding: 0 var(--page-pad-x) calc(132px + env(safe-area-inset-bottom));
+  padding: 0 var(--page-pad-x) calc(132px + var(--nav-safe-bottom));
   background: transparent;
   min-height: 100dvh;
 }

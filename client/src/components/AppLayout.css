@@ -46,7 +46,9 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: calc(0.6rem + env(safe-area-inset-top)) 1rem 0.7rem;
+  /* Reserva menos que la zona segura entera (ver --topbar-safe-top en index.css): el avatar
+     queda más cerca de la hora y la barra ocupa menos de lo que se lleva el contenido. */
+  padding: calc(0.6rem + var(--topbar-safe-top)) 1rem 0.7rem;
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   background: linear-gradient(180deg, rgb(var(--bg-rgb) / 0.92), rgb(var(--bg-rgb) / 0.66));
@@ -115,7 +117,10 @@
    El encabezado real de la pantalla. Vive en el contenido, asi que se va solo
    con el scroll — no hay que animarlo ni medirlo. */
 .app-hero-title {
-  margin: 0 0 var(--space-md);
+  /* Aire ARRIBA: el título arrancaba a 4px del borde de la barra superior y se leía pegado a
+     ella. Con el margen de abajo igual al de arriba, queda centrado entre la barra y lo
+     que sigue. */
+  margin: var(--space-md) 0 var(--space-md);
   font-size: var(--text-display);
   line-height: 1.1;
   font-weight: 800;

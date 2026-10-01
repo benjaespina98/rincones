@@ -30,7 +30,7 @@
   left: 50%;
   /* Ocho píxeles metido en la barra: `--nav-height` es su alto, así que si la
      barra cambia, el botón la sigue solo. */
-  bottom: calc(var(--nav-height) - 8px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--nav-height) - 8px + var(--nav-safe-bottom));
   transform: translateX(-50%);
   z-index: calc(var(--z-nav) + 1);
 
