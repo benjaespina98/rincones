@@ -39,7 +39,7 @@ export default function PrivacidadPage() {
       <p>
         <strong>Benjamín Espina</strong>, con domicilio en{" "}
         <strong>Córdoba, Argentina</strong>. Para cualquier consulta sobre tus datos escribinos
-        a <strong>benjaespina98@gmail.com</strong>.
+        a <strong>rincones.wines@gmail.com</strong>.
       </p>
 
       <h2>Qué guardamos</h2>
