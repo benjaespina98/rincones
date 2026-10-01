@@ -210,3 +210,50 @@ test("la conversación se borra sola a los 45 días de su última actividad", ()
 test("createdAt no lleva vencimiento: redefinir el índice viejo chocaría con la base", () => {
   assert.equal(SommelierConversation.schema.path("createdAt").options.expires, undefined);
 });
+
+/**
+ * Borrar todo el historial. Un deleteMany sin filtro de usuario borra la
+ * colección de TODAS las personas: lo que se prueba es que el filtro lleve el
+ * userId y que sin userId no se toque la base.
+ */
+test("borrar todo filtra por el usuario y nada más", async () => {
+  const espia = espiar("deleteMany", { deletedCount: 3 });
+  const r = res();
+  await historyController.removeAll({ user: { id: "u1" } }, r, () => {});
+  espia.restore();
+
+  assert.deepEqual(espia.llamadas, [{ userId: "u1" }]);
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(r.body, { success: true, data: { borradas: 3 } });
+});
+
+test("borrar todo SIN usuario no llama a la base: un filtro vacío borraría las de todos", async () => {
+  const espia = espiar("deleteMany", { deletedCount: 99 });
+  const r = res();
+  await historyController.removeAll({ user: undefined }, r, () => {});
+  await historyController.removeAll({ user: { id: "" } }, r, () => {});
+  espia.restore();
+
+  assert.equal(espia.llamadas.length, 0);
+  assert.equal(r.statusCode, 401);
+});
+
+test("borrar todo cuando no hay nada es un 200 con cero, no un error", async () => {
+  const espia = espiar("deleteMany", { deletedCount: 0 });
+  const r = res();
+  await historyController.removeAll({ user: { id: "u1" } }, r, () => {});
+  espia.restore();
+
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.body.data.borradas, 0);
+});
+
+test("si la base falla, el error va al manejador y no se pierde en silencio", async () => {
+  const original = SommelierConversation.deleteMany;
+  SommelierConversation.deleteMany = () => Promise.reject(new Error("caída"));
+  let recibido = null;
+  await historyController.removeAll({ user: { id: "u1" } }, res(), (e) => { recibido = e; });
+  SommelierConversation.deleteMany = original;
+
+  assert.equal(recibido?.message, "caída");
+});

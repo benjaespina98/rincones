@@ -9,7 +9,11 @@ import { useSheet } from "../hooks/useSheet";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useToast } from "../context/ToastContext";
 import { agruparPorFecha } from "../utils/chatsAgrupados";
-import { listarConversaciones, borrarConversacion } from "../services/sommelierApi";
+import {
+  listarConversaciones,
+  borrarConversacion,
+  borrarTodasLasConversaciones,
+} from "../services/sommelierApi";
 import "./SommelierChats.css";
 
 /**
@@ -55,6 +59,7 @@ export default function SommelierChats({
   onAbrir,
   onNueva,
   onBorrada,
+  onBorradasTodas,
 }) {
   const escritorio = useMediaQuery(ESCRITORIO);
   const modal = !escritorio && abierto;
@@ -67,6 +72,7 @@ export default function SommelierChats({
   const [fallo, setFallo] = useState(false);
   const [menuId, setMenuId] = useState(null);
   const [aBorrar, setABorrar] = useState(null);
+  const [confirmandoTodo, setConfirmandoTodo] = useState(false);
   const yaCargo = useRef(false);
   const botonesMas = useRef(new Map());
   const primerItemDelMenu = useRef(null);
@@ -131,6 +137,22 @@ export default function SommelierChats({
       onBorrada?.(charla.id);
     } catch {
       showError("No pudimos borrar la conversación. Probá de nuevo.");
+      cargar();
+    }
+  };
+
+  /* Borrar todo, con la misma lógica que borrar una: se vacía la lista antes de
+     que el servidor conteste y, si falla, se avisa y se vuelve a traer la verdad.
+     `onBorradasTodas` avisa a la pantalla, que reinicia si la charla abierta era
+     una de las borradas. */
+  const confirmarBorradoTotal = async () => {
+    setConfirmandoTodo(false);
+    setConversaciones([]);
+    try {
+      await borrarTodasLasConversaciones();
+      onBorradasTodas?.();
+    } catch {
+      showError("No pudimos borrar el historial. Probá de nuevo.");
       cargar();
     }
   };
@@ -244,6 +266,12 @@ export default function SommelierChats({
           )}
         </div>
 
+        {conversaciones.length > 0 && (
+          <button type="button" className="schats__borrar-todo" onClick={() => setConfirmandoTodo(true)}>
+            <Icon name="trash" size={15} />
+            Borrar todo el historial
+          </button>
+        )}
         <p className="schats__nota">Se borran solas a los 45 días sin usarse.</p>
       </aside>
   );
@@ -269,6 +297,19 @@ export default function SommelierChats({
         isDangerous
         onConfirm={confirmarBorrado}
         onCancel={() => setABorrar(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmandoTodo}
+        title="¿Borrar todo el historial?"
+        message={`Se van ${conversaciones.length} ${
+          conversaciones.length === 1 ? "conversación" : "conversaciones"
+        } del Sommelier y no se pueden recuperar.`}
+        confirmText="Borrar todo"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={confirmarBorradoTotal}
+        onCancel={() => setConfirmandoTodo(false)}
       />
     </>
   );

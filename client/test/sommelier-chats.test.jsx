@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 const api = vi.hoisted(() => ({
   listarConversaciones: vi.fn(),
   borrarConversacion: vi.fn(),
+  borrarTodasLasConversaciones: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ showError: vi.fn() }));
 
@@ -33,6 +34,7 @@ const abrir = (props = {}) => {
     onAbrir: vi.fn(),
     onNueva: vi.fn(),
     onBorrada: vi.fn(),
+    onBorradasTodas: vi.fn(),
   };
   const utils = render(
     <SommelierChats abierto activoId={null} version="1" {...handlers} {...props} />
@@ -43,6 +45,7 @@ const abrir = (props = {}) => {
 beforeEach(() => {
   api.listarConversaciones.mockReset().mockResolvedValue(CHARLAS);
   api.borrarConversacion.mockReset().mockResolvedValue(true);
+  api.borrarTodasLasConversaciones.mockReset().mockResolvedValue(2);
   toast.showError.mockReset();
 });
 
@@ -189,5 +192,59 @@ describe("SommelierChats", () => {
     await waitFor(() => expect(api.listarConversaciones).toHaveBeenCalledTimes(2));
     expect(screen.getByText("¿Qué tomo con un asado?")).toBeInTheDocument();
     expect(screen.queryByText("No pudimos traer tus conversaciones")).toBeNull();
+  });
+
+  describe("borrar todo el historial", () => {
+    const abrirDialogo = async () => {
+      fireEvent.click(await screen.findByRole("button", { name: /borrar todo el historial/i }));
+      return screen.getByText("¿Borrar todo el historial?").closest(".confirm-modal");
+    };
+
+    it("el botón está, y pregunta cuántas se van antes de borrar nada", async () => {
+      abrir();
+      const dialogo = await abrirDialogo();
+      expect(within(dialogo).getByText(/Se van 2 conversaciones/)).toBeInTheDocument();
+      expect(api.borrarTodasLasConversaciones).not.toHaveBeenCalled();
+    });
+
+    it("al confirmar vacía la lista, llama a la API y avisa a la pantalla", async () => {
+      const { onBorradasTodas } = abrir();
+      const dialogo = await abrirDialogo();
+      fireEvent.click(within(dialogo).getByRole("button", { name: "Borrar todo" }));
+
+      await waitFor(() => expect(api.borrarTodasLasConversaciones).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(onBorradasTodas).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText("¿Qué tomo con un asado?")).toBeNull();
+      expect(await screen.findByText("Todavía no hay conversaciones")).toBeInTheDocument();
+    });
+
+    it("cancelar no borra nada", async () => {
+      const { onBorradasTodas } = abrir();
+      const dialogo = await abrirDialogo();
+      fireEvent.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+
+      expect(api.borrarTodasLasConversaciones).not.toHaveBeenCalled();
+      expect(onBorradasTodas).not.toHaveBeenCalled();
+      expect(screen.getByText("¿Qué tomo con un asado?")).toBeInTheDocument();
+    });
+
+    it("si falla, avisa, no le dice a la pantalla que reinicie y vuelve a traer la lista real", async () => {
+      api.borrarTodasLasConversaciones.mockRejectedValue(new Error("red"));
+      const { onBorradasTodas } = abrir();
+      const dialogo = await abrirDialogo();
+      fireEvent.click(within(dialogo).getByRole("button", { name: "Borrar todo" }));
+
+      await waitFor(() => expect(toast.showError).toHaveBeenCalled());
+      expect(onBorradasTodas).not.toHaveBeenCalled();
+      await waitFor(() => expect(api.listarConversaciones).toHaveBeenCalledTimes(2));
+      expect(await screen.findByText("¿Qué tomo con un asado?")).toBeInTheDocument();
+    });
+
+    it("sin conversaciones no hay nada que borrar: el botón no aparece", async () => {
+      api.listarConversaciones.mockResolvedValue([]);
+      abrir();
+      await screen.findByText("Todavía no hay conversaciones");
+      expect(screen.queryByRole("button", { name: /borrar todo el historial/i })).toBeNull();
+    });
   });
 });

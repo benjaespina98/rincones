@@ -573,6 +573,14 @@ export default function SuggestionsPage() {
    * y la próxima pregunta abriría una nueva sin que se note el cambio. No se
    * enfoca el campo: quien borra está mirando el panel, no escribiendo.
    */
+  const alBorrarTodas = () => {
+    // Se borró TODO el historial: si había una charla abierta con id, era una de ellas.
+    if (!conversacionId) return;
+    setMensajes([]);
+    setConversacionId(null);
+    setTexto("");
+  };
+
   const alBorrarConversacion = (id) => {
     if (id !== conversacionId) return;
     setMensajes([]);
@@ -1038,6 +1046,7 @@ export default function SuggestionsPage() {
         onAbrir={abrirConversacion}
         onNueva={nuevaConversacion}
         onBorrada={alBorrarConversacion}
+        onBorradasTodas={alBorrarTodas}
       />
     </div>
   );

@@ -242,6 +242,36 @@
   background: var(--danger-soft);
 }
 
+/* Borrar todo: discreto, en el color de peligro y sin relleno — es una acción rara
+   y destructiva, no tiene que competir con "Nueva conversación". */
+.schats__borrar-todo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--danger-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .schats__borrar-todo:hover {
+    background: var(--danger-soft);
+  }
+}
+
+.schats__borrar-todo:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
 /* ── El pie ───────────────────────────────────────────────────────────────── */
 
 .schats__nota {
