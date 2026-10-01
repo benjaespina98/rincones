@@ -289,17 +289,36 @@ decidirlo con la cabeza fresca:
       assets con hash, que son inmutables. `/api` no se toca.
 - [x] **B6 · Endurecimiento.** Límite propio para la exportación (10/hora,
       verificado). **Prettier evaluado y descartado** — ver CLAUDE.md.
-- [ ] **B2 · Descubrí.** Sin empezar. La pantalla ya recibió trabajo en la fase
-      4.5 (hilo del tipo, chips, tarjeta destacada con cristal), así que lo que
-      falta depende de qué más se quiera: **hay que volver a enunciar el
-      alcance**, no está recuperable de lo escrito.
+- [x] **B2 · Descubrí.** Las filas de videos, cursos y vinotecas no tenían
+      superficie —eran ícono y texto sobre el fondo— al lado de la tarjeta
+      destacada ya rediseñada. Ahora usan los mismos cuatro valores que la fila
+      de Mi Bodega. Y los tres encabezados de sección estaban en 17/700, 18/800
+      y 21/800: ahora los tres en 18/800.
+- [x] **Legales.** `/privacidad` y `/terminos`, escritas auditando el código que
+      las cumple — en el comentario de cada página están los archivos citados,
+      para que si alguno cambia se note que la página quedó mintiendo. Van
+      **fuera del gate de sesión**: la decisión de entregar los datos se toma
+      antes de crear la cuenta.
 
-### Lo que falta de legales
+### Lo único que falta: cinco datos
 
-El encargo decía "cuenta y legales". La cuenta está; **las páginas legales
-—términos y privacidad— no se escribieron**, y no son algo que convenga
-redactar sin decisión del dueño: dicen qué se hace con los datos de usuarios
-reales.
+Las páginas legales tienen cinco marcadores `[COMPLETAR: …]` que no están en el
+código y no se pueden inventar:
+
+| | |
+|---|---|
+| responsable | nombre o razón social |
+| domicilio | del responsable |
+| contacto | email para reclamos de datos |
+| jurisdicción | país cuya ley aplica |
+| autoridad de control | dónde se reclama si no cumplimos |
+
+Hasta completarlos, **las páginas no se deberían anunciar como definitivas**.
+Se encuentran con:
+
+```bash
+grep -rn "COMPLETAR" client/src/pages/PrivacidadPage.jsx client/src/pages/TerminosPage.jsx
+```
 
 ## Medición final
 
@@ -307,8 +326,8 @@ reales.
 |---|---|---|
 | lint | limpio | limpio |
 | tokens declarados | — | 136/136 |
-| tests de client | 214 | **268** (33 archivos) |
-| tests de server | 339 | 339 |
+| tests de client | 214 | **274** (34 archivos) |
+| tests de server | 339 | **355** |
 | carga inicial | 118,0 kB gzip | **119,5 kB** (entry 72,85 + vendor 35,76 + CSS 10,87) |
 | presupuesto | ~143 kB | sobra **23,5 kB** |
 | `BodyPage.jsx` | 1965 líneas | **1374** |
