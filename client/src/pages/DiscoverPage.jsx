@@ -19,6 +19,7 @@ import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
+import FilaDeAtajos from "../components/FilaDeAtajos";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -85,20 +86,18 @@ export default function DiscoverPage() {
      elegir y evitaría esa en vez de la de la visita pasada. */
   const [ultimoAlEntrar] = useState(leerUltimoVisto);
 
-  /* Los atajos de búsqueda: una selección distinta en cada visita (estación, lo
-     que ya tomás, variedad forzada) y un botón para pedir otras. `giro` entra en
-     la key de cada chip: al cambiar, se vuelven a montar y entran de nuevo. */
+  /* Los atajos de búsqueda: una selección distinta en cada visita (estación, lo que ya
+     tomás, variedad forzada) que después se renueva SOLA, de a uno, como las
+     sugerencias de los chats de IA (ver FilaDeAtajos.jsx). No hay botón para pedir
+     otras: pedirlo era trabajo que la pantalla puede hacer sola. */
   const uvasFrecuentes = (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean);
-  const [sugerencias, setSugerencias] = useState(() =>
-    sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes })
+  const [sugerenciasIniciales] = useState(() =>
+    sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes }).map((label) => ({ label }))
   );
-  const [giro, setGiro] = useState(0);
-  const otrasIdeas = () => {
-    tapHaptic();
-    setSugerencias((previas) =>
-      sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes, excluir: previas })
-    );
-    setGiro((g) => g + 1);
+  const siguienteSugerencia = (actuales) => {
+    const visibles = actuales.map((x) => x.label);
+    const [label] = sugerenciasDeBusqueda({ cantidad: 1, uvasFrecuentes, excluir: visibles });
+    return label && !visibles.includes(label) ? { label } : null;
   };
 
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
@@ -348,30 +347,30 @@ export default function DiscoverPage() {
             dejarte cambiar de un toque. Y tocar el encendido lo apaga —vuelve
             la home— que es la salida que antes no existía. */}
         <div className="wine-search__chips">
-          <div className="wine-search__chips-row">
-            <button
-              type="button"
-              className="wine-search__otras"
-              aria-label="Otras ideas de búsqueda"
-              onClick={otrasIdeas}
-            >
-              <Icon name="refresh" size={16} />
-            </button>
-            {sugerencias.map((v, i) => {
-              const activo = query.trim().toLowerCase() === v.toLowerCase();
+          {/* Se frena mientras se busca: cambiar los atajos con un resultado en pantalla
+              sería mover el piso. */}
+          <FilaDeAtajos
+            className="wine-search__chips-row"
+            inicial={sugerenciasIniciales}
+            siguiente={siguienteSugerencia}
+            pausado={Boolean(query.trim())}
+            renderItem={(v, { entra, saliendo }) => {
+              const activo = query.trim().toLowerCase() === v.label.toLowerCase();
               return (
                 <Chip
-                  key={`${giro}-${v}`}
                   active={activo}
-                  className="wine-search__chip"
-                  style={{ "--i": i }}
-                  onClick={() => { tapHaptic(); setQuery(activo ? "" : v); }}
+                  className={`wine-search__chip${saliendo ? " atajo--sale" : ""}`}
+                  style={{ "--i": entra }}
+                  onClick={() => {
+                    tapHaptic();
+                    setQuery(activo ? "" : v.label);
+                  }}
                 >
-                  {v}
+                  {v.label}
                 </Chip>
               );
-            })}
-          </div>
+            }}
+          />
         </div>
       </header>
 

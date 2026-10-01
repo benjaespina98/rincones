@@ -199,15 +199,133 @@ const recipeWineDe = (recipeFor, wines, wishes) => {
   };
 };
 
+/**
+ * Lo que se le cuenta al modelo de la persona: su bodega, lo que quiere conseguir y su
+ * gusto declarado. Las tres consultas van en paralelo, proyectadas a los campos que de
+ * verdad se usan, y si alguna falla se sigue sin ella: una respuesta menos personal es
+ * infinitamente mejor que un error. Sin `personal` no se piden la bodega ni los
+ * guardados (ver MEDIDA 3 en `ask`); el gusto declarado va siempre, es una línea.
+ */
+const cargarContexto = async ({ userId, personal }) => {
+  const [wines, wishes, user] = await Promise.all([
+    personal
+      ? Wine.find({ userId })
+          .select("name winery varietal vintage region type image quantity rating tasted")
+          .sort({ quantity: -1, updatedAt: -1 })
+          .limit(60)
+          .lean()
+          .catch(() => [])
+      : Promise.resolve([]),
+    personal
+      ? WineWish.find({ userId })
+          .select("name winery varietal vintage type region")
+          .sort({ addedAt: -1 })
+          .limit(20)
+          .lean()
+          .catch(() => [])
+      : Promise.resolve([]),
+    User.findById(userId).select("preferences").lean().catch(() => null),
+  ]);
+  return { wines, wishes, user };
+};
+
+/**
+ * Del resultado crudo del modelo a la respuesta que sale al cliente. La comparten la
+ * pregunta escrita y la foto.
+ *
+ * MEDIDA 4 — la segunda red del filtro: el portero es una lista blanca y deja pasar
+ * algún borde; si el modelo dice que es de otro tema, se devuelve la misma frase que
+ * devolvería el portero, y no se cachea ni se guarda.
+ *
+ * La receta NO se genera acá (sería una segunda llamada a Gemini adentro de ésta, y acá
+ * la velocidad es la funcionalidad): sólo se resuelve a qué vino se refiere. El cliente
+ * la pide aparte, y sólo si se toca el botón.
+ *
+ * El historial se escribe ACÁ, con la respuesta que de verdad salió, antes de responder:
+ * el id de la conversación viaja en la respuesta y el cliente lo necesita para que la
+ * siguiente pregunta se agregue a la misma charla. Nunca tira: `guardarTurno` devuelve
+ * null si algo falla, y sin historial la app funciona igual — al revés no.
+ *
+ * @param {string|null} cacheKey  la clave de la caché de genéricas, o null para no cachear.
+ * @returns {Promise<object>} el cuerpo de la respuesta.
+ */
+const armarRespuesta = async ({
+  req,
+  resultado,
+  wines,
+  wishes,
+  question,
+  cacheKey = null,
+  reemplazaMensajeId = "",
+}) => {
+  if (resultado.offTopic) {
+    return { data: { ...FUERA_DE_TEMA, answer: resultado.answer }, cached: false };
+  }
+
+  const data = {
+    answer: resultado.answer,
+    wines: atarPicks(resultado.picks, wines),
+    followups: resultado.followups,
+    offTopic: false,
+  };
+
+  const recipeWine = recipeWineDe(resultado.recipeFor, wines, wishes);
+  if (recipeWine) data.recipeWine = recipeWine;
+
+  if (cacheKey) {
+    try {
+      await SommelierAnswer.updateOne(
+        { key: cacheKey },
+        {
+          $set: { key: cacheKey, answer: data.answer, followups: data.followups },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true }
+      );
+    } catch {
+      // La caché es una optimización; la respuesta ya está lista.
+    }
+  }
+
+  const guardado = await historial.guardarTurnoDetallado({
+    userId: req.user?.id,
+    conversationId: req.body.conversationId,
+    question,
+    data,
+    reemplazaMensajeId,
+  });
+
+  return {
+    data,
+    cached: false,
+    conversationId: guardado?.id ?? null,
+    // El id del mensaje del asistente: el pulgar y "otra opción" apuntan a él.
+    mensajeId: guardado?.mensajeId ?? null,
+  };
+};
+
 // POST /api/sommelier/ask { question, history? }
-const ask = async (req, res, next) => {
+const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
   try {
     const question = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
     if (question.length < MIN_PREGUNTA) {
-      return res.status(400).json({ message: "Escribí tu consulta" });
+      return enviar(400, { message: "Escribí tu consulta" });
     }
 
     const history = sommelier.recortarHistorial(req.body.history);
+
+    /**
+     * "OTRA OPCIÓN": la persona pidió una alternativa a una respuesta que ya leyó.
+     *
+     *   · `evitar` es esa respuesta, para que el modelo no la repita.
+     *   · `reemplazaMensajeId` es el mensaje del historial que se reemplaza, en su
+     *     mismo lugar, en vez de agregar un turno (la pregunta no se repite).
+     *   · No se lee ni se escribe la caché: la caché devuelve LA respuesta de
+     *     esa pregunta, que es justo la que se está descartando.
+     */
+    const regenerar = req.body.regenerar === true;
+    const evitar = regenerar ? String(req.body.evitar || "").trim().slice(0, 500) : "";
+    const reemplazaMensajeId = regenerar ? String(req.body.reemplazaMensajeId || "") : "";
 
     /**
      * MEDIDA 1 — el portero local.
@@ -217,7 +335,7 @@ const ask = async (req, res, next) => {
      * latencia, ni una consulta a la base. Ver data/sommelierDomain.js.
      */
     if (!esDelDominio(question, history.length > 0)) {
-      return res.status(200).json({ data: FUERA_DE_TEMA, cached: false });
+      return enviar(200, { data: FUERA_DE_TEMA, cached: false });
     }
 
     /**
@@ -240,7 +358,7 @@ const ask = async (req, res, next) => {
      * cosa distinta según lo anterior, así que su texto normalizado no alcanza
      * como clave.
      */
-    const cacheable = !personal && history.length === 0;
+    const cacheable = !personal && history.length === 0 && !regenerar;
     if (cacheable) {
       try {
         const guardada = await SommelierAnswer.findOne({ key }).lean();
@@ -260,13 +378,18 @@ const ask = async (req, res, next) => {
            * más frecuente —las preguntas genéricas son las que más se repiten—
            * así que dejarlo afuera habría vaciado el historial de casi todo.
            */
-          const idCache = await historial.guardarTurno({
+          const detCache = await historial.guardarTurnoDetallado({
             userId: req.user?.id,
             conversationId: req.body.conversationId,
             question,
             data: deCache,
           });
-          return res.status(200).json({ data: deCache, cached: true, conversationId: idCache });
+          return enviar(200, {
+            data: deCache,
+            cached: true,
+            conversationId: detCache?.id ?? null,
+            mensajeId: detCache?.mensajeId ?? null,
+          });
         }
       } catch {
         // Sin caché: se genera. Nunca se cae la respuesta por esto.
@@ -288,25 +411,7 @@ const ask = async (req, res, next) => {
      * verdad se usan, y si alguna falla se sigue sin ella: una respuesta menos
      * personal es infinitamente mejor que un error.
      */
-    const [wines, wishes, user] = await Promise.all([
-      personal
-        ? Wine.find({ userId: req.user.id })
-            .select("name winery varietal vintage region type image quantity rating tasted")
-            .sort({ quantity: -1, updatedAt: -1 })
-            .limit(60)
-            .lean()
-            .catch(() => [])
-        : Promise.resolve([]),
-      personal
-        ? WineWish.find({ userId: req.user.id })
-            .select("name winery varietal vintage type region")
-            .sort({ addedAt: -1 })
-            .limit(20)
-            .lean()
-            .catch(() => [])
-        : Promise.resolve([]),
-      User.findById(req.user.id).select("preferences").lean().catch(() => null),
-    ]);
+    const { wines, wishes, user } = await cargarContexto({ userId: req.user.id, personal });
 
     /**
      * MEDIDA 3.5 — el inventario ni pasa por el modelo.
@@ -321,23 +426,30 @@ const ask = async (req, res, next) => {
       // También va al historial: "¿qué Malbec tengo?" es una consulta como
       // cualquier otra, y que la haya contestado la base en vez del modelo no
       // cambia nada para quien preguntó.
-      const idInv = await historial.guardarTurno({
+      const detInv = await historial.guardarTurnoDetallado({
         userId: req.user?.id,
         conversationId: req.body.conversationId,
         question,
         data: inventario,
+        reemplazaMensajeId,
       });
-      return res.status(200).json({ data: inventario, cached: false, conversationId: idInv });
+      return enviar(200, {
+        data: inventario,
+        cached: false,
+        conversationId: detInv?.id ?? null,
+        mensajeId: detInv?.mensajeId ?? null,
+      });
     }
 
     let resultado;
     try {
-      resultado = await sommelier.preguntar({
+      resultado = await llamarModelo({
         question,
         history,
         wines,
         wishes,
         preferences: user?.preferences || {},
+        evitar,
       });
     } catch (error) {
       // Gemini sin cuota, caído o lento. Se dice lo que pasó y qué hacer, en
@@ -350,73 +462,231 @@ const ask = async (req, res, next) => {
       console.error("[sommelier]", error?.message || error);
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
-      return res.status(503).json({
+      return enviar(503, {
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
       });
     }
 
     if (!resultado) {
-      return res.status(503).json({
+      return enviar(503, {
         message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
       });
     }
 
-    // MEDIDA 4 — la segunda red del filtro. El portero es una lista blanca y
-    // deja pasar algún borde; si el modelo dice que es de otro tema, se
-    // devuelve la misma frase que devolvería el portero, y no se cachea.
-    if (resultado.offTopic) {
-      return res.status(200).json({ data: { ...FUERA_DE_TEMA, answer: resultado.answer }, cached: false });
-    }
-
-    const data = {
-      answer: resultado.answer,
-      wines: atarPicks(resultado.picks, wines),
-      followups: resultado.followups,
-      offTopic: false,
-    };
-
-    // La receta NO se genera acá (sería una segunda llamada a Gemini adentro
-    // de ésta, y acá la velocidad es la funcionalidad): sólo se resuelve a qué
-    // vino se refiere. El cliente pide la receta aparte, con el mismo
-    // endpoint que ya usa la ficha, y sólo si toca el botón.
-    const recipeWine = recipeWineDe(resultado.recipeFor, wines, wishes);
-    if (recipeWine) data.recipeWine = recipeWine;
-
-    if (cacheable) {
-      try {
-        await SommelierAnswer.updateOne(
-          { key },
-          { $set: { key, answer: data.answer, followups: data.followups }, $setOnInsert: { createdAt: new Date() } },
-          { upsert: true }
-        );
-      } catch {
-        // La caché es una optimización; la respuesta ya está lista.
-      }
-    }
-
-    /**
-     * El historial se escribe ACÁ, con la respuesta que de verdad salió.
-     *
-     * Va antes de responder y no después porque el id de la conversación viaja
-     * en la respuesta: el cliente lo necesita para que la siguiente pregunta se
-     * agregue a la misma charla en vez de abrir una nueva. Es una escritura de
-     * milisegundos contra una llamada a Gemini que tarda segundos, así que no
-     * cambia lo que la persona percibe.
-     *
-     * Y nunca tira: `guardarTurno` devuelve null si algo falla. Sin historial
-     * la app funciona igual — al revés no.
-     */
-    const conversationId = await historial.guardarTurno({
-      userId: req.user?.id,
-      conversationId: req.body.conversationId,
-      question,
-      data,
-    });
-
-    return res.status(200).json({ data, cached: false, conversationId });
+    return enviar(
+      200,
+      await armarRespuesta({
+        req,
+        resultado,
+        wines,
+        wishes,
+        question,
+        cacheKey: cacheable ? key : null,
+        reemplazaMensajeId,
+      })
+    );
   } catch (error) {
     return next(error);
   }
 };
 
-module.exports = { ask, atarPicks, encontrarVino, recipeWineDe, armarInventario, FUERA_DE_TEMA };
+/**
+ * POST /api/sommelier/ask — la respuesta de una sola vez (JSON).
+ *
+ * La lógica vive en `resolverPregunta`, que no sabe cómo se ENTREGA la respuesta: recibe
+ * `enviar(status, cuerpo)` y `llamarModelo(args)`. Esta es la versión de siempre; la que
+ * va escribiéndose es `askStream`.
+ */
+const ask = (req, res, next) =>
+  resolverPregunta(req, {
+    next,
+    enviar: (status, cuerpo) => res.status(status).json(cuerpo),
+    llamarModelo: (args) => sommelier.preguntar(args),
+  });
+
+/**
+ * POST /api/sommelier/ask-stream — la misma pregunta, con la respuesta escribiéndose.
+ *
+ * Server-Sent Events: tres tipos de evento.
+ *   texto   { delta }          un pedazo más de la respuesta (sólo el texto, no el JSON).
+ *   final   { status, ...cuerpo }   el mismo cuerpo que devuelve `ask`, con los vinos,
+ *                              las repreguntas y los ids del historial. Cierra el stream.
+ *   error   { status, message }     algo falló DESPUÉS de haber empezado a escribir.
+ *
+ * Todo lo que se decide antes de llamar al modelo (el portero, la caché, el inventario, los
+ * límites) es EXACTAMENTE lo mismo que en `ask`: esas respuestas salen como un único evento
+ * `final`. Un error previo a empezar (un 400, un 503) sale como JSON normal, no como evento:
+ * el cliente ya sabe leerlo.
+ *
+ * Si la persona se va a mitad de la respuesta, se corta la llamada a Gemini.
+ */
+const askStream = async (req, res, next) => {
+  let abierto = false;
+  let terminado = false;
+
+  const abrir = () => {
+    if (abierto) return;
+    abierto = true;
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      // `no-transform`: que ningún intermediario recomprima o junte los trozos.
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders?.();
+  };
+
+  const evento = (nombre, datos) => {
+    if (terminado) return;
+    abrir();
+    res.write(`event: ${nombre}\ndata: ${JSON.stringify(datos)}\n\n`);
+    res.flush?.();
+  };
+
+  const cerrar = () => {
+    terminado = true;
+    res.end();
+  };
+
+  const cancelacion = new AbortController();
+  res.on("close", () => cancelacion.abort());
+
+  let enviado = 0;
+
+  await resolverPregunta(req, {
+    next: (error) => {
+      if (!abierto) return next(error);
+      evento("error", { status: 500, message: "No pude terminar la respuesta. Probá de nuevo." });
+      return cerrar();
+    },
+    enviar: (status, cuerpo) => {
+      // Un error ANTES de empezar sale como JSON normal.
+      if (status !== 200 && !abierto) return res.status(status).json(cuerpo);
+      evento(status === 200 ? "final" : "error", { status, ...cuerpo });
+      return cerrar();
+    },
+    llamarModelo: (args) =>
+      sommelier.preguntarEnVivo({
+        ...args,
+        signal: cancelacion.signal,
+        onTexto: (texto) => {
+          if (texto.length <= enviado) return;
+          evento("texto", { delta: texto.slice(enviado) });
+          enviado = texto.length;
+        },
+      }),
+  });
+};
+
+/**
+ * ¿Los primeros bytes son los de una imagen de verdad?
+ *
+ * `multer` sólo mira el tipo que DECLARA el navegador, que no prueba nada: cualquiera
+ * puede subir un PDF con `Content-Type: image/jpeg`. Se miran las firmas de los
+ * formatos que acepta Gemini, para no mandarle a la API de visión —que se cobra por
+ * llamada— cualquier cosa. JPEG, PNG, WebP y HEIC/HEIF (el de los iPhone).
+ */
+const esImagenReal = (buffer) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
+  const b = buffer;
+  const jpeg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  const webp = b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP";
+  const heic = b.toString("ascii", 4, 8) === "ftyp" && /^(heic|heix|hevc|heim|heis|mif1|msf1)/.test(b.toString("ascii", 8, 12));
+  return jpeg || png || webp || heic;
+};
+
+/** El tipo que se le declara a Gemini: el real, no el que dijo el navegador. */
+const mimeDe = (buffer) => {
+  if (buffer[0] === 0xff) return "image/jpeg";
+  if (buffer[0] === 0x89) return "image/png";
+  if (buffer.toString("ascii", 0, 4) === "RIFF") return "image/webp";
+  return "image/heic";
+};
+
+/**
+ * POST /api/sommelier/photo — multipart { file, question?, conversationId?, history? }
+ *
+ * Una foto de la carta de un restaurante, de un plato o de una botella. Misma respuesta
+ * que `ask`. Cuenta contra los mismos límites (40 por día, 60 por hora) y la imagen NO se
+ * guarda: viaja a Gemini y se descarta. En el historial queda el texto que la persona
+ * escribió, o "Foto de un menú o plato".
+ */
+const askPhoto = async (req, res, next) => {
+  try {
+    const archivo = req.file;
+    if (!archivo?.buffer?.length) {
+      return res.status(400).json({ message: "Mandá una foto" });
+    }
+    if (!esImagenReal(archivo.buffer)) {
+      return res.status(400).json({ message: "Ese archivo no es una imagen válida" });
+    }
+
+    const texto = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
+    // Si escribió algo con la foto, tiene que ser del mundo del vino (el portero de
+    // siempre). La foto en sí la juzga el modelo: ver offTopic en las instrucciones.
+    if (texto && !esDelDominio(texto, false)) {
+      return res.status(200).json({ data: FUERA_DE_TEMA, cached: false });
+    }
+
+    let history = [];
+    try {
+      history = sommelier.recortarHistorial(JSON.parse(req.body.history || "[]"));
+    } catch {
+      // Un historial roto no tira la consulta: se sigue sin él.
+    }
+
+    // La bodega va siempre: con una carta o un plato, "qué abro" se contesta mirándola.
+    const { wines, wishes, user } = await cargarContexto({ userId: req.user.id, personal: true });
+
+    let resultado;
+    try {
+      resultado = await sommelier.preguntarConFoto({
+        imagen: { mime: mimeDe(archivo.buffer), base64: archivo.buffer.toString("base64") },
+        question: texto,
+        history,
+        wines,
+        wishes,
+        preferences: user?.preferences || {},
+      });
+    } catch (error) {
+      console.error("[sommelier:foto]", error?.message || error);
+      recordError({ error, req, statusCode: 503 });
+      captureException(error, { route: "POST /api/sommelier/photo" });
+      return res.status(503).json({
+        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+      });
+    }
+
+    if (!resultado) {
+      return res.status(503).json({
+        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+      });
+    }
+
+    return res.status(200).json(
+      await armarRespuesta({
+        req,
+        resultado,
+        wines,
+        wishes,
+        question: texto || "Foto de un menú o plato",
+      })
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = {
+  ask,
+  askStream,
+  askPhoto,
+  atarPicks,
+  encontrarVino,
+  recipeWineDe,
+  armarInventario,
+  esImagenReal,
+  FUERA_DE_TEMA,
+};

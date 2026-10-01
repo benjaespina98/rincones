@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const SommelierConversation = require("../models/sommelierConversation.model");
 
 /**
@@ -138,4 +139,52 @@ const removeAll = async (req, res, next) => {
   }
 };
 
-module.exports = { list, getOne, remove, removeAll, POR_PAGINA };
+/**
+ * El pulgar de la persona sobre UNA respuesta.
+ *
+ * Se apunta al mensaje por su id y el filtro lleva `userId`: dar pulgar a una
+ * respuesta ajena no matchea, y devuelve el mismo 404 que una que no existe. Sólo
+ * las respuestas del asistente aceptan pulgar (`$elemMatch` con `role`).
+ *
+ * `timestamps: false`: opinar sobre una charla vieja no tiene que subirla al
+ * tope de la lista ni reiniciarle los 45 días de vida.
+ */
+const feedback = async (req, res, next) => {
+  try {
+    const { mensajeId, valor } = req.body || {};
+
+    if (valor !== "up" && valor !== "down" && valor !== null) {
+      return res.status(400).json({ success: false, message: "Valor de pulgar inválido" });
+    }
+    if (!mongoose.isValidObjectId(mensajeId)) {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+
+    const cambio =
+      valor === null
+        ? { $unset: { "messages.$.feedback": "" } }
+        : { $set: { "messages.$.feedback": valor } };
+
+    const resultado = await SommelierConversation.updateOne(
+      {
+        _id: req.params.id,
+        userId: req.user.id,
+        messages: { $elemMatch: { _id: mensajeId, role: "assistant" } },
+      },
+      cambio,
+      { timestamps: false }
+    );
+
+    if (!resultado?.matchedCount) {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+    return res.json({ success: true, data: { mensajeId, valor } });
+  } catch (error) {
+    if (error?.name === "CastError") {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+    return next(error);
+  }
+};
+
+module.exports = { list, getOne, remove, removeAll, feedback, POR_PAGINA };

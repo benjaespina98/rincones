@@ -73,8 +73,11 @@ const mensajeSchema = new mongoose.Schema(
     paraDescubrir: { type: [vinoResumidoSchema], default: [] },
     repreguntas: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
+    // El pulgar de la persona sobre esta respuesta. Sólo en las del asistente.
+    feedback: { type: String, enum: ["up", "down"] },
+  }
+  // Con `_id` propio (antes `{ _id: false }`): el pulgar y "otra opción" apuntan a UN
+  // mensaje por su id y no por su posición, que se desfasa si la charla cambia.
 );
 
 const sommelierConversationSchema = new mongoose.Schema(
