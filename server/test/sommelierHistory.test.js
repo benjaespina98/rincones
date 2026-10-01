@@ -189,3 +189,24 @@ test("del vino se guarda lo justo para dibujar la tarjeta, no el documento", () 
   assert.deepEqual(Object.keys(resumido).sort(), ["image", "name", "type", "wineId", "winery"]);
   assert.equal(resumido.wineId, "w1");
 });
+
+/**
+ * La retención. Empezó en 180 días como TTL sobre `createdAt`; cambiar ese
+ * número en el schema no alcanza (Mongoose rechaza redefinir un índice
+ * existente con otras opciones) y `collMod` no está permitido para el usuario de
+ * la base. Por eso el plazo vive en un índice distinto, sobre `updatedAt`.
+ */
+test("la conversación se borra sola a los 45 días de su última actividad", () => {
+  const conTtl = SommelierConversation.schema
+    .indexes()
+    .filter(([, opciones]) => opciones.expireAfterSeconds !== undefined);
+
+  assert.equal(conTtl.length, 1, "tiene que haber UN solo índice con vencimiento");
+  assert.deepEqual(conTtl[0][0], { updatedAt: 1 });
+  assert.equal(conTtl[0][1].expireAfterSeconds, 45 * 24 * 60 * 60);
+  assert.equal(SommelierConversation.DIAS_DE_RETENCION, 45);
+});
+
+test("createdAt no lleva vencimiento: redefinir el índice viejo chocaría con la base", () => {
+  assert.equal(SommelierConversation.schema.path("createdAt").options.expires, undefined);
+});
