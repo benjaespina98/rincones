@@ -19,10 +19,10 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia actual: **client 221/221**, **server 339/339**, lint limpio, tokens
+Referencia actual: **client 274/274**, **server 355/355**, lint limpio, tokens
 136/136. Los conteos pueden subir, nunca bajar.
 
-Carga inicial: **≈118 kB gzip** (entry 72,2 + vendor 35,8 + CSS 10,4).
+Carga inicial: **≈119,8 kB gzip** (entry 73,1 + vendor 35,8 + CSS 10,9).
 Presupuesto: no pasar de ~143 kB.
 
 ## Flujo de ramas
@@ -119,6 +119,23 @@ tema, la conclusión es que el problema no era el peso del bundle.
 licencia de Apple permite usarlos para diseñar apps de plataformas Apple pero
 prohíbe copiarlos y redistribuirlos — que es lo que sería meterlos en un bundle
 web servido a cualquier navegador.
+
+### Prettier: evaluado y NO adoptado
+
+Se midió antes de decidir. Con la configuración por defecto reformatearía **316
+archivos**, y en uno representativo de 451 líneas cambia **1063** — o sea que lo
+reescribe entero.
+
+El costo no es el diff: es que este repo guarda su razonamiento en comentarios
+largos, alineados a mano, al lado del código que explican. Reflotarlos todos de
+una deja un `git blame` donde cada línea apunta al commit de formato en vez de
+al que tomó la decisión, y es justamente en esas líneas donde está el porqué.
+
+Prettier sirve para terminar discusiones de estilo en un equipo. Acá no hay
+discusión: el lint está limpio y el estilo es consistente.
+
+**Si algún día se adopta**, que sea a propósito: un commit propio que no toque
+nada más, y `.git-blame-ignore-revs` con ese hash para que el blame lo saltee.
 
 ### Una trampa de CSS que ya mordió
 

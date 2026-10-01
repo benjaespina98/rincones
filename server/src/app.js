@@ -70,6 +70,15 @@ const forgotLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Exportar los datos propios: ver dónde se monta, más abajo, para el porqué.
+const exportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10,
+  message: "Esperá un rato antes de volver a descargar tus datos",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Registro: antes sólo lo cubría el límite general de 600/15min compartido con
 // toda la API. Crear cuentas es justo la acción que un script de abuso repite
 // (probar emails, saturar el envío de verificación), así que le pusimos el
@@ -144,6 +153,20 @@ app.use("/api/auth/google", googleAuthLimiter);
 app.use("/api/auth/forgot-password", forgotLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/auth/resend-verification", resendVerificationLimiter);
+/**
+ * La exportación de datos personales.
+ *
+ * Es el endpoint más caro de la app por pedido: lee cinco colecciones enteras
+ * del usuario y las serializa en memoria. Con una bodega grande son varios
+ * megas, y repetirlo en bucle es la forma más barata de poner el servidor de
+ * rodillas desde una cuenta legítima.
+ *
+ * Diez por hora es holgado para una persona —exportar es algo que se hace cada
+ * tanto, no cada rato— y corta el bucle. Va por separado y no dentro del
+ * general de 600 porque ahí un solo export mal repetido se come la cuota de
+ * toda la navegación.
+ */
+app.use("/api/users/me/export", exportLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/labels", labelsRoutes);
