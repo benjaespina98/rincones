@@ -16,7 +16,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto } from "../utils/discovery";
+import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
@@ -78,6 +78,12 @@ export default function DiscoverPage() {
      cambiaría de tema mientras la estás leyendo. */
   const [seed] = useState(() => Math.floor(Math.random() * 997));
 
+  /* La recomendación que se vio la vez anterior, leída UNA sola vez al entrar. Si se
+     leyera dentro de la carga, un segundo disparo (React en desarrollo monta dos
+     veces; un "Reintentar" también) encontraría ya guardada la que se acaba de
+     elegir y evitaría esa en vez de la de la visita pasada. */
+  const [ultimoAlEntrar] = useState(leerUltimoVisto);
+
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
   // pantalla quedaba con un carrusel vacío, sin explicación ni salida.
   const loadFeatured = useCallback(() => {
@@ -89,28 +95,19 @@ export default function DiscoverPage() {
         if (!active) return;
         setFeatured(w);
         /**
-         * Se entra por la PRIMERA, que es la de mayor afinidad.
-         *
-         * Acá se entraba por una al azar del set. Tenía sentido mientras el set
-         * era un barajado sin orden interno —daba exactamente lo mismo cuál
-         * fuera la primera—, pero desde que el server lo devuelve RANKEADO (ver
-         * services/recommendations.service.js: afinidad y descubrimiento
-         * intercalados, la mejor primero) sortear la entrada tiraba a la basura
-         * todo el ranking: la recomendación mejor calzada tenía una chance en
-         * ocho de ser la que veías.
-         *
-         * La variedad no se pierde, cambia de lugar: el set entero rota todos
-         * los días y "Ver otro" recorre el resto, que es exactamente para lo
-         * que está.
+         * Se entra por una de las primeras del ranking y nunca por la que se vio
+         * la vez anterior (ver `elegirEntrada`). Entrar siempre por la primera
+         * dejaba la home idéntica en cada visita: el set es estable durante el día
+         * y su primer puesto lo decide la afinidad.
          */
-        setSpotlightIdx(0);
+        setSpotlightIdx(elegirEntrada(w, ultimoAlEntrar));
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, []);
+  }, [ultimoAlEntrar]);
 
   useEffect(() => loadFeatured(), [loadFeatured]);
 
@@ -203,6 +200,12 @@ export default function DiscoverPage() {
   const buscando = query.trim().length >= 2;
 
   const spotlight = featured[spotlightIdx] || null;
+
+  // Lo último que se mostró, para que la próxima entrada no sea la misma.
+  const spotlightId = spotlight?.id;
+  useEffect(() => {
+    guardarUltimoVisto(spotlightId);
+  }, [spotlightId]);
   // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
   const motivo = whyThisWine(spotlight, stats);
 
