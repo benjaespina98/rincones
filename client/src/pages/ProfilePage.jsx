@@ -10,6 +10,8 @@ import { calculateAge } from "../utils/age";
 import { initials, avatarColor } from "../utils/identity";
 import { errorHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
+import DeleteAccountModal from "../components/DeleteAccountModal";
+import { exportarMisDatos, eliminarCuenta } from "../services/accountApi";
 import ProfileEditor from "../components/ProfileEditor";
 import PreferencesEditor from "../components/PreferencesEditor";
 import TypeSplit from "../components/TypeSplit";
@@ -29,6 +31,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [exportando, setExportando] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -76,6 +80,41 @@ export default function ProfilePage() {
       errorHaptic();
       showError?.("No se pudo cerrar la sesión");
     }
+  };
+
+  /**
+   * Bajar el archivo con todo lo cargado.
+   *
+   * El estado `exportando` no es decorativo: el archivo se arma del lado del
+   * servidor leyendo cinco colecciones, y con una bodega grande puede tardar
+   * unos segundos sin que pase nada visible. Sin el aviso, el toque parece no
+   * haber funcionado y la persona lo repite.
+   */
+  const exportarDatos = async () => {
+    if (exportando) return;
+    setExportando(true);
+    try {
+      const nombre = await exportarMisDatos();
+      showSuccess?.(`Descargamos ${nombre}`);
+    } catch {
+      errorHaptic();
+      showError?.("No pudimos preparar el archivo. Probá de nuevo.");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  /**
+   * La baja.
+   *
+   * No se atrapa el error acá: el modal lo muestra adentro, al lado de los
+   * campos, que es donde la persona está mirando. Atraparlo acá y mostrar un
+   * toast dejaría el formulario abierto como si no hubiera pasado nada.
+   */
+  const eliminarMiCuenta = async ({ confirmEmail, password }) => {
+    await eliminarCuenta({ confirmEmail, password });
+    // La sesión ya no vale: el server borró el usuario y limpió las cookies.
+    navigate("/login", { replace: true });
   };
 
   const handleSaveProfile = async (form) => {
@@ -191,6 +230,20 @@ export default function ProfilePage() {
           </button>
         )}
 
+        {/* ── TUS DATOS ──────────────────────────────────────────────────────
+            Llevárselos y darse de baja van juntos y en ese orden, porque son la
+            misma decisión vista de dos lados. Sin la exportación, la baja
+            obliga a elegir entre irse y conservar lo propio — y lo propio acá
+            son años de cargar botellas con lo que se pagó, dónde está guardada
+            cada una y con quién se tomó. */}
+        <button className="account-item" type="button" onClick={exportarDatos} disabled={exportando}>
+          <span className="account-item__icon"><Icon name="arrow-right" size={18} /></span>
+          <span className="account-item__label">
+            {exportando ? "Preparando el archivo…" : "Descargar mis datos"}
+          </span>
+          {!exportando && <Icon name="chevron-right" size={16} className="account-item__chevron" />}
+        </button>
+
         <button
           className="account-item account-item--danger"
           type="button"
@@ -198,6 +251,17 @@ export default function ProfilePage() {
         >
           <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
           <span className="account-item__label">Cerrar sesión</span>
+        </button>
+
+        {/* La baja va última y separada del resto: es la única acción de esta
+            pantalla que no se puede deshacer. */}
+        <button
+          className="account-item account-item--danger"
+          type="button"
+          onClick={() => setShowDeleteAccount(true)}
+        >
+          <span className="account-item__icon"><Icon name="trash" size={18} /></span>
+          <span className="account-item__label">Eliminar mi cuenta</span>
         </button>
       </div>
 
@@ -403,6 +467,18 @@ export default function ProfilePage() {
         isDangerous
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutConfirm(false)}
+      />
+
+      {/* La baja de cuenta. El modal pide el email escrito a mano y la
+          contraseña: existía desde hace rato pero no estaba montado en ninguna
+          pantalla, así que `DELETE /api/users/me` sólo se podía alcanzar por
+          API. O sea que la app ofrecía borrar tus datos a quien supiera usar
+          curl. */}
+      <DeleteAccountModal
+        isOpen={showDeleteAccount}
+        email={user?.email}
+        onCancel={() => setShowDeleteAccount(false)}
+        onConfirm={eliminarMiCuenta}
       />
 
       {isEditing && (

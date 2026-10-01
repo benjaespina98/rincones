@@ -245,15 +245,28 @@ const ask = async (req, res, next) => {
       try {
         const guardada = await SommelierAnswer.findOne({ key }).lean();
         if (guardada?.answer) {
-          return res.status(200).json({
-            data: {
-              answer: guardada.answer,
-              wines: [],
-              followups: guardada.followups || [],
-              offTopic: false,
-            },
-            cached: true,
+          const deCache = {
+            answer: guardada.answer,
+            wines: [],
+            followups: guardada.followups || [],
+            offTopic: false,
+          };
+          /**
+           * Al historial también.
+           *
+           * Que la respuesta venga de la caché es un detalle de implementación
+           * nuestro: para quien preguntó es una respuesta igual que cualquier
+           * otra, y tiene que poder volver a leerla. Y es justamente el camino
+           * más frecuente —las preguntas genéricas son las que más se repiten—
+           * así que dejarlo afuera habría vaciado el historial de casi todo.
+           */
+          const idCache = await historial.guardarTurno({
+            userId: req.user?.id,
+            conversationId: req.body.conversationId,
+            question,
+            data: deCache,
           });
+          return res.status(200).json({ data: deCache, cached: true, conversationId: idCache });
         }
       } catch {
         // Sin caché: se genera. Nunca se cae la respuesta por esto.
@@ -304,7 +317,17 @@ const ask = async (req, res, next) => {
      * pidió su bodega, `wines` viene vacío y no hay nada que listar.
      */
     if (personal && esPreguntaDeInventario(question)) {
-      return res.status(200).json({ data: armarInventario(wines, question), cached: false });
+      const inventario = armarInventario(wines, question);
+      // También va al historial: "¿qué Malbec tengo?" es una consulta como
+      // cualquier otra, y que la haya contestado la base en vez del modelo no
+      // cambia nada para quien preguntó.
+      const idInv = await historial.guardarTurno({
+        userId: req.user?.id,
+        conversationId: req.body.conversationId,
+        question,
+        data: inventario,
+      });
+      return res.status(200).json({ data: inventario, cached: false, conversationId: idInv });
     }
 
     let resultado;
