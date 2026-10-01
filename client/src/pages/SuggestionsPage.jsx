@@ -12,6 +12,7 @@ import Icon from "../components/Icon";
 import Chip from "../components/Chip";
 import Logo from "../components/Logo";
 import SommelierChats from "../components/SommelierChats";
+import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
@@ -133,20 +134,10 @@ const PENSANDO_LARGO_MS = 4000;
  * Por usuario (la clave incluye el id): en una compu compartida, la sesión
  * de una persona no puede heredar la charla de la anterior.
  */
-const CLAVE_BASE = "rincones:sommelier";
-const claveDe = (userId) => `${CLAVE_BASE}:${userId || "anon"}`;
-
-const cargarHistorial = (userId) => {
-  try {
-    const crudo = sessionStorage.getItem(claveDe(userId));
-    const datos = crudo ? JSON.parse(crudo) : [];
-    return Array.isArray(datos) ? datos : [];
-  } catch {
-    // Modo privado, cuota llena, lo que sea: la charla sigue andando en
-    // memoria, sólo que no sobrevive a salir de la pantalla.
-    return [];
-  }
-};
+/* Qué se guarda y cómo se lee vive en utils/sesionSommelier.js. Se guardan los
+   mensajes Y el id de la conversación del historial, juntos: sin el id, volver a
+   la pantalla restauraba el hilo y la pregunta siguiente abría una conversación
+   nueva. */
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
@@ -162,7 +153,7 @@ export default function SuggestionsPage() {
   const nombre = (user?.firstName || "").trim() || (user?.email || "").split("@")[0] || "";
 
   const [mensajes, setMensajes] = useState(() => {
-    const previos = cargarHistorial(user?.id);
+    const previos = leerSesion(user?.id).mensajes;
     // El contador de ids es del módulo, no del componente (sobrevive a
     // remontar la pantalla dentro de la misma pestaña). Si se restauran
     // mensajes con ids "m7", el próximo tiene que seguir en "m8", no volver
@@ -180,7 +171,8 @@ export default function SuggestionsPage() {
      guardada pertenece la de ahora. `null` significa "todavía no se guardó
      ninguna": la crea el server con la primera pregunta y devuelve su id. */
   const [historialAbierto, setHistorialAbierto] = useState(false);
-  const [conversacionId, setConversacionId] = useState(null);
+  // El id vuelve junto con los mensajes (ver utils/sesionSommelier.js).
+  const [conversacionId, setConversacionId] = useState(() => leerSesion(user?.id).conversacionId);
   // Segunda frase de "pensando", sólo si de verdad se hace largo. Ver
   // PENSANDO_LARGO_MS.
   const [pensandoLargo, setPensandoLargo] = useState(false);
@@ -195,6 +187,8 @@ export default function SuggestionsPage() {
   const [recetaAbiertaId, setRecetaAbiertaId] = useState(null);
 
   const finRef = useRef(null);
+  const raizRef = useRef(null);
+  const pieRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -256,13 +250,23 @@ export default function SuggestionsPage() {
   // había hasta el último mensaje, no la de la última vez que alguien
   // recordó guardarla.
   useEffect(() => {
-    try {
-      if (mensajes.length === 0) sessionStorage.removeItem(claveDe(user?.id));
-      else sessionStorage.setItem(claveDe(user?.id), JSON.stringify(mensajes));
-    } catch {
-      // Idem cargarHistorial: sigue andando en memoria si esto falla.
-    }
-  }, [mensajes, user?.id]);
+    guardarSesion(user?.id, { mensajes, conversacionId });
+  }, [mensajes, conversacionId, user?.id]);
+
+  /* El alto REAL del compositor, para reservar ese lugar al final de la lista. El
+     compositor es fijo y crece: con la fila de repreguntas mide ~135px y sin ella
+     ~83. Un margen fijo alcanzaba para uno y dejaba el último mensaje tapado en
+     el otro. Se mide y se publica como `--somm-pie`; el CSS hace la cuenta. */
+  useEffect(() => {
+    const pie = pieRef.current;
+    const raiz = raizRef.current;
+    if (!pie || !raiz || typeof ResizeObserver === "undefined") return undefined;
+    const medir = () => raiz.style.setProperty("--somm-pie", `${pie.offsetHeight}px`);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(pie);
+    return () => observador.disconnect();
+  }, []);
 
   const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
@@ -634,7 +638,7 @@ export default function SuggestionsPage() {
   };
 
   return (
-    <div className="somm">
+    <div className="somm" ref={raizRef}>
       {/* `aria-live="polite"` para que un lector de pantalla anuncie la
           respuesta apenas llega, sin que la persona tenga que ir a buscarla
           — antes sólo "Buscando…" (role="status", más abajo) hablaba, y en
@@ -927,7 +931,7 @@ export default function SuggestionsPage() {
           pero UNA fila, la de la última respuesta, en el mismo lugar fijo de
           siempre en vez de una nueva cada vez: eso resuelve el amontonamiento
           sin tirar lo que el modelo ya pensó (ver `repreguntas` más arriba). */}
-      <div className="somm__pie">
+      <div className="somm__pie" ref={pieRef}>
 
         {mensajes.length > 0 && !pensando && repreguntas?.length > 0 && (
           <div className="somm__rail">

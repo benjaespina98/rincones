@@ -70,6 +70,9 @@
      llegar. Sobra un poco a propósito: que la respuesta termine con aire arriba
      del campo se lee mejor que si le queda justo. */
   padding-bottom: 72px;
+  /* ...y si el compositor mide más (con la fila de repreguntas), se reserva lo que
+     mide: `--somm-pie` lo publica la pantalla (ver SuggestionsPage.jsx). */
+  padding-bottom: max(72px, calc(var(--somm-pie, 0px) - 32px));
 }
 
 /* La entrada. Sin el medallón con la copa que iba arriba de todo: un ícono de
