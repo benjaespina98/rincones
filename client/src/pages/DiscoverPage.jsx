@@ -20,6 +20,7 @@ import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto 
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
+import useRotacionAutomatica from "../hooks/useRotacionAutomatica";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -253,6 +254,24 @@ export default function DiscoverPage() {
     tapHaptic();
     setSpotlightIdx(proximo);
   };
+
+  /**
+   * La recomendación se renueva sola, de vez en cuando, como las sugerencias de los chats de IA.
+   *
+   * Cada ~9 s (con azar) pasa a otra del set, con el mismo salto que "Ver otro" (la más
+   * distinta, no un sorteo) y la misma entrada suave de cuando se vuelve a montar. Se frena
+   * mientras la tocás o la mirás de cerca, con la pestaña oculta, con "reducir movimiento",
+   * mientras buscás y mientras se está guardando ese vino: que la tarjeta cambie justo debajo
+   * del dedo, a mitad de un "Guardar", es lo peor que puede hacer. Ver useRotacionAutomatica.
+   */
+  const propsDeRotacion = useRotacionAutomatica({
+    activo: !buscando && !loading && !loadFailed && featured.length > 1,
+    alRotar: () => {
+      if (addingId === spotlight?.id) return;
+      const proximo = elegirOtroDistinto(featured, spotlightIdx);
+      if (proximo !== null) setSpotlightIdx(proximo);
+    },
+  });
 
   // "Quiero probar": guarda el vino en Guardados (no en la bodega). La bodega
   // es solo stock real y entra por escaneo o carga a mano, desde Agregar.
@@ -598,7 +617,7 @@ export default function DiscoverPage() {
           la única de la app donde el hilo del tipo no llegaba — un blanco, un
           espumante y un oporto se veían los tres violetas. */}
       {!buscando && !loading && spotlight && (
-        <section className="spotlight" data-wine-type={spotlight.type} key={spotlight.id}>
+        <section className="spotlight" data-wine-type={spotlight.type} key={spotlight.id} {...propsDeRotacion}>
           <button
             type="button"
             className="spotlight__open"
