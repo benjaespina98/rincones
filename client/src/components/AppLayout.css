@@ -123,6 +123,10 @@
      contraformas son mas anchas y a ese tamanio el titulo se ve suelto. */
   letter-spacing: -0.025em;
   color: var(--text);
+  /* El mismo margen lateral que las pantallas: el título vive afuera de ellas,
+     directo en `.app-content` (que no tiene padding), y sin esto arrancaba pegado
+     al borde de la pantalla. */
+  padding-inline: var(--page-pad-x);
 }
 
 /* El monograma al lado del nombre, sólo en la pantalla de entrada (ver
@@ -259,5 +263,25 @@
 @media (min-width: 1440px) {
   .app-content--with-topbar > * {
     max-width: 1280px;
+  }
+}
+
+/* ── EL TÍTULO ALINEADO CON LA COLUMNA DE LA PANTALLA ────────────────────────
+   Descubrí y el Sommelier son columnas de lectura angostas y centradas (900 y
+   780px); Mi Bodega ocupa todo el ancho. El título grande vive afuera de ellas,
+   y con el ancho completo quedaba a la izquierda de una columna que arranca
+   100–130px más adentro: en escritorio, "Sommelier" y su contenido no estaban
+   sobre la misma línea. Se mide contra la columna con `:has()`; donde el
+   navegador no lo soporta el título queda donde estaba, que es el defecto de
+   antes y no uno nuevo. */
+@media (min-width: 768px) {
+  .app-content:has(> .somm) > .app-hero-title {
+    max-width: 780px;
+    margin-inline: auto;
+  }
+
+  .app-content:has(> .discover-page) > .app-hero-title {
+    max-width: 900px;
+    margin-inline: auto;
   }
 }
