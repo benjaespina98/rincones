@@ -652,6 +652,13 @@ button svg {
   100% { transform: scale(1); }
 }
 
+/* Un atajo que entra desde la derecha. Lo usan las filas de atajos de Descubrí y del
+   Sommelier, cada uno un poco después del anterior (`--i`). */
+@keyframes rincon-entra-lado {
+  from { opacity: 0; transform: translateX(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
 /* Una barra que se llena: crece desde la izquierda. Sólo `transform`, así que no
    fuerza layout; el ancho final ya es el correcto, lo que anima es la escala. */
 @keyframes rincon-crece {

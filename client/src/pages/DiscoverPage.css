@@ -850,14 +850,9 @@
    Cada atajo entra de a uno, desde la derecha y un poco más tarde que el
    anterior (--i), y "otras ideas" los renueva con la misma entrada. Sólo
    transform y opacity; reduced-motion lo apaga desde index.css. */
-@keyframes atajo-entra {
-  from { opacity: 0; transform: translateX(14px) scale(0.96); }
-  to { opacity: 1; transform: none; }
-}
-
 .wine-search__chip {
   flex: 0 0 auto;
-  animation: atajo-entra 420ms var(--ease-out) both;
+  animation: rincon-entra-lado 420ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 55ms + 120ms);
 }
 

@@ -18,6 +18,9 @@ import Chip from "../components/Chip";
 import Logo from "../components/Logo";
 import SommelierChats from "../components/SommelierChats";
 import RespuestaAcciones from "../components/RespuestaAcciones";
+import { useWineStats } from "../hooks/useWineStats";
+import { getCellarReady } from "../services/wineApi";
+import { atajosDeArranque, azarConSemilla } from "../utils/atajosDeArranque";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
@@ -93,20 +96,9 @@ import "./SuggestionsPage.css";
  * hablar. "¿Qué Malbec tengo?" y no "¿Qué Malbec tenés?": lo segundo pone a la
  * app preguntándole al usuario, que es al revés de lo que pasa al tocarlo.
  */
-const COMIDAS = [
-  { label: "Asado", pregunta: "¿Qué tomo con un asado?" },
-  { label: "Pasta", pregunta: "¿Qué tomo con pasta?" },
-  { label: "Pizza", pregunta: "¿Qué tomo con pizza?" },
-  { label: "Milanesas", pregunta: "¿Qué tomo con milanesas?" },
-];
-
-const OTRAS_PREGUNTAS = [
-  { label: "¿Qué vinos tengo?", pregunta: "¿Qué vinos tengo?" },
-  { label: "¿Qué tomo con este clima?", pregunta: "¿Qué tomo hoy con este clima?" },
-  { label: "¿Cuál abro hoy?", pregunta: "¿Cuál abro hoy?" },
-  { label: "Malbec o Cabernet", pregunta: "Malbec o Cabernet" },
-  { label: "Un tinto para regalar", pregunta: "Un tinto para regalar" },
-];
+/* Los atajos de arranque ya no son listas fijas: ver utils/atajosDeArranque.js. Las comidas
+   dependen del momento del día, el día y la estación; las preguntas, de lo que hay en tu
+   bodega de verdad. */
 
 let contador = 0;
 const nuevoId = () => `m${(contador += 1)}`;
@@ -172,6 +164,37 @@ export default function SuggestionsPage() {
     return previos;
   });
   const [texto, setTexto] = useState("");
+
+  /* ── LOS ATAJOS DE ARRANQUE ────────────────────────────────────────────────
+     Se calculan con lo que la persona tiene: los vinos listos para tomar y las
+     estadísticas de su bodega. La semilla se fija UNA vez por visita, así que cuando
+     llegan los datos sólo cambian los atajos que dependen de ellos. La fila de
+     preguntas aparece cuando se sabe qué hay en la bodega (`datosListos`), para que no
+     se vea una versión genérica que cambia a los dos segundos. */
+  const { stats, loading: statsCargando } = useWineStats();
+  const [listos, setListos] = useState(null);
+  const [semillaAtajos] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  useEffect(() => {
+    let vigente = true;
+    getCellarReady()
+      .then((d) => vigente && setListos(Array.isArray(d) ? d : []))
+      .catch(() => vigente && setListos([]));
+    return () => {
+      vigente = false;
+    };
+  }, []);
+  const datosListos = listos !== null && !statsCargando;
+  const atajos = useMemo(
+    () =>
+      atajosDeArranque({
+        listos: listos || [],
+        hayStock: (stats?.totals?.bottles || 0) > 0 || (listos || []).length > 0,
+        probados: stats?.totals?.consumed || 0,
+        uvasFrecuentes: (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean),
+        azar: azarConSemilla(semillaAtajos),
+      }),
+    [listos, stats, semillaAtajos]
+  );
   const [pensando, setPensando] = useState(false);
   /* El archivo de charlas: la hoja abierta o cerrada, y a qué conversación
      guardada pertenece la de ahora. `null` significa "todavía no se guardó
@@ -782,10 +805,11 @@ export default function SuggestionsPage() {
             {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
             <h2>¿Con qué maridamos hoy?</h2>
             <div className="somm__rail">
-              {COMIDAS.map((c) => (
+              {atajos.comidas.map((c, i) => (
                 <Chip
                   key={c.label}
-                  className="somm__chip"
+                  className="somm__chip somm__chip--entra"
+                  style={{ "--i": i }}
                   onClick={() => preguntar(c.pregunta)}
                 >
                   {c.label}
@@ -799,20 +823,23 @@ export default function SuggestionsPage() {
                 dos mitades separadas por un hueco. Se mantienen como fila
                 aparte porque son otra cosa: arriba hay comidas, acá preguntas
                 sueltas. */}
-            <div className="somm__otras">
-              <span className="somm__otras-rotulo">O preguntame</span>
-              <div className="somm__rail">
-                {OTRAS_PREGUNTAS.map((s) => (
-                  <Chip
-                    key={s.label}
-                    className="somm__chip"
-                    onClick={() => preguntar(s.pregunta)}
-                  >
-                    {s.label}
-                  </Chip>
-                ))}
+            {datosListos && (
+              <div className="somm__otras">
+                <span className="somm__otras-rotulo">O preguntame</span>
+                <div className="somm__rail">
+                  {atajos.preguntas.map((p, i) => (
+                    <Chip
+                      key={p.label}
+                      className="somm__chip somm__chip--entra"
+                      style={{ "--i": i + atajos.comidas.length }}
+                      onClick={() => preguntar(p.pregunta)}
+                    >
+                      {p.label}
+                    </Chip>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

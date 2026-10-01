@@ -854,3 +854,10 @@
   transition: opacity var(--transition-smooth);
   pointer-events: none;
 }
+
+/* Los atajos de arranque entran de a uno, desde la derecha (sólo transform y opacity;
+   reduced-motion lo apaga desde index.css). */
+.somm__chip--entra {
+  animation: rincon-entra-lado 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
