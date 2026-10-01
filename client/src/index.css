@@ -944,21 +944,14 @@ img {
    Una pantalla que necesite MÁS aire abajo lo pide con margin en su último
    bloque, no volviendo a declarar el despeje de la navegación. */
 :root {
-  --page-pad-x: 16px;
+  /* El margen lateral de las pantallas, en UN solo lugar, y lo usa también el título
+     grande (que vive afuera de ellas y no tenía ninguno: arrancaba en x=0). 20px y no
+     16: a 16 un título de 30px se leía pegado al borde. Cada pantalla lo toma de
+     acá, así que título y contenido no se pueden volver a desalinear. */
+  --page-pad-x: 20px;
   --page-gap: 18px;
   --nav-height: 68px;
   --page-pad-bottom: calc(var(--nav-height) + 56px + env(safe-area-inset-bottom));
-}
-
-/* El margen lateral de las pantallas, en UN solo lugar. Cada pantalla lo fijaba por su
-   cuenta (Mi Bodega ponía 20px a partir de 640px, el token valía 16 siempre) y el
-   título grande, que vive afuera de ellas, no tenía ninguno: arrancaba en x=0,
-   pegado al borde. Con un token responsive el título y el contenido no se pueden
-   volver a desalinear. */
-@media (min-width: 640px) {
-  :root {
-    --page-pad-x: 20px;
-  }
 }
 
 /* En desktop la barra inferior se convierte en sidebar: no hay nada abajo que
