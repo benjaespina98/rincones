@@ -17,8 +17,8 @@ import LegalPage from "../components/LegalPage";
  *     sólo en la pantalla, es la diferencia entre advertirlo y haberlo
  *     escondido en el lugar donde nadie mira.
  *
- * Los `TODO` de abajo son los mismos tres de la política de privacidad: quién
- * responde, dónde se reclama y bajo qué ley.
+ * Responsable, contacto y ley aplicable son los mismos datos que en la política
+ * de privacidad: si cambian, se cambian en las dos páginas.
  */
 export default function TerminosPage() {
   return (
@@ -118,11 +118,10 @@ export default function TerminosPage() {
 
       <h2>Ley aplicable</h2>
       <p>
-        {/* TODO(legal): mismos datos que en Privacidad. */}
         Estos términos se rigen por las leyes de{" "}
-        <strong>[COMPLETAR: país/jurisdicción]</strong>, y cualquier conflicto se resuelve ante
-        sus tribunales. El responsable es <strong>[COMPLETAR: nombre o razón social]</strong>, y
-        el contacto es <strong>[COMPLETAR: email de contacto]</strong>.
+        <strong>Argentina</strong>, y cualquier conflicto se resuelve ante
+        sus tribunales. El responsable es <strong>Benjamín Espina</strong>, y
+        el contacto es <strong>benjaespina98@gmail.com</strong>.
       </p>
     </LegalPage>
   );

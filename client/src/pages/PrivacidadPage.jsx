@@ -20,10 +20,11 @@ import LegalPage from "../components/LegalPage";
  *   · cómo llevárselo         → services/accountExport.service.js
  *   · la analítica            → services/analytics.service.js
  *
- * ── LO QUE FALTA COMPLETAR ──────────────────────────────────────────────────
- * Los tres `TODO` de abajo son datos que no están en el código y que no se
- * pueden inventar: quién responde legalmente, a qué dirección se reclama y bajo
- * qué ley. Hasta que estén, esta página no se debería enlazar como definitiva.
+ * ── DATOS DEL RESPONSABLE ───────────────────────────────────────────────────
+ * Responsable, domicilio, contacto, jurisdicción y autoridad de control no
+ * salen del código: son del titular del proyecto. Si cambia alguno (un domicilio
+ * nuevo, otra casilla), se cambia acá y en TerminosPage.jsx, que repite los
+ * mismos datos.
  */
 export default function PrivacidadPage() {
   return (
@@ -36,10 +37,9 @@ export default function PrivacidadPage() {
 
       <h2>Quién es responsable</h2>
       <p>
-        {/* TODO(legal): razón social o nombre del responsable. */}
-        <strong>[COMPLETAR: nombre o razón social]</strong>, con domicilio en{" "}
-        <strong>[COMPLETAR: domicilio]</strong>. Para cualquier consulta sobre tus datos escribinos
-        a <strong>[COMPLETAR: email de contacto]</strong>.
+        <strong>Benjamín Espina</strong>, con domicilio en{" "}
+        <strong>Córdoba, Argentina</strong>. Para cualquier consulta sobre tus datos escribinos
+        a <strong>benjaespina98@gmail.com</strong>.
       </p>
 
       <h2>Qué guardamos</h2>
@@ -159,10 +159,9 @@ export default function PrivacidadPage() {
 
       <h2>Reclamos</h2>
       <p>
-        {/* TODO(legal): jurisdicción y autoridad de control. */}
-        Esta política se rige por las leyes de <strong>[COMPLETAR: país/jurisdicción]</strong>.
+        Esta política se rige por las leyes de <strong>Argentina</strong>.
         Si creés que no estamos cumpliendo, escribinos primero a nosotros; también podés
-        presentar un reclamo ante <strong>[COMPLETAR: autoridad de control]</strong>.
+        presentar un reclamo ante <strong>la Agencia de Acceso a la Información Pública (AAIP)</strong>.
       </p>
 
       {/* El cruce entre las dos páginas. Quien entra desde el perfil cae acá,
