@@ -270,12 +270,36 @@ decidirlo con la cabeza fresca:
 2. **Revisar el cambio de scroll** (fase 5). Es lo único de todo el trabajo que
    toca todas las pantallas a la vez. Verificado a mano en las principales,
    pero es lo primero que hay que mirar si algo se ve raro.
-3. El merge: `feat/redesign-v2` → PR a `develop` → `main`. Nada de esto está
-   pusheado todavía.
+3. El merge: `feat/redesign-v2` → PR a `develop` → `main`.
 
-Después, la **parte B** del encargo, que es funcionalidad nueva y no capa
-visual: historial del Sommelier, Descubrí, valor de los datos y exportación,
-cuenta y legales, service worker, y endurecimiento.
+## Parte B — funcionalidad nueva, no capa visual
+
+- [x] **B1 · Historial del Sommelier.** Modelo, tres endpoints, guardado del
+      lado del servidor y hoja de archivo. Lo escribe el server y no el cliente
+      para que nadie pueda guardarse una respuesta que la app nunca dio, y
+      **ninguna consulta busca sólo por `_id`** — una charla tiene lo más
+      personal que guarda la app.
+- [x] **B3 · Llevarse los datos.** `GET /api/users/me/export`, con un test que
+      compara el inventario del export contra el del borrado para que no se
+      desincronicen.
+- [x] **B4 · Cuenta.** `DeleteAccountModal` estaba escrito y **no lo montaba
+      ninguna pantalla**: la baja sólo se alcanzaba por API.
+- [x] **B5 · Service worker.** Escrito alrededor del bug que esta app ya tuvo:
+      el documento se pide siempre a la red primero, y sólo se cachean los
+      assets con hash, que son inmutables. `/api` no se toca.
+- [x] **B6 · Endurecimiento.** Límite propio para la exportación (10/hora,
+      verificado). **Prettier evaluado y descartado** — ver CLAUDE.md.
+- [ ] **B2 · Descubrí.** Sin empezar. La pantalla ya recibió trabajo en la fase
+      4.5 (hilo del tipo, chips, tarjeta destacada con cristal), así que lo que
+      falta depende de qué más se quiera: **hay que volver a enunciar el
+      alcance**, no está recuperable de lo escrito.
+
+### Lo que falta de legales
+
+El encargo decía "cuenta y legales". La cuenta está; **las páginas legales
+—términos y privacidad— no se escribieron**, y no son algo que convenga
+redactar sin decisión del dueño: dicen qué se hace con los datos de usuarios
+reales.
 
 ## Medición final
 
