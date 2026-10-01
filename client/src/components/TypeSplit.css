@@ -72,3 +72,11 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Los segmentos se llenan en orden, de izquierda a derecha: cada uno arranca un
+   poco después del anterior (--seg) y la barra se "escribe" en vez de aparecer. */
+.type-split__seg {
+  transform-origin: left center;
+  animation: rincon-crece 700ms var(--ease-out) both;
+  animation-delay: calc(300ms + var(--seg, 0) * 110ms);
+}

@@ -1,34 +1,40 @@
-/* La tira de métricas de Mi Bodega. El criterio está en BodegaResumen.jsx. */
+/* El resumen de Mi Bodega. El criterio está en BodegaResumen.jsx.
+
+   Es UNA tarjeta, con los mismos cuatro valores de superficie que `.wine-row`
+   (radio, borde, fondo, sombra): antes era una tira suelta con márgenes
+   negativos y un filtro de lado a lado, y se leía como un renglón perdido al
+   lado de las tarjetas de abajo. */
 
 .bres {
-  display: flex;
-  gap: var(--space-md);
-  /* Se desliza en vez de envolver: con cinco métricas en un teléfono angosto,
-     envolver las manda a una segunda fila y la cabecera empieza a comerse la
-     lista, que es a lo que se vino. */
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--card-pad-compact) 0;
-  /* Los márgenes negativos hacen que la tira llegue a los bordes de la pantalla
-     al desplazarse, en vez de cortarse contra el padding de la página: si no,
-     la última métrica se ve partida por un margen y parece un error. */
-  margin: 0 calc(var(--page-pad-x) * -1);
-  padding-inline: var(--page-pad-x);
-  border-bottom: 1px solid var(--border-subtle);
+  margin: 0 0 var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--elevated);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.bres::-webkit-scrollbar {
-  display: none;
+/* Las métricas numéricas, en columnas iguales: el ojo compara valores, y con
+   anchos distintos cada número queda en un lugar al azar. */
+.bres__fila {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
 }
 
 .bres__item {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
   min-width: 0;
+  padding: 12px 6px;
+  text-align: center;
+}
+
+.bres__item + .bres__item {
+  border-left: 1px solid var(--border-subtle);
 }
 
 .bres__valor {
@@ -37,32 +43,47 @@
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text);
-  /* Números de ancho fijo: sin esto, la tira se mueve sola cada vez que un
+  /* Números de ancho fijo: sin esto, la tarjeta se mueve sola cada vez que un
      contador pasa de 9 a 10. */
   font-variant-numeric: tabular-nums;
 }
 
-/* La región es texto y no un número: más chica, para que no compita con los
-   números de al lado y para que un nombre largo no rompa la fila. */
-.bres__item--texto .bres__valor {
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  max-width: 13ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .bres__etiqueta {
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.02em;
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 .bres__detalle {
-  color: var(--text-subtle);
+  font-size: var(--text-2xs);
   font-weight: 500;
+  color: var(--text-subtle);
+}
+
+/* La región es texto, no un número: va abajo, en su propio renglón, donde un
+   nombre largo tiene el ancho entero de la tarjeta. Metida en una columna de
+   67px se cortaba ("Salta | Argentina") o se veía de otro tamaño que el resto. */
+.bres__pie {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-sm);
+}
+
+.bres__pie-etiqueta {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.bres__pie-valor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--text);
 }

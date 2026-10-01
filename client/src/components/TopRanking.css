@@ -77,3 +77,10 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* La barra se llena desde la izquierda al aparecer. El ancho final ya es el
+   correcto: lo que se anima es la escala, así que no fuerza layout. */
+.rank__fill {
+  transform-origin: left center;
+  animation: rincon-crece 800ms var(--ease-out) 380ms both;
+}

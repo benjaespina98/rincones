@@ -652,6 +652,34 @@ button svg {
   100% { transform: scale(1); }
 }
 
+/* Una barra que se llena: crece desde la izquierda. Sólo `transform`, así que no
+   fuerza layout; el ancho final ya es el correcto, lo que anima es la escala. */
+@keyframes rincon-crece {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Un resplandor que se desplaza despacio. Se usa de fondo, detrás del contenido:
+   la pantalla deja de ser una foto sin que nada compita por la atención. */
+@keyframes rincon-deriva {
+  from { transform: translate3d(-4%, -2%, 0) scale(1); }
+  to { transform: translate3d(5%, 4%, 0) scale(1.08); }
+}
+
+/* Una vuelta completa: para el ícono de un botón que cambia algo ("Ver otro"). */
+@keyframes rincon-vuelta {
+  to { transform: rotate(360deg); }
+}
+
+/* ENTRADA ESCALONADA. Cada elemento entra un poco después que el anterior, en el
+   orden en que se lee. El retraso sale de `--i` (0, 1, 2…) y se topa en 6: un
+   elemento que entra medio segundo tarde no se siente como "dinámico", se siente
+   como lento. `both` deja el estado inicial invisible mientras espera su turno. */
+.aparece {
+  animation: rincon-enter-up 480ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 6) * 70ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -916,7 +944,11 @@ img {
    Una pantalla que necesite MÁS aire abajo lo pide con margin en su último
    bloque, no volviendo a declarar el despeje de la navegación. */
 :root {
-  --page-pad-x: 16px;
+  /* El margen lateral de las pantallas, en UN solo lugar, y lo usa también el título
+     grande (que vive afuera de ellas y no tenía ninguno: arrancaba en x=0). 20px y no
+     16: a 16 un título de 30px se leía pegado al borde. Cada pantalla lo toma de
+     acá, así que título y contenido no se pueden volver a desalinear. */
+  --page-pad-x: 20px;
   --page-gap: 18px;
   --nav-height: 68px;
   --page-pad-bottom: calc(var(--nav-height) + 56px + env(safe-area-inset-bottom));

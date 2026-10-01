@@ -28,11 +28,12 @@ export default function TypeSplit({ counts = [], total = 0 }) {
       <div className="type-split__bar" role="img" aria-label={
         rows.map((r) => `${WINE_TYPE_LABELS[r.type] || r.type}: ${r.count}`).join(", ")
       }>
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <span
             key={r.type}
             className="type-split__seg"
             style={{
+              "--seg": i,
               width: `${(r.count / total) * 100}%`,
               background: TYPE_COLORS[r.type] || TYPE_COLORS.unknown,
             }}

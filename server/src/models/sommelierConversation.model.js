@@ -26,10 +26,27 @@ const mongoose = require("mongoose");
  * es la que tiene la verdad.
  *
  * ── RETENCIÓN ───────────────────────────────────────────────────────────────
- * 180 días. No es por espacio: una recomendación de maridaje no caduca, pero el
- * catálogo y los precios sí, y a partir de cierto punto el historial deja de
- * ser útil y pasa a ser un archivo de datos personales que nadie va a leer.
- * Guardar menos es también no tener que cuidar más.
+ * 45 días desde la ÚLTIMA actividad de la charla, no desde que se creó: una
+ * conversación que seguís usando no desaparece a mitad de camino, y una que
+ * dejaste de abrir se va sola. No es por espacio: una recomendación de
+ * maridaje no caduca, pero el catálogo y los precios sí, y a partir de cierto
+ * punto el historial deja de ser útil y pasa a ser un archivo de datos
+ * personales que nadie va a leer. Guardar menos es también no tener que
+ * cuidar más.
+ *
+ * ── POR QUÉ ES UN ÍNDICE NUEVO Y NO EL DE ANTES CON OTRO NÚMERO ─────────────
+ * Esto empezó con 180 días como TTL sobre `createdAt`. Cambiar ese número en
+ * el schema NO alcanza: Mongoose rechaza redefinir un índice existente con
+ * otras opciones (`IndexOptionsConflict`) y el viejo sigue valiendo 180 días.
+ * Se probó, y la alternativa obvia —`collMod` para retocar el plazo— tampoco
+ * sirve: el usuario de la base no tiene permiso para esa operación.
+ *
+ * Un TTL sobre otro campo (`updatedAt`) es un índice distinto, sin conflicto,
+ * y se crea como cualquier otro. El de `createdAt` que pudiera existir en una
+ * base ya desplegada es inofensivo —vence a los 180 días de creada, mucho
+ * después de los 45 de inactividad— y se puede borrar con `dropIndex` cuando
+ * convenga; eso es una operación del dueño de la base, no algo que el código
+ * deba intentar solo.
  */
 
 /** Lo justo para dibujar una tarjeta de vino sin congelar sus datos. */
@@ -75,9 +92,16 @@ const sommelierConversationSchema = new mongoose.Schema(
      */
     title: { type: String, required: true, maxlength: 120 },
     messages: { type: [mensajeSchema], default: [] },
-    createdAt: { type: Date, default: Date.now, expires: 180 * 24 * 60 * 60 },
+    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: { createdAt: false, updatedAt: true } }
+);
+
+/** Días sin actividad después de los cuales una conversación se borra sola. */
+const DIAS_DE_RETENCION = 45;
+sommelierConversationSchema.index(
+  { updatedAt: 1 },
+  { expireAfterSeconds: DIAS_DE_RETENCION * 24 * 60 * 60 }
 );
 
 // "Las últimas charlas de esta persona": userId para filtrar, updatedAt
@@ -85,4 +109,7 @@ const sommelierConversationSchema = new mongoose.Schema(
 // después ordena en memoria todas las que encontró.
 sommelierConversationSchema.index({ userId: 1, updatedAt: -1 });
 
-module.exports = mongoose.model("SommelierConversation", sommelierConversationSchema);
+const SommelierConversation = mongoose.model("SommelierConversation", sommelierConversationSchema);
+
+module.exports = SommelierConversation;
+module.exports.DIAS_DE_RETENCION = DIAS_DE_RETENCION;

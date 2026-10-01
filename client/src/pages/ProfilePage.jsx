@@ -16,6 +16,15 @@ import ProfileEditor from "../components/ProfileEditor";
 import PreferencesEditor from "../components/PreferencesEditor";
 import TypeSplit from "../components/TypeSplit";
 import TopRanking from "../components/TopRanking";
+import Contador from "../components/Contador";
+import {
+  fraseDelMes,
+  esUva,
+  limpiarRegion,
+  agrupar,
+  conRepeticion,
+  queMostrarDeLaInversion,
+} from "../utils/perfilDatos";
 import MomentsDiary from "../components/MomentsDiary";
 
 import ConfirmModal from "../components/ConfirmModal";
@@ -155,6 +164,26 @@ export default function ProfilePage() {
     );
   }
 
+  /* ── LO QUE SE MUESTRA, DEPURADO ───────────────────────────────────────────
+     Reglas en utils/perfilDatos.js. Un "Blend" no es una uva, "Mendoza" y
+     "Mendoza Argentina" son la misma región, y un ranking donde nada se repite
+     no es un ranking. Y un total de gasto sobre un solo vino con precio parece
+     el de toda la bodega. */
+  const uvasFrecuentes = conRepeticion(
+    agrupar((wineStats?.topVarietals || []).filter((v) => esUva(v.varietal)), "varietal")
+  );
+  const regionesFrecuentes = conRepeticion(
+    agrupar(wineStats?.topRegions || [], "region", limpiarRegion)
+  );
+  const inversion = spending
+    ? queMostrarDeLaInversion({
+        winesWithPrice: spending.winesWithPrice,
+        totalVinos: wineStats?.totals?.total || 0,
+        avgPriceByType: spending.avgPriceByType,
+        bestValueWine: spending.bestValueWine,
+      })
+    : null;
+
   return (
     <div className="profile-page">
       <section className="profile-header">
@@ -283,8 +312,11 @@ export default function ProfilePage() {
       {!statsLoading && (wineStats?.recientes?.esteAnio || 0) > 0 && (
         <p className="profile-recent">
           <Icon name="calendar" size={13} />{" "}
-          Tomaste {wineStats.recientes.esteMes} {wineStats.recientes.esteMes === 1 ? "vino" : "vinos"} distintos
-          este mes · {wineStats.recientes.esteAnio} en {new Date().getFullYear()}
+          {fraseDelMes({
+            esteMes: wineStats.recientes.esteMes,
+            esteAnio: wineStats.recientes.esteAnio,
+            anio: new Date().getFullYear(),
+          })}
         </p>
       )}
 
@@ -299,21 +331,23 @@ export default function ProfilePage() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
-            {statsLoading ? "" : wineStats?.totals?.total || 0}
+            {statsLoading ? "" : <Contador valor={wineStats?.totals?.total || 0} />}
           </div>
           <div className="label">Vinos</div>
           {/* "4 botellas" solo, debajo de "2", se leía como un segundo dato
               suelto — ¿4 qué? Con "en" adelante queda una sola frase que se lee
               de corrido: "2 Vinos, en 4 botellas". */}
-          {!statsLoading && (wineStats?.totals?.bottles || 0) > 0 && (
+          {!statsLoading && (wineStats?.totals?.total || 0) > 0 && (
             <div className="stat-card__hint">
-              en {wineStats.totals.bottles === 1 ? "1 botella" : `${wineStats.totals.bottles} botellas`}
+              {(wineStats?.totals?.bottles || 0) > 0
+                ? `en ${wineStats.totals.bottles === 1 ? "1 botella" : `${wineStats.totals.bottles} botellas`}`
+                : "sin botellas en stock"}
             </div>
           )}
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
-            {statsLoading ? "" : wineStats?.totals?.consumed || 0}
+            {statsLoading ? "" : <Contador valor={wineStats?.totals?.consumed || 0} />}
           </div>
           <div className="label">Probados</div>
           {/* Antes era un porcentaje ("50% de tu colección"): pide una cuenta
@@ -321,20 +355,26 @@ export default function ProfilePage() {
               mismo par de cifras que ya está a la vista, sin traducirlas. */}
           {!statsLoading && (wineStats?.totals?.total || 0) > 0 && (
             <div className="stat-card__hint">
-              de {wineStats.totals.total} {wineStats.totals.total === 1 ? "vino" : "vinos"}
+              {wineStats.totals.consumed === wineStats.totals.total
+                ? wineStats.totals.total === 1 ? "tu único vino" : "todos tus vinos"
+                : `de ${wineStats.totals.total} ${wineStats.totals.total === 1 ? "vino" : "vinos"}`}
             </div>
           )}
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
-            {statsLoading ? "" : wineStats?.avgRating ? wineStats.avgRating.toFixed(1) : "—"}
+            {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "—"}
           </div>
           <div className="label">Puntuación</div>
           {/* La raya sola, sin nada abajo, se leía como un dato roto. Ahora dice
               por qué está vacía en vez de sólo mostrar el vacío. */}
           {!statsLoading &&
             (wineStats?.avgRating > 0 ? (
-              <div className="stat-card__hint">promedio de lo que puntuaste</div>
+              <div className="stat-card__hint">
+                {wineStats.ratedCount > 0
+                  ? `promedio de ${wineStats.ratedCount} ${wineStats.ratedCount === 1 ? "vino" : "vinos"}`
+                  : "promedio de lo que puntuaste"}
+              </div>
             ) : (
               <div className="stat-card__hint">todavía sin puntuar</div>
             ))}
@@ -364,7 +404,7 @@ export default function ProfilePage() {
           elegís, es el mismo perfil visto desde otro número. Una sola sección
           con tres tarjetas adentro en vez de dos secciones con una y dos. */}
       {((wineStats && !statsLoading && (wineStats.totals?.total || 0) > 0) ||
-        (spending && spending.totalSpent > 0)) && (
+        (spending && spending.totalSpent > 0 && inversion?.total)) && (
         <section className="insights">
           {wineStats && !statsLoading && (wineStats.totals?.total || 0) > 0 && (
             <>
@@ -375,27 +415,19 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {(wineStats.topVarietals?.length > 0 || wineStats.topRegions?.length > 0) && (
+              {(uvasFrecuentes.length > 0 || regionesFrecuentes.length > 0) && (
                 <div className="insight">
                   <h3 className="insight__title">Lo que más elegís</h3>
                   <div className="insight__cols">
-                    <TopRanking
-                      label="Uvas"
-                      items={wineStats.topVarietals}
-                      nameKey="varietal"
-                    />
-                    <TopRanking
-                      label="Regiones"
-                      items={wineStats.topRegions}
-                      nameKey="region"
-                    />
+                    <TopRanking label="Uvas" items={uvasFrecuentes} nameKey="varietal" />
+                    <TopRanking label="Regiones" items={regionesFrecuentes} nameKey="region" />
                   </div>
                 </div>
               )}
             </>
           )}
 
-          {spending && spending.totalSpent > 0 && (
+          {spending && spending.totalSpent > 0 && inversion?.total && (
             <div className="insight">
               <h3 className="insight__title">Tu inversión</h3>
               <div className="spend">
@@ -408,7 +440,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
 
-                {spending.bestValueWine && (
+                {inversion.mejorRelacion && (
                   <p className="spend__row">
                     <span className="spend__row-label">Mejor relación</span>
                     <span className="spend__row-value">
@@ -417,7 +449,7 @@ export default function ProfilePage() {
                   </p>
                 )}
 
-                {spending.avgPriceByType?.length > 0 && (
+                {inversion.porTipo && (
                   <p className="spend__row">
                     <span className="spend__row-label">Promedio por tipo</span>
                     <span className="spend__row-value">
@@ -432,6 +464,10 @@ export default function ProfilePage() {
           )}
         </section>
       )}
+
+      {/* Con poco precio cargado no se muestra un total que parezca el de toda la
+          bodega: se dice cuánto falta, que es lo único accionable. */}
+      {!statsLoading && inversion?.aviso && <p className="profile-aviso">{inversion.aviso}</p>}
 
       {/* ── LAS VALORACIONES SON UNA PUERTA, NO UNA SECCIÓN ────────────────
           Acá estaba la lista abierta: cuatro valoraciones y un "ver las 23".

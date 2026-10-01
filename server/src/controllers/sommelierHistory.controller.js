@@ -112,4 +112,30 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { list, getOne, remove, POR_PAGINA };
+/**
+ * Borrar TODO el historial de quien lo pide.
+ *
+ * ── LA GUARDA QUE IMPORTA ───────────────────────────────────────────────────
+ * Un `deleteMany` sin filtro borra la colección de todas las personas. Acá el
+ * filtro es `{ userId }` y nada más, y si por cualquier motivo no hay `userId`
+ * (un middleware que cambió, una prueba mal armada) NO se llama a la base: un
+ * filtro con `userId: undefined` no es "ninguno", Mongoose lo descarta y queda
+ * `{}`. Es la clase de error que se paga una sola vez.
+ *
+ * Idempotente: sin nada que borrar devuelve `borradas: 0` y no es un error.
+ */
+const removeAll = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Sesión expirada" });
+    }
+
+    const resultado = await SommelierConversation.deleteMany({ userId });
+    return res.json({ success: true, data: { borradas: resultado?.deletedCount || 0 } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { list, getOne, remove, removeAll, POR_PAGINA };

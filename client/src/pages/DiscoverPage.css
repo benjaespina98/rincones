@@ -542,8 +542,22 @@
 
 .wine-search__chips-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 7px;
+  /* Una sola fila que se desliza, no varias que se envuelven: con seis atajos
+     envolver ocupaba dos renglones y empujaba el vino del día. Llega a los bordes
+     de la pantalla al deslizar, para que el último no se vea cortado por el margen. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: calc(var(--page-pad-x) * -1);
+  padding: 2px var(--page-pad-x);
+}
+
+.wine-search__chips-row::-webkit-scrollbar {
+  display: none;
 }
 
 /* La forma, el color del activo y el foco los pone Chip.css. Acá sólo queda
@@ -791,4 +805,93 @@
 
 .wine-result-card[data-wine-type] .wine-result-card__media {
   background: var(--type-gradient);
+}
+
+/* ── MOVIMIENTO ──────────────────────────────────────────────────────────────
+   Descubrí es lo primero que se ve y estaba quieta: todo aparecía junto y se
+   quedaba ahí. Tres cosas, todas con transform/opacity y todas apagadas por
+   `prefers-reduced-motion` (ver el bloque global de index.css):
+
+   1. Los bloques de la pantalla entran de a uno, en el orden en que se leen.
+   2. Detrás del saludo, el resplandor del acento se desplaza muy despacio.
+   3. "Ver otro" da una vuelta al ícono y la tarjeta nueva entra con más cuerpo. */
+.discover-page > * {
+  animation: rincon-enter-up 480ms var(--ease-out) both;
+  animation-delay: calc(var(--orden, 0) * 70ms);
+}
+.discover-page > :nth-child(1) { --orden: 0; }
+.discover-page > :nth-child(2) { --orden: 1; }
+.discover-page > :nth-child(3) { --orden: 2; }
+.discover-page > :nth-child(4) { --orden: 3; }
+.discover-page > :nth-child(5) { --orden: 4; }
+.discover-page > :nth-child(n + 6) { --orden: 5; }
+
+.discover-hero::before {
+  animation: rincon-deriva 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.spotlight {
+  animation-duration: 520ms;
+}
+
+/* La recomendación aparece al terminar de cargar y se vuelve a montar cada vez que
+   se toca "Ver otro": con retraso, la tarjeta nueva tardaba en aparecer y el toque
+   parecía no haber hecho nada. Entra de inmediato. */
+.discover-page > .spotlight {
+  animation-delay: 0ms;
+}
+
+.spotlight__surprise:active .icon {
+  animation: rincon-vuelta 420ms var(--ease-out);
+}
+
+/* ── LOS ATAJOS CON VIDA ─────────────────────────────────────────────────────
+   Cada atajo entra de a uno, desde la derecha y un poco más tarde que el
+   anterior (--i), y "otras ideas" los renueva con la misma entrada. Sólo
+   transform y opacity; reduced-motion lo apaga desde index.css. */
+@keyframes atajo-entra {
+  from { opacity: 0; transform: translateX(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.wine-search__chip {
+  flex: 0 0 auto;
+  animation: atajo-entra 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+/* El botón que renueva los atajos: un círculo del mismo alto que las fichas. */
+.wine-search__otras {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.wine-search__otras:active {
+  transform: scale(0.94);
+}
+
+.wine-search__otras:active .icon {
+  animation: rincon-vuelta 420ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .wine-search__otras:hover {
+    color: var(--text);
+    border-color: var(--line-accent);
+  }
+}
+
+.wine-search__otras:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
 }

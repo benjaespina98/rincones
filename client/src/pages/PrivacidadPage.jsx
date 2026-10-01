@@ -118,9 +118,10 @@ export default function PrivacidadPage() {
           <strong>Tu bodega, tus momentos y tus reseñas</strong> — mientras tengas la cuenta.
         </li>
         <li>
-          <strong>Tus consultas al Sommelier</strong> — 180 días. No es por espacio: a partir de
-          cierto punto el historial deja de ser útil y pasa a ser un archivo de cosas personales
-          que nadie va a leer.
+          <strong>Tus consultas al Sommelier</strong> — 45 días desde la última vez que usaste
+          cada conversación; después se borra sola. Además podés borrarlas cuando quieras, una por
+          una. No es por espacio: a partir de cierto punto el historial deja de ser útil y pasa a
+          ser un archivo de cosas personales que nadie va a leer.
         </li>
         <li>
           <strong>Los eventos de uso</strong> — 180 días el detalle; el resumen diario, que ya no

@@ -16,11 +16,14 @@ import "./BodegaResumen.css";
  * son malos" en vez de "todavía no puntuaste". `resumenDeBodega` devuelve null
  * y acá la métrica desaparece: un hueco es más honesto que un cero inventado.
  *
- * ── POR QUÉ NO SON TARJETAS ─────────────────────────────────────────────────
- * Son cinco datos de una línea cada uno. Metidos en tarjetas ocuparían media
- * pantalla arriba de la lista — y la lista es a lo que se vino. Es una tira
- * que se desliza, con el número grande y la etiqueta chica debajo: se leen de
- * un vistazo y ocupan un renglón.
+ * ── POR QUÉ ES UNA SOLA TARJETA ─────────────────────────────────────────────
+ * Son pocos datos de una línea cada uno. Cada uno en su tarjeta ocuparía media
+ * pantalla arriba de la lista —y la lista es a lo que se vino—; sueltos, sin
+ * superficie, se leían como un renglón perdido al lado de las tarjetas de
+ * abajo (así estuvo: una tira con márgenes negativos y un filtro de lado a
+ * lado). Los números van en columnas iguales dentro de UNA tarjeta, con los
+ * mismos valores de superficie que las filas de vino; la región, que es texto
+ * y no cabe en una columna de 67px, va abajo en su propio renglón.
  */
 
 /** Sólo se muestran las que tienen algo que decir. */
@@ -82,21 +85,34 @@ export default function BodegaResumen({ wines = [], className = "" }) {
   // pantalla ya dice lo que hay que decir, y dos vacíos seguidos es uno de más.
   if (metricas.length === 0) return null;
 
+  const numeros = metricas.filter((m) => !m.texto);
+  const region = metricas.find((m) => m.texto);
+
   return (
     <div
       className={`bres ${className}`.trim()}
       role="group"
       aria-label="Resumen de lo que estás viendo"
     >
-      {metricas.map((m) => (
-        <div key={m.id} className={`bres__item ${m.texto ? "bres__item--texto" : ""}`}>
-          <span className="bres__valor">{m.valor}</span>
-          <span className="bres__etiqueta">
-            {m.etiqueta}
-            {m.detalle && <span className="bres__detalle"> {m.detalle}</span>}
-          </span>
+      {numeros.length > 0 && (
+        <div className="bres__fila">
+          {numeros.map((m) => (
+            <div key={m.id} className="bres__item">
+              <span className="bres__valor">{m.valor}</span>
+              <span className="bres__etiqueta">{m.etiqueta}</span>
+              {m.detalle && <span className="bres__detalle">{m.detalle}</span>}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+      {region && (
+        <p className="bres__pie">
+          <span className="bres__pie-etiqueta">{region.etiqueta}</span>
+          {/* El dato viene como "Salta | Argentina": la barra es del formato de
+              origen, no de la lectura. */}
+          <span className="bres__pie-valor">{region.valor.replace(/\s*\|\s*/g, ", ")}</span>
+        </p>
+      )}
     </div>
   );
 }

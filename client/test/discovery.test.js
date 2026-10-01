@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { elegirOtroDistinto } from "../src/utils/discovery";
+import { elegirOtroDistinto, elegirEntrada } from "../src/utils/discovery";
 
 /**
  * "Ver otro" tiene que devolver algo DISTINTO, no algo otro.
@@ -69,3 +69,63 @@ describe("elegirOtroDistinto", () => {
   });
 });
 
+
+/**
+ * Por dónde se ENTRA a Descubrí. Se entraba siempre por la primera del ranking,
+ * y como el set es estable durante el día, la home mostraba el mismo vino cada
+ * vez que se abría la app.
+ */
+describe("elegirEntrada", () => {
+  const set = [
+    { id: "a" },
+    { id: "b" },
+    { id: "c" },
+    { id: "d" },
+    { id: "e" },
+    { id: "f" },
+  ];
+
+  it("sortea entre las primeras del ranking y nunca baja de ahí", () => {
+    const vistos = new Set();
+    for (let i = 0; i < 200; i += 1) vistos.add(elegirEntrada(set, null, { top: 4 }));
+    expect([...vistos].sort()).toEqual([0, 1, 2, 3]);
+  });
+
+  it("nunca devuelve la que se vio la última vez", () => {
+    for (let i = 0; i < 200; i += 1) {
+      expect(elegirEntrada(set, "a", { top: 4 })).not.toBe(0);
+      expect(elegirEntrada(set, "c", { top: 4 })).not.toBe(2);
+    }
+  });
+
+  it("compara ids como texto: un id numérico guardado como string sigue contando", () => {
+    const numericos = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    for (let i = 0; i < 100; i += 1) {
+      expect(elegirEntrada(numericos, "1", { top: 3 })).not.toBe(0);
+    }
+  });
+
+  it("una recomendación que ya no está entre las primeras no condiciona nada", () => {
+    // Lo último visto fue la sexta ("f"): fuera del tope, así que las cuatro valen.
+    const vistos = new Set();
+    for (let i = 0; i < 200; i += 1) vistos.add(elegirEntrada(set, "f", { top: 4 }));
+    expect(vistos.size).toBe(4);
+  });
+
+  it("usa el azar que se le pasa: con el mismo azar, la misma entrada", () => {
+    expect(elegirEntrada(set, null, { top: 4, azar: () => 0 })).toBe(0);
+    expect(elegirEntrada(set, null, { top: 4, azar: () => 0.99 })).toBe(3);
+  });
+
+  it("con una sola recomendación, o ninguna, devuelve 0", () => {
+    expect(elegirEntrada([{ id: "x" }], "x")).toBe(0);
+    expect(elegirEntrada([], null)).toBe(0);
+    expect(elegirEntrada(undefined, null)).toBe(0);
+  });
+
+  it("con dos recomendaciones alterna: la que no se vio", () => {
+    const dos = [{ id: "p" }, { id: "q" }];
+    expect(elegirEntrada(dos, "p")).toBe(1);
+    expect(elegirEntrada(dos, "q")).toBe(0);
+  });
+});

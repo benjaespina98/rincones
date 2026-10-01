@@ -19,10 +19,10 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia actual: **client 284/284**, **server 355/355**, lint limpio, tokens
+Referencia actual: **client 350/350**, **server 361/361**, lint limpio, tokens
 136/136. Los conteos pueden subir, nunca bajar.
 
-Carga inicial: **≈119,8 kB gzip** (entry 73,1 + vendor 35,8 + CSS 10,9).
+Carga inicial: **≈120,1 kB gzip** (entry 73,2 + vendor 35,8 + CSS 11,1).
 Presupuesto: no pasar de ~143 kB.
 
 ## Flujo de ramas
@@ -63,6 +63,14 @@ Sin backend se pueden revisar: `/styleguide`, `/login`, `/register`.
 **El panel del navegador pinta inestable.** Las capturas salen en blanco o a
 medio pintar. Verificar con **estilos computados** (`javascript_tool`) y tests
 automatizados, no con screenshots.
+
+**Cambiar el plazo de un TTL no alcanza.** Mongoose rechaza redefinir un índice
+existente con otras opciones (`IndexOptionsConflict`): el viejo sigue vigente y el
+schema nuevo no hace nada. Y `collMod`, la forma obvia de retocarlo, no está
+permitido para el usuario de la base. Se resuelve con un índice sobre OTRO campo
+(así lo hace `SommelierConversation`: 45 días sobre `updatedAt`, no sobre
+`createdAt`); el viejo queda inofensivo. Probar siempre contra la base `test`, que
+tiene los índices viejos y replica lo que va a pasar al desplegar.
 
 **Los archivos son CRLF.** Un reemplazo multilínea con `\n` no matchea: usar
 regex con `\r?\n`, o `sed` por número de línea.

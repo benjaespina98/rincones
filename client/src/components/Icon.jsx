@@ -12,6 +12,15 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
+  // Tres puntos: el menú de acciones de un elemento ("más opciones"). Con trazo de 2 y
+  // radio 1 salen puntos de 4px, del mismo peso que el resto del set.
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
   check: <path d="M20 6 9 17l-5-5" />,
   circle: <circle cx="12" cy="12" r="8" />,
   x: <path d="M18 6 6 18M6 6l12 12" />,

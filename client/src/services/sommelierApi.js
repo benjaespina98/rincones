@@ -73,6 +73,12 @@ export const borrarConversacion = async (id) => {
   return true;
 };
 
+/** Todo el historial de quien pide. Devuelve cuántas se borraron. */
+export const borrarTodasLasConversaciones = async () => {
+  const { data } = await api.delete("/sommelier/conversations");
+  return data?.data?.borradas ?? 0;
+};
+
 /**
  * Traduce un error de la consulta a lo que hay que mostrar en la burbuja.
  *

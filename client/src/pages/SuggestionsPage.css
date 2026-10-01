@@ -70,6 +70,9 @@
      llegar. Sobra un poco a propósito: que la respuesta termine con aire arriba
      del campo se lee mejor que si le queda justo. */
   padding-bottom: 72px;
+  /* ...y si el compositor mide más (con la fila de repreguntas), se reserva lo que
+     mide: `--somm-pie` lo publica la pantalla (ver SuggestionsPage.jsx). */
+  padding-bottom: max(72px, calc(var(--somm-pie, 0px) - 32px));
 }
 
 /* La entrada. Sin el medallón con la copa que iba arriba de todo: un ícono de
@@ -817,4 +820,29 @@
   justify-content: flex-end;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+/* ── EL PANEL DE CONVERSACIONES EN ESCRITORIO ────────────────────────────────
+   Desde 1024px las conversaciones son una columna fija de 264px al lado del
+   sidebar (ver SommelierChats.css). El contenido y el compositor se corren lo
+   mismo para no quedar debajo de ella, y las dos acciones del renglón de arriba
+   ("Conversaciones", "Nueva conversación") ya viven dentro del panel.
+
+   La cuenta: la caja pasa a 264 (panel) + 24 (aire) + 780 (columna de lectura),
+   centrada en el área; el compositor arranca después del sidebar (240) más el
+   panel y su aire, y centra su contenido en lo que queda — que es justo el
+   centro de la columna de lectura. */
+@media (min-width: 1024px) {
+  .somm {
+    max-width: calc(264px + 24px + 780px);
+    padding-left: calc(264px + 24px);
+  }
+
+  .somm__pie {
+    left: calc(240px + 264px + 24px);
+  }
+
+  .somm__acciones {
+    display: none;
+  }
 }
