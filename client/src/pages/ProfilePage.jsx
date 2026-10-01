@@ -485,6 +485,8 @@ export default function ProfilePage() {
         email={user?.email}
         onCancel={() => setShowDeleteAccount(false)}
         onConfirm={eliminarMiCuenta}
+        onExport={exportarDatos}
+        exporting={exportando}
       />
 
       {isEditing && (
