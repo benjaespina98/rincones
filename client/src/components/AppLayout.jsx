@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
@@ -8,6 +9,7 @@ import Logo from "./Logo";
 import { tapHaptic } from "../utils/haptics";
 import { displayName, initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TAB_PATHS } from "../data/navigation";
+import { TopbarContext } from "../context/TopbarContext";
 import "./AppLayout.css";
 
 // Onboarding y verificación de email ya no se resuelven acá: son un gate de
@@ -50,6 +52,11 @@ const AppLayout = ({ children, pageTitle }) => {
    * `span` con `aria-hidden` — si fuera otro `h1` la pantalla tendría dos.
    */
   const compacto = useHeaderCollapse();
+  // Las ranuras de la barra: se guardan en estado para que las pantallas se enteren
+  // cuando existen (un ref común no avisa) y puedan colgar sus acciones por portal.
+  const [izquierda, setIzquierda] = useState(null);
+  const [derecha, setDerecha] = useState(null);
+  const ranuras = useMemo(() => ({ izquierda, derecha }), [izquierda, derecha]);
 
   // Los controles de volver sólo tienen sentido en pantallas de detalle;
   // en las pestañas principales la navegación es el propio tab bar.
@@ -70,6 +77,7 @@ const AppLayout = ({ children, pageTitle }) => {
   };
 
   return (
+    <TopbarContext.Provider value={ranuras}>
     <div className="app-layout">
       <header className={`app-topbar ${compacto ? "is-compacto" : ""}`}>
         {isSubScreen && (
@@ -89,12 +97,16 @@ const AppLayout = ({ children, pageTitle }) => {
 
         {/* El eco de la barra: aparece cuando el grande ya se fue. Decorativo,
             porque el encabezado de verdad es el h1 de abajo. */}
+        <div className="app-topbar__ranura app-topbar__ranura--izq" ref={setIzquierda} />
+
         <span className="app-topbar__title" aria-hidden="true">
           {pageTitle}
         </span>
 
         {/* Tocar el avatar lleva a la sección de perfil a pantalla completa
             (no un desplegable): configuración y cerrar sesión viven ahí. */}
+        <div className="app-topbar__ranura" ref={setDerecha} />
+
         <button
           className="app-topbar__account"
           type="button"
@@ -156,6 +168,7 @@ const AppLayout = ({ children, pageTitle }) => {
       </main>
       <BottomTabNavigation />
     </div>
+    </TopbarContext.Provider>
   );
 };
 

@@ -16,8 +16,10 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto } from "../utils/discovery";
+import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
+import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
+import FilaDeAtajos from "../components/FilaDeAtajos";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -33,10 +35,10 @@ import { getPromotions } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
 import "./DiscoverPage.css";
 
-// Atajos rápidos para arrancar la búsqueda sin escribir. Son pocos a propósito:
-// nueve ocupaban tres filas y empujaban el vino del día fuera de la pantalla,
-// que es lo que la home tiene para mostrar. Con estos entra sin scrollear.
-const QUICK_VARIETALS = ["Malbec", "Cabernet Franc", "Pinot Noir"];
+// Los atajos de búsqueda ya no son una lista fija: ver utils/sugerenciasBusqueda.js.
+// Son seis y se deslizan en una sola fila (nueve en filas que se envolvían empujaban
+// el vino del día fuera de la pantalla).
+const CANTIDAD_DE_ATAJOS = 6;
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
@@ -78,6 +80,26 @@ export default function DiscoverPage() {
      cambiaría de tema mientras la estás leyendo. */
   const [seed] = useState(() => Math.floor(Math.random() * 997));
 
+  /* La recomendación que se vio la vez anterior, leída UNA sola vez al entrar. Si se
+     leyera dentro de la carga, un segundo disparo (React en desarrollo monta dos
+     veces; un "Reintentar" también) encontraría ya guardada la que se acaba de
+     elegir y evitaría esa en vez de la de la visita pasada. */
+  const [ultimoAlEntrar] = useState(leerUltimoVisto);
+
+  /* Los atajos de búsqueda: una selección distinta en cada visita (estación, lo que ya
+     tomás, variedad forzada) que después se renueva SOLA, de a uno, como las
+     sugerencias de los chats de IA (ver FilaDeAtajos.jsx). No hay botón para pedir
+     otras: pedirlo era trabajo que la pantalla puede hacer sola. */
+  const uvasFrecuentes = (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean);
+  const [sugerenciasIniciales] = useState(() =>
+    sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes }).map((label) => ({ label }))
+  );
+  const siguienteSugerencia = (actuales) => {
+    const visibles = actuales.map((x) => x.label);
+    const [label] = sugerenciasDeBusqueda({ cantidad: 1, uvasFrecuentes, excluir: visibles });
+    return label && !visibles.includes(label) ? { label } : null;
+  };
+
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
   // pantalla quedaba con un carrusel vacío, sin explicación ni salida.
   const loadFeatured = useCallback(() => {
@@ -89,28 +111,19 @@ export default function DiscoverPage() {
         if (!active) return;
         setFeatured(w);
         /**
-         * Se entra por la PRIMERA, que es la de mayor afinidad.
-         *
-         * Acá se entraba por una al azar del set. Tenía sentido mientras el set
-         * era un barajado sin orden interno —daba exactamente lo mismo cuál
-         * fuera la primera—, pero desde que el server lo devuelve RANKEADO (ver
-         * services/recommendations.service.js: afinidad y descubrimiento
-         * intercalados, la mejor primero) sortear la entrada tiraba a la basura
-         * todo el ranking: la recomendación mejor calzada tenía una chance en
-         * ocho de ser la que veías.
-         *
-         * La variedad no se pierde, cambia de lugar: el set entero rota todos
-         * los días y "Ver otro" recorre el resto, que es exactamente para lo
-         * que está.
+         * Se entra por una de las primeras del ranking y nunca por la que se vio
+         * la vez anterior (ver `elegirEntrada`). Entrar siempre por la primera
+         * dejaba la home idéntica en cada visita: el set es estable durante el día
+         * y su primer puesto lo decide la afinidad.
          */
-        setSpotlightIdx(0);
+        setSpotlightIdx(elegirEntrada(w, ultimoAlEntrar));
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, []);
+  }, [ultimoAlEntrar]);
 
   useEffect(() => loadFeatured(), [loadFeatured]);
 
@@ -203,6 +216,12 @@ export default function DiscoverPage() {
   const buscando = query.trim().length >= 2;
 
   const spotlight = featured[spotlightIdx] || null;
+
+  // Lo último que se mostró, para que la próxima entrada no sea la misma.
+  const spotlightId = spotlight?.id;
+  useEffect(() => {
+    guardarUltimoVisto(spotlightId);
+  }, [spotlightId]);
   // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
   const motivo = whyThisWine(spotlight, stats);
 
@@ -328,21 +347,30 @@ export default function DiscoverPage() {
             dejarte cambiar de un toque. Y tocar el encendido lo apaga —vuelve
             la home— que es la salida que antes no existía. */}
         <div className="wine-search__chips">
-          <div className="wine-search__chips-row">
-            {QUICK_VARIETALS.map((v) => {
-              const activo = query.trim().toLowerCase() === v.toLowerCase();
+          {/* Se frena mientras se busca: cambiar los atajos con un resultado en pantalla
+              sería mover el piso. */}
+          <FilaDeAtajos
+            className="wine-search__chips-row"
+            inicial={sugerenciasIniciales}
+            siguiente={siguienteSugerencia}
+            pausado={Boolean(query.trim())}
+            renderItem={(v, { entra, saliendo }) => {
+              const activo = query.trim().toLowerCase() === v.label.toLowerCase();
               return (
                 <Chip
-                  key={v}
                   active={activo}
-                  className="wine-search__chip"
-                  onClick={() => { tapHaptic(); setQuery(activo ? "" : v); }}
+                  className={`wine-search__chip${saliendo ? " atajo--sale" : ""}`}
+                  style={{ "--i": entra }}
+                  onClick={() => {
+                    tapHaptic();
+                    setQuery(activo ? "" : v.label);
+                  }}
                 >
-                  {v}
+                  {v.label}
                 </Chip>
               );
-            })}
-          </div>
+            }}
+          />
         </div>
       </header>
 

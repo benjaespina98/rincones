@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const SommelierConversation = require("../models/sommelierConversation.model");
 
 /**
@@ -112,4 +113,78 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { list, getOne, remove, POR_PAGINA };
+/**
+ * Borrar TODO el historial de quien lo pide.
+ *
+ * ── LA GUARDA QUE IMPORTA ───────────────────────────────────────────────────
+ * Un `deleteMany` sin filtro borra la colección de todas las personas. Acá el
+ * filtro es `{ userId }` y nada más, y si por cualquier motivo no hay `userId`
+ * (un middleware que cambió, una prueba mal armada) NO se llama a la base: un
+ * filtro con `userId: undefined` no es "ninguno", Mongoose lo descarta y queda
+ * `{}`. Es la clase de error que se paga una sola vez.
+ *
+ * Idempotente: sin nada que borrar devuelve `borradas: 0` y no es un error.
+ */
+const removeAll = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Sesión expirada" });
+    }
+
+    const resultado = await SommelierConversation.deleteMany({ userId });
+    return res.json({ success: true, data: { borradas: resultado?.deletedCount || 0 } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * El pulgar de la persona sobre UNA respuesta.
+ *
+ * Se apunta al mensaje por su id y el filtro lleva `userId`: dar pulgar a una
+ * respuesta ajena no matchea, y devuelve el mismo 404 que una que no existe. Sólo
+ * las respuestas del asistente aceptan pulgar (`$elemMatch` con `role`).
+ *
+ * `timestamps: false`: opinar sobre una charla vieja no tiene que subirla al
+ * tope de la lista ni reiniciarle los 45 días de vida.
+ */
+const feedback = async (req, res, next) => {
+  try {
+    const { mensajeId, valor } = req.body || {};
+
+    if (valor !== "up" && valor !== "down" && valor !== null) {
+      return res.status(400).json({ success: false, message: "Valor de pulgar inválido" });
+    }
+    if (!mongoose.isValidObjectId(mensajeId)) {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+
+    const cambio =
+      valor === null
+        ? { $unset: { "messages.$.feedback": "" } }
+        : { $set: { "messages.$.feedback": valor } };
+
+    const resultado = await SommelierConversation.updateOne(
+      {
+        _id: req.params.id,
+        userId: req.user.id,
+        messages: { $elemMatch: { _id: mensajeId, role: "assistant" } },
+      },
+      cambio,
+      { timestamps: false }
+    );
+
+    if (!resultado?.matchedCount) {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+    return res.json({ success: true, data: { mensajeId, valor } });
+  } catch (error) {
+    if (error?.name === "CastError") {
+      return res.status(404).json({ success: false, message: "Esa respuesta no existe" });
+    }
+    return next(error);
+  }
+};
+
+module.exports = { list, getOne, remove, removeAll, feedback, POR_PAGINA };

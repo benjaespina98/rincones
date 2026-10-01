@@ -122,6 +122,34 @@ const parseJsonLoose = (text) => {
  * @param {number} [temperature]  0 por defecto: para pedir datos, la
  *   creatividad es alucinación. Se sube sólo donde se pide prosa.
  */
+/**
+ * Modelos que contestaron 400 cuando se les pidió `thinkingBudget: 0`.
+ *
+ * ── POR QUÉ EXISTE LA OPCIÓN `sinPensamiento` ──────────────────────────────────
+ * Los modelos "flash" nuevos PIENSAN antes de contestar y ese pensamiento cuenta como
+ * tokens de salida y como tiempo. Medido contra la API, pidiendo dos frases:
+ *
+ *   gemini-3.6-flash   pensando: gastó 248 de 260 tokens pensando y cortó la
+ *                      respuesta (MAX_TOKENS) → intento perdido.
+ *                      sin pensar: 1,7 s y la respuesta completa.
+ *
+ * Y si el primer modelo de la cadena está saturado (un 503 de "alta demanda" tarda ~14
+ * s en volver), cada pregunta empieza perdiendo el timeout entero. Sin pensar, los
+ * modelos que responden lo hacen en ~1,6 s.
+ *
+ * ── Y POR QUÉ SE RECUERDAN LOS QUE NO LO ACEPTAN ────────────────────────────────
+ * Algunos modelos (los lite más nuevos) rechazan el parámetro con un 400. En vez de
+ * fallar, se reintenta ESE modelo sin el parámetro y se lo recuerda: las llamadas
+ * siguientes ya no lo pierden en el primer intento.
+ *
+ * Es una opción y no el comportamiento de siempre: el escáner de etiquetas usa esta
+ * misma función y ahí no se cambió nada.
+ */
+const NO_ACEPTAN_PENSAMIENTO = new Set();
+
+/** Sólo para los tests: olvida qué modelos rechazaron el parámetro. */
+const olvidarModelosSinPensamiento = () => NO_ACEPTAN_PENSAMIENTO.clear();
+
 const generateJson = async ({
   parts,
   schema,
@@ -130,21 +158,24 @@ const generateJson = async ({
   task = "search",
   maxOutputTokens,
   temperature = 0,
+  sinPensamiento = false,
 }) => {
   const apiKey = String(process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) throw new Error("GEMINI_API_KEY no configurada");
 
   const deadline = Date.now() + (budgetMs ?? timeoutMs * 2);
 
-  const body = JSON.stringify({
-    contents: [{ parts }],
-    generationConfig: {
-      temperature,
-      responseMimeType: "application/json",
-      responseSchema: schema,
-      ...(maxOutputTokens ? { maxOutputTokens } : {}),
-    },
-  });
+  const cuerpo = (sinPensar) =>
+    JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        temperature,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        ...(maxOutputTokens ? { maxOutputTokens } : {}),
+        ...(sinPensar ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      },
+    });
 
   let lastError = null;
 
@@ -159,12 +190,22 @@ const generateJson = async ({
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, remaining));
     try {
-      const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body,
-      });
+      const sinPensar = sinPensamiento && !NO_ACEPTAN_PENSAMIENTO.has(model);
+      const pedir = (sinPensarEsta) =>
+        fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: cuerpo(sinPensarEsta),
+        });
+
+      let res = await pedir(sinPensar);
+      // Este modelo no acepta el parámetro: se recuerda y se reintenta SIN él, dentro del
+      // mismo intento (no cuenta como un modelo fallido).
+      if (res.status === 400 && sinPensar) {
+        NO_ACEPTAN_PENSAMIENTO.add(model);
+        res = await pedir(false);
+      }
 
       if (!res.ok) {
         const detail = await res.text().catch(() => "");
@@ -206,8 +247,179 @@ const generateJson = async ({
   throw lastError || new Error("Gemini no devolvió resultados");
 };
 
+/**
+ * Lo mismo que `generateJson`, pero la respuesta llega de a pedazos (SSE) y se va
+ * entregando por `onTexto` a medida que se escribe.
+ *
+ * ── CÓMO SE COMPORTA ANTE LAS FALLAS ────────────────────────────────────────────
+ * La cadena de modelos funciona igual que en `generateJson` MIENTRAS NO HAYA LLEGADO
+ * NADA: un 503, un timeout o una respuesta vacía pasan al modelo siguiente sin que quien
+ * llama se entere. Pero apenas llegó el primer trozo ya se le mostró algo a la persona, y
+ * cambiar de modelo a la mitad la dejaría con una frase empezada por uno y terminada por
+ * otro. Desde ahí, una falla se propaga (con `error.parcial = true`) y quien llama decide:
+ * el cliente reintenta la consulta por la vía normal.
+ *
+ * El tiempo máximo (`timeoutMs`) rige hasta el PRIMER trozo, que es lo que cuenta cuando un
+ * modelo está saturado; después manda el presupuesto total (`budgetMs`). `signal` cancela
+ * todo: si la persona cierra la pantalla, se corta la llamada a Gemini y se deja de pagar.
+ *
+ * @param {(acumulado: string) => void} onTexto  recibe TODO el JSON acumulado hasta ahora.
+ */
+const streamJson = async ({
+  parts,
+  schema,
+  timeoutMs = 10000,
+  budgetMs,
+  task = "search",
+  maxOutputTokens,
+  temperature = 0,
+  sinPensamiento = false,
+  onTexto,
+  signal,
+}) => {
+  const apiKey = String(process.env.GEMINI_API_KEY || "").trim();
+  if (!apiKey) throw new Error("GEMINI_API_KEY no configurada");
+
+  const deadline = Date.now() + (budgetMs ?? timeoutMs * 2);
+
+  const cuerpo = (sinPensar) =>
+    JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        temperature,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        ...(maxOutputTokens ? { maxOutputTokens } : {}),
+        ...(sinPensar ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      },
+    });
+
+  let lastError = null;
+
+  for (const model of getModelChain(task)) {
+    if (signal?.aborted) throw new Error("Consulta cancelada");
+
+    const remaining = deadline - Date.now();
+    if (remaining < 500) {
+      lastError = lastError || new Error("Gemini agotó el presupuesto de tiempo");
+      break;
+    }
+
+    const controller = new AbortController();
+    const cancelar = () => controller.abort();
+    signal?.addEventListener?.("abort", cancelar, { once: true });
+    // Hasta el primer trozo manda el timeout corto; después, lo que quede del presupuesto.
+    let timer = setTimeout(cancelar, Math.min(timeoutMs, remaining));
+    let acumulado = "";
+
+    try {
+      const sinPensar = sinPensamiento && !NO_ACEPTAN_PENSAMIENTO.has(model);
+      const pedir = (sinPensarEsta) =>
+        fetch(`${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: cuerpo(sinPensarEsta),
+        });
+
+      let res = await pedir(sinPensar);
+      if (res.status === 400 && sinPensar) {
+        NO_ACEPTAN_PENSAMIENTO.add(model);
+        res = await pedir(false);
+      }
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        lastError = new Error(`Gemini ${model} HTTP ${res.status} ${detail.slice(0, 140)}`);
+        if (shouldTryNextModel(res.status)) continue;
+        throw lastError;
+      }
+
+      const lector = res.body.getReader();
+      const decodificador = new TextDecoder();
+      let pendiente = "";
+      let finishReason = null;
+      let primerTrozo = true;
+
+      // Un evento SSE son líneas "data: {json}" separadas del siguiente por una línea en blanco.
+      const procesar = (evento) => {
+        for (const linea of evento.split("\n")) {
+          if (!linea.startsWith("data:")) continue;
+          const crudo = linea.slice(5).trim();
+          if (!crudo || crudo === "[DONE]") continue;
+          let trozo;
+          try {
+            trozo = JSON.parse(crudo);
+          } catch {
+            continue; // una línea rota no tira el stream entero
+          }
+          const candidato = trozo?.candidates?.[0];
+          const texto = (candidato?.content?.parts || []).map((p) => p?.text || "").join("");
+          if (candidato?.finishReason) finishReason = candidato.finishReason;
+          if (!texto) continue;
+
+          if (primerTrozo) {
+            primerTrozo = false;
+            clearTimeout(timer);
+            timer = setTimeout(cancelar, Math.max(deadline - Date.now(), 500));
+          }
+          acumulado += texto;
+          onTexto?.(acumulado);
+        }
+      };
+
+      for (;;) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        pendiente += decodificador.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+        let corte;
+        while ((corte = pendiente.indexOf("\n\n")) >= 0) {
+          procesar(pendiente.slice(0, corte));
+          pendiente = pendiente.slice(corte + 2);
+        }
+      }
+      if (pendiente.trim()) procesar(pendiente);
+
+      if (!acumulado) {
+        lastError = new Error(`Gemini ${model} devolvió una respuesta vacía`);
+        continue;
+      }
+      if (finishReason === "MAX_TOKENS") {
+        lastError = new Error(`Gemini ${model} cortó la respuesta (MAX_TOKENS)`);
+        lastError.parcial = true;
+        throw lastError;
+      }
+
+      try {
+        return parseJsonLoose(acumulado);
+      } catch {
+        lastError = new Error(`Gemini ${model} devolvió JSON inválido`);
+        lastError.parcial = true;
+        throw lastError;
+      }
+    } catch (error) {
+      lastError = error;
+      // Ya llegó algo y se lo mostramos a la persona: no se cambia de modelo a la mitad.
+      if (acumulado || error?.parcial) {
+        error.parcial = true;
+        throw error;
+      }
+      // Cancelada por quien llamó: no tiene sentido seguir con otro modelo.
+      if (signal?.aborted) throw error;
+      // Si no, timeout o red antes del primer trozo: se prueba el siguiente.
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener?.("abort", cancelar);
+    }
+  }
+
+  throw lastError || new Error("Gemini no devolvió resultados");
+};
+
 module.exports = {
   generateJson,
+  streamJson,
+  olvidarModelosSinPensamiento,
   isGeminiConfigured,
   FALLBACK_MODELS,
   SEARCH_MODELS,

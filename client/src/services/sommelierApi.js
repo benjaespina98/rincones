@@ -33,7 +33,17 @@ const TURNOS = 3;
  */
 const TIMEOUT_MS = 25000;
 
-export const preguntarAlSommelier = async (question, history = [], conversationId = null) => {
+/**
+ * `opciones.regenerar` pide "otra opción" para una respuesta que ya se leyó:
+ *   · `evitar`: el texto de esa respuesta, para que el modelo no la repita;
+ *   · `reemplazaMensajeId`: el mensaje del historial que se reemplaza en su lugar.
+ */
+export const preguntarAlSommelier = async (
+  question,
+  history = [],
+  conversationId = null,
+  opciones = {}
+) => {
   const { data } = await api.post(
     "/sommelier/ask",
     {
@@ -43,12 +53,26 @@ export const preguntarAlSommelier = async (question, history = [], conversationI
          en vez de abrir una nueva. Nulo en la primera: lo crea el server y lo
          devuelve acá abajo. */
       conversationId,
+      ...(opciones.regenerar
+        ? {
+            regenerar: true,
+            evitar: opciones.evitar || "",
+            reemplazaMensajeId: opciones.reemplazaMensajeId || "",
+          }
+        : {}),
     },
     { timeout: TIMEOUT_MS }
   );
   // El id viaja al lado de la respuesta, no adentro: `data.data` es lo que la
   // guía contestó, y el id es de la conversación que lo contiene.
-  return data?.data ? { ...data.data, conversationId: data.conversationId || conversationId } : null;
+  return data?.data
+    ? {
+        ...data.data,
+        conversationId: data.conversationId || conversationId,
+        // El id del mensaje del asistente: el pulgar y "otra opción" apuntan a él.
+        mensajeId: data.mensajeId || null,
+      }
+    : null;
 };
 
 /**
@@ -68,9 +92,56 @@ export const traerConversacion = async (id) => {
   return data?.data || null;
 };
 
+/**
+ * Una foto de la carta de un restaurante, de un plato o de una botella.
+ *
+ * Va como multipart (la imagen NO se codifica a texto: pesaría un tercio más) con el
+ * texto opcional y el historial reciente. La respuesta tiene la misma forma que la de
+ * `preguntarAlSommelier`. La imagen la reduce antes quien llama (ver `resizeImage`); el
+ * servidor la descarta apenas la procesa.
+ *
+ * Más tiempo que una pregunta escrita: mirar una imagen tarda más que leer una frase.
+ */
+const FOTO_TIMEOUT_MS = 40000;
+
+export const preguntarConFoto = async (
+  blob,
+  { question = "", history = [], conversationId = null } = {}
+) => {
+  const form = new FormData();
+  form.append("file", blob, blob?.name || "foto.jpg");
+  if (question) form.append("question", question);
+  if (conversationId) form.append("conversationId", conversationId);
+  form.append(
+    "history",
+    JSON.stringify(history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })))
+  );
+
+  const { data } = await api.post("/sommelier/photo", form, { timeout: FOTO_TIMEOUT_MS });
+  return data?.data
+    ? {
+        ...data.data,
+        conversationId: data.conversationId || conversationId,
+        mensajeId: data.mensajeId || null,
+      }
+    : null;
+};
+
+/** El pulgar sobre una respuesta: "up", "down" o null para quitarlo. */
+export const enviarFeedback = async (conversationId, mensajeId, valor) => {
+  await api.patch(`/sommelier/conversations/${conversationId}/feedback`, { mensajeId, valor });
+  return true;
+};
+
 export const borrarConversacion = async (id) => {
   await api.delete(`/sommelier/conversations/${id}`);
   return true;
+};
+
+/** Todo el historial de quien pide. Devuelve cuántas se borraron. */
+export const borrarTodasLasConversaciones = async () => {
+  const { data } = await api.delete("/sommelier/conversations");
+  return data?.data?.borradas ?? 0;
 };
 
 /**

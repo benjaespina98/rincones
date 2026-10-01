@@ -19,10 +19,10 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia actual: **client 284/284**, **server 355/355**, lint limpio, tokens
+Referencia actual: **client 438/438**, **server 432/432**, lint limpio, tokens
 136/136. Los conteos pueden subir, nunca bajar.
 
-Carga inicial: **≈119,8 kB gzip** (entry 73,1 + vendor 35,8 + CSS 10,9).
+Carga inicial: **≈120,5 kB gzip** (entry 73,6 + vendor 35,8 + CSS 11,2).
 Presupuesto: no pasar de ~143 kB.
 
 ## Flujo de ramas
@@ -63,6 +63,28 @@ Sin backend se pueden revisar: `/styleguide`, `/login`, `/register`.
 **El panel del navegador pinta inestable.** Las capturas salen en blanco o a
 medio pintar. Verificar con **estilos computados** (`javascript_tool`) y tests
 automatizados, no con screenshots.
+
+**Cambiar el plazo de un TTL no alcanza.** Mongoose rechaza redefinir un índice
+existente con otras opciones (`IndexOptionsConflict`): el viejo sigue vigente y el
+schema nuevo no hace nada. Y `collMod`, la forma obvia de retocarlo, no está
+permitido para el usuario de la base. Se resuelve con un índice sobre OTRO campo
+(así lo hace `SommelierConversation`: 45 días sobre `updatedAt`, no sobre
+`createdAt`); el viejo queda inofensivo. Probar siempre contra la base `test`, que
+tiene los índices viejos y replica lo que va a pasar al desplegar.
+
+**Los modelos flash de Gemini PIENSAN, y eso se come el tiempo y los tokens.** Medido: un
+`gemini-3.6-flash` gastó 248 de 260 tokens pensando y cortó la respuesta (`MAX_TOKENS`); sin
+pensar contesta en 1,7 s. Y si el primer modelo de la cadena está saturado, un 503 tarda ~14 s
+en volver. Por eso el Sommelier pide `sinPensamiento: true` (`thinkingBudget: 0`): las respuestas
+pasaron de 12–22 s a 3–5 s. Los lite más nuevos rechazan el parámetro con un 400; `generateJson`
+y `streamJson` lo detectan, reintentan ESE modelo sin él y lo recuerdan. El escáner de etiquetas
+no lo usa: es opt-in. Antes de culpar a la red por una respuesta lenta, medir con
+`scratchpad`-style: una llamada directa con y sin `thinkingConfig`.
+
+**La respuesta en vivo es SSE por `fetch`, no por `axios`** (axios espera el cuerpo entero).
+Si un intermediario bufferiza el stream, el cliente lo detecta (llega JSON) o recibe todo junto:
+sigue andando, sólo sin el efecto de escritura. Cualquier falla antes de empezar vuelve a la vía
+normal (`SinStreaming`); después de empezar no se cambia de modelo a la mitad.
 
 **Los archivos son CRLF.** Un reemplazo multilínea con `\n` no matchea: usar
 regex con `\r?\n`, o `sed` por número de línea.

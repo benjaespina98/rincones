@@ -1,17 +1,39 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWishlist } from "../hooks/useWishlist";
 import { useToast } from "../context/ToastContext";
 import { searchWines, getWineRecipe } from "../services/wineSearchApi";
 import { getSuggestedWines } from "../services/wineApi";
-import { preguntarAlSommelier, mensajeDeError , traerConversacion } from "../services/sommelierApi";
+import {
+  preguntarAlSommelier,
+  mensajeDeError,
+  traerConversacion,
+  enviarFeedback,
+  preguntarConFoto,
+} from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
 import Logo from "../components/Logo";
-import SommelierHistorial from "../components/SommelierHistorial";
+import SommelierChats from "../components/SommelierChats";
+import RespuestaAcciones from "../components/RespuestaAcciones";
+import { TopbarContext } from "../context/TopbarContext";
+import { useWineStats } from "../hooks/useWineStats";
+import { getCellarReady } from "../services/wineApi";
+import {
+  atajosDeArranque,
+  azarConSemilla,
+  otraComida,
+  otraPregunta,
+} from "../utils/atajosDeArranque";
+import FilaDeAtajos from "../components/FilaDeAtajos";
+import { resizeImage } from "../utils/image";
+import { preguntarEnVivo, SinStreaming } from "../services/sommelierStream";
+import { usePlaceholderRotativo } from "../hooks/usePlaceholderRotativo";
+import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
@@ -86,19 +108,20 @@ import "./SuggestionsPage.css";
  * hablar. "¿Qué Malbec tengo?" y no "¿Qué Malbec tenés?": lo segundo pone a la
  * app preguntándole al usuario, que es al revés de lo que pasa al tocarlo.
  */
-const COMIDAS = [
-  { label: "Asado", pregunta: "¿Qué tomo con un asado?" },
-  { label: "Pasta", pregunta: "¿Qué tomo con pasta?" },
-  { label: "Pizza", pregunta: "¿Qué tomo con pizza?" },
-  { label: "Milanesas", pregunta: "¿Qué tomo con milanesas?" },
-];
+/* Los atajos de arranque ya no son listas fijas: ver utils/atajosDeArranque.js. Las comidas
+   dependen del momento del día, el día y la estación; las preguntas, de lo que hay en tu
+   bodega de verdad. */
 
-const OTRAS_PREGUNTAS = [
-  { label: "¿Qué vinos tengo?", pregunta: "¿Qué vinos tengo?" },
-  { label: "¿Qué tomo con este clima?", pregunta: "¿Qué tomo hoy con este clima?" },
-  { label: "¿Cuál abro hoy?", pregunta: "¿Cuál abro hoy?" },
-  { label: "Malbec o Cabernet", pregunta: "Malbec o Cabernet" },
-  { label: "Un tinto para regalar", pregunta: "Un tinto para regalar" },
+/* El texto de ayuda del campo, rotando entre ejemplos (ver usePlaceholderRotativo.js). La
+   primera es la de siempre; las otras enseñan todo lo que se le puede preguntar. Cortas a
+   propósito: el campo es de un renglón y un texto de ayuda que no entra se corta. */
+const FRASES_DEL_CAMPO = [
+  "Preguntame lo que quieras",
+  "Qué vas a comer hoy",
+  "Preguntame qué abrir hoy",
+  "Contame qué cocinás hoy",
+  "Malbec o Cabernet, ¿cuál?",
+  "Mandá la foto de un menú",
 ];
 
 let contador = 0;
@@ -133,20 +156,10 @@ const PENSANDO_LARGO_MS = 4000;
  * Por usuario (la clave incluye el id): en una compu compartida, la sesión
  * de una persona no puede heredar la charla de la anterior.
  */
-const CLAVE_BASE = "rincones:sommelier";
-const claveDe = (userId) => `${CLAVE_BASE}:${userId || "anon"}`;
-
-const cargarHistorial = (userId) => {
-  try {
-    const crudo = sessionStorage.getItem(claveDe(userId));
-    const datos = crudo ? JSON.parse(crudo) : [];
-    return Array.isArray(datos) ? datos : [];
-  } catch {
-    // Modo privado, cuota llena, lo que sea: la charla sigue andando en
-    // memoria, sólo que no sobrevive a salir de la pantalla.
-    return [];
-  }
-};
+/* Qué se guarda y cómo se lee vive en utils/sesionSommelier.js. Se guardan los
+   mensajes Y el id de la conversación del historial, juntos: sin el id, volver a
+   la pantalla restauraba el hilo y la pregunta siguiente abría una conversación
+   nueva. */
 
 export default function SuggestionsPage() {
   const navigate = useNavigate();
@@ -154,6 +167,8 @@ export default function SuggestionsPage() {
   const { user } = useAuth();
   const { addWish } = useWishlist();
   const { showError, showSuccess } = useToast();
+  // Las acciones de la charla viven en la barra superior (ver context/TopbarContext.js).
+  const { izquierda: barraIzq, derecha: barraDer } = useContext(TopbarContext);
 
   // El nombre de pila, con la misma cascada que ya usa el resto de la app para
   // firmar algo con quien sos (ver `author.name` en catalog.controller.js): si
@@ -162,7 +177,7 @@ export default function SuggestionsPage() {
   const nombre = (user?.firstName || "").trim() || (user?.email || "").split("@")[0] || "";
 
   const [mensajes, setMensajes] = useState(() => {
-    const previos = cargarHistorial(user?.id);
+    const previos = leerSesion(user?.id).mensajes;
     // El contador de ids es del módulo, no del componente (sobrevive a
     // remontar la pantalla dentro de la misma pestaña). Si se restauran
     // mensajes con ids "m7", el próximo tiene que seguir en "m8", no volver
@@ -175,12 +190,52 @@ export default function SuggestionsPage() {
     return previos;
   });
   const [texto, setTexto] = useState("");
+
+  /* ── LOS ATAJOS DE ARRANQUE ────────────────────────────────────────────────
+     Se calculan con lo que la persona tiene: los vinos listos para tomar y las
+     estadísticas de su bodega. La semilla se fija UNA vez por visita, así que cuando
+     llegan los datos sólo cambian los atajos que dependen de ellos. La fila de
+     preguntas aparece cuando se sabe qué hay en la bodega (`datosListos`), para que no
+     se vea una versión genérica que cambia a los dos segundos. */
+  const { stats, loading: statsCargando } = useWineStats();
+  const [listos, setListos] = useState(null);
+  const [semillaAtajos] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  useEffect(() => {
+    let vigente = true;
+    getCellarReady()
+      .then((d) => vigente && setListos(Array.isArray(d) ? d : []))
+      .catch(() => vigente && setListos([]));
+    return () => {
+      vigente = false;
+    };
+  }, []);
+  const datosListos = listos !== null && !statsCargando;
+
+  /* El campo y las filas de atajos conviven: mientras se escribe o el campo tiene foco no
+     se renueva nada solo (ver FilaDeAtajos.jsx y usePlaceholderRotativo.js). */
+  const [campoEnfocado, setCampoEnfocado] = useState(false);
+  const placeholder = usePlaceholderRotativo(FRASES_DEL_CAMPO, {
+    activo: !campoEnfocado && texto === "",
+  });
+  const escribiendo = campoEnfocado || texto.trim().length > 0;
+  const atajos = useMemo(
+    () =>
+      atajosDeArranque({
+        listos: listos || [],
+        hayStock: (stats?.totals?.bottles || 0) > 0 || (listos || []).length > 0,
+        probados: stats?.totals?.consumed || 0,
+        uvasFrecuentes: (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean),
+        azar: azarConSemilla(semillaAtajos),
+      }),
+    [listos, stats, semillaAtajos]
+  );
   const [pensando, setPensando] = useState(false);
   /* El archivo de charlas: la hoja abierta o cerrada, y a qué conversación
      guardada pertenece la de ahora. `null` significa "todavía no se guardó
      ninguna": la crea el server con la primera pregunta y devuelve su id. */
   const [historialAbierto, setHistorialAbierto] = useState(false);
-  const [conversacionId, setConversacionId] = useState(null);
+  // El id vuelve junto con los mensajes (ver utils/sesionSommelier.js).
+  const [conversacionId, setConversacionId] = useState(() => leerSesion(user?.id).conversacionId);
   // Segunda frase de "pensando", sólo si de verdad se hace largo. Ver
   // PENSANDO_LARGO_MS.
   const [pensandoLargo, setPensandoLargo] = useState(false);
@@ -195,6 +250,14 @@ export default function SuggestionsPage() {
   const [recetaAbiertaId, setRecetaAbiertaId] = useState(null);
 
   const finRef = useRef(null);
+  const raizRef = useRef(null);
+  // La foto: el selector de archivos (oculto) y la última que se mandó, para reintentar.
+  const fotoRef = useRef(null);
+  // Cancela la respuesta en vivo si la persona se va de la pantalla: se corta la llamada a
+  // Gemini en vez de seguir pagando una respuesta que nadie va a leer.
+  const cancelarRef = useRef(null);
+  const ultimaFotoRef = useRef(null);
+  const pieRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -256,13 +319,26 @@ export default function SuggestionsPage() {
   // había hasta el último mensaje, no la de la última vez que alguien
   // recordó guardarla.
   useEffect(() => {
-    try {
-      if (mensajes.length === 0) sessionStorage.removeItem(claveDe(user?.id));
-      else sessionStorage.setItem(claveDe(user?.id), JSON.stringify(mensajes));
-    } catch {
-      // Idem cargarHistorial: sigue andando en memoria si esto falla.
-    }
-  }, [mensajes, user?.id]);
+    // Un mensaje a medio escribir no se guarda: al volver se vería una respuesta cortada.
+    guardarSesion(user?.id, { mensajes: mensajes.filter((m) => !m.escribiendo), conversacionId });
+  }, [mensajes, conversacionId, user?.id]);
+
+  /* El alto REAL del compositor, para reservar ese lugar al final de la lista. El
+     compositor es fijo y crece: con la fila de repreguntas mide ~135px y sin ella
+     ~83. Un margen fijo alcanzaba para uno y dejaba el último mensaje tapado en
+     el otro. Se mide y se publica como `--somm-pie`; el CSS hace la cuenta. */
+  useEffect(() => {
+    const pie = pieRef.current;
+    const raiz = raizRef.current;
+    if (!pie || !raiz || typeof ResizeObserver === "undefined") return undefined;
+    const medir = () => raiz.style.setProperty("--somm-pie", `${pie.offsetHeight}px`);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(pie);
+    return () => observador.disconnect();
+  }, []);
+
+  useEffect(() => () => cancelarRef.current?.abort(), []);
 
   const openCatalog = (wine) => navigate("/descubrir/vino", { state: { wine } });
 
@@ -307,9 +383,16 @@ export default function SuggestionsPage() {
   }, []);
 
   const preguntar = useCallback(
-    async (pregunta) => {
+    async (pregunta, opciones = {}) => {
       const limpia = pregunta.trim();
-      if (limpia.length < 3 || pensando) return;
+      /* Con foto el texto es opcional: la imagen es la pregunta. */
+      const foto = opciones.foto || null;
+      if ((limpia.length < 3 && !foto) || pensando) return;
+
+      /* "Otra opción": en vez de agregar un turno, REEMPLAZA la última respuesta en su
+         lugar. La pregunta no se repite en pantalla y el modelo recibe la respuesta
+         anterior para no volver a darla. Forma: { evitar, reemplazaId, reemplazaMensajeId }. */
+      const regenerar = opciones.regenerar || null;
 
       tapHaptic();
       setTexto("");
@@ -318,11 +401,29 @@ export default function SuggestionsPage() {
       // El historial que viaja son los mensajes que YA estaban: el nuevo va
       // aparte, como la pregunta. Se arma antes de tocar el estado para no
       // depender de que React haya aplicado el `set` de arriba.
-      const previos = mensajes
+      const iReemplazo = regenerar ? mensajes.findIndex((m) => m.id === regenerar.reemplazaId) : -1;
+      const base = iReemplazo > 0 ? mensajes.slice(0, iReemplazo - 1) : mensajes;
+      const previos = base
         .filter((m) => !m.error)
         .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }));
 
-      setMensajes((prev) => [...prev, { id: nuevoId(), role: "user", text: limpia }]);
+      if (regenerar) {
+        // La respuesta vieja queda a la vista, atenuada, hasta que llegue la nueva.
+        setMensajes((prev) =>
+          prev.map((m) => (m.id === regenerar.reemplazaId ? { ...m, regenerando: true } : m))
+        );
+      } else {
+        setMensajes((prev) => [
+          ...prev,
+          {
+            id: nuevoId(),
+            role: "user",
+            text: limpia.length >= 3 ? limpia : "",
+            // Sólo la miniatura (~6 KB): la foto grande no se guarda en la sesión.
+            ...(foto ? { esFoto: true, foto: foto.miniatura } : {}),
+          },
+        ]);
+      }
 
       /**
        * ── LAS TRES CONSULTAS ARRANCAN JUNTAS ────────────────────────────────
@@ -335,7 +436,8 @@ export default function SuggestionsPage() {
        * tardaba lo que tardan las dos cosas sumadas. Lanzadas juntas tarda lo
        * que tarda la más lenta, que es siempre el modelo.
        */
-      const comida = resolveFood(limpia);
+      // Una foto no tiene un plato escrito que reconocer: no hay búsqueda de catálogo.
+      const comida = foto ? null : resolveFood(limpia);
       const pDescubrir = comida ? buscarParaDescubrir(comida.food).catch(() => []) : null;
       /**
        * El recomendador de siempre, como red.
@@ -347,8 +449,61 @@ export default function SuggestionsPage() {
        */
       const pBodega = comida ? getSuggestedWines({ food: comida.food }).catch(() => []) : null;
 
+      /* ── LA RESPUESTA ESCRIBIÉNDOSE ───────────────────────────────────────────
+         Una pregunta común se transmite: el texto aparece a medida que se genera, en un
+         mensaje provisorio (`escribiendo`) que al llegar el final se reemplaza por el
+         mensaje completo, con los vinos y las repreguntas. Si el streaming no se puede
+         (el navegador, la red, un intermediario, la sesión vencida), se vuelve a la vía
+         de siempre sin que la persona lo note. La foto y "otra opción" no se transmiten. */
+      let idEnVivo = null;
+      const consultarEnVivo = async () => {
+        cancelarRef.current?.abort();
+        const cancelar = new AbortController();
+        cancelarRef.current = cancelar;
+        try {
+          return await preguntarEnVivo(limpia, previos, conversacionId, {
+            signal: cancelar.signal,
+            onTexto: (delta) => {
+              if (!idEnVivo) {
+                idEnVivo = nuevoId();
+                const id = idEnVivo;
+                setMensajes((prev) => [
+                  ...prev,
+                  { id, role: "guia", text: delta, escribiendo: true, wines: [], descubrir: [], followups: [] },
+                ]);
+              } else {
+                const id = idEnVivo;
+                setMensajes((prev) => prev.map((m) => (m.id === id ? { ...m, text: m.text + delta } : m)));
+              }
+            },
+          });
+        } catch (error) {
+          if (!(error instanceof SinStreaming)) throw error;
+          // Se saca lo provisorio (si lo hubo) y se repite por la vía normal.
+          if (idEnVivo) {
+            const id = idEnVivo;
+            idEnVivo = null;
+            setMensajes((prev) => prev.filter((m) => m.id !== id));
+          }
+          return preguntarAlSommelier(limpia, previos, conversacionId);
+        }
+      };
+
       try {
-        const data = await preguntarAlSommelier(limpia, previos, conversacionId);
+        if (foto) ultimaFotoRef.current = foto;
+        const data = foto
+          ? await preguntarConFoto(foto.blob, {
+              question: limpia.length >= 3 ? limpia : "",
+              history: previos,
+              conversationId: conversacionId,
+            })
+          : regenerar
+            ? await preguntarAlSommelier(limpia, previos, conversacionId, {
+                regenerar: true,
+                evitar: regenerar.evitar,
+                reemplazaMensajeId: regenerar.reemplazaMensajeId,
+              })
+            : await consultarEnVivo();
         if (!data) throw new Error("sin respuesta");
         /* La primera pregunta crea la conversación del lado del server y su id
            vuelve acá, para que la siguiente se agregue a la misma en vez de
@@ -365,12 +520,14 @@ export default function SuggestionsPage() {
          * tiempo de lo accesorio. Las tarjetas aparecen solas un momento
          * después, debajo de algo que ya se está leyendo.
          */
-        const id = nuevoId();
-        setMensajes((prev) => [
-          ...prev,
-          {
+        const id = idEnVivo || nuevoId();
+        const nueva = {
             id,
             role: "guia",
+            // El id del mensaje en el historial y el pulgar de la persona (ver
+            // RespuestaAcciones.jsx). Sin historial guardado no hay a qué apuntar.
+            mensajeId: data.mensajeId || null,
+            feedback: null,
             text: data.answer,
             wines: data.wines || [],
             descubrir: [],
@@ -385,14 +542,19 @@ export default function SuggestionsPage() {
             // sommelier.service.js). La receta en sí NO viaja acá — se pide
             // aparte, sólo si se toca el botón (ver pedirReceta más abajo).
             recipeWine: data.recipeWine || null,
-          },
-        ]);
+        };
+        setMensajes((prev) => {
+          if (regenerar) return prev.map((m) => (m.id === regenerar.reemplazaId ? nueva : m));
+          // Si se venía escribiendo, el mensaje completo ocupa ese mismo lugar.
+          if (idEnVivo) return prev.map((m) => (m.id === idEnVivo ? nueva : m));
+          return [...prev, nueva];
+        });
         // Se apaga acá y no al final: con el texto en pantalla ya no hay nada
         // que esperar para volver a preguntar, y dejar el campo bloqueado
         // mientras cargan unas tarjetas de abajo sería cobrarle a la persona el
         // tiempo de algo que ni siquiera está mirando.
         setPensando(false);
-        trackEvent("sommelier_ask", { conVinos: (data.wines || []).length > 0 });
+        trackEvent("sommelier_ask", { conVinos: (data.wines || []).length > 0, foto: Boolean(foto) });
 
         if (comida && !data.offTopic) {
           const [catalogo, respaldo] = await Promise.all([pDescubrir, pBodega]);
@@ -410,6 +572,13 @@ export default function SuggestionsPage() {
           );
         }
       } catch (error) {
+        // La persona se fue de la pantalla: no hay nada que mostrar.
+        if (error?.name === "AbortError") return;
+        // Si se venía escribiendo, el texto a medias se saca: o hay respuesta o hay error.
+        if (idEnVivo) {
+          const id = idEnVivo;
+          setMensajes((prev) => prev.filter((m) => m.id !== id));
+        }
         // El error va COMO MENSAJE y no como un aviso que se va solo: es la
         // respuesta a lo que la persona acaba de preguntar, y tiene que quedar
         // en el lugar donde quedó la pregunta. Un toast dejaría la
@@ -425,6 +594,14 @@ export default function SuggestionsPage() {
         // reintentar no cambia nada — el límite sigue puesto, así que el
         // botón fallaría otra vez en el acto. Ofrecerlo igual sería prometer
         // una salida que no existe.
+        if (regenerar) {
+          // La respuesta anterior sigue valiendo: se la restaura y se avisa aparte.
+          setMensajes((prev) =>
+            prev.map((m) => (m.id === regenerar.reemplazaId ? { ...m, regenerando: false } : m))
+          );
+          showError(mensajeDeError(error));
+          return;
+        }
         const esLimite = error?.response?.status === 429;
         setMensajes((prev) => [
           ...prev,
@@ -433,14 +610,16 @@ export default function SuggestionsPage() {
             role: "guia",
             text: mensajeDeError(error),
             error: true,
-            retry: esLimite ? undefined : limpia,
+            retry: esLimite || foto ? undefined : limpia,
+            // La foto no se escribe de nuevo: se reintenta la última (guardada en un ref).
+            retryFoto: !esLimite && foto ? { texto: limpia } : undefined,
           },
         ]);
       } finally {
         setPensando(false);
       }
     },
-    [mensajes, pensando, buscarParaDescubrir, conversacionId]
+    [mensajes, pensando, buscarParaDescubrir, conversacionId, showError]
   );
 
   /**
@@ -546,6 +725,16 @@ export default function SuggestionsPage() {
     return null;
   }, [mensajes]);
 
+  // ¿La pregunta de esta respuesta fue una foto? Entonces no hay "otra opción": la imagen
+  // no se guarda y no se puede volver a mandar.
+  const preguntaEsFoto = (idRespuesta) => {
+    const i = mensajes.findIndex((x) => x.id === idRespuesta);
+    return i > 0 && Boolean(mensajes[i - 1]?.esFoto);
+  };
+
+  // La última respuesta de la guía (no un error): la única a la que se le pide "otra opción".
+  const idUltimaRespuesta = [...mensajes].reverse().find((m) => m.role !== "user" && !m.error)?.id;
+
   /**
    * Volver a empezar. Antes no hacía falta un botón para esto: salir de la
    * pantalla YA borraba la charla (era memoria del componente, nada más). Con
@@ -559,7 +748,108 @@ export default function SuggestionsPage() {
     setMensajes([]);
     setConversacionId(null);
     setTexto("");
+    setHistorialAbierto(false);
     inputRef.current?.focus();
+  };
+
+  /**
+   * La foto de un menú, un plato o una botella.
+   *
+   * Se reduce a ~1280px antes de subirla (una foto de teléfono pesa 4–8 MB y el servidor
+   * la descarta apenas la procesa) y se genera una miniatura para mostrarla en la charla.
+   * Si el navegador no puede decodificarla (un HEIC en Chrome), se manda tal cual si no
+   * es enorme: el servidor acepta HEIC. Lo que la persona escribió en el campo viaja
+   * como texto de la foto.
+   */
+  const abrirSelectorDeFoto = () => {
+    if (pensando) return;
+    trackEvent("sommelier_foto_abrir");
+    fotoRef.current?.click();
+  };
+
+  const alElegirFoto = async (e) => {
+    const archivo = e.target.files?.[0];
+    // Se vacía el selector: elegir la MISMA foto dos veces seguidas tiene que disparar el cambio.
+    e.target.value = "";
+    if (!archivo) return;
+    if (!archivo.type.startsWith("image/")) {
+      showError("Eso no parece una foto. Probá con otra.");
+      return;
+    }
+    try {
+      const [grande, chica] = await Promise.all([
+        resizeImage(archivo, 1280, 0.82),
+        resizeImage(archivo, 160, 0.6),
+      ]);
+      preguntar(texto, { foto: { blob: grande.blob, miniatura: chica.dataUrl } });
+    } catch {
+      if (archivo.size <= 5.5 * 1024 * 1024) {
+        preguntar(texto, { foto: { blob: archivo, miniatura: "" } });
+      } else {
+        showError("No pudimos leer esa foto. Probá con otra.");
+      }
+    }
+  };
+
+  /**
+   * "Otra opción" para la última respuesta: la misma pregunta, otra respuesta, en su
+   * lugar. Ver RespuestaAcciones.jsx.
+   */
+  const otraOpcion = () => {
+    const iUltima = mensajes.map((m) => m.role !== "user" && !m.error).lastIndexOf(true);
+    if (iUltima < 1 || pensando) return;
+    const ultima = mensajes[iUltima];
+    const pregunta = mensajes[iUltima - 1];
+    if (pregunta?.role !== "user" || pregunta.esFoto) return;
+    trackEvent("sommelier_otra_opcion");
+    preguntar(pregunta.text, {
+      regenerar: {
+        evitar: ultima.text,
+        reemplazaId: ultima.id,
+        reemplazaMensajeId: ultima.mensajeId,
+      },
+    });
+  };
+
+  /**
+   * El pulgar. Se actualiza en pantalla de inmediato y se avisa al servidor; si falla,
+   * vuelve a como estaba. Tocar el mismo pulgar dos veces lo quita.
+   */
+  const darPulgar = async (mensaje, valor) => {
+    if (!conversacionId || !mensaje.mensajeId) return;
+    const anterior = mensaje.feedback || null;
+    const nuevo = anterior === valor ? null : valor;
+    const poner = (v) =>
+      setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? { ...m, feedback: v } : m)));
+    poner(nuevo);
+    trackEvent("sommelier_feedback", { valor: nuevo || "quitado" });
+    try {
+      await enviarFeedback(conversacionId, mensaje.mensajeId, nuevo);
+    } catch {
+      poner(anterior);
+      showError("No pudimos guardar tu opinión. Probá de nuevo.");
+    }
+  };
+
+  /**
+   * Se borró una conversación del panel. Si era la que estaba abierta, la
+   * pantalla vuelve a empezar: dejarla ahí mostraría una charla que ya no existe
+   * y la próxima pregunta abriría una nueva sin que se note el cambio. No se
+   * enfoca el campo: quien borra está mirando el panel, no escribiendo.
+   */
+  const alBorrarTodas = () => {
+    // Se borró TODO el historial: si había una charla abierta con id, era una de ellas.
+    if (!conversacionId) return;
+    setMensajes([]);
+    setConversacionId(null);
+    setTexto("");
+  };
+
+  const alBorrarConversacion = (id) => {
+    if (id !== conversacionId) return;
+    setMensajes([]);
+    setConversacionId(null);
+    setTexto("");
   };
 
   /**
@@ -580,10 +870,15 @@ export default function SuggestionsPage() {
       setMensajes(
         charla.messages.map((m, i) => ({
           id: `${id}-${i}`,
-          role: m.role,
+          // La pantalla llama "guia" a la respuesta; el historial, "assistant". Sin
+          // traducir, las repreguntas de una charla restaurada no se encontraban.
+          role: m.role === "user" ? "user" : "guia",
           text: m.text,
           wines: m.deTuBodega || [],
           descubrir: m.paraDescubrir || [],
+          followups: m.repreguntas || [],
+          mensajeId: m._id ? String(m._id) : null,
+          feedback: m.feedback || null,
         }))
       );
       setConversacionId(id);
@@ -620,30 +915,16 @@ export default function SuggestionsPage() {
   };
 
   return (
-    <div className="somm">
+    <div className="somm" ref={raizRef}>
       {/* `aria-live="polite"` para que un lector de pantalla anuncie la
           respuesta apenas llega, sin que la persona tenga que ir a buscarla
           — antes sólo "Buscando…" (role="status", más abajo) hablaba, y en
           cuanto desaparecía, silencio: nada avisaba que la respuesta ya
           estaba. */}
       <div className="somm__feed" aria-live="polite">
-        {/* Dos acciones de mantenimiento, en el mismo renglón y apagadas: no
-            compiten con "¿Con qué maridamos hoy?". El archivo aparece siempre
-            —también con la pantalla en blanco, que es justo cuando alguien
-            quiere releer algo— y "Nueva conversación" sólo con charla en curso,
-            porque sin nada que limpiar no dice nada. */}
-        <div className="somm__acciones">
-          <button type="button" className="somm__nueva" onClick={() => setHistorialAbierto(true)}>
-            <Icon name="chat" size={13} />
-            Tus consultas
-          </button>
-          {mensajes.length > 0 && (
-            <button type="button" className="somm__nueva" onClick={nuevaConversacion}>
-              <Icon name="plus" size={13} />
-              Nueva conversación
-            </button>
-          )}
-        </div>
+        {/* "Conversaciones" y "Nueva conversación" ya no viven acá: son íconos de la barra
+            superior, como en cualquier chat de IA (ver el portal más abajo). Dibujadas en el
+            cuerpo se iban con el scroll justo cuando la charla se hacía larga. */}
 
         {mensajes.length === 0 && (
           /* ── EL ARRANQUE: EL TÍTULO YA DICE PARA QUÉ SIRVE TOCAR UN CHIP ────
@@ -662,17 +943,21 @@ export default function SuggestionsPage() {
                 vez de saludar a nadie. */}
             {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
             <h2>¿Con qué maridamos hoy?</h2>
-            <div className="somm__rail">
-              {COMIDAS.map((c) => (
+            <FilaDeAtajos
+              className="somm__rail"
+              inicial={atajos.comidas}
+              siguiente={(actuales) => otraComida({ excluir: actuales.map((a) => a.label) })}
+              pausado={escribiendo}
+              renderItem={(c, { entra, saliendo }) => (
                 <Chip
-                  key={c.label}
-                  className="somm__chip"
+                  className={`somm__chip somm__chip--entra${saliendo ? " atajo--sale" : ""}`}
+                  style={{ "--i": entra }}
                   onClick={() => preguntar(c.pregunta)}
                 >
                   {c.label}
                 </Chip>
-              ))}
-            </div>
+              )}
+            />
 
             {/* Estas vivían abajo, pegadas al compositor, con la pantalla vacía
                 en el medio. Son lo mismo que las de arriba —tocar un chip
@@ -680,30 +965,59 @@ export default function SuggestionsPage() {
                 dos mitades separadas por un hueco. Se mantienen como fila
                 aparte porque son otra cosa: arriba hay comidas, acá preguntas
                 sueltas. */}
-            <div className="somm__otras">
-              <span className="somm__otras-rotulo">O preguntame</span>
-              <div className="somm__rail">
-                {OTRAS_PREGUNTAS.map((s) => (
-                  <Chip
-                    key={s.label}
-                    className="somm__chip"
-                    onClick={() => preguntar(s.pregunta)}
-                  >
-                    {s.label}
-                  </Chip>
-                ))}
+            {datosListos && (
+              <div className="somm__otras">
+                <span className="somm__otras-rotulo">O preguntame</span>
+                {/* La `key` cambia si cambian los datos de los que depende (llegó la bodega):
+                    la fila se vuelve a armar. Las preguntas que dependen de la bodega son
+                    fijas; las demás rotan solas. */}
+                <FilaDeAtajos
+                  key={atajos.preguntas.map((p) => p.label).join("|")}
+                  className="somm__rail"
+                  inicial={atajos.preguntas}
+                  siguiente={(actuales) =>
+                    otraPregunta({
+                      excluir: actuales.map((a) => a.label),
+                      uvasFrecuentes: (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean),
+                    })
+                  }
+                  pausado={escribiendo}
+                  renderItem={(p, { entra, saliendo }) => (
+                    <Chip
+                      className={`somm__chip somm__chip--entra${saliendo ? " atajo--sale" : ""}`}
+                      style={{ "--i": entra + atajos.comidas.length }}
+                      onClick={() => (p.accion === "foto" ? abrirSelectorDeFoto() : preguntar(p.pregunta))}
+                    >
+                      {p.accion === "foto" && <Icon name="camera" size={14} />}
+                      {p.label}
+                    </Chip>
+                  )}
+                />
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {mensajes.map((m) =>
           m.role === "user" ? (
-            <p key={m.id} className="somm__vos">
-              {m.text}
-            </p>
+            m.esFoto ? (
+              <div key={m.id} className="somm__vos somm__vos--foto">
+                {m.foto && <img className="somm__vos-foto" src={m.foto} alt="La foto que mandaste" />}
+                <span>{m.text || "Foto de un menú o plato"}</span>
+              </div>
+            ) : (
+              <p key={m.id} className="somm__vos">
+                {m.text}
+              </p>
+            )
           ) : (
-            <div key={m.id} className={`somm__resp ${m.error ? "is-error" : ""}`}>
+            <div
+              key={m.id}
+              className={`somm__resp ${m.error ? "is-error" : ""} ${m.regenerando ? "is-regenerando" : ""}`}
+              // Mientras se escribe, un lector de pantalla espera a que termine en vez de leer cada
+              // pedazo.
+              aria-busy={m.escribiendo ? "true" : undefined}
+            >
               {/* ── EL MONOGRAMA, QUE NO ES UN AVATAR ──────────────────────
                   Arriba, en el encabezado de este archivo, está escrito que la
                   respuesta no lleva avatar al lado. Eso sigue valiendo y esto
@@ -722,18 +1036,29 @@ export default function SuggestionsPage() {
               <span className="somm__marca" aria-hidden="true">
                 <Logo size={34} />
               </span>
-              <p className="somm__texto">{m.text}</p>
+              <p className={`somm__texto${m.escribiendo ? " is-escribiendo" : ""}`}>{m.text}</p>
+
+              {!m.error && !m.escribiendo && (
+                <RespuestaAcciones
+                  mensaje={m}
+                  esUltima={m.id === idUltimaRespuesta && !preguntaEsFoto(m.id)}
+                  ocupado={pensando}
+                  onPulgar={darPulgar}
+                  onOtra={otraOpcion}
+                />
+              )}
 
               {/* Sólo en la burbuja de error, y sólo si hay algo para
                   reintentar: vuelve a mandar la MISMA pregunta, no reabre el
                   campo para que la escribas de nuevo. */}
-              {m.error && m.retry && (
+              {m.error && (m.retry || (m.retryFoto && ultimaFotoRef.current)) && (
                 <button
                   type="button"
                   className="somm__reintentar"
                   onClick={() => {
                     trackEvent("sommelier_retry");
-                    preguntar(m.retry);
+                    if (m.retryFoto) preguntar(m.retryFoto.texto, { foto: ultimaFotoRef.current });
+                    else preguntar(m.retry);
                   }}
                   disabled={pensando}
                 >
@@ -886,7 +1211,7 @@ export default function SuggestionsPage() {
             más de cuatro segundos deja de leerse como "está pensando" y
             empieza a leerse como "se colgó", aunque adentro (ver
             sommelier.service.js) todavía esté dentro de lo esperado. */}
-        {pensando && (
+        {pensando && !mensajes.some((m) => m.escribiendo) && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
             {pensandoLargo ? "Sigue pensando, ya casi…" : "Buscando la mejor respuesta…"}
@@ -913,7 +1238,7 @@ export default function SuggestionsPage() {
           pero UNA fila, la de la última respuesta, en el mismo lugar fijo de
           siempre en vez de una nueva cada vez: eso resuelve el amontonamiento
           sin tirar lo que el modelo ya pensó (ver `repreguntas` más arriba). */}
-      <div className="somm__pie">
+      <div className="somm__pie" ref={pieRef}>
 
         {mensajes.length > 0 && !pensando && repreguntas?.length > 0 && (
           <div className="somm__rail">
@@ -946,6 +1271,24 @@ export default function SuggestionsPage() {
             Enter en el teclado lo hace vía `onKeyDown` — sin necesitar un
             submit de formulario para ninguno de los dos caminos. */}
         <div className="somm__campo">
+          {/* La cámara, adentro de la cápsula y a la izquierda, como en los chats de IA. El
+              selector es nativo y oculto: en el teléfono ofrece la cámara o la galería. */}
+          <button
+            type="button"
+            className="somm__foto"
+            onClick={abrirSelectorDeFoto}
+            disabled={pensando}
+            aria-label="Mandar una foto de un menú o de un plato"
+          >
+            <Icon name="camera" size={20} />
+          </button>
+          <input
+            ref={fotoRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={alElegirFoto}
+          />
           {/* `<textarea>` y no `<input>`: una pregunta de más de un renglón
               se escribía scrolleando horizontalmente, invisible mientras se
               tipea (ver el efecto de auto-alto más arriba). `rows={1}` es
@@ -966,7 +1309,9 @@ export default function SuggestionsPage() {
                primero que se veía al entrar era un placeholder cortado al
                medio. "Lo que quieras" ya dice lo mismo y entra. Medido, no
                estimado. */
-            placeholder="Qué vas a comer, o lo que quieras"
+            placeholder={placeholder}
+            onFocus={() => setCampoEnfocado(true)}
+            onBlur={() => setCampoEnfocado(false)}
             aria-label="Tu consulta"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -1011,10 +1356,45 @@ export default function SuggestionsPage() {
           ) : null;
         })()}
 
-      <SommelierHistorial
+      {/* En la barra superior: el menú de conversaciones a la izquierda y "nueva" a la
+          derecha, antes del avatar. Sólo en el teléfono: en escritorio las conversaciones
+          son una columna fija y esos controles viven adentro de ella. */}
+      {barraIzq &&
+        createPortal(
+          <button
+            type="button"
+            className="somm-icono"
+            aria-label="Ver conversaciones"
+            onClick={() => setHistorialAbierto(true)}
+          >
+            <Icon name="menu" size={22} />
+          </button>,
+          barraIzq
+        )}
+      {barraDer &&
+        createPortal(
+          <button
+            type="button"
+            className="somm-icono"
+            aria-label="Nueva conversación"
+            disabled={mensajes.length === 0}
+            onClick={nuevaConversacion}
+          >
+            <Icon name="compose" size={21} />
+          </button>,
+          barraDer
+        )}
+
+      <SommelierChats
         abierto={historialAbierto}
         onClose={() => setHistorialAbierto(false)}
+        activoId={conversacionId}
+        // Cada respuesta nueva cambia la charla activa o su largo: el panel se refresca.
+        version={`${conversacionId}:${mensajes.length}`}
         onAbrir={abrirConversacion}
+        onNueva={nuevaConversacion}
+        onBorrada={alBorrarConversacion}
+        onBorradasTodas={alBorrarTodas}
       />
     </div>
   );

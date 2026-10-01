@@ -33,33 +33,6 @@
    anidados en un teléfono es la forma más rápida de que el dedo mueva el que
    no era. El despeje de abajo lo pone `--somm-pie`, que es lo que mide el
    compositor fijo. */
-/* "Nueva conversación": sólo aparece con charla en curso (la persistencia en
-   sessionStorage — ver SuggestionsPage.jsx — es justo lo que hace falta este
-   botón; antes salir de la pantalla ya borraba todo). Chico y apagado a
-   propósito: es una acción de mantenimiento, no algo que compita con "¿Con
-   qué maridamos hoy?" cuando arranca de cero. */
-.somm__nueva {
-  align-self: flex-end;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 4px;
-  padding: 6px 4px;
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-@media (hover: hover) {
-  .somm__nueva:hover {
-    color: var(--text);
-  }
-}
-
 .somm__feed {
   display: flex;
   flex-direction: column;
@@ -70,6 +43,9 @@
      llegar. Sobra un poco a propósito: que la respuesta termine con aire arriba
      del campo se lee mejor que si le queda justo. */
   padding-bottom: 72px;
+  /* ...y si el compositor mide más (con la fila de repreguntas), se reserva lo que
+     mide: `--somm-pie` lo publica la pantalla (ver SuggestionsPage.jsx). */
+  padding-bottom: max(72px, calc(var(--somm-pie, 0px) - 32px));
 }
 
 /* La entrada. Sin el medallón con la copa que iba arriba de todo: un ícono de
@@ -457,8 +433,8 @@
      todo —pegado a la línea que se está escribiendo—, no flotando en el
      medio de una cápsula que ya no es chica. */
   align-items: flex-end;
-  gap: 8px;
-  padding: 5px 5px 5px 18px;
+  gap: 6px;
+  padding: 5px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line-strong);
   background: var(--surface-2);
@@ -812,9 +788,154 @@
 /* Las dos acciones de mantenimiento de la charla: el archivo y empezar de
    cero. Alineadas a la derecha y apagadas, para que no compitan con la
    pregunta de arriba. */
-.somm__acciones {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  flex-wrap: wrap;
+
+/* ── EL PANEL DE CONVERSACIONES EN ESCRITORIO ────────────────────────────────
+   Desde 1024px las conversaciones son una columna fija de 264px al lado del
+   sidebar (ver SommelierChats.css). El contenido y el compositor se corren lo
+   mismo para no quedar debajo de ella, y las dos acciones del renglón de arriba
+   ("Conversaciones", "Nueva conversación") ya viven dentro del panel.
+
+   La cuenta: la caja pasa a 264 (panel) + 24 (aire) + 780 (columna de lectura),
+   centrada en el área; el compositor arranca después del sidebar (240) más el
+   panel y su aire, y centra su contenido en lo que queda — que es justo el
+   centro de la columna de lectura. */
+@media (min-width: 1024px) {
+  .somm {
+    max-width: calc(264px + 24px + 780px);
+    padding-left: calc(264px + 24px);
+  }
+
+  .somm__pie {
+    left: calc(240px + 264px + 24px);
+  }
+
+}
+
+/* "Otra opción": la respuesta que se está reemplazando queda a la vista pero apagada,
+   para que se entienda que algo está pasando sin que el lugar quede en blanco. */
+.somm__resp.is-regenerando {
+  opacity: 0.45;
+  transition: opacity var(--transition-smooth);
+  pointer-events: none;
+}
+
+/* Los atajos de arranque entran de a uno, desde la derecha (sólo transform y opacity;
+   reduced-motion lo apaga desde index.css). */
+.somm__chip--entra {
+  animation: rincon-entra-lado 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+/* ── LOS ÍCONOS DE LA BARRA SUPERIOR ─────────────────────────────────────────
+   Menú de conversaciones (izquierda) y "nueva conversación" (derecha). 44px de zona
+   táctil, sin marco: son de la barra, no del contenido. En escritorio no se ven: las
+   conversaciones son una columna fija con su propio "Nueva conversación". */
+.somm-icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+
+.somm-icono:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.somm-icono:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .somm-icono:hover:not(:disabled) {
+    background: rgb(var(--paper-rgb) / 0.08);
+  }
+}
+
+@media (min-width: 1024px) {
+  .somm-icono {
+    display: none;
+  }
+}
+
+/* ── LA FOTO ─────────────────────────────────────────────────────────────────
+   El botón de la cámara, adentro de la cápsula y a la izquierda, del mismo tamaño que el
+   de enviar (40px). Sin relleno: es secundario, el protagonista es el campo. */
+.somm__foto {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.somm__foto:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .somm__foto:hover:not(:disabled) {
+    color: var(--text);
+    background: rgb(var(--paper-rgb) / 0.08);
+  }
+}
+
+.somm__foto:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+/* La foto que mandaste, en tu burbuja: la miniatura arriba y el texto abajo, si lo hay. */
+.somm__vos--foto {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+
+.somm__vos-foto {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.somm__vos--foto > span {
+  padding: 2px 8px 4px;
+}
+
+/* ── LA RESPUESTA ESCRIBIÉNDOSE ──────────────────────────────────────────────
+   Un cursor al final del texto mientras llegan los pedazos. Parpadea con opacidad (nada
+   que fuerce layout) y prefers-reduced-motion lo deja fijo desde index.css. */
+.somm__texto.is-escribiendo::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent-text);
+  animation: somm-cursor 900ms steps(2, start) infinite;
+}
+
+@keyframes somm-cursor {
+  to {
+    opacity: 0;
+  }
 }

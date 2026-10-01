@@ -1,0 +1,87 @@
+/* Las acciones de una respuesta del Sommelier. El criterio está en el .jsx. */
+
+.resp-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* 44px de zona táctil con un ícono chico: el dibujo es discreto, el toque no. */
+.resp-acciones__pulgar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.resp-acciones__pulgar + .resp-acciones__pulgar {
+  margin-left: 0;
+}
+
+@media (hover: hover) {
+  .resp-acciones__pulgar:hover {
+    color: var(--text);
+    background: rgb(var(--paper-rgb) / 0.06);
+  }
+}
+
+.resp-acciones__pulgar.is-on {
+  color: var(--accent-text);
+}
+
+.resp-acciones__pulgar.is-down.is-on {
+  color: var(--danger-text);
+}
+
+/* Confirma el toque con el rebote corto de la app (el mismo del corazón). */
+.resp-acciones__pulgar.is-on .icon {
+  animation: rincon-pop 360ms var(--ease-spring);
+}
+
+.resp-acciones__otra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  margin-left: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .resp-acciones__otra:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--line-accent);
+  }
+}
+
+.resp-acciones__otra:active:not(:disabled) .icon {
+  animation: rincon-vuelta 420ms var(--ease-out);
+}
+
+.resp-acciones__otra:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.resp-acciones__pulgar:focus-visible,
+.resp-acciones__otra:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}

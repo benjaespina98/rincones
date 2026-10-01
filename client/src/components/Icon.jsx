@@ -12,6 +12,37 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
+  // Menú de conversaciones (tres renglones, el de abajo más corto) y "nueva" (un
+  // cuadrado con lápiz): los dos gestos que cualquier chat de IA pone en su barra.
+  menu: <path d="M4 6h16M4 12h16M4 18h10" />,
+  compose: (
+    <>
+      <path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
+      <path d="m18.4 2.6 3 3L12 15l-4 1 1-4Z" />
+    </>
+  ),
+  // Pulgares (me sirvió / no me sirvió): trazados al estilo del resto del set.
+  "thumb-up": (
+    <>
+      <path d="M7 10v11" />
+      <path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9Z" />
+    </>
+  ),
+  "thumb-down": (
+    <>
+      <path d="M17 14V3" />
+      <path d="M9 18.1 10 14H4.2a2 2 0 0 1-1.9-2.6l2.3-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.8a2 2 0 0 0-1.8 1.1L12 22a3.1 3.1 0 0 1-3-3.9Z" />
+    </>
+  ),
+  // Tres puntos: el menú de acciones de un elemento ("más opciones"). Con trazo de 2 y
+  // radio 1 salen puntos de 4px, del mismo peso que el resto del set.
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
   check: <path d="M20 6 9 17l-5-5" />,
   circle: <circle cx="12" cy="12" r="8" />,
   x: <path d="M18 6 6 18M6 6l12 12" />,

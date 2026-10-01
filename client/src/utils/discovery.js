@@ -91,3 +91,56 @@ export const elegirOtroDistinto = (wines, actualIdx, azar = Math.random) => {
 
   return candidatos[Math.floor(azar() * candidatos.length)];
 };
+
+/**
+ * Por cuál recomendación se ENTRA a Descubrí.
+ *
+ * ── QUÉ ESTABA MAL ──────────────────────────────────────────────────────────
+ * Se entraba siempre por la primera del ranking. Tenía sentido —sortear entre
+ * todas tiraba el orden a la basura— pero el set de una persona es estable
+ * durante el día y su primer puesto lo decide la afinidad: para quien toma
+ * Malbec es el mismo vino cada vez que abre la app. La home parecía una foto.
+ *
+ * ── QUÉ HACE AHORA ──────────────────────────────────────────────────────────
+ * Sortea entre las primeras `top` del ranking (el server intercala afinidad y
+ * descubrimiento, así que ahí hay de las dos), y NUNCA devuelve la que se vio
+ * la vez anterior. Se conserva lo que el ranking sabe —nada de la mitad de
+ * abajo— y cada visita cambia. Con una sola candidata no hay con qué variar y
+ * se devuelve esa.
+ *
+ * Devuelve un índice dentro de `wines`, o 0 si no hay nada que elegir.
+ */
+export const elegirEntrada = (wines, ultimoId = null, { top = 4, azar = Math.random } = {}) => {
+  const lista = Array.isArray(wines) ? wines : [];
+  if (lista.length < 2) return 0;
+
+  const candidatas = [];
+  for (let i = 0; i < Math.min(top, lista.length); i += 1) {
+    if (ultimoId === null || String(lista[i]?.id) !== String(ultimoId)) candidatas.push(i);
+  }
+  // Si todas coincidían con la última (no puede pasar con top >= 2 e ids
+  // distintos, pero un set con ids repetidos sí), es mejor repetir que fallar.
+  if (candidatas.length === 0) return 0;
+
+  return candidatas[Math.floor(azar() * candidatas.length)];
+};
+
+const CLAVE_ULTIMO = "rincones_descubri_ultimo";
+
+/** El id de la recomendación que se vio por última vez, o null. Sin storage, null. */
+export const leerUltimoVisto = () => {
+  try {
+    return localStorage.getItem(CLAVE_ULTIMO);
+  } catch {
+    return null;
+  }
+};
+
+export const guardarUltimoVisto = (id) => {
+  try {
+    if (id === null || id === undefined || id === "") return;
+    localStorage.setItem(CLAVE_ULTIMO, String(id));
+  } catch {
+    // Sin storage la entrada sigue variando: sólo pierde la memoria de la última.
+  }
+};
