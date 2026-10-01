@@ -18,6 +18,7 @@ import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
 import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
+import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -33,10 +34,10 @@ import { getPromotions } from "../services/promotionsApi";
 import { trackEvent } from "../services/analyticsApi";
 import "./DiscoverPage.css";
 
-// Atajos rápidos para arrancar la búsqueda sin escribir. Son pocos a propósito:
-// nueve ocupaban tres filas y empujaban el vino del día fuera de la pantalla,
-// que es lo que la home tiene para mostrar. Con estos entra sin scrollear.
-const QUICK_VARIETALS = ["Malbec", "Cabernet Franc", "Pinot Noir"];
+// Los atajos de búsqueda ya no son una lista fija: ver utils/sugerenciasBusqueda.js.
+// Son seis y se deslizan en una sola fila (nueve en filas que se envolvían empujaban
+// el vino del día fuera de la pantalla).
+const CANTIDAD_DE_ATAJOS = 6;
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
@@ -83,6 +84,22 @@ export default function DiscoverPage() {
      veces; un "Reintentar" también) encontraría ya guardada la que se acaba de
      elegir y evitaría esa en vez de la de la visita pasada. */
   const [ultimoAlEntrar] = useState(leerUltimoVisto);
+
+  /* Los atajos de búsqueda: una selección distinta en cada visita (estación, lo
+     que ya tomás, variedad forzada) y un botón para pedir otras. `giro` entra en
+     la key de cada chip: al cambiar, se vuelven a montar y entran de nuevo. */
+  const uvasFrecuentes = (stats?.topVarietals || []).map((v) => v.varietal).filter(Boolean);
+  const [sugerencias, setSugerencias] = useState(() =>
+    sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes })
+  );
+  const [giro, setGiro] = useState(0);
+  const otrasIdeas = () => {
+    tapHaptic();
+    setSugerencias((previas) =>
+      sugerenciasDeBusqueda({ cantidad: CANTIDAD_DE_ATAJOS, uvasFrecuentes, excluir: previas })
+    );
+    setGiro((g) => g + 1);
+  };
 
   // Esta es la home: si falla, hay que decirlo. Antes el error se tragaba y la
   // pantalla quedaba con un carrusel vacío, sin explicación ni salida.
@@ -332,13 +349,22 @@ export default function DiscoverPage() {
             la home— que es la salida que antes no existía. */}
         <div className="wine-search__chips">
           <div className="wine-search__chips-row">
-            {QUICK_VARIETALS.map((v) => {
+            <button
+              type="button"
+              className="wine-search__otras"
+              aria-label="Otras ideas de búsqueda"
+              onClick={otrasIdeas}
+            >
+              <Icon name="refresh" size={16} />
+            </button>
+            {sugerencias.map((v, i) => {
               const activo = query.trim().toLowerCase() === v.toLowerCase();
               return (
                 <Chip
-                  key={v}
+                  key={`${giro}-${v}`}
                   active={activo}
                   className="wine-search__chip"
+                  style={{ "--i": i }}
                   onClick={() => { tapHaptic(); setQuery(activo ? "" : v); }}
                 >
                   {v}
