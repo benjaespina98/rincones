@@ -22,8 +22,14 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
+  /* Mismo tamaño y peso que los otros encabezados de sección de Descubrí
+     ("Dónde conseguirlo", "Más sobre vino"): son todos pares, cada uno
+     introduce un bloque del mismo nivel. Estaban en 17/700, 18/800 y 21/800 —
+     medido — y tres tamaños distintos para la misma jerarquía es lo que hace
+     que una pantalla no se lea como un sistema. */
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 

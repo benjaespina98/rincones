@@ -457,9 +457,13 @@
 
 .explore__title {
   margin: 0;
-  font-size: var(--text-2xl);
+  /* Baja de --text-2xl (21px) a --text-xl (18): es un encabezado de sección
+     como los otros dos de esta pantalla, no un nivel por encima. A 21 competía
+     con el nombre del vino destacado, que también mide 21 y sí es lo más
+     importante de la pantalla. */
+  font-size: var(--text-xl);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
