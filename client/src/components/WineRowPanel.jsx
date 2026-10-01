@@ -183,7 +183,7 @@ export default function WineRowPanel({
             disabled={isPending}
           >
             <Icon name="refresh" size={16} />
-            Desmarcar probado
+            Marcar como sin tomar
           </button>
         )}
 

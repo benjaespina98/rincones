@@ -125,8 +125,8 @@ export default function OpenBottleSheet({ wine, saving = false, onConfirm, onCan
               <Icon name="check" size={14} />
               <span>
                 {wine.tasted
-                  ? "El vino ya figura como probado y sigue igual"
-                  : "El vino queda marcado como probado"}
+                  ? "El vino ya figura como ya tomado y sigue igual"
+                  : "El vino queda marcado como ya tomado"}
               </span>
             </li>
             <li>

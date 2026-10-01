@@ -55,7 +55,7 @@ const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
  *  un id técnico. Vive acá y no en el segmentado de más abajo porque este
  *  uso es al revés: ahí se arma la lista de opciones, acá se busca UNA por
  *  su id. */
-const VISTA_LABEL = { instock: "En stock", probados: "Probados", [VISTA_DESEOS]: "Favoritos" };
+const VISTA_LABEL = { instock: "En stock", probados: "Ya tomados", [VISTA_DESEOS]: "Favoritos" };
 
 // Los filtros sobreviven a la sesión, igual que lista/grilla. Una sola clave con
 // todo adentro: son una configuración, no ocho preferencias sueltas.
@@ -554,8 +554,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
    */
   const filtrosActivos = useMemo(() => {
     const fichas = [];
-    if (probado === false) fichas.push({ id: "prob", label: "Sin probar", quitar: () => setProbado(null) });
-    if (probado === true) fichas.push({ id: "prob", label: "Probados", quitar: () => setProbado(null) });
+    if (probado === false) fichas.push({ id: "prob", label: "Sin tomar", quitar: () => setProbado(null) });
+    if (probado === true) fichas.push({ id: "prob", label: "Ya tomados", quitar: () => setProbado(null) });
     if (soloListos) fichas.push({ id: "listos", label: "Listos para abrir", quitar: () => setSoloListos(false) });
     if (tipoFilter !== "all") {
       fichas.push({
@@ -610,10 +610,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
         // Lo que tomaste no se perdió: está en Probados. Decirlo acá es lo que
         // evita pensar que la app borró algo, y ahora además se puede ir de un
         // toque en vez de tener que descubrir la pestaña.
-        hint: "Los vinos que tomaste siguen en Probados.",
+        hint: "Los vinos que tomaste siguen en «Ya tomados».",
         actionLabel: "Escanear una etiqueta",
         onAction: () => navigate("/agregar"),
-        secondaryLabel: conteoPorVista.probados > 0 ? "Ver los que probaste" : "",
+        secondaryLabel: conteoPorVista.probados > 0 ? "Ver los que ya tomaste" : "",
         onSecondary: () => setVista("probados"),
       };
     }
@@ -667,8 +667,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setSeleccion(todosElegidos ? new Set() : new Set(todosALaVista));
 
   const ACCIONES_EN_LOTE = {
-    tasted: (n) => `${n === 1 ? "1 vino marcado" : `${n} vinos marcados`} como probado`,
-    untasted: (n) => `${n === 1 ? "1 vino" : `${n} vinos`} sin marca de probado`,
+    tasted: (n) => `${n === 1 ? "1 vino marcado" : `${n} vinos marcados`} como ya tomado`,
+    untasted: (n) => `${n === 1 ? "1 vino" : `${n} vinos`} sin marcar como tomado`,
     favorite: (n) => `${n === 1 ? "1 vino" : `${n} vinos`} en favoritos`,
     unfavorite: (n) => `${n === 1 ? "1 vino" : `${n} vinos`} fuera de favoritos`,
     delete: (n) => `${n === 1 ? "1 vino eliminado" : `${n} vinos eliminados`}`,
@@ -764,17 +764,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
         await updateWineTasted(wine._id, !wine.tasted);
 
         if (!desmarcando) {
-          showSuccess("Vino marcado como probado");
+          showSuccess("Vino marcado como ya tomado");
           return;
         }
 
-        const toastId = addToast("Marcado como no probado", "success", 8000, {
+        const toastId = addToast("Marcado como sin tomar", "success", 8000, {
           label: "Deshacer",
           onClick: async () => {
             removeToast(toastId);
             try {
               await updateWineTasted(wine._id, true);
-              showSuccess("Vuelve a estar entre los probados");
+              showSuccess("Vuelve a estar entre los ya tomados");
             } catch {
               showError("No se pudo deshacer");
             }
@@ -1017,7 +1017,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onChange={setVista}
         options={[
           { id: "instock", label: "En stock", title: "Los que tenés en casa ahora", count: conteoPorVista.instock },
-          { id: "probados", label: "Probados", title: "Los que tomaste alguna vez, tengas o no", count: conteoPorVista.probados },
+          { id: "probados", label: "Ya tomados", title: "Los que ya tomaste, los tengas todavía en tu bodega o no", count: conteoPorVista.probados },
           // Lo que tenés marcado con el corazón, lo tengas o no. Era "Quiero
           // probar" y sólo miraba la wishlist — un vino que ya tenías y te
           // gustaba no entraba ahí, y "quiero probar" tampoco era cierto de
@@ -1032,12 +1032,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
           },
         ]}
       />
-
-      {/* Los números de lo que se está viendo. Va DESPUÉS del segmentado y
-          ANTES de las fichas de filtro a propósito: describe el resultado de
-          los dos, así que tiene que leerse como consecuencia de lo de arriba y
-          no como un encabezado suelto de la pantalla. */}
-      {!loading && !error && <BodegaResumen wines={filteredWines} />}
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (
@@ -1074,11 +1068,25 @@ export default function BodyPage({ initialFilter = "instock" }) {
           larga —el patrón del sistema— lo vuelve invisible para quien no sabe que
           existe. Aparece recién con tres vinos: con dos, tocarlos de a uno es más
           rápido que entrar y salir de un modo. */}
-      {!loading && !error && !modoSeleccion && sortedWines.length >= 3 && (
+      {/* "Probado" no le decía nada a quien no usa la app todos los días. Acá se dice una
+          vez, con las palabras de la calle: lo que ya tomaste, por haberlo comprado o por
+          haberlo tomado en otro lado, lo tengas todavía en la bodega o no. */}
+      {!loading && !error && vista === "probados" && (
+        <p className="bodega-nota">Los que ya tomaste, estén o no en tu bodega.</p>
+      )}
+
+      {/* La línea de resumen ("3 botellas · 2 uvas") comparte renglón con el botón: antes era
+          una tarjeta de números grandes que se llevaba media pantalla. Va DESPUÉS de las
+          fichas de filtro a propósito: describe el resultado del segmentado y de los filtros,
+          así que se lee como consecuencia de lo de arriba y no como un encabezado suelto. */}
+      {!loading && !error && (
         <div className="bodega-seleccion-entrada">
-          <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>
-            <Icon name="check" size={14} /> Seleccionar
-          </button>
+          <BodegaResumen wines={filteredWines} />
+          {!modoSeleccion && sortedWines.length >= 3 && (
+            <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>
+              <Icon name="check" size={14} /> Seleccionar
+            </button>
+          )}
         </div>
       )}
 
@@ -1329,7 +1337,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
               disabled={seleccion.size === 0 || enLote}
               onClick={() => aplicarEnLote("tasted")}
             >
-              <Icon name="check" size={15} /> Probado
+              <Icon name="check" size={15} /> Ya lo tomé
             </button>
             <button
               type="button"

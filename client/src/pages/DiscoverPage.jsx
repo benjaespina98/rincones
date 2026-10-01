@@ -501,7 +501,7 @@ export default function DiscoverPage() {
                         {r.owned.bottles > 0
                           ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
                           : r.owned.tasted
-                            ? "Ya lo probaste"
+                            ? "Ya lo tomaste"
                             : "Ya está en tu bodega"}
                       </span>
                     ) : (
