@@ -97,6 +97,7 @@ const searchWinesWithAi = async (query) => {
     schema: RESPONSE_SCHEMA,
     timeoutMs: TIMEOUT_MS,
     budgetMs: BUDGET_MS,
+    sinPensamiento: true,
   });
 
   const wines = Array.isArray(parsed?.wines) ? parsed.wines : [];
@@ -454,6 +455,7 @@ const describeWine = async (wine) => {
     parts: [{ text: buildDescribePrompt(wine) }],
     schema: DESCRIBE_SCHEMA,
     timeoutMs: 12000,
+    sinPensamiento: true,
   });
 
   const clean = (s) => String(s || "").trim();
@@ -579,6 +581,7 @@ const suggestRecipe = async (wine, plan) => {
     schema: RECIPE_SCHEMA,
     timeoutMs: 14000,
     budgetMs: 22000,
+    sinPensamiento: true,
   });
 
   const clean = (s) => String(s || "").trim();
@@ -653,6 +656,7 @@ ${FOOD_KEYS.join(", ")}.
     // Es una clasificación de una palabra: si tarda, el usuario ya se fue.
     timeoutMs: 7000,
     budgetMs: 11000,
+    sinPensamiento: true,
   });
 
   const food = FOOD_KEYS.includes(parsed?.food) ? parsed.food : null;

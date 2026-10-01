@@ -84,6 +84,43 @@ const getModelChain = (task = "search") => {
   return [preferred, ...base.filter((m) => m !== preferred)];
 };
 
+/**
+ * ── MODELOS EN ENFRIAMIENTO ─────────────────────────────────────────────────────
+ * Con la cuota POR MODELO, un modelo que ya devolvió 429 (cupo del día agotado) o 503
+ * (saturado) lo va a volver a devolver en la próxima pregunta. Sin memoria, CADA
+ * consulta de CADA persona empezaba golpeando al mismo modelo caído: un 503 tarda ~14 s
+ * en volver y un 429 es un pedido más contra una cuota que ya no tiene.
+ *
+ * Ahora el que falla se aparta un rato y la cadena arranca por el primero que sí
+ * responde. Pasado el enfriamiento se lo vuelve a probar solo, así que recupera su lugar
+ * sin intervención:
+ *
+ *   429 (cupo del día)       10 min  — no se libera antes de medianoche, pero tampoco hace
+ *                                      falta saber cuándo: se re-sondea de a poco.
+ *   5xx / timeout / red      45 s    — suele ser un pico de demanda.
+ *   404 (no disponible)       1 h
+ *
+ * Si TODOS están enfriándose se usa la cadena entera: mejor intentar que no contestar.
+ * Un fallo por MAX_TOKENS o JSON inválido NO enfría: es de esa respuesta, no del modelo.
+ */
+const ENFRIAMIENTO_MS = { cuota: 10 * 60 * 1000, saturado: 45 * 1000, noDisponible: 60 * 60 * 1000 };
+const ENFRIADOS = new Map();
+
+const enfriar = (model, status = 0) => {
+  const ms =
+    status === 429 ? ENFRIAMIENTO_MS.cuota : status === 404 ? ENFRIAMIENTO_MS.noDisponible : ENFRIAMIENTO_MS.saturado;
+  ENFRIADOS.set(model, Date.now() + ms);
+};
+const liberar = (model) => ENFRIADOS.delete(model);
+
+/** La cadena sin los modelos que se están enfriando (o entera, si no quedara ninguno). */
+const cadenaDisponible = (task) => {
+  const cadena = getModelChain(task);
+  const ahora = Date.now();
+  const libres = cadena.filter((m) => (ENFRIADOS.get(m) || 0) <= ahora);
+  return libres.length > 0 ? libres : cadena;
+};
+
 // 429 = sin cuota, 404 = modelo no disponible acá. En ambos casos el próximo
 // modelo puede funcionar. Un 400 (request mal armado) no se reintenta.
 const shouldTryNextModel = (status) => status === 429 || status === 404 || status >= 500;
@@ -147,8 +184,11 @@ const parseJsonLoose = (text) => {
  */
 const NO_ACEPTAN_PENSAMIENTO = new Set();
 
-/** Sólo para los tests: olvida qué modelos rechazaron el parámetro. */
-const olvidarModelosSinPensamiento = () => NO_ACEPTAN_PENSAMIENTO.clear();
+/** Sólo para los tests: olvida qué modelos rechazaron el parámetro y los que se enfriaban. */
+const olvidarModelosSinPensamiento = () => {
+  NO_ACEPTAN_PENSAMIENTO.clear();
+  ENFRIADOS.clear();
+};
 
 const generateJson = async ({
   parts,
@@ -179,7 +219,7 @@ const generateJson = async ({
 
   let lastError = null;
 
-  for (const model of getModelChain(task)) {
+  for (const model of cadenaDisponible(task)) {
     const remaining = deadline - Date.now();
     // Sin margen para una llamada útil: cortamos en vez de encadenar timeouts.
     if (remaining < 500) {
@@ -210,10 +250,14 @@ const generateJson = async ({
       if (!res.ok) {
         const detail = await res.text().catch(() => "");
         lastError = new Error(`Gemini ${model} HTTP ${res.status} ${detail.slice(0, 140)}`);
-        if (shouldTryNextModel(res.status)) continue;
+        if (shouldTryNextModel(res.status)) {
+          enfriar(model, res.status);
+          continue;
+        }
         throw lastError;
       }
 
+      liberar(model);
       const data = await res.json();
       const candidate = data?.candidates?.[0];
       // Una respuesta truncada produce JSON inválido: la tratamos como fallo.
@@ -237,8 +281,9 @@ const generateJson = async ({
         continue;
       }
     } catch (error) {
-      // Timeout o red: probamos el siguiente modelo.
+      // Timeout o red: probamos el siguiente modelo, y éste descansa un rato.
       lastError = error;
+      enfriar(model);
     } finally {
       clearTimeout(timer);
     }
@@ -296,7 +341,7 @@ const streamJson = async ({
 
   let lastError = null;
 
-  for (const model of getModelChain(task)) {
+  for (const model of cadenaDisponible(task)) {
     if (signal?.aborted) throw new Error("Consulta cancelada");
 
     const remaining = deadline - Date.now();
@@ -331,10 +376,14 @@ const streamJson = async ({
       if (!res.ok) {
         const detail = await res.text().catch(() => "");
         lastError = new Error(`Gemini ${model} HTTP ${res.status} ${detail.slice(0, 140)}`);
-        if (shouldTryNextModel(res.status)) continue;
+        if (shouldTryNextModel(res.status)) {
+          enfriar(model, res.status);
+          continue;
+        }
         throw lastError;
       }
 
+      liberar(model);
       const lector = res.body.getReader();
       const decodificador = new TextDecoder();
       let pendiente = "";
@@ -406,7 +455,8 @@ const streamJson = async ({
       }
       // Cancelada por quien llamó: no tiene sentido seguir con otro modelo.
       if (signal?.aborted) throw error;
-      // Si no, timeout o red antes del primer trozo: se prueba el siguiente.
+      // Si no, timeout o red antes del primer trozo: se prueba el siguiente y éste descansa.
+      enfriar(model);
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener?.("abort", cancelar);
