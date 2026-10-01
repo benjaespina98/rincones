@@ -1557,7 +1557,7 @@
      `--nav-height` en vez del 68 escrito a mano que había: es el mismo alto de
      barra que ya despeja el pie de las páginas, y tenerlo dos veces es tenerlo
      mal la próxima vez que cambie. */
-  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 10px);
+  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) + 10px);
   /* Por ENCIMA del botón flotante de Agregar, que vive justo acá.
      Mientras estás eligiendo vinos para borrarlos en lote, agregar uno nuevo no
      es una acción posible: esta barra ocupa el ancho entero y lo tapa, que es
