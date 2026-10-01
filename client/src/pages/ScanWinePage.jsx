@@ -153,7 +153,7 @@ export default function ScanWinePage() {
     // buscarlo a "En stock", que es el único lugar donde no está.
     const mensaje =
       payload.quantity === 0
-        ? `"${created.name}" anotado entre tus probados`
+        ? `"${created.name}" anotado como ya tomado`
         : `"${created.name}" agregado a tu bodega`;
 
     const toastId = addToast(mensaje, "success", 8000, {
@@ -167,7 +167,7 @@ export default function ScanWinePage() {
           // dónde, que no es lo mismo si el vino nunca entró a la bodega.
           showSuccess(
             payload.quantity === 0
-              ? `"${created.name}" ya no está entre tus probados`
+              ? `"${created.name}" ya no figura como tomado`
               : `"${created.name}" ya no está en tu bodega`
           );
           navigate("/agregar", { replace: true });
@@ -286,6 +286,33 @@ export default function ScanWinePage() {
     }
   };
 
+  /**
+   * "Solo consultar": la ficha del vino, sin guardar nada.
+   *
+   * Reusa la ficha de catálogo (descripción, precio, reseñas) que ya sabe mostrar un vino
+   * que NO está en tu bodega y ofrecer sumarlo después. El vino viaja por el estado de la
+   * navegación, igual que desde Descubrí. La foto se manda sólo si es chica: el estado de
+   * la historia del navegador tiene un tope y una foto de teléfono sin reducir lo pasa.
+   */
+  const handleConsult = (draft) => {
+    trackEvent("scan_consult", { source: draft?.source || "escaneo" });
+    const imagen = typeof draft.image === "string" && draft.image.length < 400000 ? draft.image : "";
+    navigate("/descubrir/vino", {
+      state: {
+        wine: {
+          name: draft.name?.trim() || "Vino sin nombre",
+          winery: draft.winery?.trim() || "",
+          line: draft.line?.trim() || "",
+          region: draft.region?.trim() || "",
+          varietal: draft.varietal?.trim() || "",
+          vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+          type: draft.type || "unknown",
+          image: imagen,
+        },
+      },
+    });
+  };
+
   const handleWishReview = async (draft) => {
     if (!draft.name?.trim()) {
       showError("Escribí la línea o el nombre del vino");
@@ -324,6 +351,7 @@ export default function ScanWinePage() {
           saving={saving}
           onConfirm={handleConfirmReview}
           onWish={handleWishReview}
+          onConsult={handleConsult}
           onCancel={() => setReview(null)}
           onRescan={review.source === "manual" ? undefined : () => { setReview(null); setShowScanner(true); }}
           // "Buscar manualmente": la misma pantalla de revisión, en blanco, que

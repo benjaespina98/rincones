@@ -370,19 +370,33 @@
 
 .scan-review__save:hover:not(:disabled) { filter: brightness(1.08); }
 
+/* Las dos salidas secundarias, una al lado de la otra: más chicas que el botón principal. */
+.scan-review__otras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .scan-review__wish {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: var(--control-md);
-  border: 1px solid var(--line-accent);
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: var(--glass);
+  background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
+}
+
+.scan-review__wish:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .scan-review__minor {

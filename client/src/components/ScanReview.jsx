@@ -99,6 +99,7 @@ export default function ScanReview({
   saving = false,
   onConfirm,
   onWish,
+  onConsult,
   onCancel,
   onRescan,
   onManual,
@@ -151,10 +152,16 @@ export default function ScanReview({
    * la bodega, o queda sólo como probado— se sigue viendo siempre, pero sin
    * pedir una decisión aparte para llegar a ella.
    */
-  // Cuántas botellas entran a la cava. Arranca en cero: es "lo tomé", no un
-  // valor vacío a completar. Obligar a escanear doce veces la misma etiqueta
-  // porque compraste una caja tampoco tiene sentido, de ahí los atajos.
-  const [cantidad, setCantidad] = useState(0);
+  // Cuántas botellas entran a la cava. Arranca en UNA: lo que casi todo el mundo hace al
+  // escanear una etiqueta es guardar esa botella en su bodega, y eso es lo que tiene que
+  // pasar de un toque. Arrancaba en cero ("lo tomé"), y el botón principal decía
+  // "Anotarlo como ya tomado": lo contrario de lo que se viene a hacer.
+  //
+  // Bajarlo a cero sigue significando "lo probé y no es mío" (un restaurante, la casa de
+  // alguien): el botón pasa a "Anotarlo como ya tomado" y no suma stock. Obligar a escanear
+  // doce veces la misma etiqueta porque compraste una caja tampoco tiene sentido, de ahí
+  // los atajos.
+  const [cantidad, setCantidad] = useState(1);
   // Lo que de verdad se guarda es el número tal cual: en cero, sin botellas.
   const botellas = cantidad;
   // Si la lectura salió tan floja que no hay campo puntual que señalar, se
@@ -798,7 +805,7 @@ export default function ScanReview({
         </div>
         <p className="scan-qty__consequence" aria-live="polite">
           {cantidad === 0
-            ? "Sin botellas: queda anotado entre tus probados, no suma stock."
+            ? "Sin botellas: queda en «Ya tomados», no suma stock."
             : "Entra a tu bodega, con stock."}
         </p>
       </div>
@@ -816,7 +823,7 @@ export default function ScanReview({
             <>
               <Icon name="check" size={17} />{" "}
               {cantidad === 0
-                ? "Guardarlo como probado"
+                ? "Anotarlo como ya tomado"
                 : cantidad === 1
                   ? "Agregar a mi bodega"
                   : `Agregar ${cantidad} botellas`}
@@ -830,16 +837,36 @@ export default function ScanReview({
             Corregí los datos marcados arriba.
           </p>
         )}
-        {/* Guardarlo en la lista es privado: no toca el catálogo público, así que
-            no lo frena el veredicto. Lo único que necesita es un nombre. */}
-        <button
-          type="button"
-          className="scan-review__wish"
-          onClick={() => onWish?.({ ...values, type: derivedType, name: title })}
-          disabled={saving || !title}
-        >
-          <Icon name="heart" size={16} /> Solo guardarlo
-        </button>
+        {/* Las otras dos salidas, chicas y juntas: el botón de arriba es lo que casi todos
+            vienen a hacer.
+
+            "Solo consultar": estás en una vinoteca o en una cena y querés ver qué es este
+            vino —descripción, precio, reseñas— sin guardar nada. Abre la ficha en modo
+            lectura; de ahí se puede sumar a la bodega si después te decidís. No guarda ni
+            toca el catálogo, así que no lo frena el veredicto: sólo necesita un nombre.
+
+            "Quiero probarlo": guardarlo en la lista es privado, no toca el catálogo
+            público, así que tampoco lo frena el veredicto. Lo único que necesita es un
+            nombre. */}
+        <div className="scan-review__otras">
+          <button
+            type="button"
+            className="scan-review__wish"
+            onClick={() => onConsult?.({ ...values, type: derivedType, name: title })}
+            disabled={saving || !title || !onConsult}
+            title="Ver la información de este vino sin guardarlo"
+          >
+            <Icon name="search" size={15} /> Solo consultar
+          </button>
+          <button
+            type="button"
+            className="scan-review__wish"
+            onClick={() => onWish?.({ ...values, type: derivedType, name: title })}
+            disabled={saving || !title}
+          >
+            <Icon name="heart" size={15} /> Quiero probarlo
+          </button>
+        </div>
         <div className="scan-review__minor">
           {onRescan && (
             <button type="button" className="scan-review__link" onClick={onRescan} disabled={saving}>
