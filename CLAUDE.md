@@ -19,7 +19,7 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia actual: **client 437/437**, **server 432/432**, lint limpio, tokens
+Referencia actual: **client 438/438**, **server 432/432**, lint limpio, tokens
 136/136. Los conteos pueden subir, nunca bajar.
 
 Carga inicial: **≈120,5 kB gzip** (entry 73,6 + vendor 35,8 + CSS 11,2).

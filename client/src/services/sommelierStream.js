@@ -125,6 +125,13 @@ export const preguntarEnVivo = async (
   // La sesión venció: axios sabe renovarla y reintentar, esto no.
   if (respuesta.status === 401) throw new SinStreaming("sesion");
 
+  // El servidor todavía no tiene este endpoint (un despliegue a medias: el cliente nuevo
+  // puede llegar antes que la API nueva) o un intermediario no lo deja pasar. Es "esto no
+  // se puede transmitir", no una respuesta: se repite por la vía de siempre.
+  if (respuesta.status === 404 || respuesta.status === 405 || respuesta.status === 501) {
+    throw new SinStreaming("no-disponible");
+  }
+
   const tipo = respuesta.headers.get("content-type") || "";
   if (!respuesta.ok || !tipo.includes("text/event-stream")) {
     // Un JSON común: un error previo a empezar (el límite diario, un 400) o un intermediario

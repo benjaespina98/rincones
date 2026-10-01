@@ -144,6 +144,13 @@ describe("preguntarEnVivo", () => {
     await expect(preguntarEnVivo("¿Qué tomo?")).rejects.toBeInstanceOf(SinStreaming);
   });
 
+  it("si el servidor todavía no tiene el endpoint (404, 405, 501: un despliegue a medias), vuelve a la vía normal", async () => {
+    for (const status of [404, 405, 501]) {
+      fetchMock.mockResolvedValue(respuestaJson({ message: "no existe" }, status));
+      await expect(preguntarEnVivo("¿Qué tomo?")).rejects.toBeInstanceOf(SinStreaming);
+    }
+  });
+
   it("el límite diario (429) NO es SinStreaming: es una respuesta, con la forma de un error de axios", async () => {
     fetchMock.mockResolvedValue(respuestaJson({ message: "Llegaste al límite" }, 429));
     const error = await preguntarEnVivo("¿Qué tomo?").catch((e) => e);
