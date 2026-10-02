@@ -1,0 +1,47 @@
+/* El pie del perfil: centrado, apagado, sin competir con el contenido. */
+.pie-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Aire de arriba para separarlo de la última tarjeta; el de abajo lo pone la pantalla. */
+  padding-bottom: var(--space-md);
+}
+
+/* "made by" arriba y el logo debajo: en 393px entran de sobra, y apilado no depende del
+   ancho de la pantalla. El alto mínimo de 44px es sólo área de toque. */
+.pie-app__credito {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--text-subtle);
+  text-decoration: none;
+  opacity: 0.9;
+  transition: opacity var(--transition-fast);
+}
+
+.pie-app__credito:hover {
+  opacity: 1;
+}
+
+.pie-app__credito:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.pie-app__por {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+}
+
+/* Que nunca desborde en una pantalla angosta: encoge antes de generar scroll horizontal. */
+.pie-app__logo {
+  display: block;
+  height: 26px;
+  width: auto;
+  max-width: 100%;
+}
