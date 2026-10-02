@@ -237,6 +237,15 @@ const PATHS = {
       <path d="M12 11v5M12 7.5v.5" />
     </>
   ),
+  // Una taza con vapor: "invitame un café". Trazo fino como el resto, no el emoji, que se
+  // dibuja a color y rompía con la app.
+  coffee: (
+    <>
+      <path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" />
+      <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" />
+      <path d="M8 3.5v2M12 3.5v2" />
+    </>
+  ),
   // Cuatro esquinas abriéndose: "esto se ve más grande". Va sobre las fotos que
   // abren el visor a pantalla completa.
   expand: <path d="M9 3H3v6M21 9V3h-6M15 21h6v-6M3 15v6h6" />,
