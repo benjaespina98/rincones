@@ -26,7 +26,7 @@ import {
   queMostrarDeLaInversion,
 } from "../utils/perfilDatos";
 import MomentsDiary from "../components/MomentsDiary";
-import CafecitoLink from "../components/CafecitoLink";
+import PieDeLaApp from "../components/PieDeLaApp";
 
 import ConfirmModal from "../components/ConfirmModal";
 import "./ProfilePage.css";
@@ -502,7 +502,7 @@ export default function ProfilePage() {
       <MomentsDiary probados={wineStats?.totals?.consumed || 0} />
 
       {/* El final de la pantalla, a propósito: la letra chica de la app. */}
-      <CafecitoLink />
+      <PieDeLaApp />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}
