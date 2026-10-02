@@ -26,6 +26,7 @@ import {
   queMostrarDeLaInversion,
 } from "../utils/perfilDatos";
 import MomentsDiary from "../components/MomentsDiary";
+import PieDeLaApp from "../components/PieDeLaApp";
 
 import ConfirmModal from "../components/ConfirmModal";
 import "./ProfilePage.css";
@@ -499,6 +500,9 @@ export default function ProfilePage() {
       {/* Cuántos vinos probaste: es lo que decide si el diario vacío se muestra
           como invitación o no se muestra en absoluto. Ver MomentsDiary. */}
       <MomentsDiary probados={wineStats?.totals?.consumed || 0} />
+
+      {/* El final de la pantalla, a propósito: la letra chica de la app. */}
+      <PieDeLaApp />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}
