@@ -1,10 +1,11 @@
 import { trackEvent } from "../services/analyticsApi";
+import Icon from "./Icon";
 import "./CafecitoLink.css";
 
 /**
  * "☕ Invitame un café": el enlace para apoyar al desarrollador, a propósito casi invisible.
  *
- * Va al final del perfil, en la parte más baja y menos transitada de la app: nunca en el
+ * Va al final del perfil (dentro de `PieDeLaApp`), en la parte más baja y menos transitada de la app: nunca en el
  * flujo de uso (bodega, Sommelier, escáner), nunca arriba, nunca como botón, banner o popup.
  * Es la letra chica, como los enlaces legales del login.
  *
@@ -21,7 +22,7 @@ export default function CafecitoLink({ className = "" }) {
   if (!CAFECITO_URL) return null;
 
   return (
-    <p className={`cafecito ${className}`.trim()}>
+    <span className={`cafecito ${className}`.trim()}>
       <a
         className="cafecito__link"
         href={CAFECITO_URL}
@@ -29,8 +30,9 @@ export default function CafecitoLink({ className = "" }) {
         rel="noopener noreferrer"
         onClick={() => trackEvent("cafecito_click")}
       >
-        <span aria-hidden="true">☕ </span>Invitame un café
+        <Icon name="coffee" size={13} />
+        Invitame un café
       </a>
-    </p>
+    </span>
   );
 }

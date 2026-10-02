@@ -1,47 +1,74 @@
-/* El pie del perfil: centrado, apagado, sin competir con el contenido. */
+/* El pie del perfil: un filete fino y una fila de letra chica, centrado y apagado.
+   Tiene que verse como el final de la pantalla, no como una sección. */
 .pie-app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Aire de arriba para separarlo de la última tarjeta; el de abajo lo pone la pantalla. */
+  margin-top: var(--space-xl);
   padding-bottom: var(--space-md);
 }
 
-/* "made by" arriba y el logo debajo: en 393px entran de sobra, y apilado no depende del
-   ancho de la pantalla. El alto mínimo de 44px es sólo área de toque. */
-.pie-app__credito {
-  display: inline-flex;
-  flex-direction: column;
+/* La rayita que cierra la pantalla: apenas se ve. */
+.pie-app__filete {
+  width: 32px;
+  height: 1px;
+  background: var(--line);
+}
+
+.pie-app__fila {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  column-gap: var(--space-xs);
+}
+
+/* El separador entre las dos piezas: un punto, no un guion ni una barra. */
+.pie-app__punto {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.pie-app__credito {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-height: 44px;
-  padding: var(--space-xs) var(--space-md);
+  padding: 0 var(--space-sm);
   color: var(--text-subtle);
   text-decoration: none;
-  opacity: 0.9;
+  /* Más tenue que el texto: la firma no tiene que ganarle a nada. Sube al pasar el mouse. */
+  opacity: 0.6;
   transition: opacity var(--transition-fast);
 }
 
 .pie-app__credito:hover {
-  opacity: 1;
+  opacity: 0.95;
 }
 
 .pie-app__credito:focus-visible {
   outline: 2px solid var(--accent-light);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+  opacity: 1;
 }
 
 .pie-app__por {
   font-size: var(--text-2xs);
-  letter-spacing: 0.04em;
 }
 
-/* Que nunca desborde en una pantalla angosta: encoge antes de generar scroll horizontal. */
 .pie-app__logo {
   display: block;
-  height: 26px;
+  height: 14px;
   width: auto;
   max-width: 100%;
+}
+
+/* Si la fila se parte en dos renglones (pantalla muy angosta), el punto sobra. */
+@media (max-width: 340px) {
+  .pie-app__punto {
+    display: none;
+  }
 }
