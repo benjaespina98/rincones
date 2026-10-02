@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, configure } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import MomentsDiary from "../src/components/MomentsDiary";
 import { getAllMoments } from "../src/services/wineApi";
 
 vi.mock("../src/services/wineApi", () => ({ getAllMoments: vi.fn() }));
+
+// Con la suite entera corriendo en paralelo el diario (carga perezosa) tardaba más del
+// segundo por defecto en aparecer y el test fallaba sin que nada estuviera roto.
+configure({ asyncUtilTimeout: 5000 });
 
 /**
  * El diario vacío: cuándo invita y cuándo se calla.
