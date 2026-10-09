@@ -16,6 +16,12 @@ git -c user.name=benjaespina98 -c user.email=83318957+benjaespina98@users.norepl
 No está en el PATH. Ruta completa:
 `$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe`
 
+`gh` llama a git por dentro, así que también tropieza con "dubious ownership" y `-c safe.directory` no le llega. Excepción sólo para ese proceso, sin tocar la config global (PowerShell):
+```powershell
+$env:GIT_CONFIG_COUNT="1"; $env:GIT_CONFIG_KEY_0="safe.directory"; $env:GIT_CONFIG_VALUE_0="D:/Win10/Desktop/UTN/z/Proyectos/rincones"
+```
+Un PR con cuerpo multilínea se arma en PowerShell con here-string `@'...'@` (en bash los saltos se complican).
+
 ## Levantar la app
 - `npm run dev` levanta client y server juntos, **pero** el harness del preview exporta `PORT=5173`, el server la hereda, pisa el `PORT=4000` de su `.env` y choca con Vite. La app dice "No pudimos conectarnos".
 - Para pantallas con datos: server aparte con puerto explícito.
