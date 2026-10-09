@@ -58,6 +58,7 @@ hasta el merge a `main`.
 | `diseno-y-a11y` | CSS, UI, tokens, íconos, accesibilidad, copy |
 | `gemini` | Sommelier, escáner de etiquetas, streaming, costos |
 | `mongo-y-migraciones` | Modelos, índices (trampa del TTL), scripts `migrate:*` |
+| `publicar` | `/publicar` (feature → develop) y `/publicar main`: verificación + agentes obligatorios + CI. Sólo lo dispara el usuario |
 
 ## Agentes (`.claude/agents/`)
 
