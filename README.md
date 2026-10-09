@@ -114,8 +114,8 @@ referencias de compra en MercadoLibre.
 
 ### Testing
 
-- **Node Test Runner** (`node --test`) en el backend — 191 tests
-- **Vitest** + **Testing Library** en el frontend — 69 tests
+- **Node Test Runner** (`node --test`) en el backend
+- **Vitest** + **Testing Library** en el frontend
 
 ---
 
@@ -387,8 +387,8 @@ públicas.
 ## Testing
 
 ```bash
-npm test -w server   # 191 tests
-npm test -w client   # 69 tests
+npm test -w server
+npm test -w client
 ```
 
 Los tests cubren las reglas que no se ven leyendo el código y que, si se rompen,
