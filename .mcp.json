@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "node",
-      "args": ["C:\\Users\\Win10\\AppData\\Roaming\\npm\\node_modules\\@playwright\\mcp\\cli.js"]
-    }
-  }
-}

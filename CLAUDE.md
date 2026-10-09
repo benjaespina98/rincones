@@ -3,9 +3,12 @@
 Bodega personal de vinos con sommelier IA. Monorepo npm workspaces (`client/`,
 `server/`). **Tiene usuarios reales**: `main` despliega producción en Vercel.
 
-Este archivo se carga solo en cada sesión. Está para que no haya que
-re-descubrir lo mismo cada vez — sobre todo las trampas del entorno, que cuestan
-media hora si no están escritas.
+- `client/`: React 19 + Vite 7, JavaScript, CSS plano. Tests con vitest.
+- `server/`: Express 5 + Mongoose 9 (MongoDB), Gemini para el Sommelier. Tests con `node --test`.
+
+Este archivo se carga en cada sesión, así que sólo guarda lo que **siempre** hace
+falta. El detalle por tema vive en skills (se leen cuando la tarea los pide) y la
+revisión experta en agentes (se llaman para una tarea acotada).
 
 ---
 
@@ -19,177 +22,73 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia actual: **client 438/438**, **server 432/432**, lint limpio, tokens
-136/136. Los conteos pueden subir, nunca bajar.
-
-Carga inicial: **≈120,5 kB gzip** (entry 73,6 + vendor 35,8 + CSS 11,2).
-Presupuesto: no pasar de ~143 kB.
+Referencia medida el 2026-10-09: **client 468**, **server 438**, tokens **141/141**,
+lint limpio. Los conteos pueden subir, nunca bajar. Carga inicial: presupuesto
+~143 kB gzip (entry ≈73,6 + vendor ≈35,8 + CSS).
 
 ## Flujo de ramas
 
 `feature` → **PR a `develop`** → borrar la feature → `develop` → `main`.
-Nunca un PR de una rama de trabajo directo a `main`. La rama feature se borra
-**después** de mergear (borrarla antes cierra el PR): `gh pr merge --delete-branch`.
+Nunca un PR de una rama de trabajo directo a `main`. La feature se borra
+**después** de mergear: `gh pr merge --delete-branch`. Nada llega a producción
+hasta el merge a `main`.
 
-Nada llega a producción hasta el merge a `main`; un merge local no despliega.
+## Reglas duras
 
----
-
-## Trampas del entorno (esto es lo que hace perder tiempo)
-
-**Git no tiene identidad configurada.** Ni global ni local. Los commits necesitan
-pasarla a mano, con la misma que firma el historial:
-
-```bash
-git -c user.name=benjaespina98 -c user.email=83318957+benjaespina98@users.noreply.github.com commit ...
-```
-
-**Git se queja de "dubious ownership".** El repo figura creado por otro usuario de
-Windows. Se esquiva por comando con
-`git -c safe.directory=D:/Win10/Desktop/UTN/z/Proyectos/rincones ...`, o se
-arregla una vez con `git config --global --add safe.directory <ruta>`.
-
-**`gh` no está en el PATH.** Instalado por winget, hay que llamarlo por ruta:
-`$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe`
-
-**El backend no queda donde el cliente lo busca.** El harness del preview exporta
-`PORT=5173` para Vite, y `npm run dev` levanta los dos workspaces juntos: el
-server hereda esa variable, pisa el `PORT=4000` de su `.env` y anuncia 5173, que
-ya es de Vite. La app muestra "No pudimos conectarnos". Para pantallas con datos,
-levantar el server aparte con `PORT=4000` explícito.
-
-Sin backend se pueden revisar: `/styleguide`, `/login`, `/register`.
-
-**El panel del navegador pinta inestable.** Las capturas salen en blanco o a
-medio pintar. Verificar con **estilos computados** (`javascript_tool`) y tests
-automatizados, no con screenshots.
-
-**Cambiar el plazo de un TTL no alcanza.** Mongoose rechaza redefinir un índice
-existente con otras opciones (`IndexOptionsConflict`): el viejo sigue vigente y el
-schema nuevo no hace nada. Y `collMod`, la forma obvia de retocarlo, no está
-permitido para el usuario de la base. Se resuelve con un índice sobre OTRO campo
-(así lo hace `SommelierConversation`: 45 días sobre `updatedAt`, no sobre
-`createdAt`); el viejo queda inofensivo. Probar siempre contra la base `test`, que
-tiene los índices viejos y replica lo que va a pasar al desplegar.
-
-**Los modelos flash de Gemini PIENSAN, y eso se come el tiempo y los tokens.** Medido: un
-`gemini-3.6-flash` gastó 248 de 260 tokens pensando y cortó la respuesta (`MAX_TOKENS`); sin
-pensar contesta en 1,7 s. Y si el primer modelo de la cadena está saturado, un 503 tarda ~14 s
-en volver. Por eso el Sommelier pide `sinPensamiento: true` (`thinkingBudget: 0`): las respuestas
-pasaron de 12–22 s a 3–5 s. Los lite más nuevos rechazan el parámetro con un 400; `generateJson`
-y `streamJson` lo detectan, reintentan ESE modelo sin él y lo recuerdan. El escáner de etiquetas
-no lo usa: es opt-in. Antes de culpar a la red por una respuesta lenta, medir con
-`scratchpad`-style: una llamada directa con y sin `thinkingConfig`.
-
-**La respuesta en vivo es SSE por `fetch`, no por `axios`** (axios espera el cuerpo entero).
-Si un intermediario bufferiza el stream, el cliente lo detecta (llega JSON) o recibe todo junto:
-sigue andando, sólo sin el efecto de escritura. Cualquier falla antes de empezar vuelve a la vía
-normal (`SinStreaming`); después de empezar no se cambia de modelo a la mitad.
-
-**Los archivos son CRLF.** Un reemplazo multilínea con `\n` no matchea: usar
-regex con `\r?\n`, o `sed` por número de línea.
-
-**No hay Python.** Para scripts de una vez, usar Node.
-
----
-
-## Reglas del código
-
-- **JavaScript, no TypeScript.** No migrar.
-- **CSS plano**, sin Tailwind ni CSS-in-JS. El CSS vive **al lado** de su
-  componente o página; las hojas que comparten varios componentes van a
-  `client/src/styles/shared/`.
-- **Cero colores literales** fuera de `index.css`. Las únicas excepciones tienen
-  su comentario: Spotify, Mercado Libre y la hoja de impresión (`@media print`,
-  el único lugar con el contraste al revés).
-- El color se deriva de canales: `rgb(var(--accent-rgb) / 0.18)`, nunca un
-  `rgba()` con los números escritos.
-- **El tipo de vino es el hilo visual**: `data-wine-type` en un contenedor y todo
-  lo de adentro hereda acento, gradiente, halo y banda (`--type-*`).
-- Animar **solo `transform` y `opacity`**. Respetar `prefers-reduced-motion`.
-- Accesibilidad AA: targets ≥ 44 px, foco visible, `aria-label` en botones de
-  ícono. El contraste se **mide**, no se estima.
-- Copy en **español rioplatense, de vos**.
+- **Nunca** correr scripts ni migraciones contra producción: la base `rincones`
+  es **producción**, `test` es desarrollo.
+- **JavaScript, no TypeScript.** No migrar. **CSS plano**, sin Tailwind.
+- **Cero colores literales** fuera de `index.css`.
 - Sin `dangerouslySetInnerHTML`. La salida de Gemini es dato no confiable.
-- **Todo campo de texto va en 16px o más.** No es estético: abajo de ese umbral
-  Safari en iPhone hace zoom solo al enfocarlo, y no se puede desactivar desde
-  la página. El valor por defecto está en `index.css`; un componente puede
-  subirlo, nunca bajarlo. (El panel de admin tiene seis reglas que sí bajan: es
-  escritorio y quedó fuera a propósito.)
+- Copy en **español rioplatense, de vos**.
+- El estado de un vino son tres ejes independientes (`quantity`, `tasted`,
+  `favorite`); `status` está deprecado.
+- Los íconos son propios (`Icon.jsx`). Ya se evaluó una librería y se descartó.
+- Prettier evaluado y **no adoptado**.
+- Verificar **midiendo en la app corriendo** (estilos computados, tests), no a ojo.
+  Al cerrar, decir cómo se verificó y qué quedó sin verificar.
 
-### Los íconos son propios, y así se quedan
+## Skills (`.claude/skills/`)
 
-`src/components/Icon.jsx` tiene el set completo dibujado a mano: SVG trazados en
-grilla de 24 con `stroke-width: 2`, más un puñado de variantes rellenas
-(`filled`) para corazón, estrella, copa y botella.
-
-**Ya se probó reemplazarlo por una librería y se volvió atrás.** Se evaluaron
-tres caminos, con el bundle medido:
-
-| | 52 íconos gzip | |
-|---|---|---|
-| set propio (el actual) | 2,4 kB | |
-| `lucide-react` | 6,4 kB | |
-| `@phosphor-icons/react` | 35,2 kB | no entra en el presupuesto: trae los 6 pesos de cada ícono y no tiene entrada por peso |
-
-Se llegó a implementar la geometría de Phosphor extrayendo sólo el peso regular
-(6,6 kB) y **se descartó por criterio visual**: los íconos rellenos de Phosphor
-no combinan con el resto de la app, que es de trazo fino. Si vuelve a salir el
-tema, la conclusión es que el problema no era el peso del bundle.
-
-**No se usan SF Symbols de Apple**: `sf-symbols-react` no existe en npm, y la
-licencia de Apple permite usarlos para diseñar apps de plataformas Apple pero
-prohíbe copiarlos y redistribuirlos — que es lo que sería meterlos en un bundle
-web servido a cualquier navegador.
-
-### Prettier: evaluado y NO adoptado
-
-Se midió antes de decidir. Con la configuración por defecto reformatearía **316
-archivos**, y en uno representativo de 451 líneas cambia **1063** — o sea que lo
-reescribe entero.
-
-El costo no es el diff: es que este repo guarda su razonamiento en comentarios
-largos, alineados a mano, al lado del código que explican. Reflotarlos todos de
-una deja un `git blame` donde cada línea apunta al commit de formato en vez de
-al que tomó la decisión, y es justamente en esas líneas donde está el porqué.
-
-Prettier sirve para terminar discusiones de estilo en un equipo. Acá no hay
-discusión: el lint está limpio y el estilo es consistente.
-
-**Si algún día se adopta**, que sea a propósito: un commit propio que no toque
-nada más, y `.git-blame-ignore-revs` con ese hash para que el blame lo saltee.
-
-### Una trampa de CSS que ya mordió
-
-Una custom property resuelve sus `var()` contra el **elemento donde se declara**,
-no donde se usa. Por eso las recetas del tipo (`--type-gradient`, `--type-glow`,
-`--type-rail`) están declaradas **dos veces**: en `:root` para el caso sin tipo, y
-en `[data-wine-type]` para que resuelvan contra el tipo de ese elemento.
-
-Y un `var(--x)` sin declarar **no da error**: el navegador descarta la regla en
-silencio. De ahí `npm run check:tokens`, que ya corre en CI.
-
----
-
-## Modelo de datos, lo que más se malinterpreta
-
-El estado de un vino son **tres ejes independientes**, no uno:
-
-| | |
+| Skill | Cuándo |
 |---|---|
-| `quantity` | stock (suma de `remaining` de `lots[]`, invariante sostenida por hooks y pipelines) |
-| `tasted` | lo probaste alguna vez — **no** implica que no te quede stock |
-| `favorite` | corazón |
+| `reglas-de-negocio` | Tocar `quantity`, `tasted`, `favorite`, lotes o las pestañas de Mi Bodega |
+| `entorno-local` | Git sin identidad, `safe.directory`, `gh` fuera del PATH, `PORT` del server, CRLF, usuario QA |
+| `cicd` | Commits, PR, merge, CI, deploy |
+| `diseno-y-a11y` | CSS, UI, tokens, íconos, accesibilidad, copy |
+| `gemini` | Sommelier, escáner de etiquetas, streaming, costos |
+| `mongo-y-migraciones` | Modelos, índices (trampa del TTL), scripts `migrate:*` |
+| `publicar` | `/publicar` (feature → develop) y `/publicar main`: verificación + agentes obligatorios + CI. Sólo lo dispara el usuario |
 
-Las pestañas de Mi Bodega son **vistas** sobre esos ejes: un vino puede estar en
-varias a la vez. `status` está **deprecado**, no contar por él.
+## Agentes (`.claude/agents/`)
 
-`config/db.js` separa las bases: `rincones` es **producción**, `test` es
-desarrollo. **Nunca** correr scripts ni migraciones contra producción.
+Cada uno es un experto de sólo lectura (salvo Sherlock, que prueba la app).
+Devuelven hallazgos medidos, no opiniones.
+
+| Agente | Experto en | Llamarlo para |
+|---|---|---|
+| `picasso` | Lo visual | Revisar UI, CSS, tokens, a11y, contraste |
+| `messi` | Funcionalidad y negocio | Verificar flujos, ejes del vino, lotes, casos borde |
+| `sherlock` | QA | Probar el cambio en la app corriendo y traer evidencia |
+| `houdini` | Seguridad | Auditar auth, inyección, salida de Gemini, secretos |
+| `pirlo` | Tests | Encontrar huecos de cobertura y tests flojos |
+| `tesla` | IA / Gemini | Latencia, tokens, costos, prompts, fallbacks |
+| `fangio` | CI/CD y rendimiento | Pipeline, bundle, velocidad de carga |
+
+Antes de cerrar un cambio grande conviene llamar, en paralelo, a los que apliquen
+(`picasso` si hay UI, `messi` si hay lógica, `houdini` si hay endpoints, `pirlo`
+siempre) y a `sherlock` al final.
+
+## Hooks (`.claude/hooks/`)
+
+Automáticos, no se pueden olvidar: `guard-bash.cjs` bloquea `git push … main`,
+`--no-verify` y scripts contra la base `rincones`; `check-tokens.cjs` corre
+`check:tokens` tras editar CSS. Si uno bloquea algo legítimo, no esquivarlo:
+avisar. Guía de uso de todo esto: `.claude/README.md`.
 
 ---
 
-## Dónde está el estado del rediseño
+## Estado del rediseño
 
-`docs/REDESIGN_PROGRESS.md` — fases hechas, decisiones con su porqué, y el
-próximo paso exacto. **Leerlo antes de escribir código.**
+`docs/REDESIGN_PROGRESS.md`: fases hechas, decisiones con su porqué y el próximo
+paso exacto. **Leerlo antes de escribir código.**
