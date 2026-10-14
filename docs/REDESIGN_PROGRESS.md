@@ -390,3 +390,39 @@ necesitan datos, levantar el server aparte con el puerto explícito.
   base `test`; una API de preview con su propia base es una decisión de infraestructura.
 - El check de CI existe pero no bloquea hasta marcarlo como requerido en la
   protección de rama.
+
+## Mi Bodega: pulido móvil (2026-10-14)
+
+Rama `fix/mi-bodega-ui`. Tres temas, con su porqué:
+
+**La barra de navegación "aparecía arriba" al abrir (iOS standalone).** El shell
+(`.app-layout`) se dimensionaba con `100vh`/`100dvh` y la barra es
+`position: fixed; bottom: 0`: dos mediciones del mismo borde que en iOS
+standalone no siempre coinciden al abrir, así que la barra quedaba más arriba que
+el fondo del contenido hasta que un scroll forzaba el relayout. Ahora el shell es
+`position: fixed; inset: 0`: una sola referencia, sin unidades de viewport ni
+offsets por modelo. El documento deja de scrollear (`html:has(.app-layout)`).
+**No se pudo reproducir en Chromium** (ahí ya era coherente); se verificó que la
+geometría sea idéntica y que no haya scroll de documento, pero queda **por
+confirmar en un iPhone** abriendo la PWA desde el ícono.
+
+**El pie de la tarjeta de lista** (chip "Ya lo tomé" y botón "más") se ubicaba con
+`left: 97px` y `bottom: 8px` absolutos: la suma a mano de 12 + 72 + 13. Ahora es
+una grilla con `--wine-thumb-w`, `--wine-row-gap` y `--wine-action-h` declaradas
+una vez. El chip va al eje de la foto, y el chip y el botón comparten fila y alto
+(medido: top 462, alto 40 los dos).
+
+**Contraste y atmósfera.** Fondo más oscuro (`--bg` #090a11) con el violeta como
+halo profundo (`--accent-strong`) en vez de claro; tarjetas con tinte violeta;
+textos atenuados un escalón arriba; líneas más marcadas. Peor caso medido: texto
+subtle 4,61 y acento claro 4,64 sobre la punta clara de la tarjeta (AA = 4,5).
+
+**Foto con `fit="auto"`.** `cover` salvo que la imagen sea más angosta que 0,5
+(botella de catálogo recortada), donde `contain` evita comerle pico y base.
+
+**Sensación de app** (bloque al final de `App.css`): `touch-action: manipulation`
+(sin retardo de 300 ms), controles no seleccionables, velo de presión en las filas,
+scrollbar oculta en táctil.
+
+Detectado de paso, previo y arreglado: en grilla a 390px el corazón y el chip se
+pisaban 6px; ahora el chip va sólo-ícono por debajo de 411px.
