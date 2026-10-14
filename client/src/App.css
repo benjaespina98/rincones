@@ -862,3 +862,82 @@ select:disabled {
 .segmented__btn.is-active .segmented__n {
   color: var(--accent-soft);
 }
+
+/* ══ SE SIENTE APP, NO PÁGINA ═══════════════════════════════════════════════
+   Lo que separa una web en un teléfono de una app no es el aspecto: es lo que
+   pasa cuando la tocás. Cuatro cosas, todas en este bloque para que se lean
+   juntas y no queden desperdigadas en cada hoja:
+
+   1. Los controles no se seleccionan. Mantener apretado un botón o una pestaña
+      resaltaba su texto y abría el menú de copiar de iOS: es lo primero que
+      delata a una web. El CONTENIDO (nombres, notas, mensajes) sigue siendo
+      seleccionable: sólo se apaga en lo que es cromo de la interfaz.
+
+   2. Lo tocable responde al dedo, y responde YA. La fila de vino —el control
+      más usado de la app— no tenía ningún estado :active: el toque no se
+      anunciaba hasta que cambiaba la pantalla. Se enciende con `opacity` de un
+      velo (no con color de fondo: sólo `transform` y `opacity` se animan).
+
+   3. En táctil no hay barra de scroll visible: un pulgar no la usa y ocupa
+      ancho. En escritorio queda la de siempre.
+
+   4. En horizontal, con muesca, el contenido respeta las zonas laterales. */
+
+button,
+[role="button"],
+[role="tab"],
+.app-topbar,
+.bottom-tabs-container,
+.toggle-chip,
+.chip,
+.segmented {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* El velo de presión de la fila. Vive en un pseudo-elemento para animar sólo
+   `opacity`; `pointer-events: none` para que no se coma el toque. */
+.wine-row__main {
+  position: relative;
+}
+
+.wine-row__main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--paper-rgb) / 0.06);
+  /* Por encima de la foto: en grilla la foto es casi toda la tarjeta y es
+     `position: relative`, así que sin esto el velo quedaba debajo y no se veía. */
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms var(--ease-out);
+}
+
+.wine-row__main:active::before {
+  opacity: 1;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  * {
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Lo que el dedo desplaza no encadena el rebote al documento: la pantalla
+     entera no se mueve debajo de la barra cuando llegás al final de la lista. */
+  .app-content {
+    overscroll-behavior-y: contain;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-row__main::before {
+    transition: none;
+  }
+}

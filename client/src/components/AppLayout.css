@@ -22,11 +22,42 @@
 
    A revisar en la fase 7: cambia quién scrollea en TODAS las pantallas. Lo
    verificado hasta ahora está en docs/REDESIGN_PROGRESS.md. */
+/* ── UNA SOLA REFERENCIA PARA EL ALTO ───────────────────────────────────────
+   El shell estaba dimensionado con `100vh`/`100dvh` (unidades de viewport) y la
+   barra de navegación está `position: fixed; bottom: 0` (anclada al viewport de
+   LAYOUT). Son dos mediciones distintas del mismo borde, y en iOS standalone no
+   siempre coinciden al abrir la app: el contenido se estira hasta una altura y
+   la barra se ancla a otra, así que queda más arriba que el fondo hasta que un
+   scroll o un cambio de tamaño fuerza el relayout. De ahí el "tengo que bajarla
+   a mano".
+
+   `position: fixed; inset: 0` ancla el shell a ESE mismo viewport de layout: no
+   usa ninguna unidad, y el borde de abajo del contenido y el de la barra son
+   por construcción el mismo. Es un arreglo de causa, no un offset: no hay
+   ningún número que ajustar por modelo de teléfono.
+
+   El documento deja de ser lo que scrollea (ver `html:has(.app-layout)` abajo):
+   scrollea `.app-content`, que ya era el diseño de esta columna. */
 .app-layout {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  /* En horizontal, con muesca, el contenido no queda debajo de ella. En vertical
+     y en escritorio el valor es 0 y no cambia nada. */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* El documento no tiene nada que scrollear cuando está el shell: todo el
+   contenido vive en `.app-content`. Sin esto, `#root` (min-height: 100dvh) podía
+   dejar al documento unos píxeles más alto que la ventana y el rebote del
+   documento movía la pantalla entera por debajo de la barra. `:has` sólo
+   acota la regla a las pantallas con shell: login, registro y legales siguen
+   scrolleando con el documento. */
+html:has(.app-layout) {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* ── LA BARRA DE ARRIBA ────────────────────────────────────────────────────
