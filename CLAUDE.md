@@ -59,7 +59,7 @@ hasta el merge a `main`.
 | `gemini` | Sommelier, escáner de etiquetas, streaming, costos |
 | `mongo-y-migraciones` | Modelos, índices (trampa del TTL), scripts `migrate:*` |
 | `publicar` | `/publicar` (feature → develop) y `/publicar main`: verificación + agentes obligatorios + CI. Sólo lo dispara el usuario |
-| `revisar`, `picasso`, `messi`, `houdini`, `pirlo`, `tesla`, `fangio`, `sherlock` | Comandos `/`: cada uno lanza a su agente sobre el diff (`/revisar` corre en paralelo los que aplican). Sólo los dispara el usuario |
+| `revisar`, `revisar-ui`, `revisar-negocio`, `revisar-seguridad`, `revisar-tests`, `revisar-ia`, `revisar-build`, `probar-app` | Comandos `/`: cada uno lanza a su agente sobre el diff (`/revisar` corre en paralelo los que aplican). Nombre de **acción** para el comando, de **persona** para el agente. Sólo los dispara el usuario |
 
 ## Agentes (`.claude/agents/`)
 

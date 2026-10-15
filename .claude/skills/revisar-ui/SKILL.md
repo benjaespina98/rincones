@@ -1,11 +1,11 @@
 ---
-name: picasso
-description: Comando /picasso. Lanza al agente picasso (experto visual: tokens, CSS, accesibilidad, contraste) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
+name: revisar-ui
+description: Comando /revisar-ui. Lanza al agente picasso (experto visual: tokens, CSS, accesibilidad, contraste) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
 disable-model-invocation: true
 argument-hint: "[archivo o tema a revisar]"
 ---
 
-# /picasso
+# /revisar-ui
 
 Lanzá al agente **`picasso`** con la herramienta Agent (`subagent_type: picasso`).
 

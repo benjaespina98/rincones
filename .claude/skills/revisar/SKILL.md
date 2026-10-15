@@ -26,7 +26,7 @@ para eso está `/publicar`.
    | `package*.json`, build, CI, `vercel.json`, dependencias | `fangio` |
 
 3. Si el cambio altera algo visible o un flujo del usuario, **al final** sugerí
-   `/sherlock` con un alcance acotado (no lo lances sin que el usuario lo pida).
+   `/probar-app` con un alcance acotado (no lo lances sin que el usuario lo pida).
 4. Mostrá una tabla: agente | veredicto | hallazgos clave. Después los hallazgos
    por gravedad, sin duplicar los que coinciden entre agentes.
 

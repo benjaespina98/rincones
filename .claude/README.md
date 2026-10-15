@@ -16,19 +16,19 @@ agente; si es una **prohibición o una verificación obligatoria**, hook.
 
 ## Los comandos `/` (lo que vas a usar)
 
-Escribí `/` y elegí. Todos aceptan un argumento opcional: `/picasso BodegaFilters.css`.
+Escribí `/` y elegí. Los comandos llevan nombre de **acción** (`/revisar-ui`) y los agentes de **persona** (`picasso`): `/revisar-ui` lanza al agente `picasso`. Escribiendo `/revisar` el autocompletado te lista todos. Todos aceptan un argumento opcional: `/revisar-ui BodegaFilters.css`.
 Sin argumento revisan `develop...HEAD`.
 
 | Comando | Para qué | Cuándo |
 |---|---|---|
 | `/revisar` | corre **en paralelo** los agentes que aplican al diff | antes de cerrar cualquier cambio |
-| `/picasso` | visual: tokens, CSS, accesibilidad, contraste | tocaste UI |
-| `/messi` | funcionalidad: ejes del vino, lotes, flujos, casos borde | tocaste lógica |
-| `/houdini` | seguridad: auth, inyección, Gemini, secretos | tocaste endpoints |
-| `/pirlo` | tests: qué te falta cubrir | casi siempre |
-| `/tesla` | IA: prompts, latencia, tokens, costos | tocaste el Sommelier |
-| `/fangio` | CI/CD, bundle, rendimiento | cambiaste dependencias o build |
-| `/sherlock` | QA: prueba **en la app corriendo** | al final, con alcance acotado |
+| `/revisar-ui` | visual: tokens, CSS, accesibilidad, contraste | tocaste UI |
+| `/revisar-negocio` | funcionalidad: ejes del vino, lotes, flujos, casos borde | tocaste lógica |
+| `/revisar-seguridad` | seguridad: auth, inyección, Gemini, secretos | tocaste endpoints |
+| `/revisar-tests` | tests: qué te falta cubrir | casi siempre |
+| `/revisar-ia` | IA: prompts, latencia, tokens, costos | tocaste el Sommelier |
+| `/revisar-build` | CI/CD, bundle, rendimiento | cambiaste dependencias o build |
+| `/probar-app` | QA: prueba **en la app corriendo** | al final, con alcance acotado |
 | `/publicar` | feature → `develop` con agentes + CI como compuerta | listo para integrar |
 | `/publicar main` | `develop` → producción, compuerta completa | listo para producción |
 
@@ -40,7 +40,7 @@ forzar: `reglas-de-negocio`, `entorno-local`, `cicd`, `diseno-y-a11y`, `gemini`,
 
 1. **Trabajá normal.** Los skills se cargan solos y los hooks vigilan.
 2. **Antes de cerrar:** `/revisar`. Corregí lo que traiga.
-3. **Si cambió algo visible:** `/sherlock <pantalla o flujo>`.
+3. **Si cambió algo visible:** `/probar-app <pantalla o flujo>`.
 4. **Para integrar:** `/publicar`. **Para producción:** `/publicar main`.
 
 Regla práctica: un cambio chico (un texto, un margen) pide sólo CI y hooks; UI o
@@ -48,10 +48,10 @@ lógica pide `/revisar`; lo que llega a producción pide la compuerta completa.
 
 ## Reglas de oro
 
-- **Decile qué mirar.** `/pirlo client/src/utils/bodegaFiltros.js` rinde más que `/pirlo`.
+- **Decile qué mirar.** `/revisar-tests client/src/utils/bodegaFiltros.js` rinde más que `/revisar-tests`.
 - **Plausible no es bug.** Pedí la reproducción antes de arreglar un hallazgo "plausible".
 - **Un agente que no corrió no aprobó.** Si uno falla o no está, no cuenta como visto bueno.
-- **`/sherlock` con alcance chico.** "Probá toda la app" lo cuelga; "Mi Bodega y el login" no.
+- **`/probar-app` con alcance chico.** "Probá toda la app" lo cuelga; "Mi Bodega y el login" no.
 - **Si un hook bloquea, no lo esquives.** Avisá y se ajusta el hook.
 - **Los agentes no editan.** Son de sólo lectura (salvo `sherlock`, que maneja la app).
   Corregir lo decidís vos.
@@ -75,8 +75,8 @@ En una **sesión nueva** (los skills y agentes se descubren al arrancar):
 | Hooks (script) | `node .claude/hooks/probar-hooks.cjs` | 11 `OK` y `0 fallas` |
 | Hook en vivo | pedí "hacé `git push origin main`" | bloqueado, con el motivo |
 | Skill | "¿Qué significa `tasted` en un vino?" | carga `reglas-de-negocio`, cita los 3 ejes |
-| Agente / comando | `/picasso` | resumen aparte con hallazgos archivo:línea |
-| QA | `/sherlock Mi Bodega` | levanta el server en 4000, loguea y trae números |
+| Agente / comando | `/revisar-ui` | resumen aparte con hallazgos archivo:línea |
+| QA | `/probar-app Mi Bodega` | levanta el server en 4000, loguea y trae números |
 | Publicar | `/publicar` en una rama con un cambio chico | verifica, llama agentes, abre el PR, espera el CI |
 
 Si algo no aparece: revisá `name` y `description` del frontmatter y reiniciá la

@@ -143,11 +143,11 @@ export const buildShareCardCanvas = async (wine, moment = null) => {
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext("2d");
 
-  const bg = leerColor("--bg", "#0b0d14");
+  const bg = leerColor("--bg", "#110f1f");
   const accent = leerColor("--accent", "#7e59c9");
   const gold = leerColor("--gold", "#f2b737");
   const text = leerColor("--text", "#f3f5ff");
-  const textSecondary = leerColor("--text-secondary", "#c3bddd");
+  const textSecondary = leerColor("--text-secondary", "#cbc5e4");
   const textMuted = leerColor("--text-muted", "#968fb4");
 
   // Fondo: el mismo violeta de la app, como un resplandor apagándose desde

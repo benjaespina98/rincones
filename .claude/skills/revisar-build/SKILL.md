@@ -1,11 +1,11 @@
 ---
-name: fangio
-description: Comando /fangio. Lanza al agente fangio (CI/CD, bundle y rendimiento) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
+name: revisar-build
+description: Comando /revisar-build. Lanza al agente fangio (CI/CD, bundle y rendimiento) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
 disable-model-invocation: true
 argument-hint: "[pipeline, dependencia o pantalla a revisar]"
 ---
 
-# /fangio
+# /revisar-build
 
 Lanzá al agente **`fangio`** con la herramienta Agent (`subagent_type: fangio`).
 

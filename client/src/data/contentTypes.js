@@ -100,7 +100,7 @@ export const CONTENT_TYPES = {
     // contenido tiene que llamarse igual en los dos lados.
     label: "Algo que quizá no sabías",
     icon: "graduation",
-    accent: "#a782ef",
+    accent: "#b497f3",
     cta: "Leer",
   },
 };
