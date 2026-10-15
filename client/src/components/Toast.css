@@ -85,7 +85,7 @@
 }
 
 .toast--info .toast__icon {
-  color: var(--accent);
+  color: var(--accent-light);
 }
 
 .toast__message {

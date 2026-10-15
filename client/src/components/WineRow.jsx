@@ -281,7 +281,7 @@ function WineRow({
                    (contain); el archivo en lista es una miniatura de
                    38px, donde lo que importa es el color y la
                    textura de la etiqueta, no la forma completa. */
-                fit={esVitrina ? "contain" : "cover"}
+                fit={esVitrina ? "auto" : "cover"}
               />
             )}
           </span>

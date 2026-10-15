@@ -230,37 +230,50 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 .wine-row--vitrina .wine-row__head {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  /* Dos columnas: el estado a la izquierda, el "más" a la derecha, las dos en la
+     misma celda inferior. El botón de la ficha (`wine-row__main`) las cubre a
+     las dos. La posición sale de la grilla, no de offsets escritos a mano. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 0;
   padding-right: 0;
 }
 
+.wine-row--vitrina .wine-row__main {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
 /* ── LA FILA DE ABAJO DE LA TARJETA: EL ESTADO Y EL "MÁS" ────────────────────
-   La tarjeta tenía TRES renglones: el vino, un chip suelto a la derecha y una franja
-   de ancho completo con un divisor y un chevron. Eso dejaba un hueco grande entre el
-   texto y el borde de abajo, con un chip flotando solo.
+   Un solo renglón de 40px: el estado ("Ya lo tomé") pegado al borde izquierdo de
+   la tarjeta —el mismo eje que la foto— y el "más" como botón redondo en el
+   derecho, con el mismo alto. Las dos acciones comparten celda de grilla y base,
+   así que no pueden quedar una más alta que la otra.
 
-   Ahora es UNO, de 56px: el estado ("Ya lo tomé") alineado con la columna de texto —lo
-   que lo hace leerse como un dato DE este vino— y el "más" como un botón redondo chico
-   a la derecha. Sin franja, sin divisor. El chip sale del flujo (es hermano del botón
-   que abre la ficha, no puede ir adentro) y ese botón reserva abajo el lugar con un
-   padding, así que cualquier punto de la tarjeta que no sea el chip ni el "más" abre el
-   vino.
+   El estado estuvo alineado con la columna de texto (a `left: 97px`, escrito a
+   mano). Se movió al eje de la foto por dos motivos: la sangría dejaba una franja
+   vacía a su izquierda que se leía como un desajuste, y dependía de una suma que
+   rompía en silencio al cambiar el ancho de la foto. Ahora el pie vive en una
+   grilla y nada se calcula a mano.
 
-   `left` es la columna de texto: 12px de la cabecera + 72px de la foto + 13px de hueco.
-   Si cambia el ancho de la foto (`.wines-list--protagonista .wine-row__thumb`), cambia acá. */
+   El chip es hermano del botón que abre la ficha (no puede ir adentro: un botón
+   dentro de otro no es HTML válido) y ese botón reserva abajo el lugar. */
 .wine-row--vitrina .wine-row__tasted {
-  position: absolute;
-  left: 97px;
-  bottom: 8px;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+  justify-self: start;
+  position: relative;
   z-index: 1;
   margin: 0;
 }
 
 .wines-list--protagonista .wine-row--vitrina .wine-row__main {
-  padding-bottom: 52px;
+  /* Reserva el pie: el botón que abre la ficha cubre toda la celda y deja abajo
+     el alto de las acciones más un respiro, así que cualquier punto de la tarjeta
+     que no sea una acción abre el vino. */
+  padding-bottom: calc(var(--wine-action-h, 40px) + 10px);
 }
 
 /* En teléfonos angostos el chip se queda sin texto por una regla general: un círculo
@@ -285,17 +298,29 @@
 }
 
 .wine-row--vitrina .wine-row__disclosure {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  width: 40px;
-  height: 40px;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  justify-self: end;
+  position: relative;
+  z-index: 1;
+  width: var(--wine-action-h, 40px);
+  height: var(--wine-action-h, 40px);
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
   background: rgb(var(--paper-rgb) / 0.05);
   color: var(--text-subtle);
+}
+
+/* Las dos acciones se ven de 40px y se tocan en 44: el área de toque sale por un
+   pseudo-elemento, así que el chip no engorda y el pulgar igual acierta. */
+.wine-row--vitrina .wine-row__tasted::after,
+.wine-row--vitrina .wine-row__disclosure::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
 }
 
 @media (hover: hover) {
@@ -315,6 +340,10 @@
 
   .wine-row__tasted {
     padding: 0 10px;
+    /* Sólo el ícono: 40 de ancho, como de alto, para que el área de toque sea
+       pareja y no una pastilla de 37 x 40. */
+    min-width: 40px;
+    justify-content: center;
   }
 }
 
@@ -1130,8 +1159,12 @@
 }
 
 /* El texto del chip vuelve a aparecer en la grilla aunque la pantalla sea
-   angosta: acá no compite con el nombre del vino, que está debajo. */
-@media (max-width: 430px) {
+   angosta, pero sólo si entra: en la foto comparte renglón con el corazón
+   (34px a la izquierda) y la suma —16 + 34 + 8 + 104 + 16— pide una celda de
+   178px, o sea un teléfono de 411px o más. Abajo de eso se pisaban 6px a 390px
+   de ancho (medido), así que queda sólo el ícono, que es lo que ya hace el
+   resto de la app en pantallas angostas. */
+@media (min-width: 411px) and (max-width: 430px) {
   .wines-list--grid .wine-row__tasted-text {
     display: inline;
   }
@@ -1266,6 +1299,17 @@
 
 /* ── La vitrina ──────────────────────────────────────────────────────────── */
 
+/* Las medidas de la tarjeta de lista, declaradas UNA vez. Antes el chip de
+   "Ya lo tomé" se ubicaba con `left: 97px`, que era la suma a mano de 12 + 72 +
+   13: cambiar el ancho de la foto lo descolocaba sin que nada avisara. Ahora la
+   foto, el hueco y el pie de la tarjeta leen de acá. */
+.wines-list--protagonista {
+  --wine-thumb-w: 72px;
+  --wine-thumb-h: 90px;
+  --wine-row-gap: 13px;
+  --wine-action-h: 40px;
+}
+
 .wines-list--protagonista .wine-row {
   border-color: rgb(var(--paper-rgb) / 0.09);
   box-shadow: var(--shadow-sm);
@@ -1285,7 +1329,7 @@
   width: 100%;
   padding: 10px 0;
   align-items: flex-start;
-  gap: 13px;
+  gap: var(--wine-row-gap);
 }
 
 /* Los datos arrancan arriba, a la altura del nombre, y no centrados contra la
@@ -1332,8 +1376,8 @@
    lo que uno la mira: reconocer el vino sin leer. Vertical porque una botella lo
    es, y así entra entera en vez de recortada por el medio. */
 .wines-list--protagonista .wine-row__thumb {
-  width: 72px;
-  height: 90px;
+  width: var(--wine-thumb-w);
+  height: var(--wine-thumb-h);
   border-radius: var(--radius-lg);
 }
 
@@ -1745,4 +1789,19 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-subtle);
+}
+
+/* El chip y el corazón de la grilla se ven de 40 y 34, y se tocan en 44: el área sale
+   de un pseudo-elemento y no engorda la insignia sobre la foto. Quedan a 8px, así
+   que la extensión es de 2px y 5px para que no se pisen. */
+.wines-list--grid .wine-row__tasted::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+
+.wines-list--grid .wine-row__gridfav::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
 }

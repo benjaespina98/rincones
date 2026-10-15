@@ -3,8 +3,8 @@
 
 :root {
   /* Brand palette (accessible, dark + wine accent) */
-  --bg: #0b0d14;
-  --bg-deep: #070910;
+  --bg: #090a11;
+  --bg-deep: #05060b;
   /* ── LOS NOMBRES VIEJOS, APUNTANDO AL SISTEMA NUEVO ──────────────────────
      Estos seis están escritos en las 49 hojas de la app. En vez de buscarlos y
      reemplazarlos uno por uno —que es el cambio que rompe cosas en pantallas
@@ -15,12 +15,12 @@
   --bg-soft: var(--surface-base);
   --surface: var(--surface-base);
   --surface-2: var(--surface-raised);
-  --surface-hover: rgb(34 40 62 / 0.92);
+  --surface-hover: rgb(52 45 84 / 0.95);
   --glass: var(--surface-overlay);
   --elevated: linear-gradient(
     160deg,
-    rgb(34 39 62 / 0.92),
-    rgb(18 21 35 / 0.92)
+    rgb(48 42 80 / 0.95),
+    rgb(27 23 47 / 0.95)
   );
 
   /* ── EL FONDO DE LA APP, EN UN SOLO LUGAR ─────────────────────────────────
@@ -44,9 +44,9 @@
 
      Si mañana cambia el fondo, se cambia acá y en ningún otro lado. */
   --app-bg:
-    radial-gradient(circle at 86% 0%, rgb(var(--accent-light-rgb) / 0.22), transparent 38%),
-    radial-gradient(circle at 0% 100%, rgb(var(--wine-rgb) / 0.14), transparent 32%),
-    linear-gradient(180deg, #090b13 0%, #111626 100%);
+    radial-gradient(120% 55% at 92% -6%, rgb(var(--accent-strong-rgb) / 0.42), transparent 62%),
+    radial-gradient(85% 45% at 0% 104%, rgb(var(--wine-rgb) / 0.18), transparent 62%),
+    linear-gradient(180deg, #06070d 0%, #07080f 58%, #080a14 100%);
 
   /* Accent Colors */
   --accent: #7e59c9;
@@ -118,10 +118,10 @@
   /* Los dos fondos, en canales. Los usan los velos y las capas translúcidas
      que antes escribían `rgba(9, 11, 19, 0.92)` a mano — que además no era
      exactamente --bg, sino uno de los cuatro "casi negros" que convivían. */
-  --bg-rgb: 11 13 20;
-  --bg-deep-rgb: 7 9 16;
+  --bg-rgb: 9 10 17;
+  --bg-deep-rgb: 5 6 11;
   --success-text-rgb: 127 227 180;
-  --surface-raised-rgb: 29 34 54;
+  --surface-raised-rgb: 42 37 70;
   /* Azul de información. No estaba en la paleta y sin embargo se usaba: el
      panel de admin tenía dos azules distintos escritos a mano para decir lo
      mismo. Es semántico, no decorativo — avisos que no son ni error ni éxito. */
@@ -156,15 +156,15 @@
 
      La escala es de opacidad además de color: cuanto más arriba, más opaca,
      porque lo que tapa tiene que tapar de verdad. */
-  --surface-base: rgb(20 24 38 / 0.72);
-  --surface-raised: rgb(29 34 54 / 0.88);
-  --surface-overlay: rgb(16 19 31 / 0.96);
+  --surface-base: rgb(26 23 45 / 0.82);
+  --surface-raised: rgb(42 37 70 / 0.94);
+  --surface-overlay: rgb(14 14 26 / 0.97);
 
   /* ══ BORDES: LUZ, NO LÍNEAS ═══════════════════════════════════════════════
      Un borde en una interfaz oscura no es una línea dibujada: es el canto de
      la superficie atrapando luz. Por eso son blancos con alfa y no un color
      propio — así funcionan sobre cualquier fondo sin tener que recalcularse. */
-  --border-subtle: rgb(var(--paper-rgb) / 0.06);
+  --border-subtle: rgb(var(--paper-rgb) / 0.09);
   --border-base: rgb(var(--paper-rgb) / 0.1);
   --border-strong: rgb(var(--paper-rgb) / 0.16);
 
@@ -257,7 +257,7 @@
   /* Text Colors */
   --text: #f3f5ff;
   --text-secondary: #c3bddd;
-  --text-muted: #968fb4;
+  --text-muted: #b3add0;
   /* ── ESTE VALOR SE CORRIGIÓ POR CONTRASTE, NO POR GUSTO ───────────────────
      Era #7b7798 y NO pasaba AA. El fondo de la app es un degradado que va de
      #090b13 arriba a #111626 abajo (ver --app-bg), así que el peor caso no es
@@ -266,15 +266,18 @@
      la mitad inferior de la app tenía texto por debajo del mínimo legal, y en
      un teléfono al sol eso no es una formalidad.
 
-     #8783a7 da 5.00 en ese mismo peor caso. Se eligió el mínimo que pasa más
-     un margen, para no aclararlo tanto que deje de leerse como el nivel más
-     tenue de la escala: sigue estando por debajo de --text-muted (5.90). */
-  --text-subtle: #8783a7;
+     Con el fondo más oscuro y las tarjetas con tinte violeta, el peor caso pasó a
+     ser la superficie de HOVER sobre el pico del halo violeta (≈ 50 43 81): ahí
+     el #9791b6 anterior daba 4.31. Medido con #a29cc0: 4.93 en ese peor caso,
+     5.1 en la punta clara de la tarjeta y 5.7 sobre la tarjeta elevada.
+     --text-muted (#b3add0) sube junto con él para que la escala siga teniendo
+     escalones: secondary > muted > subtle, y subtle sigue siendo lo más tenue. */
+  --text-subtle: #a29cc0;
   
   /* Borders & Lines */
-  --line: rgb(var(--accent-rgb) / 0.2);
-  --line-strong: rgb(var(--accent-rgb) / 0.38);
-  --line-accent: rgb(var(--accent-light-rgb) / 0.28);
+  --line: rgb(var(--accent-rgb) / 0.26);
+  --line-strong: rgb(var(--accent-rgb) / 0.46);
+  --line-accent: rgb(var(--accent-light-rgb) / 0.34);
   
   /* Spacing System */
   --space-xs: 0.25rem;
@@ -510,6 +513,10 @@ html {
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   -ms-touch-action: manipulation;
+  /* La propiedad estándar. Sin ella, iOS espera ~300ms a ver si el toque es un
+     doble toque (zoom) antes de disparar el clic: cada botón se sentía con un
+     retardo que en una web de escritorio no se nota y en una app sí. */
+  touch-action: manipulation;
 }
 
 body {

@@ -20,6 +20,10 @@
   /* Reserva menos que la zona segura entera (ver --nav-safe-bottom en index.css): la barra
      queda más abajo y deja de flotar arriba de un hueco. */
   padding-bottom: var(--nav-safe-bottom);
+  /* En horizontal, con muesca, las pestañas no quedan debajo de ella (el shell
+     lo hace con el contenido, pero la barra es `fixed` y no hereda su padding). */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
