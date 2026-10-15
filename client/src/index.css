@@ -976,6 +976,9 @@ img {
   --page-pad-x: 20px;
   --page-gap: 18px;
   --nav-height: 58px;
+  /* Cuánto más corto es el viewport de layout que la pantalla en una PWA de iOS.
+     Lo escribe useViewportGap; 0 en cualquier otro caso. */
+  --vp-gap: 0px;
 
   /* ── CUÁNTO DE LA ZONA SEGURA DE iOS RESERVAN LAS BARRAS ──────────────────────
      En un iPhone, `env(safe-area-inset-top)` son ~59px (la isla) y el de abajo ~34px

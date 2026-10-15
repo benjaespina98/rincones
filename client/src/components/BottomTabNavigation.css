@@ -10,7 +10,8 @@
    y el texto de atras se mezcla con las etiquetas. */
 .bottom-tabs-container {
   position: fixed;
-  bottom: 0;
+  /* Menos el hueco del viewport corto de iOS (0 casi siempre). */
+  bottom: calc(var(--vp-gap, 0px) * -1);
   left: 0;
   right: 0;
   background: rgb(var(--bg-rgb) / 0.88);

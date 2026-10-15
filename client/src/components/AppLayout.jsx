@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
+import { useViewportGap } from "../hooks/useViewportGap";
+import ViewportDebug from "./ViewportDebug";
 import { useHeaderCollapse } from "../hooks/useHeaderCollapse";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
@@ -37,6 +39,8 @@ const AppLayout = ({ children, pageTitle }) => {
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
   useKeyboardInset();
+  // Mide y corrige el viewport corto de iOS al abrir la PWA (ver utils/viewportGap.js).
+  useViewportGap();
   /**
    * ── EL TÍTULO GRANDE VIVE EN EL CONTENIDO, NO EN LA BARRA ─────────────────
    *
@@ -167,6 +171,7 @@ const AppLayout = ({ children, pageTitle }) => {
         {children}
       </main>
       <BottomTabNavigation />
+      <ViewportDebug />
     </div>
     </TopbarContext.Provider>
   );
