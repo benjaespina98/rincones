@@ -718,10 +718,6 @@ button svg {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-
-  button:not(:disabled):active {
-    opacity: 1;
-  }
 }
 
 /* ── EL PISO DE 16px, Y POR QUÉ NO ES UNA CUESTIÓN DE GUSTO ─────────────────
@@ -960,7 +956,7 @@ img {
    68. El final de la página no se veía intencional porque no lo decidió nadie:
    era la suma de dos reglas que hacían el mismo trabajo sin saber una de la otra.
 
-   El valor es la barra (68px) + lo que el botón de escanear le saca por
+   El valor es la barra (`--nav-height`: 58px, 72px desde 768) + lo que el botón de escanear le saca por
    encima (sobresale 44px: mide 52 y está metido 8 dentro de la barra) + un
    respiro (12px) + el safe-area del teléfono. Si mañana cambia la altura de la
    barra o del botón, se cambia acá y en ningún otro lado.

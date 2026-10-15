@@ -100,7 +100,7 @@
   font-weight: 600;
   /* Solo color: el resto de esta fila no cambia, y "all" obliga al navegador
      a vigilar cada propiedad por las dudas. */
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), opacity var(--transition-fast);
   position: relative;
   -webkit-user-select: none;
   user-select: none;
