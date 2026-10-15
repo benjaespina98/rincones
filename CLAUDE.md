@@ -59,6 +59,7 @@ hasta el merge a `main`.
 | `gemini` | Sommelier, escáner de etiquetas, streaming, costos |
 | `mongo-y-migraciones` | Modelos, índices (trampa del TTL), scripts `migrate:*` |
 | `publicar` | `/publicar` (feature → develop) y `/publicar main`: verificación + agentes obligatorios + CI. Sólo lo dispara el usuario |
+| `revisar`, `revisar-ui`, `revisar-negocio`, `revisar-seguridad`, `revisar-tests`, `revisar-ia`, `revisar-build`, `probar-app` | Comandos `/`: cada uno lanza a su agente sobre el diff (`/revisar` corre en paralelo los que aplican). Nombre de **acción** para el comando, de **persona** para el agente. Sólo los dispara el usuario |
 
 ## Agentes (`.claude/agents/`)
 
@@ -84,7 +85,7 @@ siempre) y a `sherlock` al final.
 Automáticos, no se pueden olvidar: `guard-bash.cjs` bloquea `git push … main`,
 `--no-verify` y scripts contra la base `rincones`; `check-tokens.cjs` corre
 `check:tokens` tras editar CSS. Si uno bloquea algo legítimo, no esquivarlo:
-avisar. Guía de uso de todo esto: `.claude/README.md`.
+avisar. **Manual de uso (comandos `/`, rutina diaria, cómo probar): `.claude/README.md`.**
 
 ---
 
