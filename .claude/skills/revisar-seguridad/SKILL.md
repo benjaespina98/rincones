@@ -1,11 +1,11 @@
 ---
-name: houdini
-description: Comando /houdini. Lanza al agente houdini (seguridad: auth, inyección, salida de Gemini, secretos, producción) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
+name: revisar-seguridad
+description: Comando /revisar-seguridad. Lanza al agente houdini (seguridad: auth, inyección, salida de Gemini, secretos, producción) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
 disable-model-invocation: true
 argument-hint: "[endpoint, archivo o zona a auditar]"
 ---
 
-# /houdini
+# /revisar-seguridad
 
 Lanzá al agente **`houdini`** con la herramienta Agent (`subagent_type: houdini`).
 

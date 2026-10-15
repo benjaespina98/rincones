@@ -1,11 +1,11 @@
 ---
-name: pirlo
-description: Comando /pirlo. Lanza al agente pirlo (tests: cobertura, calidad, casos borde que faltan) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
+name: revisar-tests
+description: Comando /revisar-tests. Lanza al agente pirlo (tests: cobertura, calidad, casos borde que faltan) sobre el diff o sobre lo que indiques. Sólo lo dispara el usuario.
 disable-model-invocation: true
 argument-hint: "[archivo o módulo a revisar]"
 ---
 
-# /pirlo
+# /revisar-tests
 
 Lanzá al agente **`pirlo`** con la herramienta Agent (`subagent_type: pirlo`).
 

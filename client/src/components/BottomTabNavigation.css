@@ -77,7 +77,7 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: 68px;
+  height: var(--nav-height);
   gap: 2px;
   max-width: 760px;
   margin: 0 auto;
@@ -107,9 +107,9 @@
   -webkit-touch-callout: none;
 }
 
-.tab-button:active {
-  background-color: rgb(var(--paper-rgb) / 0.06);
-}
+/* El toque se ve como en iOS: la pestaña se atenúa (`button:active`, index.css).
+   Había un rectángulo gris de alto completo detrás del ícono, que es lo que
+   delata a una web: una barra de pestañas nativa no dibuja una caja al tocar. */
 
 .tab-button.active {
   color: var(--text);
@@ -173,7 +173,6 @@
 
 @media (min-width: 768px) {
   .bottom-tabs {
-    height: 72px;
     gap: 20px;
     padding: 0 40px;
     justify-content: flex-start;

@@ -1,11 +1,11 @@
 ---
-name: sherlock
-description: Comando /sherlock. Lanza al agente sherlock (QA) para probar un cambio en la app corriendo y traer evidencia medida. Sólo lo dispara el usuario.
+name: probar-app
+description: Comando /probar-app. Lanza al agente sherlock (QA) para probar un cambio en la app corriendo y traer evidencia medida. Sólo lo dispara el usuario.
 disable-model-invocation: true
 argument-hint: "[qué probar: pantalla o flujo concreto]"
 ---
 
-# /sherlock
+# /probar-app
 
 Lanzá al agente **`sherlock`** con la herramienta Agent (`subagent_type: sherlock`).
 

@@ -143,7 +143,7 @@ export const buildShareCardCanvas = async (wine, moment = null) => {
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext("2d");
 
-  const bg = leerColor("--bg", "#0b0d14");
+  const bg = leerColor("--bg", "#110f1f");
   const accent = leerColor("--accent", "#7e59c9");
   const gold = leerColor("--gold", "#f2b737");
   const text = leerColor("--text", "#f3f5ff");

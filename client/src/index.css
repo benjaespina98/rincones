@@ -3,8 +3,8 @@
 
 :root {
   /* Brand palette (accessible, dark + wine accent) */
-  --bg: #090a11;
-  --bg-deep: #05060b;
+  --bg: #110f1f;
+  --bg-deep: #0b0a16;
   /* ── LOS NOMBRES VIEJOS, APUNTANDO AL SISTEMA NUEVO ──────────────────────
      Estos seis están escritos en las 49 hojas de la app. En vez de buscarlos y
      reemplazarlos uno por uno —que es el cambio que rompe cosas en pantallas
@@ -15,12 +15,12 @@
   --bg-soft: var(--surface-base);
   --surface: var(--surface-base);
   --surface-2: var(--surface-raised);
-  --surface-hover: rgb(52 45 84 / 0.95);
+  --surface-hover: rgb(58 51 94 / 0.95);
   --glass: var(--surface-overlay);
   --elevated: linear-gradient(
     160deg,
-    rgb(48 42 80 / 0.95),
-    rgb(27 23 47 / 0.95)
+    rgb(54 47 90 / 0.95),
+    rgb(36 31 62 / 0.95)
   );
 
   /* ── EL FONDO DE LA APP, EN UN SOLO LUGAR ─────────────────────────────────
@@ -44,13 +44,13 @@
 
      Si mañana cambia el fondo, se cambia acá y en ningún otro lado. */
   --app-bg:
-    radial-gradient(120% 55% at 92% -6%, rgb(var(--accent-strong-rgb) / 0.42), transparent 62%),
-    radial-gradient(85% 45% at 0% 104%, rgb(var(--wine-rgb) / 0.18), transparent 62%),
-    linear-gradient(180deg, #06070d 0%, #07080f 58%, #080a14 100%);
+    radial-gradient(120% 55% at 92% -6%, rgb(var(--accent-strong-rgb) / 0.38), transparent 62%),
+    radial-gradient(85% 45% at 0% 104%, rgb(var(--wine-rgb) / 0.20), transparent 62%),
+    linear-gradient(180deg, #15122a 0%, #110f1f 58%, #0f0d1c 100%);
 
   /* Accent Colors */
   --accent: #7e59c9;
-  --accent-light: #a782ef;
+  --accent-light: #b497f3;
   --accent-strong: #6c48b4;
   --accent-soft: #cbb5f7;
   --accent-muted: rgb(var(--accent-rgb) / 0.18);
@@ -113,15 +113,15 @@
      `rgb(var(--accent-rgb) / 0.18)` — y el color sigue viviendo en un solo
      lugar. Es la diferencia entre tener tokens y que los tokens manden. */
   --accent-rgb: 126 89 201;
-  --accent-light-rgb: 167 130 239;
+  --accent-light-rgb: 180 151 243;
   --accent-strong-rgb: 108 72 180;
   /* Los dos fondos, en canales. Los usan los velos y las capas translúcidas
      que antes escribían `rgba(9, 11, 19, 0.92)` a mano — que además no era
      exactamente --bg, sino uno de los cuatro "casi negros" que convivían. */
-  --bg-rgb: 9 10 17;
-  --bg-deep-rgb: 5 6 11;
+  --bg-rgb: 17 15 31;
+  --bg-deep-rgb: 11 10 22;
   --success-text-rgb: 127 227 180;
-  --surface-raised-rgb: 42 37 70;
+  --surface-raised-rgb: 46 40 76;
   /* Azul de información. No estaba en la paleta y sin embargo se usaba: el
      panel de admin tenía dos azules distintos escritos a mano para decir lo
      mismo. Es semántico, no decorativo — avisos que no son ni error ni éxito. */
@@ -156,9 +156,9 @@
 
      La escala es de opacidad además de color: cuanto más arriba, más opaca,
      porque lo que tapa tiene que tapar de verdad. */
-  --surface-base: rgb(26 23 45 / 0.82);
-  --surface-raised: rgb(42 37 70 / 0.94);
-  --surface-overlay: rgb(14 14 26 / 0.97);
+  --surface-base: rgb(34 29 58 / 0.80);
+  --surface-raised: rgb(46 40 76 / 0.94);
+  --surface-overlay: rgb(22 19 40 / 0.97);
 
   /* ══ BORDES: LUZ, NO LÍNEAS ═══════════════════════════════════════════════
      Un borde en una interfaz oscura no es una línea dibujada: es el canto de
@@ -256,8 +256,8 @@
 
   /* Text Colors */
   --text: #f3f5ff;
-  --text-secondary: #c3bddd;
-  --text-muted: #b3add0;
+  --text-secondary: #cbc5e4;
+  --text-muted: #bdb7d8;
   /* ── ESTE VALOR SE CORRIGIÓ POR CONTRASTE, NO POR GUSTO ───────────────────
      Era #7b7798 y NO pasaba AA. El fondo de la app es un degradado que va de
      #090b13 arriba a #111626 abajo (ver --app-bg), así que el peor caso no es
@@ -266,13 +266,13 @@
      la mitad inferior de la app tenía texto por debajo del mínimo legal, y en
      un teléfono al sol eso no es una formalidad.
 
-     Con el fondo más oscuro y las tarjetas con tinte violeta, el peor caso pasó a
-     ser la superficie de HOVER sobre el pico del halo violeta (≈ 50 43 81): ahí
-     el #9791b6 anterior daba 4.31. Medido con #a29cc0: 4.93 en ese peor caso,
-     5.1 en la punta clara de la tarjeta y 5.7 sobre la tarjeta elevada.
-     --text-muted (#b3add0) sube junto con él para que la escala siga teniendo
-     escalones: secondary > muted > subtle, y subtle sigue siendo lo más tenue. */
-  --text-subtle: #a29cc0;
+     El fondo es un aubergine-navy (#110f1f), no negro: un negro puro no deja que el
+     violeta, el dorado y el vino se lean como colores y vuelve plano todo lo que lo
+     rodea. Las tarjetas suben dos escalones de luminosidad con tinte violeta.
+     Peor caso medido (superficie de hover sobre el pico del halo): subtle (#aca6c9)
+     da 5.04, muted (#bdb7d8) 6.08 y secondary (#cbc5e4) 7.03; el acento claro
+     (#b497f3) 4.82. Sigue habiendo escalones: secondary > muted > subtle. */
+  --text-subtle: #aca6c9;
   
   /* Borders & Lines */
   --line: rgb(var(--accent-rgb) / 0.26);
@@ -594,7 +594,7 @@ button {
      golpe al tocarlo en vez de hundirse. Una línea, y se siente en cada
      interacción. Las reglas de clase que ya declaran su propio `transition`
      con `transform` la pisan sin perder nada. */
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 :focus-visible {
@@ -611,9 +611,13 @@ button:disabled,
   filter: saturate(0.7);
 }
 
-/* Feedback táctil: todo lo clickeable se hunde apenas al presionar. */
+/* Feedback táctil: todo lo clickeable se ATENÚA al presionar. Antes se encogía
+   (scale 0.97), y eso en un botón del ancho de una tarjeta —la fila de cada vino
+   lo es— hace que la tarjeta entera "se achique" bajo el dedo: se lee como un
+   salto, no como una respuesta. Atenuar es lo que hace iOS con sus botones y no
+   mueve nada. Sólo `opacity`, que se anima sin recalcular layout. */
 button:not(:disabled):active {
-  transform: scale(0.97);
+  opacity: 0.68;
 }
 
 /* Los íconos dentro de un botón nunca capturan el click: sin esto, el target
@@ -716,7 +720,7 @@ button svg {
   }
 
   button:not(:disabled):active {
-    transform: none;
+    opacity: 1;
   }
 }
 
@@ -975,7 +979,7 @@ img {
      acá, así que título y contenido no se pueden volver a desalinear. */
   --page-pad-x: 20px;
   --page-gap: 18px;
-  --nav-height: 68px;
+  --nav-height: 58px;
 
   /* ── CUÁNTO DE LA ZONA SEGURA DE iOS RESERVAN LAS BARRAS ──────────────────────
      En un iPhone, `env(safe-area-inset-top)` son ~59px (la isla) y el de abajo ~34px
@@ -989,10 +993,20 @@ img {
      no hay zona segura (escritorio, Android sin gestos) el token vale 0 y no cambia
      nada. Todo lo que se calcula contra las barras usa estos tokens, para que sigan
      alineados entre sí (el botón de la cámara, el compositor, el despeje del contenido). */
-  --nav-safe-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 14px), 0px);
+  /* La barra reserva sólo lo que hace falta de la zona segura: el indicador de inicio
+     es una rayita a ~8px del borde, y reservar la zona entera dejaba las pestañas
+     flotando sobre un hueco vacío. Con 22px de menos, las etiquetas quedan ~20px
+     arriba del borde, que es donde las pone Spotify o Instagram. */
+  --nav-safe-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 22px), 0px);
   --topbar-safe-top: max(calc(env(safe-area-inset-top, 0px) - 14px), 0px);
 
   --page-pad-bottom: calc(var(--nav-height) + 56px + var(--nav-safe-bottom));
+}
+
+@media (min-width: 768px) {
+  :root {
+    --nav-height: 72px;
+  }
 }
 
 /* En desktop la barra inferior se convierte en sidebar: no hay nada abajo que

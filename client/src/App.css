@@ -378,7 +378,7 @@ select {
 }
 
 select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a782ef' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b497f3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--space-md) center;
   background-size: 20px;
@@ -873,10 +873,9 @@ select:disabled {
       delata a una web. El CONTENIDO (nombres, notas, mensajes) sigue siendo
       seleccionable: sólo se apaga en lo que es cromo de la interfaz.
 
-   2. Lo tocable responde al dedo, y responde YA. La fila de vino —el control
-      más usado de la app— no tenía ningún estado :active: el toque no se
-      anunciaba hasta que cambiaba la pantalla. Se enciende con `opacity` de un
-      velo (no con color de fondo: sólo `transform` y `opacity` se animan).
+   2. Lo tocable responde al dedo, y responde YA, atenuándose (`opacity`, ver
+      `button:active` en index.css). Nada se encoge ni se mueve: encoger un
+      botón del ancho de una tarjeta se lee como un salto.
 
    3. En táctil no hay barra de scroll visible: un pulgar no la usa y ocupa
       ancho. En escritorio queda la de siempre.
@@ -896,28 +895,10 @@ button,
   -webkit-touch-callout: none;
 }
 
-/* El velo de presión de la fila. Vive en un pseudo-elemento para animar sólo
-   `opacity`; `pointer-events: none` para que no se coma el toque. */
-.wine-row__main {
-  position: relative;
-}
-
-.wine-row__main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: rgb(var(--paper-rgb) / 0.06);
-  /* Por encima de la foto: en grilla la foto es casi toda la tarjeta y es
-     `position: relative`, así que sin esto el velo quedaba debajo y no se veía. */
-  z-index: 1;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 90ms var(--ease-out);
-}
-
-.wine-row__main:active::before {
-  opacity: 1;
+/* La fila de vino es un botón del ancho de la tarjeta: atenuarla entera a 0.68 se
+   lee como un parpadeo. Una respuesta más leve, que sigue diciendo "te escuché". */
+.wine-row__main:not(:disabled):active {
+  opacity: 0.82;
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -936,8 +917,3 @@ button,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .wine-row__main::before {
-    transition: none;
-  }
-}
