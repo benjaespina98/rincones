@@ -332,7 +332,14 @@
 
 /* Las dos acciones se ven de 40px y se tocan en 44: el área de toque sale por un
    pseudo-elemento, así que el chip no engorda y el pulgar igual acierta. */
-.wine-row--vitrina .wine-row__tasted::after,
+/* Tocar: 44. El `::after` se mide desde el padding-box, así que el borde de 1px del toggle lo
+   achica 2px (medido: 42): con -5px llega a 44. El "⌄" no tiene borde y va con -4px. */
+.wine-row--vitrina .wine-row__tasted::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+
 .wine-row--vitrina .wine-row__disclosure::after {
   content: "";
   position: absolute;
@@ -1831,7 +1838,7 @@
 .wines-list--grid .wine-row__tasted::after {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -5px;
 }
 
 .wines-list--grid .wine-row__gridfav::after {
@@ -1864,8 +1871,13 @@
 }
 
 .wine-row__tasted::after,
-.wine-row__disclosure::after,
 .bodega-seleccionar::after {
+  content: "";
+  position: absolute;
+  inset: -5px; /* tienen borde de 1px: el padding-box mide 2px menos que el botón */
+}
+
+.wine-row__disclosure::after {
   content: "";
   position: absolute;
   inset: -4px;

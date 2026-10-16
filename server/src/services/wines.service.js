@@ -11,6 +11,15 @@ const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
 const { identityKey } = require("../data/wineIdentity");
+
+/**
+ * Los tipos que el modelo acepta. Un valor fuera de esa lista (un cliente con un bug, un
+ * `"click"` que se coló) hacía fallar `save()` con un ValidationError, y `fail()` lo
+ * convierte en un 500: se le decía al usuario "algo falló de nuestro lado" por un dato
+ * que no era culpa del server. Se normaliza al alta y se ignora en la edición.
+ */
+const TIPOS_DE_VINO = Wine.schema.path("type").enumValues;
+const tipoValido = (tipo, porDefecto = "unknown") => (TIPOS_DE_VINO.includes(tipo) ? tipo : porDefecto);
 const { canonicalVarietal, checkCoherence, identificationVerdict } = require("../data/wineValidation");
 const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
 
@@ -388,7 +397,7 @@ async function createWine(userId, payload) {
     varietal: uva.value,
     vintage: vintage || "",
     region: region?.trim() || "",
-    type: type || "unknown",
+    type: tipoValido(type),
   });
 
   const wine = new Wine({
@@ -404,7 +413,7 @@ async function createWine(userId, payload) {
     image: resolvedImage,
     imageSource: providedImage ? undefined : (resolvedImage ? "community" : undefined),
     rawText: rawText || "",
-    type: type || "unknown",
+    type: tipoValido(type),
     rating: rating ? parseInt(rating) : 0,
     tasted: probado,
     favorite: favorite === true,
@@ -559,7 +568,7 @@ async function updateWine(userId, id, payload) {
   // frena la publicación.
   if (varietal !== undefined) wine.varietal = canonicalVarietal(varietal).value;
   if (notes !== undefined) wine.notes = String(notes).trim();
-  if (type !== undefined) wine.type = type;
+  if (type !== undefined) wine.type = tipoValido(type, wine.type);
   if (rating !== undefined) wine.rating = parseInt(rating);
   if (favorite !== undefined) wine.favorite = favorite === true;
   // Editar la cantidad a mano fija un total, y los lotes se acomodan hacia
