@@ -1856,7 +1856,10 @@
    El toggle de "Ya lo tomé" (36), el "⌄" (36) y "Seleccionar" (36) se ven chicos y se tocan
    de 44 por un pseudo-elemento. Sólo la vitrina y la grilla lo tenían: las filas del archivo
    (Ya tomados, Favoritos) quedaban en 36 sin extensión. */
-:where(.wine-row__disclosure) {
+:where(.wine-row__tasted, .wine-row__disclosure, .bodega-seleccionar) {
+  /* El ancla del `::after` de abajo, garantizada acá y no sólo por reglas de otros archivos:
+     sin un ancestro posicionado el pseudo-elemento se iría al shell y tragaría toques.
+     `:where` tiene especificidad 0: no pisa el `absolute` de la grilla ni el de la vitrina. */
   position: relative;
 }
 
