@@ -147,7 +147,9 @@
   box-shadow: var(--shadow-card);
   overflow: hidden;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
-  animation: rincon-enter-up var(--transition-smooth) both;
+  /* `backwards` y no `both`: con `both` la animación deja fijo su `transform` final y el
+     `scale` de :active de abajo nunca se aplicaría. El final es igual al estado base. */
+  animation: rincon-enter-up var(--transition-smooth) backwards;
 }
 
 /* Entrada escalonada: cada fila aparece un pelito después que la anterior.
@@ -1854,4 +1856,12 @@
 
 .bodega-vista .segmented__btn {
   border-radius: var(--radius-control);
+}
+
+/* ── LA CARD RESPONDE AL DEDO ─────────────────────────────────────────────────
+   Tocar la fila achica la CARD entera (el velo lo pone `.wine-row__main::before`, App.css).
+   Se mira con :has() porque el botón es hijo de la card; sin soporte de :has (iOS < 15.4)
+   sigue el velo, que ya alcanza. */
+.wine-row:has(.wine-row__main:not(:disabled):active) {
+  transform: scale(0.98);
 }

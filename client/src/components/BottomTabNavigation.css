@@ -101,9 +101,23 @@
   -webkit-touch-callout: none;
 }
 
-/* El toque se ve como en iOS: la pestaña se atenúa (`button:active`, index.css).
-   Había un rectángulo gris de alto completo detrás del ícono, que es lo que
-   delata a una web: una barra de pestañas nativa no dibuja una caja al tocar. */
+/* Al tocar, la pestaña se achica un pelo (`button:active`, index.css) y aparece un velo
+   redondeado de luz atrás del ícono —no una caja de alto completo—. Va en `::after`: el
+   `::before` de escritorio es el marcador de la pestaña activa. */
+.tab-button::after {
+  content: "";
+  position: absolute;
+  inset: 4px 6px;
+  border-radius: var(--radius-control);
+  background: rgb(var(--paper-rgb) / 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.tab-button:active::after {
+  opacity: 1;
+}
 
 /* La activa lleva el acento (en su tono más claro: el violeta pleno queda por debajo del
    gris de las inactivas en luminancia) y la etiqueta en 700. */

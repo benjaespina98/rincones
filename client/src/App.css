@@ -899,9 +899,8 @@ select:disabled {
       delata a una web. El CONTENIDO (nombres, notas, mensajes) sigue siendo
       seleccionable: sólo se apaga en lo que es cromo de la interfaz.
 
-   2. Lo tocable responde al dedo, y responde YA, atenuándose (`opacity`, ver
-      `button:active` en index.css). Nada se encoge ni se mueve: encoger un
-      botón del ancho de una tarjeta se lee como un salto.
+   2. Lo tocable responde al dedo, y responde YA: se achica un pelo y un velo de luz
+      aparece encima (ver "ESTADOS TÁCTILES" en index.css).
 
    3. En táctil no hay barra de scroll visible: un pulgar no la usa y ocupa
       ancho. En escritorio queda la de siempre.
@@ -921,10 +920,30 @@ button,
   -webkit-touch-callout: none;
 }
 
-/* La fila de vino es un botón del ancho de la tarjeta: atenuarla entera a 0.68 se
-   lee como un parpadeo. Una respuesta más leve, que sigue diciendo "te escuché". */
+/* La fila de vino es un botón del ancho de la tarjeta. Lo que se achica es la CARD entera
+   (`.wine-row:has(...)`, ver BodyPage.css), no el botón: por eso acá no se escala. El velo
+   cubre la card de borde a borde (`inset` negativo, recortado por su `overflow: hidden`). */
+.wine-row__main {
+  position: relative;
+}
+
+.wine-row__main::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  z-index: 1;
+  background: rgb(var(--paper-rgb) / 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+
 .wine-row__main:not(:disabled):active {
-  opacity: 0.82;
+  transform: none;
+}
+
+.wine-row__main:not(:disabled):active::before {
+  opacity: 1;
 }
 
 @media (hover: none) and (pointer: coarse) {

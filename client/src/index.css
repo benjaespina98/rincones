@@ -607,12 +607,28 @@ button {
      golpe al tocarlo en vez de hundirse. Una línea, y se siente en cada
      interacción. Las reglas de clase que ya declaran su propio `transition`
      con `transform` la pisan sin perder nada. */
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out);
 }
 
+/* El anillo de foco de teclado: 2px de acento al 60% con separación. Nunca se suprime sin
+   dar otro indicador visible. */
 :focus-visible {
-  outline: 2px solid var(--accent-light);
+  outline: 2px solid var(--focus-ring-color);
   outline-offset: 2px;
+}
+
+/* Sin el flash gris al tocar y sin el retardo del doble toque en lo interactivo. */
+a,
+button,
+[role="button"],
+[role="tab"],
+label,
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Estado deshabilitado uniforme. Antes cada botón lo resolvía distinto (o no lo
@@ -624,13 +640,93 @@ button:disabled,
   filter: saturate(0.7);
 }
 
-/* Feedback táctil: todo lo clickeable se ATENÚA al presionar. Antes se encogía
-   (scale 0.97), y eso en un botón del ancho de una tarjeta —la fila de cada vino
-   lo es— hace que la tarjeta entera "se achique" bajo el dedo: se lee como un
-   salto, no como una respuesta. Atenuar es lo que hace iOS con sus botones y no
-   mueve nada. Sólo `opacity`, que se anima sin recalcular layout. */
-button:not(:disabled):active {
-  opacity: 0.68;
+/* ══ ESTADOS TÁCTILES ═══════════════════════════════════════════════════════
+   En un iPhone no hay hover: lo único que le dice al dedo "te escuché" es lo que pasa
+   MIENTRAS apretás. Todo lo tocable hace lo mismo, con el mismo tiempo (120ms), y sólo
+   con `transform` y `opacity` (lo único que se anima sin recalcular layout):
+     · se achica un pelo: .98 (.94 en los botones de ícono, que son chicos);
+     · un velo de luz aparece encima (pseudo-elemento, por `opacity`).
+   Antes se atenuaba todo el botón: en uno del ancho de una card parpadeaba. */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98);
+}
+
+/* Los botones de ícono son chicos: .98 casi no se nota, .94 sí. */
+:is(
+    .bodega-modo,
+    .bodega-filtros,
+    .wine-row__disclosure,
+    .wine-row__gridfav,
+    .wine-row__icon-btn,
+    .app-topbar__account,
+    .app-topbar__nav-btn,
+    .search-clear,
+    .qty-btn,
+    .add-fab
+  ):not(:disabled):active {
+  transform: scale(0.94);
+}
+
+/* El velo de luz. Va en `::before` (el `::after` de varios controles ya lo ocupa el área de
+   toque). `border-radius: inherit` lo ajusta a la forma del control. */
+:where(.chip, .toggle-chip, .btn, .button, .bodega-seleccionar) {
+  position: relative;
+}
+
+:is(
+    .bodega-modo,
+    .bodega-filtros,
+    .bodega-seleccionar,
+    .toggle-chip,
+    .chip,
+    .segmented__btn,
+    .btn,
+    .button
+  )::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--paper-rgb) / 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+
+:is(
+    .bodega-modo,
+    .bodega-filtros,
+    .bodega-seleccionar,
+    .toggle-chip,
+    .chip,
+    .segmented__btn,
+    .btn,
+    .button
+  ):not(:disabled):active::before {
+  opacity: 1;
+}
+
+/* Cada control trae su propia `transition` (borde y color, por lo general) y esa pisa la del
+   `button` global: el escalado entraba de golpe. Se unifica en los controles principales:
+   mismas propiedades y 120ms. `:not(:disabled)` sube la especificidad por encima de la regla
+   de clase de cada componente, sin depender del orden de carga de las hojas. */
+:is(
+    .bodega-modo,
+    .bodega-filtros,
+    .bodega-seleccionar,
+    .wine-row__disclosure,
+    .wine-row__gridfav,
+    .wine-row__tasted,
+    .segmented__btn,
+    .tab-button,
+    .chip,
+    .btn,
+    .button
+  ):not(:disabled) {
+  transition-property: transform, opacity, color, background-color, border-color, box-shadow;
+  transition-duration: 120ms;
+  transition-timing-function: var(--ease-out);
 }
 
 /* Los íconos dentro de un botón nunca capturan el click: sin esto, el target
@@ -730,6 +826,14 @@ button svg {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Sin escala al presionar (es movimiento); el velo de luz es opacidad y se queda. */
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  :is(.bodega-modo, .bodega-filtros, .wine-row__disclosure, .wine-row__gridfav, .wine-row__icon-btn, .app-topbar__account, .app-topbar__nav-btn, .search-clear, .qty-btn, .add-fab):not(:disabled):active,
+  .wine-row:has(.wine-row__main:active) {
+    transform: none;
   }
 }
 
