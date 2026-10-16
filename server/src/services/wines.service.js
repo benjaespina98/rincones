@@ -976,7 +976,7 @@ async function addMoment(userId, id, body) {
   const photos = [];
   for (const p of rawPhotos) {
     const value = String(p || "").trim();
-    if (!/^(data:image\/|https?:\/\/)/.test(value)) continue;
+    if (!esImagenAceptada(value)) continue;
     photos.push(await imageStorage.store(value, { folder: "rincones/moments" }));
   }
 
