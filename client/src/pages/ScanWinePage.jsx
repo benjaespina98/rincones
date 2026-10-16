@@ -245,7 +245,7 @@ export default function ScanWinePage() {
         vintage: previo?.vintage ? String(previo.vintage) : "",
         region: previo?.region || "",
         // Sólo un tipo del vocabulario: cualquier otra cosa (un evento, basura) es "sin tipo".
-        type: WINE_TYPE_LABELS[previo?.type] ? previo.type : "unknown",
+        type: Object.hasOwn(WINE_TYPE_LABELS, previo?.type) ? previo.type : "unknown",
       },
       confidence: {},
       verification: null,
