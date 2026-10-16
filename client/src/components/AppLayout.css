@@ -199,18 +199,31 @@
 
 /* ── AVATAR Y TÍTULO EN LA MISMA FILA ───────────────────────────────────────
    Había un hueco de ~60px entre el avatar y el título: la barra tenía su propia
-   altura y el título arrancaba debajo. El título sigue siendo CONTENIDO (se va con el
-   scroll, y por eso el `h1` es el real), pero sube hasta la fila del avatar: -36px
-   es el centro del botón de 40px menos la mitad de la línea del título (33px).
+   altura en el flujo y el título arrancaba debajo. Es el patrón del título grande de
+   iOS: la barra se SUPERPONE al contenido (absoluta, transparente) y el contenido
+   arranca arriba, así que el título queda en la fila del avatar. El título sigue siendo
+   contenido (se va con el scroll, y el `h1` es el real).
 
-   Sólo en las pestañas: con un botón de volver a la izquierda, o con acciones en la
-   ranura izquierda (el menú del Sommelier), el título tiene que quedar debajo. */
-.app-hero-title--en-barra {
-  margin-top: -36px;
+   Un margen negativo no sirve: el título está dentro del contenedor que scrollea y el
+   margen lo saca de su caja, donde se recorta.
+
+   Sólo en las pestañas, y sólo si la ranura izquierda está vacía: con un botón de volver
+   o con acciones a la izquierda (el menú del Sommelier) el título tiene que quedar
+   debajo, así que ahí la barra sigue en el flujo como siempre. */
+.app-layout--titulo-en-barra:not(:has(.app-topbar__ranura--izq > *)) .app-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
-.app-layout:has(.app-topbar__ranura--izq > *) .app-hero-title--en-barra {
-  margin-top: var(--space-md);
+/* La altura del título (33px) centrada contra el botón de cuenta (40px): 0,6rem + inset + 3,5px. */
+.app-layout--titulo-en-barra:not(:has(.app-topbar__ranura--izq > *)) .app-content--with-topbar {
+  padding-top: calc(0.6rem + var(--topbar-safe-top) + 3.5px);
+}
+
+.app-layout--titulo-en-barra:not(:has(.app-topbar__ranura--izq > *)) .app-hero-title {
+  margin-top: 0;
 }
 
 /* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa

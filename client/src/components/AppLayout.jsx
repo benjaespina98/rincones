@@ -82,7 +82,7 @@ const AppLayout = ({ children, pageTitle }) => {
 
   return (
     <TopbarContext.Provider value={ranuras}>
-    <div className="app-layout">
+    <div className={`app-layout${isSubScreen ? "" : " app-layout--titulo-en-barra"}`}>
       <header className={`app-topbar ${compacto ? "is-compacto" : ""}`}>
         {isSubScreen && (
           <button
@@ -161,12 +161,12 @@ const AppLayout = ({ children, pageTitle }) => {
             Dónde estás parado no se pierde: lo dicen la pestaña encendida
             abajo y el título de la barra cuando scrolleás. */}
         {esInicio ? (
-          <h1 className={`app-hero-title app-hero-title--marca${isSubScreen ? "" : " app-hero-title--en-barra"}`}>
+          <h1 className="app-hero-title app-hero-title--marca">
             <Logo size={32} aria-hidden="true" />
             Rincones
           </h1>
         ) : (
-          <h1 className={`app-hero-title${isSubScreen ? "" : " app-hero-title--en-barra"}`}>{pageTitle}</h1>
+          <h1 className="app-hero-title">{pageTitle}</h1>
         )}
         {children}
       </main>
