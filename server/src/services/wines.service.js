@@ -6,6 +6,7 @@ const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
 const wineImages = require("./wineImages.service");
 const imageStorage = require("./imageStorage.service");
+const { esImagenAceptada } = require("../utils/imagenAceptada");
 const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
@@ -351,7 +352,7 @@ async function createWine(userId, payload) {
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
   // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
-  const rawProvided = wineImages.wineKey(name, winery, varietal) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
+  const rawProvided = wineImages.wineKey(name, winery, varietal) && esImagenAceptada(image)
     ? String(image).trim()
     : "";
   // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
@@ -610,7 +611,7 @@ async function updateWine(userId, id, payload) {
     if (!bruta) {
       wine.image = null;
       wine.imageSource = "local";
-    } else if (/^(data:image\/|https?:\/\/)/.test(bruta)) {
+    } else if (esImagenAceptada(bruta)) {
       // Sólo se sube a Cloudinary lo que cambió: si vino la MISMA URL que ya
       // estaba guardada (el formulario reenvía la foto actual sin tocarla), no
       // hay nada que subir ni que aportar.
@@ -975,7 +976,7 @@ async function addMoment(userId, id, body) {
   const photos = [];
   for (const p of rawPhotos) {
     const value = String(p || "").trim();
-    if (!/^(data:image\/|https?:\/\/)/.test(value)) continue;
+    if (!esImagenAceptada(value)) continue;
     photos.push(await imageStorage.store(value, { folder: "rincones/moments" }));
   }
 

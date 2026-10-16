@@ -26,8 +26,10 @@
   transition: background var(--transition-fast), transform 120ms var(--ease-out);
 }
 
-.collapsible__head:hover {
-  background: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+  .collapsible__head:hover {
+    background: var(--surface-hover);
+  }
 }
 
 .collapsible__head:active {
@@ -138,8 +140,10 @@
   cursor: pointer;
 }
 
-.collapsible__close:hover {
-  color: var(--text-secondary);
+@media (hover: hover) and (pointer: fine) {
+  .collapsible__close:hover {
+    color: var(--text-secondary);
+  }
 }
 
 /* Los bloques que van adentro ya traen su propia caja (WineReviews, el precio):

@@ -100,8 +100,8 @@
   width: 100%;
   height: 52px;
   padding: 0 52px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   /* 16px y no 17. Inter es un pelo más ancha que la familia anterior, y con 17
@@ -146,8 +146,10 @@
   transition: filter var(--transition-fast);
 }
 
-.discover-search__go:hover {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .discover-search__go:hover {
+    filter: brightness(1.08);
+  }
 }
 
 /* ── Vino del día / Sorpresa ── */
@@ -362,7 +364,9 @@
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.spotlight__add:hover:not(:disabled) { background: var(--accent-light); }
+@media (hover: hover) and (pointer: fine) {
+  .spotlight__add:hover:not(:disabled) { background: var(--accent-light); }
+}
 .spotlight__add.is-added {
   background: rgb(var(--success-rgb) / 0.18);
   color: var(--success-text);
@@ -387,10 +391,12 @@
     background var(--transition-fast), transform var(--transition-fast);
 }
 
-.spotlight__surprise:hover {
-  border-color: var(--accent-light);
-  color: var(--text);
-  background: var(--surface);
+@media (hover: hover) and (pointer: fine) {
+  .spotlight__surprise:hover {
+    border-color: var(--accent-light);
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 /* Acá vivía `.discover-section` (y su `__head`, `__hint` y `--promos`): el
@@ -589,7 +595,7 @@
   animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wine-result-card:hover {
     transform: translateY(-4px);
     border-color: var(--line-accent);
@@ -628,7 +634,7 @@
   transition: transform var(--transition-slow);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wine-result-card:hover .wine-result-card__media img {
     transform: scale(1.06);
   }
@@ -702,8 +708,10 @@
   transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.wine-result-card__want:hover:not(:disabled) {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .wine-result-card__want:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 
 .wine-result-card__want:active:not(:disabled) {

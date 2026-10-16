@@ -93,10 +93,12 @@
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
-.btn-manual-entry:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
-  background: var(--surface);
+@media (hover: hover) and (pointer: fine) {
+  .btn-manual-entry:hover {
+    border-color: var(--line-accent);
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 
@@ -143,9 +145,11 @@
   transition: filter var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.btn-scan-large:hover:not(:disabled) {
-  filter: brightness(1.06);
-  box-shadow: var(--shadow-glow);
+@media (hover: hover) and (pointer: fine) {
+  .btn-scan-large:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow: var(--shadow-glow);
+  }
 }
 
 .btn-scan-large .scan-icon {
@@ -255,7 +259,7 @@
   cursor: default;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .scan-qty__stepper button:not(:disabled):hover {
     background: var(--surface-hover);
     color: var(--text);

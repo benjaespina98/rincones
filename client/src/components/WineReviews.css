@@ -69,7 +69,7 @@
   transition: background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wine-score__main--tap:hover {
     background: rgb(var(--paper-rgb) / 0.04);
   }

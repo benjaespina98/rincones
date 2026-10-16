@@ -1,6 +1,7 @@
 import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
 import { wineDisplayName } from "../utils/wineIdentity";
+import { cssUrl } from "../utils/image";
 
 /**
  * El encabezado de una ficha de vino: la botella grande, su nombre y su origen.
@@ -55,7 +56,7 @@ export default function WineDetailHero({
       {wine.image && (
         <div
           className="wine-detail-hero__ambient"
-          style={{ backgroundImage: `url("${wine.image}")` }}
+          style={{ backgroundImage: cssUrl(wine.image) }}
           aria-hidden="true"
         />
       )}

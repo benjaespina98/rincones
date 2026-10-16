@@ -87,7 +87,9 @@
   filter: drop-shadow(0 2px 6px rgb(var(--gold-rgb) / 0.4));
 }
 
-.wine-opinion__star:hover:not(:disabled) { transform: scale(1.12); }
+@media (hover: hover) and (pointer: fine) {
+  .wine-opinion__star:hover:not(:disabled) { transform: scale(1.12); }
+}
 
 /* La palabra de la escala. Comparte renglón con el "quitar" porque los dos
    hablan de la puntuación que acabás de poner. */
@@ -134,8 +136,10 @@
   cursor: pointer;
 }
 
-.wine-opinion__clear:hover:not(:disabled) {
-  color: var(--danger-text);
+@media (hover: hover) and (pointer: fine) {
+  .wine-opinion__clear:hover:not(:disabled) {
+    color: var(--danger-text);
+  }
 }
 
 .wine-opinion__add {
@@ -155,7 +159,9 @@
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.wine-opinion__add:hover { background: var(--glass); }
+@media (hover: hover) and (pointer: fine) {
+  .wine-opinion__add:hover { background: var(--glass); }
+}
 .wine-opinion__add em { font-style: normal; color: var(--text-muted); }
 
 .wine-opinion__text {

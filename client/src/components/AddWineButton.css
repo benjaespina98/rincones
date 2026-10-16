@@ -1,66 +1,36 @@
-/* ══ El botón de escanear ══════════════════════════════════════════════════
-   Centrado sobre la barra de navegación, apoyado en su borde de arriba.
+/* ═══ El botón de escanear ═══════════════════════════════════════════════════
+   No es una pestaña: es una cámara, y una cámara ya dice qué hace, así que no lleva
+   etiqueta. Tampoco es un lugar más de la fila: con tres pestañas, un cuarto lugar caía
+   en el 63% del ancho (medido), nunca en el medio. Por eso sale de la fila y flota.
 
-   ── POR QUÉ NO ES UN LUGAR MÁS DE LA FILA ────────────────────────────────
-   Lo fue, y quedaba visiblemente corrido. La aritmética no da: con tres
-   pestañas y un cuarto lugar para el botón, la fila se reparte en cuatro
-   partes iguales y el botón cae en el 63% del ancho, no en el 50% — medido,
-   sesenta píxeles a la derecha del centro, encima de "Mi Bodega". Y no hay
-   forma de arreglarlo repartiendo distinto: para que el centro del botón caiga
-   en el medio con pestañas de ancho igual harían falta DOS pestañas de cada
-   lado, y son tres.
+   Estuvo centrado, apoyado en el borde de arriba de la barra, y tapaba el ícono de
+   Sommelier. Ahora va al borde derecho, encima de la barra, sin solaparse con ninguna
+   pestaña. ════════════════════════════════════════════════════════════════════ */
 
-   Entonces sale de la fila: las tres pestañas se reparten el ancho completo,
-   parejas, y el botón se centra por su cuenta con `left: 50%`. El centro es el
-   centro, independiente de cuántas secciones haya.
+/* Al borde derecho y flotando justo ENCIMA de la barra: antes estaba centrado y tapaba
+   el ícono de Sommelier. 56×56 con `--radius-fab`, degradé de acento (oscuro, para que el
+   ícono blanco pase 3:1 con holgura) y sin halo: las superficies no brillan.
 
-   ── POR QUÉ APOYADO Y NO FLOTANDO ALTO ───────────────────────────────────
-   Se hunde ocho píxeles dentro de la barra, así que se lee como parte de ella
-   y no como algo suelto encima. Esos ocho píxeles son el margen vacío que la
-   barra tiene arriba de los íconos, así que no tapa nada: la pestaña del medio
-   conserva su ícono y su etiqueta enteros, debajo.
-
-   ── POR QUÉ NO LLEVA ETIQUETA ────────────────────────────────────────────
-   Las pestañas la llevan porque son lugares y hay que nombrarlos. Ésta no es
-   un lugar: es una cámara, y una cámara ya dice qué hace. Escribirle "Agregar"
-   debajo la volvería la cuarta pestaña de una barra de tres.
-   ═══════════════════════════════════════════════════════════════════════════ */
+   Se ancla a la barra (su `backdrop-filter` la vuelve el bloque contenedor de lo `fixed`),
+   así que `bottom` se mide desde el borde de abajo de la barra: zona segura + alto + 12px. */
 .add-fab {
   position: fixed;
-  left: 50%;
-  /* Ocho píxeles metido en la barra: `--nav-height` es su alto, así que si la
-     barra cambia, el botón la sigue solo. */
-  bottom: calc(var(--nav-height) - 8px + var(--nav-safe-bottom));
-  transform: translateX(-50%);
+  right: var(--page-pad-x);
+  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) + 12px);
   z-index: calc(var(--z-nav) + 1);
 
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border: 0;
-  border-radius: var(--radius-full);
-  background: var(--accent-fill);
+  border-radius: var(--radius-fab);
+  background: linear-gradient(145deg, var(--accent) 0%, var(--accent-strong) 100%);
   color: var(--paper);
   cursor: pointer;
-  /* ── CUATRO CAPAS, Y LA PRIMERA ES UN ARREGLO ───────────────────────────
-     El anillo recorta el botón contra la barra: sin él, un círculo violeta
-     apoyado sobre el fondo se ve pegoteado al borde. Estaba al 92% de
-     opacidad, que era correcto cuando la barra era casi sólida — pero desde
-     que la barra es glass (62% + blur), un anillo opaco a su alrededor se
-     lee como un parche oscuro pegado encima de un vidrio. Ahora usa la misma
-     opacidad que la barra, así el recorte sigue existiendo y el botón sigue
-     perteneciendo a ella.
-
-     El halo de acento es lo que le da carácter sin romper la regla de que los
-     rellenos primarios son planos: no es un degradado adentro del botón, es
-     luz alrededor. Va muy tenue a propósito — un halo que se nota es
-     decoración; uno que no se nota pero que se extraña si se apaga es luz.
-
-     Las dos sombras oscuras dan altura sin brillar. */
+  /* Un canto de luz y dos sombras oscuras que le dan altura. */
   box-shadow:
-    0 0 0 3px rgb(var(--bg-rgb) / 0.62),
-    0 0 0 5px rgb(var(--accent-rgb) / 0.14),
+    inset 0 1px 0 rgb(var(--paper-rgb) / 0.22),
     0 2px 6px rgb(var(--ink-rgb) / 0.4),
     0 8px 20px rgb(var(--ink-rgb) / 0.45);
   transition: transform var(--transition-fast), background var(--transition-fast),
@@ -68,21 +38,12 @@
 }
 
 .add-fab:active {
-  /* Pisa el `scale(0.97)` global, que borraría el translateX y haría saltar el
-     botón media pantalla a la derecha en cada toque. */
-  transform: translateX(-50%) scale(0.93);
+  transform: scale(0.94);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .add-fab:hover {
-    background: var(--accent-light);
-    /* El halo crece apenas. Es el único cambio: agrandar el botón lo movería
-       de lugar respecto de la barra en la que está apoyado. */
-    box-shadow:
-      0 0 0 3px rgb(var(--bg-rgb) / 0.62),
-      0 0 0 7px rgb(var(--accent-rgb) / 0.22),
-      0 2px 6px rgb(var(--ink-rgb) / 0.4),
-      0 10px 24px rgb(var(--ink-rgb) / 0.45);
+    background: linear-gradient(145deg, var(--accent) 30%, var(--accent-strong) 100%);
   }
 }
 

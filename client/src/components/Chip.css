@@ -11,7 +11,7 @@
   padding: 0 12px;
   position: relative;
   border: 1px solid var(--border-base);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-chip);
   background: var(--surface-base);
   color: var(--text-secondary);
   font-size: var(--text-sm);
@@ -21,9 +21,11 @@
     color var(--transition-fast);
 }
 
-.chip:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .chip.is-active {
@@ -67,9 +69,11 @@
   transition: opacity var(--transition-fast), background var(--transition-fast);
 }
 
-.chip__quitar:hover {
-  opacity: 1;
-  background: rgb(var(--paper-rgb) / 0.1);
+@media (hover: hover) and (pointer: fine) {
+  .chip__quitar:hover {
+    opacity: 1;
+    background: rgb(var(--paper-rgb) / 0.1);
+  }
 }
 
 /* Cuando el chip es un span (no se toca), no debe parecer tocable. El quitable
@@ -101,7 +105,7 @@ span.chip:not(.chip--quitable) {
 /* El cuerpo no se dibuja como control aparte: el marco es la cápsula. El foco
    sí, porque sin eso no se ve dónde está parado el teclado. */
 .chip__cuerpo:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--focus-ring-color);
   outline-offset: 2px;
   border-radius: var(--radius-full);
 }

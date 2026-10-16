@@ -56,7 +56,7 @@
   transition: border-color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .admin-wineimg__row:hover {
     border-color: var(--line-accent);
   }

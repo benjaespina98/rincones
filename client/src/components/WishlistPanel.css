@@ -33,7 +33,7 @@
   transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wishlist-card:hover {
     border-color: var(--line-accent);
   }
@@ -130,7 +130,7 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wishlist-have:hover {
     background: var(--accent);
     color: var(--paper);
@@ -153,7 +153,7 @@
   transition: color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wishlist-remove:hover {
     color: var(--danger-text);
   }

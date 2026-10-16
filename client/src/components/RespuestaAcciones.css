@@ -26,7 +26,7 @@
   margin-left: 0;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .resp-acciones__pulgar:hover {
     color: var(--text);
     background: rgb(var(--paper-rgb) / 0.06);
@@ -64,7 +64,7 @@
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .resp-acciones__otra:hover:not(:disabled) {
     color: var(--text);
     border-color: var(--line-accent);

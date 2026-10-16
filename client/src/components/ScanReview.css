@@ -260,9 +260,11 @@
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.scan-review__confirm-same:hover:not(:disabled) {
-  background: rgb(var(--gold-rgb) / 0.14);
-  border-color: rgb(var(--gold-rgb) / 0.7);
+@media (hover: hover) and (pointer: fine) {
+  .scan-review__confirm-same:hover:not(:disabled) {
+    background: rgb(var(--gold-rgb) / 0.14);
+    border-color: rgb(var(--gold-rgb) / 0.7);
+  }
 }
 
 .scan-review__confirm-same:disabled {
@@ -368,7 +370,9 @@
   transition: filter var(--transition-fast);
 }
 
-.scan-review__save:hover:not(:disabled) { filter: brightness(1.08); }
+@media (hover: hover) and (pointer: fine) {
+  .scan-review__save:hover:not(:disabled) { filter: brightness(1.08); }
+}
 
 /* Las dos salidas secundarias, una al lado de la otra: más chicas que el botón principal. */
 .scan-review__otras {
@@ -416,7 +420,9 @@
   text-decoration: underline;
 }
 
-.scan-review__link:hover { color: var(--text-secondary); }
+@media (hover: hover) and (pointer: fine) {
+  .scan-review__link:hover { color: var(--text-secondary); }
+}
 
 /* ── Baja confianza sin campo puntual que señalar ────────────────────────────
    Reemplaza al formulario entero: no hay chips ni inputs que mostrar, así que

@@ -133,9 +133,11 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.sheet__cerrar:hover {
-  background: var(--surface-base);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .sheet__cerrar:hover {
+    background: var(--surface-base);
+    color: var(--text);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

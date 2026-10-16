@@ -170,7 +170,9 @@
   transition: filter var(--transition-fast), transform var(--transition-fast);
 }
 
-.onb__next:hover:not(:disabled) { filter: brightness(1.08); }
+@media (hover: hover) and (pointer: fine) {
+  .onb__next:hover:not(:disabled) { filter: brightness(1.08); }
+}
 
 .onb__skip {
   display: block;
@@ -184,4 +186,6 @@
   cursor: pointer;
 }
 
-.onb__skip:hover { color: var(--text-secondary); }
+@media (hover: hover) and (pointer: fine) {
+  .onb__skip:hover { color: var(--text-secondary); }
+}

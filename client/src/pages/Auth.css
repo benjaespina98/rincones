@@ -164,9 +164,11 @@
     transform var(--transition-fast);
 }
 
-.auth-toggle-eye:hover {
-  background: var(--accent-muted);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .auth-toggle-eye:hover {
+    background: var(--accent-muted);
+    color: var(--text);
+  }
 }
 
 /* Password strength meter */
@@ -218,8 +220,10 @@
   transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.auth-submit:hover:not(:disabled) {
-  background: var(--accent-light);
+@media (hover: hover) and (pointer: fine) {
+  .auth-submit:hover:not(:disabled) {
+    background: var(--accent-light);
+  }
 }
 
 .auth-submit:active:not(:disabled) {
@@ -265,8 +269,10 @@
   text-decoration: none;
 }
 
-.auth-link:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .auth-link:hover {
+    text-decoration: underline;
+  }
 }
 
 .auth-hint {
@@ -294,8 +300,10 @@
   transition: color var(--transition-fast);
 }
 
-.auth-linkbtn:hover {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .auth-linkbtn:hover {
+    color: var(--text);
+  }
 }
 
 .auth-google {
@@ -336,9 +344,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.auth-google__btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  .auth-google__btn:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--line-accent);
+  }
 }
 
 .auth-google__btn:active:not(:disabled) {
@@ -407,6 +417,8 @@
   text-underline-offset: 2px;
 }
 
-.auth-legal__link:hover {
-  color: var(--text-secondary);
+@media (hover: hover) and (pointer: fine) {
+  .auth-legal__link:hover {
+    color: var(--text-secondary);
+  }
 }

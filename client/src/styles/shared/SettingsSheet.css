@@ -34,7 +34,7 @@
   /* Plano y del color de las superficies elevadas. Era el único panel de la app
      con un degradado violeta propio, que lo hacía parecer de otro producto que
      el resto de las tarjetas. */
-  background: var(--surface-2);
+  background: var(--surface-float);
   box-shadow: var(--shadow-modal);
   animation: rincon-enter-up 240ms var(--ease-out) both;
 }
@@ -329,7 +329,9 @@
     color var(--transition-fast), transform var(--transition-fast);
 }
 
-.pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+}
 
 .pref-type.is-sel {
   border-color: var(--accent-light);
@@ -375,7 +377,9 @@
     color var(--transition-fast), transform var(--transition-fast);
 }
 
-.pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+}
 
 .pref-grape.is-sel {
   border-color: var(--accent-light);
