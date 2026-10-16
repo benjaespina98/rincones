@@ -124,8 +124,10 @@
   font-weight: 600;
 }
 
-.toast__action--secondary:hover {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .toast__action--secondary:hover {
+    color: var(--text);
+  }
 }
 
 .toast__close {
@@ -143,9 +145,11 @@
   transition: color var(--transition-fast);
   border-radius: var(--radius-sm);
 
-  &:hover {
-    color: var(--text);
-    background: rgb(var(--accent-rgb) / 0.1);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: var(--text);
+      background: rgb(var(--accent-rgb) / 0.1);
+    }
   }
 
   &:active {

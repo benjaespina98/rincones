@@ -123,7 +123,7 @@
   transition: background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .app-topbar__nav-btn:hover {
     background: rgb(var(--paper-rgb) / 0.07);
   }

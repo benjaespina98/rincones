@@ -84,10 +84,17 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.search-clear:hover,
+
 .search-clear:active {
   background: var(--accent-muted);
   color: var(--text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .search-clear:hover {
+    background: var(--accent-muted);
+    color: var(--text);
+  }
 }
 
 /* Acá vivían `.filter-select` y `.sort-select`: los dos combos que había arriba
@@ -153,7 +160,7 @@
 .wine-row:nth-child(4) { animation-delay: 105ms; }
 .wine-row:nth-child(n + 5) { animation-delay: 140ms; }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wine-row:not(.is-expanded):hover {
     transform: translateY(-2px);
     border-color: var(--line-accent);
@@ -330,7 +337,7 @@
   inset: -4px;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .wine-row--vitrina .wine-row__disclosure:hover:not(:disabled) {
     background: rgb(var(--paper-rgb) / 0.1);
     color: var(--text);
@@ -527,10 +534,12 @@
     color var(--transition-fast), opacity var(--transition-fast);
 }
 
-.wine-row__disclosure:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: var(--line);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .wine-row__disclosure:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--line);
+    color: var(--text);
+  }
 }
 
 .wine-row__disclosure-icon {
@@ -656,9 +665,11 @@
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform 120ms var(--ease-out);
 }
 
-.wine-action-btn:hover:not(:disabled) {
-  border-color: rgb(var(--success-rgb) / 0.4);
-  color: var(--success-text);
+@media (hover: hover) and (pointer: fine) {
+  .wine-action-btn:hover:not(:disabled) {
+    border-color: rgb(var(--success-rgb) / 0.4);
+    color: var(--success-text);
+  }
 }
 
 .wine-action-btn:active:not(:disabled) {
@@ -684,10 +695,12 @@
   color: var(--accent-soft);
 }
 
-.wine-action-btn--open:hover:not(:disabled) {
-  background: rgb(var(--accent-rgb) / 0.22);
-  border-color: var(--line-accent);
-  color: var(--accent-soft);
+@media (hover: hover) and (pointer: fine) {
+  .wine-action-btn--open:hover:not(:disabled) {
+    background: rgb(var(--accent-rgb) / 0.22);
+    border-color: var(--line-accent);
+    color: var(--accent-soft);
+  }
 }
 
 /* Probado y stock en una línea: son dos datos distintos y verlos juntos es lo
@@ -798,8 +811,10 @@
   transition: border-color var(--transition-fast);
 }
 
-.wines-more__btn:hover {
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  .wines-more__btn:hover {
+    border-color: var(--line-accent);
+  }
 }
 
 .wines-more__n {
@@ -834,19 +849,23 @@
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform 120ms var(--ease-out);
 }
 
-.wine-row__icon-btn:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--wine);
+@media (hover: hover) and (pointer: fine) {
+  .wine-row__icon-btn:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--wine);
+  }
 }
 
 .wine-row__icon-btn:active:not(:disabled) {
   transform: scale(0.94);
 }
 
-.wine-row__icon-btn--danger:hover:not(:disabled) {
-  background: var(--wine-soft);
-  border-color: rgb(var(--wine-rgb) / 0.34);
-  color: var(--wine);
+@media (hover: hover) and (pointer: fine) {
+  .wine-row__icon-btn--danger:hover:not(:disabled) {
+    background: var(--wine-soft);
+    border-color: rgb(var(--wine-rgb) / 0.34);
+    color: var(--wine);
+  }
 }
 
 /* Favorito activo: corazón vino + pop al marcar. */
@@ -975,12 +994,19 @@
   font-weight: 800;
 }
 
-.bodega-modo:hover,
-.bodega-filtros:hover,
+
 .bodega-filtros.is-open,
 .bodega-filtros.has-active {
   border-color: var(--line-accent);
   color: var(--text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bodega-modo:hover,
+  .bodega-filtros:hover {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .bodega-modo:active {
@@ -1545,9 +1571,11 @@
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.bodega-seleccionar:hover {
-  color: var(--text);
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  .bodega-seleccionar:hover {
+    color: var(--text);
+    border-color: var(--line-accent);
+  }
 }
 
 /* La tilde ocupa el lugar de la foto: la fila no se reacomoda al entrar al modo
@@ -1700,9 +1728,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.bodega-barra__accion:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  background: var(--elevated);
+@media (hover: hover) and (pointer: fine) {
+  .bodega-barra__accion:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    background: var(--elevated);
+  }
 }
 
 .bodega-barra__accion:disabled {
@@ -1716,9 +1746,11 @@
   border-color: rgb(var(--wine-rgb) / 0.3);
 }
 
-.bodega-barra__accion--peligro:hover:not(:disabled) {
-  background: var(--wine-soft);
-  border-color: rgb(var(--wine-rgb) / 0.5);
+@media (hover: hover) and (pointer: fine) {
+  .bodega-barra__accion--peligro:hover:not(:disabled) {
+    background: var(--wine-soft);
+    border-color: rgb(var(--wine-rgb) / 0.5);
+  }
 }
 
 /* ══ DESLIZAR UNA FILA ══════════════════════════════════════════════════════

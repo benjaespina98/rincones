@@ -77,8 +77,10 @@
   cursor: default;
 }
 
-.diary-entry__main:not(:disabled):hover {
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  .diary-entry__main:not(:disabled):hover {
+    border-color: var(--line-accent);
+  }
 }
 
 .diary-entry__thumb {
@@ -208,7 +210,7 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .diary__more:hover {
     background: var(--accent-fill);
     border-color: transparent;

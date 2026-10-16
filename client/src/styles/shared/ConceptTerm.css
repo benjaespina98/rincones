@@ -66,7 +66,7 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .concept-term:hover .concept-term__text {
     text-decoration-color: var(--accent-light);
   }

@@ -211,8 +211,10 @@
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.wine-detail-hero__icon-btn:hover {
-  background: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .wine-detail-hero__icon-btn:hover {
+    background: var(--accent);
+  }
 }
 
 .wine-detail-hero__icon-btn:active {
@@ -264,9 +266,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.wine-detail-edit-btn:hover {
-  background: var(--accent-muted);
-  border-color: var(--accent-light);
+@media (hover: hover) and (pointer: fine) {
+  .wine-detail-edit-btn:hover {
+    background: var(--accent-muted);
+    border-color: var(--accent-light);
+  }
 }
 
 .wine-detail-subtitle {
@@ -325,8 +329,10 @@
   filter: drop-shadow(0 2px 6px rgb(var(--gold-rgb) / 0.45));
 }
 
-.rating-input__star:hover:not(:disabled) {
-  transform: scale(1.15);
+@media (hover: hover) and (pointer: fine) {
+  .rating-input__star:hover:not(:disabled) {
+    transform: scale(1.15);
+  }
 }
 
 .rating-input__star:active {
@@ -448,8 +454,10 @@
   transition: background var(--transition-fast);
 }
 
-.wine-price__meli:hover {
-  background: rgba(255, 229, 0, 0.18);
+@media (hover: hover) and (pointer: fine) {
+  .wine-price__meli:hover {
+    background: rgba(255, 229, 0, 0.18);
+  }
 }
 
 .wine-detail-notes {
@@ -658,9 +666,11 @@
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.wine-about__toggle:hover {
-  border-color: var(--line-accent);
-  color: var(--paper);
+@media (hover: hover) and (pointer: fine) {
+  .wine-about__toggle:hover {
+    border-color: var(--line-accent);
+    color: var(--paper);
+  }
 }
 
 /* Mismo truco que .collapsible__panel-wrap: 0fr no ocupa alto, 1fr toma el
@@ -797,8 +807,10 @@
   transition: background var(--transition-fast);
 }
 
-.wine-detail-open:hover:not(:disabled) {
-  background: rgb(var(--accent-rgb) / 0.24);
+@media (hover: hover) and (pointer: fine) {
+  .wine-detail-open:hover:not(:disabled) {
+    background: rgb(var(--accent-rgb) / 0.24);
+  }
 }
 
 .wine-detail-open:disabled {
@@ -884,10 +896,12 @@
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
-.wine-detail-danger__btn:hover {
-  background: var(--wine-soft);
-  border-color: rgb(var(--wine-rgb) / 0.34);
-  color: var(--type-red);
+@media (hover: hover) and (pointer: fine) {
+  .wine-detail-danger__btn:hover {
+    background: var(--wine-soft);
+    border-color: rgb(var(--wine-rgb) / 0.34);
+    color: var(--type-red);
+  }
 }
 
 /* Moments */
@@ -998,8 +1012,10 @@
   transition: border-color var(--transition-fast);
 }
 
-.moment-item:hover {
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  .moment-item:hover {
+    border-color: var(--line-accent);
+  }
 }
 
 .moment-item__head {
@@ -1044,7 +1060,7 @@
 
 .moment-item__share:disabled { opacity: 0.5; cursor: default; }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .moment-item__share:hover:not(:disabled) {
     background: var(--accent-muted);
     color: var(--accent-soft);
@@ -1134,8 +1150,10 @@
   transition: background var(--transition-fast);
 }
 
-.moment-photos__add:hover {
-  background: var(--surface);
+@media (hover: hover) and (pointer: fine) {
+  .moment-photos__add:hover {
+    background: var(--surface);
+  }
 }
 
 /* ── Fotos del momento: display (card) ── */
@@ -1218,8 +1236,10 @@
   transition: background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
-.catalog-add-cta:hover:not(:disabled) {
-  background: var(--accent-strong, var(--accent));
+@media (hover: hover) and (pointer: fine) {
+  .catalog-add-cta:hover:not(:disabled) {
+    background: var(--accent-strong, var(--accent));
+  }
 }
 
 .catalog-add-cta:active:not(:disabled) {
@@ -1261,8 +1281,10 @@
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.catalog-fav-cta:hover:not(:disabled) {
-  background: rgb(var(--favorite-rgb) / 0.14);
+@media (hover: hover) and (pointer: fine) {
+  .catalog-fav-cta:hover:not(:disabled) {
+    background: rgb(var(--favorite-rgb) / 0.14);
+  }
 }
 
 .catalog-fav-cta:active:not(:disabled) {
@@ -1292,8 +1314,10 @@
   transition: background var(--transition-fast);
 }
 
-.catalog-have-btn:hover {
-  background: var(--glass);
+@media (hover: hover) and (pointer: fine) {
+  .catalog-have-btn:hover {
+    background: var(--glass);
+  }
 }
 
 /* ── Perfil del vino (etiquetas cortas estilo Vivino) ── */

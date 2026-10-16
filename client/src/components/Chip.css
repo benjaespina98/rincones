@@ -21,9 +21,11 @@
     color var(--transition-fast);
 }
 
-.chip:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .chip.is-active {
@@ -67,9 +69,11 @@
   transition: opacity var(--transition-fast), background var(--transition-fast);
 }
 
-.chip__quitar:hover {
-  opacity: 1;
-  background: rgb(var(--paper-rgb) / 0.1);
+@media (hover: hover) and (pointer: fine) {
+  .chip__quitar:hover {
+    opacity: 1;
+    background: rgb(var(--paper-rgb) / 0.1);
+  }
 }
 
 /* Cuando el chip es un span (no se toca), no debe parecer tocable. El quitable

@@ -49,8 +49,10 @@
   box-shadow: var(--shadow-accent);
 }
 
-.btn--primary:hover:not(:disabled) {
-  background: var(--accent-light);
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover:not(:disabled) {
+    background: var(--accent-light);
+  }
 }
 
 .btn--secondary {
@@ -59,9 +61,11 @@
   color: var(--text);
 }
 
-.btn--secondary:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  background: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+  .btn--secondary:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    background: var(--surface-hover);
+  }
 }
 
 .btn--ghost {
@@ -69,9 +73,11 @@
   color: var(--text-secondary);
 }
 
-.btn--ghost:hover:not(:disabled) {
-  background: var(--surface-base);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .btn--ghost:hover:not(:disabled) {
+    background: var(--surface-base);
+    color: var(--text);
+  }
 }
 
 .btn--destructive {
@@ -80,8 +86,10 @@
   color: var(--danger-text);
 }
 
-.btn--destructive:hover:not(:disabled) {
-  background: rgb(var(--danger-rgb) / 0.26);
+@media (hover: hover) and (pointer: fine) {
+  .btn--destructive:hover:not(:disabled) {
+    background: rgb(var(--danger-rgb) / 0.26);
+  }
 }
 
 /* El de ícono es cuadrado y sin padding lateral: el área de toque la da el
@@ -94,9 +102,11 @@
   color: var(--text-secondary);
 }
 
-.btn--icon:hover:not(:disabled) {
-  background: var(--surface-base);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .btn--icon:hover:not(:disabled) {
+    background: var(--surface-base);
+    color: var(--text);
+  }
 }
 
 .btn--icon.btn--md {

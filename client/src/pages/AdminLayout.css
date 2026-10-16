@@ -108,9 +108,11 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.admin-sidebar__link:hover {
-  background: var(--surface-hover);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .admin-sidebar__link:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
 }
 
 .admin-sidebar__link.is-active {
@@ -214,14 +216,18 @@
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.admin-bar__btn:hover {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .admin-bar__btn:hover {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
-.admin-bar__btn--out:hover {
-  border-color: rgb(var(--wine-rgb) / 0.5);
-  color: var(--type-red);
+@media (hover: hover) and (pointer: fine) {
+  .admin-bar__btn--out:hover {
+    border-color: rgb(var(--wine-rgb) / 0.5);
+    color: var(--type-red);
+  }
 }
 
 @media (max-width: 560px) {
@@ -418,9 +424,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.admin-btn:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .admin-btn:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 .admin-btn:disabled { opacity: 0.5; cursor: default; }
 
@@ -429,8 +437,10 @@
   background: none;
 }
 
-.admin-btn--ghost:hover:not(:disabled) {
-  background: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+  .admin-btn--ghost:hover:not(:disabled) {
+    background: var(--surface-hover);
+  }
 }
 
 .admin-btn--danger {
@@ -438,9 +448,11 @@
   color: var(--danger-text);
 }
 
-.admin-btn--danger:hover:not(:disabled) {
-  background: var(--wine-soft);
-  border-color: rgb(var(--wine-rgb) / 0.6);
+@media (hover: hover) and (pointer: fine) {
+  .admin-btn--danger:hover:not(:disabled) {
+    background: var(--wine-soft);
+    border-color: rgb(var(--wine-rgb) / 0.6);
+  }
 }
 
 .admin-btn--primary {
@@ -449,9 +461,11 @@
   color: var(--paper);
 }
 
-.admin-btn--primary:hover:not(:disabled) {
-  background: var(--accent-light);
-  border-color: var(--accent-light);
+@media (hover: hover) and (pointer: fine) {
+  .admin-btn--primary:hover:not(:disabled) {
+    background: var(--accent-light);
+    border-color: var(--accent-light);
+  }
 }
 
 /* El botón de acción de una fila cuando lleva sólo ícono: cuadrado, para que
@@ -495,7 +509,7 @@
   transition: border-color var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .admin-metric-card:hover,
   .admin-wide-card:hover {
     border-color: var(--line-accent);
@@ -570,9 +584,11 @@ a.admin-chip {
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-a.admin-chip:hover {
-  color: var(--accent-soft);
-  border-color: var(--line-accent);
+@media (hover: hover) and (pointer: fine) {
+  a.admin-chip:hover {
+    color: var(--accent-soft);
+    border-color: var(--line-accent);
+  }
 }
 
 button.admin-chip.is-active {
@@ -652,7 +668,7 @@ button.admin-chip.is-active {
   border-bottom: 0;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .admin-table tbody tr:hover td {
     background: rgb(var(--paper-rgb) / 0.03);
   }
@@ -902,9 +918,11 @@ button.admin-chip.is-active {
   cursor: pointer;
 }
 
-.admin-pager__page:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .admin-pager__page:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .admin-pager__page.is-current {

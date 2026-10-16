@@ -329,7 +329,9 @@
     color var(--transition-fast), transform var(--transition-fast);
 }
 
-.pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .pref-type:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+}
 
 .pref-type.is-sel {
   border-color: var(--accent-light);
@@ -375,7 +377,9 @@
     color var(--transition-fast), transform var(--transition-fast);
 }
 
-.pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .pref-grape:hover:not(:disabled) { border-color: var(--line-accent); color: var(--text); }
+}
 
 .pref-grape.is-sel {
   border-color: var(--accent-light);
