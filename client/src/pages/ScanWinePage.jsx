@@ -5,6 +5,7 @@ import Icon from "../components/Icon";
 import { useToast } from "../context/ToastContext";
 import { createWine, deleteWine } from "../services/wineApi";
 import { createWish, deleteWish } from "../services/wishApi";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 // Esta pantalla escribe la lista de deseos sin pasar por `useWishlist` (no la
 // muestra, así que montar el hook sería pedir la lista entera al pedo). El
 // precio es que el caché del hook queda viejo: sin esto, volver a Mi Bodega
@@ -243,7 +244,8 @@ export default function ScanWinePage() {
         varietal: previo?.varietal || "",
         vintage: previo?.vintage ? String(previo.vintage) : "",
         region: previo?.region || "",
-        type: previo?.type || "unknown",
+        // Sólo un tipo del vocabulario: cualquier otra cosa (un evento, basura) es "sin tipo".
+        type: WINE_TYPE_LABELS[previo?.type] ? previo.type : "unknown",
       },
       confidence: {},
       verification: null,
@@ -413,7 +415,7 @@ export default function ScanWinePage() {
           <span className="scan-hint">Sacá una foto y lo agregamos solo</span>
         </button>
 
-        <button type="button" className="btn-manual-entry" onClick={startManual}>
+        <button type="button" className="btn-manual-entry" onClick={() => startManual()}>
           <Icon name="pencil" size={15} /> Cargar a mano
         </button>
       </div>
