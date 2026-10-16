@@ -747,8 +747,8 @@ select:disabled {
 }
 
 .toggle-chip.is-on {
-  border-color: rgb(var(--success-rgb) / 0.45);
-  background: rgb(var(--success-rgb) / 0.14);
+  border-color: rgb(var(--success-rgb) / 0.4);
+  background: rgb(var(--success-rgb) / 0.16);
   color: var(--success-text);
 }
 
