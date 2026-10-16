@@ -100,8 +100,8 @@
   width: 100%;
   height: 52px;
   padding: 0 52px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   /* 16px y no 17. Inter es un pelo más ancha que la familia anterior, y con 17

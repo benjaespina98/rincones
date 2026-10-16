@@ -11,7 +11,7 @@
   padding: 0 12px;
   position: relative;
   border: 1px solid var(--border-base);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-chip);
   background: var(--surface-base);
   color: var(--text-secondary);
   font-size: var(--text-sm);

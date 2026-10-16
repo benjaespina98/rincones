@@ -812,7 +812,7 @@ select:disabled {
   position: relative;
   display: flex;
   padding: 3px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--glass);
   overflow-x: auto;
@@ -837,7 +837,7 @@ select:disabled {
   min-height: 40px;
   padding: 0 8px;
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: none;
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -862,7 +862,7 @@ select:disabled {
   left: 0;
   bottom: 3px;
   z-index: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: var(--accent-muted);
   transition: transform var(--transition-smooth) var(--ease-out),
     width var(--transition-smooth) var(--ease-out);

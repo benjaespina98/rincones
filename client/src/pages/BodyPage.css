@@ -325,7 +325,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: rgb(var(--paper-rgb) / 0.05);
   color: var(--text-subtle);
 }
@@ -527,7 +527,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
@@ -1841,27 +1841,13 @@
 }
 
 /* ── EL SELECTOR DE VISTA ─────────────────────────────────────────────────────
-   Contenedor con el radio de card e indicador con el de control (concéntricos: 14 - 3 de
-   padding ≈ 11-12). Acotado a `.bodega-vista`: `Segmented` lo usan otras pantallas y no
-   cambian. El indicador lleva borde de acento al 45%: es lo seleccionado. */
+   El radio de card (contenedor) y de control (botones e indicador) los pone `Segmented`
+   para toda la app (App.css). Acá sólo el borde neutro y el borde de acento del indicador:
+   es lo seleccionado. */
 .segmented.bodega-vista {
-  border-radius: var(--radius-card);
   border-color: var(--border-base);
 }
 
 .bodega-vista .segmented__indicador {
-  border-radius: var(--radius-control);
   border: 1px solid var(--line-accent);
-}
-
-.bodega-vista .segmented__btn {
-  border-radius: var(--radius-control);
-}
-
-/* ── LA CARD RESPONDE AL DEDO ─────────────────────────────────────────────────
-   Tocar la fila achica la CARD entera (el velo lo pone `.wine-row__main::before`, App.css).
-   Se mira con :has() porque el botón es hijo de la card; sin soporte de :has (iOS < 15.4)
-   sigue el velo, que ya alcanza. */
-.wine-row:has(.wine-row__main:not(:disabled):active) {
-  transform: scale(0.98);
 }
