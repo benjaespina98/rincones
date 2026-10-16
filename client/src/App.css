@@ -854,6 +854,7 @@ select:disabled {
    tocar, así no hay que ir a mirar para volver. */
 .segmented__n {
   font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-2xs);
   font-weight: 800;
   color: var(--text-muted);

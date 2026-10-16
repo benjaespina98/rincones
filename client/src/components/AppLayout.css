@@ -71,10 +71,36 @@
   gap: 0.5rem;
   /* Reserva menos que la zona segura entera (ver --topbar-safe-top en index.css): el avatar
      queda más cerca de la hora y la barra ocupa menos de lo que se lleva el contenido. */
-  padding: calc(0.6rem + var(--topbar-safe-top)) 1rem 0.7rem;
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  background: linear-gradient(180deg, rgb(var(--bg-rgb) / 0.92), rgb(var(--bg-rgb) / 0.66));
+  padding: calc(0.6rem + var(--topbar-safe-top)) 1rem 0;
+  /* Transparente: el encabezado y el cuerpo comparten el MISMO fondo. Antes llevaba un
+     degradé propio y se leía como una banda más oscura pegada arriba. */
+  background: transparent;
+}
+
+/* Al scrollear, el contenido se funde por debajo con blur —no con otro color—. La capa
+   vive en un pseudo-elemento para animarla sólo con `opacity`. */
+.app-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgb(var(--bg-rgb) / 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgb(var(--paper-rgb) / 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.app-topbar.is-compacto::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-topbar::before {
+    transition: none;
+  }
 }
 
 /* "Volver" es el control más usado de cualquier pantalla interna y medía 31px.
@@ -169,6 +195,22 @@
 .app-hero-title--marca .logo {
   flex-shrink: 0;
   color: var(--text);
+}
+
+/* ── AVATAR Y TÍTULO EN LA MISMA FILA ───────────────────────────────────────
+   Había un hueco de ~60px entre el avatar y el título: la barra tenía su propia
+   altura y el título arrancaba debajo. El título sigue siendo CONTENIDO (se va con el
+   scroll, y por eso el `h1` es el real), pero sube hasta la fila del avatar: -36px
+   es el centro del botón de 40px menos la mitad de la línea del título (33px).
+
+   Sólo en las pestañas: con un botón de volver a la izquierda, o con acciones en la
+   ranura izquierda (el menú del Sommelier), el título tiene que quedar debajo. */
+.app-hero-title--en-barra {
+  margin-top: -36px;
+}
+
+.app-layout:has(.app-topbar__ranura--izq > *) .app-hero-title--en-barra {
+  margin-top: var(--space-md);
 }
 
 /* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa
