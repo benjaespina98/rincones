@@ -39,7 +39,7 @@ const leer = () => {
     visualViewport: vv ? `${Math.round(vv.height)} (top ${Math.round(vv.offsetTop)})` : "n/d",
     clientHeight: document.documentElement.clientHeight,
     standalone: String(window.navigator.standalone === true),
-    displayMode: window.matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
+    displayMode: window.matchMedia?.("(display-mode: standalone)")?.matches ? "standalone" : "browser",
     insetArriba,
     insetAbajo,
     vpGap: raiz.getPropertyValue("--vp-gap").trim() || "0px",
