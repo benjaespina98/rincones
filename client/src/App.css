@@ -29,6 +29,11 @@ html {
      `.app-layout` (AppLayout.css). */
   min-height: 0;
   overflow-y: auto;
+  /* `overflow-y: auto` deja el eje X en `auto` también: cualquier hijo apenas más ancho
+     se arrastra de costado. Las filas que se deslizan a propósito (atajos, Listos para
+     tomar) llevan su propio contenedor con scroll; la página no. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
   padding-bottom: var(--page-pad-bottom);
   scroll-padding-bottom: var(--page-pad-bottom);
