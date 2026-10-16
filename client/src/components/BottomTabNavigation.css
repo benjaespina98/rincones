@@ -14,12 +14,12 @@
   bottom: calc(var(--vp-gap, 0px) * -1);
   left: 0;
   right: 0;
-  background: rgb(var(--bg-rgb) / 0.88);
-  border-top: 1px solid var(--border-subtle);
-  box-shadow: 0 -8px 24px rgb(var(--bg-deep-rgb) / 0.45);
+  /* Sin soporte de blur queda un fondo casi sólido (ver el @supports de abajo): un vidrio
+     sin desenfoque deja ver las letras de atrás y se mezcla con las etiquetas. */
+  background: rgb(var(--bg-rgb) / 0.96);
+  border-top: 1px solid var(--border-base);
   z-index: var(--z-nav);
-  /* Reserva menos que la zona segura entera (ver --nav-safe-bottom en index.css): la barra
-     queda más abajo y deja de flotar arriba de un hueco. */
+  /* La zona segura entera: la barra llega al borde y el indicador de inicio queda adentro. */
   padding-bottom: var(--nav-safe-bottom);
   /* En horizontal, con muesca, las pestañas no quedan debajo de ella (el shell
      lo hace con el contenido, pero la barra es `fixed` y no hereda su padding). */
@@ -29,20 +29,13 @@
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .bottom-tabs-container {
-    /* ── LA RECETA DE UN MATERIAL DE iOS ────────────────────────────────────
-       Tres números que van juntos y que no son arbitrarios: un desenfoque
-       grande (26px) para que lo de atrás sea color y no forma, la saturación
-       levantada (1.8) para que ese color no se apague al difuminarse, y una
-       opacidad apenas más alta (0.65) para que las etiquetas se lean sobre lo
-       que pase por debajo.
-
-       Con blur chico se adivinan las letras de atrás y parece un vidrio sucio;
-       sin la saturación, el desenfoque lava el color y queda gris. Es lo que
-       hacen los materiales del sistema en iOS, y es lo que hace que una barra
-       se sienta parte del teléfono y no un rectángulo pegado encima. */
-    background: rgb(var(--bg-rgb) / 0.65);
-    backdrop-filter: blur(26px) saturate(1.8);
-    -webkit-backdrop-filter: blur(26px) saturate(1.8);
+    /* El material de iOS: desenfoque grande para que lo de atrás sea color y no forma,
+       saturación levantada para que ese color no se apague al difuminarse, y una
+       opacidad (.72) que deja pasar el contenido pero mantiene legibles las etiquetas.
+       Es el contenido el que pasa POR DEBAJO: por eso las listas llevan padding inferior. */
+    background: rgb(var(--bg-rgb) / 0.72);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
   }
 }
 
@@ -112,8 +105,14 @@
    Había un rectángulo gris de alto completo detrás del ícono, que es lo que
    delata a una web: una barra de pestañas nativa no dibuja una caja al tocar. */
 
+/* La activa lleva el acento (en su tono más claro: el violeta pleno queda por debajo del
+   gris de las inactivas en luminancia) y la etiqueta en 700. */
 .tab-button.active {
-  color: var(--text);
+  color: var(--accent-soft);
+}
+
+.tab-button.active .tab-label {
+  font-weight: 700;
 }
 
 /* ── UN INDICADOR QUE SE DESLIZA ────────────────────────────────────────────

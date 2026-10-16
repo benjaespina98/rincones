@@ -1005,14 +1005,14 @@ img {
      no hay zona segura (escritorio, Android sin gestos) el token vale 0 y no cambia
      nada. Todo lo que se calcula contra las barras usa estos tokens, para que sigan
      alineados entre sí (el botón de la cámara, el compositor, el despeje del contenido). */
-  /* La barra reserva sólo lo que hace falta de la zona segura: el indicador de inicio
-     es una rayita a ~8px del borde, y reservar la zona entera dejaba las pestañas
-     flotando sobre un hueco vacío. Con 22px de menos, las etiquetas quedan ~20px
-     arriba del borde, que es donde las pone Spotify o Instagram. */
-  --nav-safe-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 22px), 0px);
+  /* La barra llega hasta el borde de la pantalla y reserva la zona segura ENTERA: el
+     indicador de inicio queda DENTRO de la barra, que es lo que hace una barra nativa.
+     Es un solo token: si las etiquetas quedaran altas, se afina acá. En escritorio y
+     Android sin gestos vale 0. */
+  --nav-safe-bottom: env(safe-area-inset-bottom, 0px);
   --topbar-safe-top: max(calc(env(safe-area-inset-top, 0px) - 14px), 0px);
 
-  --page-pad-bottom: calc(var(--nav-height) + 56px + var(--nav-safe-bottom));
+  --page-pad-bottom: calc(var(--nav-height) + 80px + var(--nav-safe-bottom));
 }
 
 @media (min-width: 768px) {
