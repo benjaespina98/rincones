@@ -21,7 +21,7 @@
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-lg);
-  background: var(--elevated);
+  background: var(--surface-float);
   border: 1px solid var(--line);
   border-left: 3px solid var(--accent-light);
   box-shadow: var(--shadow-lg);

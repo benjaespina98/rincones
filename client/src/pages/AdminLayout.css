@@ -653,7 +653,7 @@ button.admin-chip.is-active {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  background: var(--surface-2);
+  background: var(--surface-float);
   border-bottom: 1px solid var(--line);
 }
 

@@ -105,7 +105,7 @@ span.chip:not(.chip--quitable) {
 /* El cuerpo no se dibuja como control aparte: el marco es la cápsula. El foco
    sí, porque sin eso no se ve dónde está parado el teclado. */
 .chip__cuerpo:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--focus-ring-color);
   outline-offset: 2px;
   border-radius: var(--radius-full);
 }

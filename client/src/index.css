@@ -158,6 +158,10 @@
   --surface-base: rgb(var(--paper-rgb) / 0.045);
   --surface-raised: rgb(var(--paper-rgb) / 0.075);
   --surface-overlay: rgb(27 30 41 / 0.97);
+  /* Lo que FLOTA sobre contenido sin un velo propio (listas desplegables, avisos, paneles,
+     encabezados pegajosos) tiene que ser opaco: las superficies de arriba son blanco con alfa
+     y, sin nada opaco debajo, el texto de atrás se lee a través. Mismo valor que el overlay. */
+  --surface-float: rgb(27 30 41);
 
   /* ══ BORDES: LUZ, NO LÍNEAS ═══════════════════════════════════════════════
      Un borde en una interfaz oscura no es una línea dibujada: es el canto de

@@ -1851,3 +1851,26 @@
 .bodega-vista .segmented__indicador {
   border: 1px solid var(--line-accent);
 }
+
+/* ── ÁREAS DE TOQUE DE 44 EN TODAS LAS FILAS ─────────────────────────────────
+   El toggle de "Ya lo tomé" (36), el "⌄" (36) y "Seleccionar" (36) se ven chicos y se tocan
+   de 44 por un pseudo-elemento. Sólo la vitrina y la grilla lo tenían: las filas del archivo
+   (Ya tomados, Favoritos) quedaban en 36 sin extensión. */
+:where(.wine-row__disclosure) {
+  position: relative;
+}
+
+.wine-row__tasted::after,
+.wine-row__disclosure::after,
+.bodega-seleccionar::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+/* En movimiento reducido la card no se levanta al pasar el mouse. */
+@media (prefers-reduced-motion: reduce) {
+  .wine-row:not(.is-expanded):hover {
+    transform: none;
+  }
+}

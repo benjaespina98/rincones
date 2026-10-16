@@ -63,7 +63,7 @@
   overflow-y: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-strong);
-  background: var(--elevated, var(--surface-raised));
+  background: var(--surface-float);
   box-shadow: var(--shadow-lg);
   animation: rincon-enter-down 150ms var(--ease-out) both;
 }
