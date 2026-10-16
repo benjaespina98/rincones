@@ -426,3 +426,64 @@ scrollbar oculta en táctil.
 
 Detectado de paso, previo y arreglado: en grilla a 390px el corazón y el chip se
 pisaban 6px; ahora el chip va sólo-ícono por debajo de 411px.
+
+## Pulido visual iOS de Mi Bodega (2026-10-16)
+
+Rama `fix/barra-viewport-ios`, commits atómicos, **sin publicar**. Se pidió un pulido, no un
+rediseño: mismo layout, información y copy; íconos y marca intactos.
+
+### Corrección de lo que quedó mal diagnosticado de la barra
+La tanda anterior bloqueó el documento (`html:has(.app-layout) { overflow: hidden }`) creyendo que
+así la barra y el contenido compartían referencia. Era un error: en una PWA de iOS el viewport de
+layout puede ser ~58px más corto que la pantalla al abrir, y lo que lo recalculaba era justamente el
+scroll del documento. Al bloquearlo, el hueco quedó fijo (medido en capturas: la barra terminaba a
+60pt del borde). Ahora el documento vuelve a scrollear, `useViewportGap` empuja el recálculo y
+compensa con `--vp-gap` lo que quede, y `?vp=1` muestra los números del teléfono. **Sigue sin
+poder reproducirse fuera de un iPhone: confirmar abriendo la PWA desde el ícono.**
+
+### Tabla antes / después (390×844, estilos computados)
+| | Antes | Después |
+|---|---|---|
+| Fondo de página | #110f1f con halo violeta .38 y halo vino .20 | #14161f (ink) con un único halo de acento al 11% |
+| Encabezado | banda propia, 60,8px, degradé .92→.66 | transparente, 49,6px; blur sólo al scrollear |
+| Título "Mi Bodega" | 30/800/-0.025em, **debajo** del avatar | igual, **en la fila del avatar** (centros 29,6 = 29,6) |
+| Card | borde violeta, degradé #362f5a→#241f3e, radio 12 | blanco 4,5%, borde blanco 8%, sombra en dos capas, radio 14 |
+| Borde de controles (`--line`) | violeta .26 | blanco .10; el acento (.45) sólo en lo activo |
+| Botón grilla / filtros | 48×48, círculo | 48×48, radio 12 |
+| Buscador | píldora, borde violeta | radio 12, borde blanco .10 |
+| Selector de vista | píldora, indicador píldora | contenedor radio 14, indicador radio 12 con borde de acento |
+| Nombre del vino | 17/700 | 17/700, tracking -0.01em |
+| Tipo | 12,8/800 texto suelto | etiqueta 28px, radio 8, fondo del tipo al 14%, 13/600 |
+| Uva / bodega | 12,8/400 · 12/400 | 13/500 · 13/400, secundarios |
+| Cantidad | 18,4/800 **dorada** | etiqueta neutra 24px, 13/700 tabular |
+| Chevrones por card | 2 (">" y "⌄") | 1 ("⌄", toque de 44×44) |
+| "Ya lo tomé" | 40px, píldora, verde .07/.30 | 36px, radio 12, verde .16/.40, toque 44 |
+| Barra inferior | 59px, reservaba inset-22, blur 26 sat 1.8 | 93px con inset 34, inset entero, blur 24 sat 1.6, borde blanco .10, sin sombra |
+| Pestaña activa | #f3f5ff 600 | acento claro (#cbb5f7) 700; inactiva #b0b5c6 600 |
+| Botón de cámara | 52 círculo, **centrado** (tapaba Sommelier) | 56×56 radio 16, a la derecha, 11px sobre la barra |
+
+### Contraste medido (peor caso: hover sobre el pico del halo; sobre la card entre paréntesis)
+Primario 10,7 (14,4) · secundario 7,1 (9,6; el pedido era ≥ 7) · muted 5,9 · subtle 4,7 (≥ 4,5) ·
+acento claro 4,9 · etiqueta de tipo sobre su fondo tinteado 5,3–8,3 · "Ya lo tomé" 8,0.
+
+### Decisiones propias (no estaban en el pedido)
+- **Base #14161f** (opción "ink con elevación iOS"): conciliaba "neutra" con la queja anterior de que
+  el fondo era demasiado negro.
+- `--radius-fab` 16px: el pedido decía `--radius-control` de 16, pero ese token es 12.
+- **Radios por rol en toda la app**, no sólo Mi Bodega: `.chip` (10), `Segmented` (14/12), el buscador de
+  Descubrí (12) y el "⌄" (12). Si no, Descubrí y la ficha quedaban con un criterio distinto.
+- El título sube con la barra superpuesta (absoluta) y no con margen negativo: este último lo sacaba
+  de la caja del contenedor que scrollea y lo recortaba (lo medí y lo corregí).
+- Pestaña activa en `--accent-soft` y no en el violeta pleno: el violeta pleno es *menos* luminoso que
+  el gris de las inactivas y la activa se veía apagada.
+- Tipo de vino a 600 y no 500: legible sobre el fondo tinteado.
+- Barra con el inset **entero** (lo pedido): las etiquetas quedan a 43px del borde, donde las pone una
+  barra nativa; es un solo token (`--nav-safe-bottom`) si se quiere más abajo.
+- Hover: 99 selectores en 42 hojas pasaron a `(hover: hover) and (pointer: fine)` con un codemod,
+  verificado con postcss (2.392 reglas, idénticas salvo el envoltorio).
+- `.wine-row` animaba con `fill-mode: both`, que fija el `transform` final e impedía el `scale` de
+  :active; pasó a `backwards`.
+
+### Sin verificar
+La barra en un iPhone real (ver arriba), el tacto del `:active` (no se siente con mouse), fotos reales
+con `fit="auto"` y las vistas "Ya tomados" y "Favoritos" con el fondo nuevo.
