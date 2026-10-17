@@ -44,8 +44,10 @@
   transition: opacity var(--transition-fast);
 }
 
-.pie-app__credito:hover {
-  opacity: 0.95;
+@media (hover: hover) and (pointer: fine) {
+  .pie-app__credito:hover {
+    opacity: 0.95;
+  }
 }
 
 .pie-app__credito:focus-visible {

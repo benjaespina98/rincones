@@ -93,8 +93,10 @@
   transition: background var(--transition-fast);
 }
 
-.rep__pdf:hover {
-  background: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .rep__pdf:hover {
+    background: var(--accent);
+  }
 }
 
 .rep__rango {

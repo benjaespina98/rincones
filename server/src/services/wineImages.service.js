@@ -17,8 +17,7 @@ const REPLACE_MARGIN = 15;
 const wineKey = (name, winery, varietal) => poolKey(name, winery, varietal);
 
 // Sólo guardamos fotos "de verdad" (data URL o http), no cadenas vacías.
-const looksLikeImage = (value) =>
-  typeof value === "string" && /^(data:image\/|https?:\/\/)/.test(value.trim());
+const { esImagenAceptada: looksLikeImage } = require("../utils/imagenAceptada");
 
 /**
  * Aporta una foto al pool para un vino.

@@ -1,5 +1,6 @@
 const WineWish = require("../models/wineWish.model");
 const winesService = require("./wines.service");
+const { esImagenAceptada } = require("../utils/imagenAceptada");
 
 async function listWishes(userId) {
   return WineWish.find({ userId }).sort({ addedAt: -1 });
@@ -9,6 +10,8 @@ async function createWish(userId, payload) {
   const { name, winery, type, region, varietal, vintage, notes, source, priority, image, favorite } = payload;
   const cleanName = String(name || "").trim();
   const cleanWinery = winery?.trim() || "";
+  // Sólo data:image y https: lo demás (javascript:, http:, file:) se descarta.
+  const cleanImage = esImagenAceptada(image) ? String(image).trim() : "";
 
   // Evitar duplicados: si ya está guardado el mismo vino, actualizamos datos que
   // falten (foto, favorito) en vez de crear otra fila.
@@ -18,7 +21,7 @@ async function createWish(userId, payload) {
     winery: new RegExp(`^${cleanWinery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
   });
   if (existing) {
-    if (image && !existing.image) existing.image = image;
+    if (cleanImage && !existing.image) existing.image = cleanImage;
     if (favorite) existing.favorite = true;
     if (varietal && !existing.varietal) existing.varietal = varietal.trim();
     if (region && !existing.region) existing.region = region.trim();
@@ -35,7 +38,7 @@ async function createWish(userId, payload) {
     varietal: varietal?.trim() || "",
     vintage: vintage ? parseInt(vintage) : undefined,
     notes: notes?.trim() || "",
-    image: image?.trim() || "",
+    image: cleanImage,
     favorite: Boolean(favorite),
     source: source || "manual",
     priority: priority ? parseInt(priority) : 2,

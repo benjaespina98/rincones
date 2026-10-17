@@ -73,9 +73,11 @@
     transform var(--transition-fast);
 }
 
-.card--interactive:hover {
-  border-color: var(--border-base);
-  background-color: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+  .card--interactive:hover {
+    border-color: var(--border-base);
+    background-color: var(--surface-hover);
+  }
 }
 
 .card--interactive:active {

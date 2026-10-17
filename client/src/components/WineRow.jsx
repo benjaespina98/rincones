@@ -311,14 +311,16 @@ function WineRow({
             {(esVitrina || uvaYAño) && (
               <span className="wine-row__sub">
                 {esVitrina && (
-                  <span className={`wine-row__type wine-row__type--${wine.type || "unknown"}`}>
+                  <span
+                    className={`wine-row__type wine-row__type--${wine.type || "unknown"}`}
+                    data-wine-type={wine.type || "unknown"}
+                  >
                     {WINE_TYPE_LABELS[wine.type] || WINE_TYPE_LABELS.unknown}
                   </span>
                 )}
-                {/* El punto de color ya distingue el tipo de lo que
-                    sigue; falta el separador de texto que antes ponía
-                    el borde de la pastilla. */}
-                {esVitrina && uvaYAño ? `· ${uvaYAño}` : uvaYAño}
+                {/* La etiqueta es el TIPO; la uva va aparte, como texto simple: son dos
+                    datos distintos y metidos en una sola cápsula se leían como uno. */}
+                {uvaYAño && <span className="wine-row__varietal">{uvaYAño}</span>}
               </span>
             )}
             {bodega && <span className="wine-row__winery">{bodega}</span>}
@@ -377,14 +379,9 @@ function WineRow({
                 <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
               </span>
             )}
-            {/* Un chevron y no una flecha. Las dos "van a otro lado",
-                pero no significan lo mismo: la flecha llena es la de
-                los botones que avanzan ("Iniciar sesión →") y pesa
-                demasiado repetida al final de treinta filas. El
-                chevron fino es lo que usan iOS y Android para decir
-                "hay más adentro", y es el mismo que ahora cierra las
-                filas del perfil y las de Quiero probar. */}
-            <Icon name="chevron-right" size={16} className="wine-row__go" />
+            {/* Un solo chevrón por card: tocar la card abre la ficha, así que no hace falta
+                un ">" al lado de la cantidad. El "⌄" de abajo es el único, y sólo despliega
+                las acciones rápidas. */}
           </span>
         </button>
 

@@ -34,8 +34,10 @@
   cursor: pointer;
 }
 
-.pr__new:hover {
-  background: rgb(var(--accent-rgb) / 0.24);
+@media (hover: hover) and (pointer: fine) {
+  .pr__new:hover {
+    background: rgb(var(--accent-rgb) / 0.24);
+  }
 }
 
 .pr__search {
@@ -583,9 +585,15 @@
   cursor: pointer;
 }
 
-.pr__item-stats:hover,
+
 .pr__item-stats.is-open {
   color: var(--accent-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pr__item-stats:hover {
+    color: var(--accent-soft);
+  }
 }
 
 .pr__item-actions {
@@ -629,9 +637,11 @@
   height: 21px;
 }
 
-.pr__icon:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--accent-soft);
+@media (hover: hover) and (pointer: fine) {
+  .pr__icon:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--accent-soft);
+  }
 }
 
 .pr__icon:disabled {
@@ -645,9 +655,11 @@
   color: var(--success-text);
 }
 
-.pr__icon--danger:hover:not(:disabled) {
-  border-color: rgb(var(--wine-rgb) / 0.5);
-  color: var(--type-red);
+@media (hover: hover) and (pointer: fine) {
+  .pr__icon--danger:hover:not(:disabled) {
+    border-color: rgb(var(--wine-rgb) / 0.5);
+    color: var(--type-red);
+  }
 }
 
 /* El informe se abre debajo de su fila y no en un modal: así se puede comparar

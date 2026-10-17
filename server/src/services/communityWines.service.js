@@ -19,8 +19,7 @@ const isGeneric = (name) => {
   return !n || n.length < 3 || /^(vino|tinto|blanco|rosado|sin nombre|malbec|cabernet)$/.test(n);
 };
 
-const looksLikeImage = (v) =>
-  typeof v === "string" && /^(data:image\/|https?:\/\/)/.test(v.trim());
+const { esImagenAceptada: looksLikeImage } = require("../utils/imagenAceptada");
 
 /** Cuántas personas distintas hacen falta para considerarlo tan bueno como el catálogo curado. */
 const CONTRIBUTORS_TO_VERIFY = 2;

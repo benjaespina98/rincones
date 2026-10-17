@@ -18,8 +18,10 @@
   transition: color var(--transition-fast);
 }
 
-.cafecito__link:hover {
-  color: var(--text-muted);
+@media (hover: hover) and (pointer: fine) {
+  .cafecito__link:hover {
+    color: var(--text-muted);
+  }
 }
 
 .cafecito__link:focus-visible {

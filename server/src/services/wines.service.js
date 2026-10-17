@@ -6,10 +6,20 @@ const User = require("../models/user.model");
 const ChangeLog = require("../models/changeLog.model");
 const wineImages = require("./wineImages.service");
 const imageStorage = require("./imageStorage.service");
+const { esImagenAceptada } = require("../utils/imagenAceptada");
 const winePrices = require("./winePrices.service");
 const communityWines = require("./communityWines.service");
 const { isCuratedWine } = require("./catalog.service");
 const { identityKey } = require("../data/wineIdentity");
+
+/**
+ * Los tipos que el modelo acepta. Un valor fuera de esa lista (un cliente con un bug, un
+ * `"click"` que se coló) hacía fallar `save()` con un ValidationError, y `fail()` lo
+ * convierte en un 500: se le decía al usuario "algo falló de nuestro lado" por un dato
+ * que no era culpa del server. Se normaliza al alta y se ignora en la edición.
+ */
+const TIPOS_DE_VINO = Wine.schema.path("type").enumValues;
+const tipoValido = (tipo, porDefecto = "unknown") => (TIPOS_DE_VINO.includes(tipo) ? tipo : porDefecto);
 const { canonicalVarietal, checkCoherence, identificationVerdict } = require("../data/wineValidation");
 const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
 
@@ -351,7 +361,7 @@ async function createWine(userId, payload) {
   // Foto: si el usuario trae una, la usamos (y la aportamos al pool luego). Si
   // no, intentamos completar con la foto "stock" que otro haya subido del mismo
   // vino, para que la bodega no quede con placeholder cuando ya existe imagen.
-  const rawProvided = wineImages.wineKey(name, winery, varietal) && /^(data:image\/|https?:\/\/)/.test(String(image || "").trim())
+  const rawProvided = wineImages.wineKey(name, winery, varietal) && esImagenAceptada(image)
     ? String(image).trim()
     : "";
   // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
@@ -387,7 +397,7 @@ async function createWine(userId, payload) {
     varietal: uva.value,
     vintage: vintage || "",
     region: region?.trim() || "",
-    type: type || "unknown",
+    type: tipoValido(type),
   });
 
   const wine = new Wine({
@@ -403,7 +413,7 @@ async function createWine(userId, payload) {
     image: resolvedImage,
     imageSource: providedImage ? undefined : (resolvedImage ? "community" : undefined),
     rawText: rawText || "",
-    type: type || "unknown",
+    type: tipoValido(type),
     rating: rating ? parseInt(rating) : 0,
     tasted: probado,
     favorite: favorite === true,
@@ -558,7 +568,7 @@ async function updateWine(userId, id, payload) {
   // frena la publicación.
   if (varietal !== undefined) wine.varietal = canonicalVarietal(varietal).value;
   if (notes !== undefined) wine.notes = String(notes).trim();
-  if (type !== undefined) wine.type = type;
+  if (type !== undefined) wine.type = tipoValido(type, wine.type);
   if (rating !== undefined) wine.rating = parseInt(rating);
   if (favorite !== undefined) wine.favorite = favorite === true;
   // Editar la cantidad a mano fija un total, y los lotes se acomodan hacia
@@ -610,7 +620,7 @@ async function updateWine(userId, id, payload) {
     if (!bruta) {
       wine.image = null;
       wine.imageSource = "local";
-    } else if (/^(data:image\/|https?:\/\/)/.test(bruta)) {
+    } else if (esImagenAceptada(bruta)) {
       // Sólo se sube a Cloudinary lo que cambió: si vino la MISMA URL que ya
       // estaba guardada (el formulario reenvía la foto actual sin tocarla), no
       // hay nada que subir ni que aportar.
@@ -975,7 +985,7 @@ async function addMoment(userId, id, body) {
   const photos = [];
   for (const p of rawPhotos) {
     const value = String(p || "").trim();
-    if (!/^(data:image\/|https?:\/\/)/.test(value)) continue;
+    if (!esImagenAceptada(value)) continue;
     photos.push(await imageStorage.store(value, { folder: "rincones/moments" }));
   }
 

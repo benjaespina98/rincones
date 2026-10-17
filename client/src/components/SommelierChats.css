@@ -65,7 +65,7 @@
   transform: scale(0.98);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .schats__nueva:hover {
     background: rgb(var(--accent-rgb) / 0.22);
   }
@@ -131,15 +131,20 @@
   transition: background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .schats__item:hover {
     background: rgb(var(--paper-rgb) / 0.05);
   }
 }
 
-.schats__item--activo,
-.schats__item--activo:hover {
+.schats__item--activo{
   background: rgb(var(--accent-rgb) / 0.16);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .schats__item--activo:hover {
+    background: rgb(var(--accent-rgb) / 0.16);
+  }
 }
 
 /* Cada fila son dos controles hermanos: el cuerpo abre, el "⋯" abre el menú. */
@@ -187,7 +192,7 @@
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .schats__mas:hover {
     color: var(--text);
     background: rgb(var(--paper-rgb) / 0.08);
@@ -237,9 +242,15 @@
   color: var(--danger-text);
 }
 
-.schats__menu-item:hover,
+
 .schats__menu-item:focus-visible {
   background: var(--danger-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .schats__menu-item:hover {
+    background: var(--danger-soft);
+  }
 }
 
 /* Borrar todo: discreto, en el color de peligro y sin relleno — es una acción rara
@@ -261,7 +272,7 @@
   cursor: pointer;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .schats__borrar-todo:hover {
     background: var(--danger-soft);
   }

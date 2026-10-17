@@ -82,3 +82,13 @@ export const toUploadableLogo = async (file, maxDim = 320) => {
     return fileToDataUrl(file);
   }
 };
+
+/**
+ * Una URL para `background-image: url(...)`, a prueba de comillas y paréntesis.
+ * Los datos viejos pueden traer caracteres que cierran el literal y dejarían
+ * inyectar otra declaración CSS; se codifican en vez de confiar en el filtro.
+ */
+export const cssUrl = (src) => {
+  const limpio = String(src ?? "").replace(/["'()\\\s<>]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);
+  return `url("${limpio}")`;
+};

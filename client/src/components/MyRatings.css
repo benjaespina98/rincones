@@ -43,7 +43,7 @@
   cursor: pointer;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .myrat-item:hover {
     border-color: var(--line-accent);
   }

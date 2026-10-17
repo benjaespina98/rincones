@@ -170,7 +170,7 @@
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .somm__comida:hover {
     border-color: var(--line-accent);
     background: var(--surface-hover);
@@ -236,9 +236,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.somm__reintentar:hover:not(:disabled) {
-  background: var(--wine-soft);
-  border-color: rgb(var(--wine-rgb) / 0.6);
+@media (hover: hover) and (pointer: fine) {
+  .somm__reintentar:hover:not(:disabled) {
+    background: var(--wine-soft);
+    border-color: rgb(var(--wine-rgb) / 0.6);
+  }
 }
 
 .somm__reintentar:disabled {
@@ -270,7 +272,7 @@
   transition: background var(--transition-fast);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .somm__receta:hover:not(:disabled) {
     background: rgb(var(--accent-light-rgb) / 0.22);
   }
@@ -372,7 +374,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--nav-height) + var(--nav-safe-bottom));
+  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) - var(--vp-gap, 0px));
   z-index: var(--z-sticky);
   display: flex;
   flex-direction: column;
@@ -399,7 +401,7 @@
   font-size: var(--text-xs);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .somm__chip:hover:not(:disabled) {
     border-color: var(--line-accent);
     color: var(--text);
@@ -539,7 +541,7 @@
   animation: rincon-enter-up var(--transition-smooth) both;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .suggestion-card:hover {
     transform: translateY(-3px);
     border-color: var(--line-accent);
@@ -716,7 +718,7 @@
   transition: background 0.18s ease, color 0.18s ease;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .discover-card__add:hover:not(:disabled) {
     background: var(--accent);
     color: var(--paper);
@@ -853,7 +855,7 @@
   outline-offset: -2px;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .somm-icono:hover:not(:disabled) {
     background: rgb(var(--paper-rgb) / 0.08);
   }
@@ -887,7 +889,7 @@
   cursor: default;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .somm__foto:hover:not(:disabled) {
     color: var(--text);
     background: rgb(var(--paper-rgb) / 0.08);

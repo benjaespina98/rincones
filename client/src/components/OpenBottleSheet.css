@@ -143,8 +143,10 @@
   transition: filter var(--transition-fast), transform var(--transition-fast);
 }
 
-.open-sheet__confirm:hover:not(:disabled) {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .open-sheet__confirm:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 
 .open-sheet__confirm:active:not(:disabled) {
@@ -167,6 +169,8 @@
   cursor: pointer;
 }
 
-.open-sheet__cancel:hover:not(:disabled) {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .open-sheet__cancel:hover:not(:disabled) {
+    color: var(--text);
+  }
 }

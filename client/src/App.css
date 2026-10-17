@@ -29,6 +29,11 @@ html {
      `.app-layout` (AppLayout.css). */
   min-height: 0;
   overflow-y: auto;
+  /* `overflow-y: auto` deja el eje X en `auto` también: cualquier hijo apenas más ancho
+     se arrastra de costado. Las filas que se deslizan a propósito (atajos, Listos para
+     tomar) llevan su propio contenedor con scroll; la página no. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
   padding-bottom: var(--page-pad-bottom);
   scroll-padding-bottom: var(--page-pad-bottom);
@@ -65,8 +70,10 @@ html {
    sólo lo ve quien abre la app en una computadora, y ahí lo que ve es una
    interfaz nerviosa. El estado de hover se dice con color, que es lo que hacen
    las variantes de abajo. */
-.button:hover {
-  filter: brightness(1.06);
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    filter: brightness(1.06);
+  }
 }
 
 .button:active {
@@ -99,8 +106,10 @@ html {
 /* El hover aclara y nada más. El halo violeta de 28px que había acá hacía que
    el botón se encendiera al pasarle el mouse: es el gesto que vuelve barata a
    una interfaz, y encima en un teléfono —donde vive esta app— no existe. */
-.button--primary:hover {
-  background: var(--accent-light);
+@media (hover: hover) and (pointer: fine) {
+  .button--primary:hover {
+    background: var(--accent-light);
+  }
 }
 
 .button--secondary {
@@ -109,9 +118,11 @@ html {
   color: var(--text);
 }
 
-.button--secondary:hover {
-  background: rgb(var(--paper-rgb) / 0.12);
-  border-color: rgb(var(--paper-rgb) / 0.16);
+@media (hover: hover) and (pointer: fine) {
+  .button--secondary:hover {
+    background: rgb(var(--paper-rgb) / 0.12);
+    border-color: rgb(var(--paper-rgb) / 0.16);
+  }
 }
 
 .button--ghost {
@@ -120,10 +131,12 @@ html {
   color: var(--text-secondary);
 }
 
-.button--ghost:hover {
-  background: var(--surface-hover);
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .button--ghost:hover {
+    background: var(--surface-hover);
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .button--danger {
@@ -420,7 +433,6 @@ textarea::placeholder {
    del color de fondo, y una transición absurdamente larga hace que nunca
    llegue a verse. */
 input:-webkit-autofill,
-input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active,
 textarea:-webkit-autofill,
@@ -430,6 +442,16 @@ select:-webkit-autofill {
   box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset;
   caret-color: var(--text);
   transition: background-color 9999s ease-out 0s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  input:-webkit-autofill:hover {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset;
+    box-shadow: 0 0 0 1000px rgb(var(--bg-rgb) / 0.98) inset;
+    caret-color: var(--text);
+    transition: background-color 9999s ease-out 0s;
+  }
 }
 
 /* El foco vuelve a mostrar su anillo: el box-shadow de arriba ocupa la misma
@@ -517,10 +539,12 @@ select:disabled {
   transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
-.qty-btn:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--paper);
+@media (hover: hover) and (pointer: fine) {
+  .qty-btn:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+  }
 }
 
 .qty-btn:active {
@@ -657,8 +681,10 @@ select:disabled {
   box-shadow: var(--shadow-accent);
 }
 
-.btn-add:hover {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .btn-add:hover {
+    filter: brightness(1.08);
+  }
 }
 
 .btn-cancel {
@@ -666,8 +692,10 @@ select:disabled {
   color: var(--text);
 }
 
-.btn-cancel:hover {
-  background: rgb(var(--paper-rgb) / 0.16);
+@media (hover: hover) and (pointer: fine) {
+  .btn-cancel:hover {
+    background: rgb(var(--paper-rgb) / 0.16);
+  }
 }
 
 /* Acá vivía `.btn-wish`, el botón de "lo quiero probar" de la pantalla de
@@ -736,9 +764,11 @@ select:disabled {
   animation: rincon-pop var(--transition-smooth) var(--ease-spring) both;
 }
 
-.toggle-chip:hover:not(:disabled) {
-  border-color: var(--line-accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .toggle-chip:hover:not(:disabled) {
+    border-color: var(--line-accent);
+    color: var(--text);
+  }
 }
 
 .toggle-chip:disabled {
@@ -747,8 +777,8 @@ select:disabled {
 }
 
 .toggle-chip.is-on {
-  border-color: rgb(var(--success-rgb) / 0.45);
-  background: rgb(var(--success-rgb) / 0.14);
+  border-color: rgb(var(--success-rgb) / 0.4);
+  background: rgb(var(--success-rgb) / 0.16);
   color: var(--success-text);
 }
 
@@ -787,7 +817,7 @@ select:disabled {
   position: relative;
   display: flex;
   padding: 3px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--glass);
   overflow-x: auto;
@@ -812,7 +842,7 @@ select:disabled {
   min-height: 40px;
   padding: 0 8px;
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: none;
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -837,7 +867,7 @@ select:disabled {
   left: 0;
   bottom: 3px;
   z-index: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: var(--accent-muted);
   transition: transform var(--transition-smooth) var(--ease-out),
     width var(--transition-smooth) var(--ease-out);
@@ -853,6 +883,7 @@ select:disabled {
 /* El número de cada opción: dice qué vas a encontrar del otro lado antes de
    tocar, así no hay que ir a mirar para volver. */
 .segmented__n {
+  font-variant-numeric: tabular-nums;
   font-variant-numeric: tabular-nums;
   font-size: var(--text-2xs);
   font-weight: 800;
@@ -873,9 +904,8 @@ select:disabled {
       delata a una web. El CONTENIDO (nombres, notas, mensajes) sigue siendo
       seleccionable: sólo se apaga en lo que es cromo de la interfaz.
 
-   2. Lo tocable responde al dedo, y responde YA, atenuándose (`opacity`, ver
-      `button:active` en index.css). Nada se encoge ni se mueve: encoger un
-      botón del ancho de una tarjeta se lee como un salto.
+   2. Lo tocable responde al dedo, y responde YA: se achica un pelo y un velo de luz
+      aparece encima (ver "ESTADOS TÁCTILES" en index.css).
 
    3. En táctil no hay barra de scroll visible: un pulgar no la usa y ocupa
       ancho. En escritorio queda la de siempre.
@@ -895,10 +925,30 @@ button,
   -webkit-touch-callout: none;
 }
 
-/* La fila de vino es un botón del ancho de la tarjeta: atenuarla entera a 0.68 se
-   lee como un parpadeo. Una respuesta más leve, que sigue diciendo "te escuché". */
+/* La fila de vino es un botón del ancho de la tarjeta. Lo que se achica es la CARD entera
+   (`.wine-row:has(...)`, ver BodyPage.css), no el botón: por eso acá no se escala. El velo
+   cubre la card de borde a borde (`inset` negativo, recortado por su `overflow: hidden`). */
+.wine-row__main {
+  position: relative;
+}
+
+.wine-row__main::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  z-index: 1;
+  background: rgb(var(--paper-rgb) / 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+
 .wine-row__main:not(:disabled):active {
-  opacity: 0.82;
+  transform: none;
+}
+
+.wine-row__main:not(:disabled):active::before {
+  opacity: 1;
 }
 
 @media (hover: none) and (pointer: coarse) {
