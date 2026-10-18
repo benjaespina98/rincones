@@ -599,9 +599,9 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  /* El botón mide 40 para el dedo, pero se lo saca del flujo visual para que no
+  /* El botón mide 44 para el dedo, pero se lo saca del flujo visual para que no
      agrande la tarjeta ni empuje el título. */
-  margin: -10px -8px -10px 0;
+  margin: -12px -10px -12px 0;
   border: 0;
   background: none;
   color: var(--text-muted);
