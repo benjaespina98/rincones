@@ -279,7 +279,9 @@
    explicarlo. */
 .spotlight__eyebrow {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.35;
   gap: 5px;
   font-size: var(--text-sm);
   font-weight: 600;

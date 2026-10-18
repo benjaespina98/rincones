@@ -303,7 +303,7 @@
    relleno ni color; sólo cuando está marcado se enciende (en verde, ver .toggle-chip). */
 .wine-row--vitrina .wine-row__tasted:not(.is-on) {
   background: transparent;
-  border-color: var(--line-strong);
+  border-color: rgb(var(--paper-rgb) / 0.3);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
