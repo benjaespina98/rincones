@@ -802,7 +802,7 @@
 }
 
 .wines-widened button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: var(--radius-control);
   border: 1px solid var(--line-accent);
@@ -867,7 +867,7 @@
   height: 44px;
   padding: 0 14px;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   flex-shrink: 0;
   display: inline-flex;
@@ -896,7 +896,7 @@
   .wine-row__icon-btn--danger:hover:not(:disabled) {
     background: var(--wine-soft);
     border-color: rgb(var(--wine-rgb) / 0.34);
-    color: var(--wine);
+    color: var(--danger-text);
   }
 }
 
@@ -904,7 +904,7 @@
 .wine-row__icon-btn.is-fav {
   background: var(--wine-soft);
   border-color: rgb(var(--wine-rgb) / 0.34);
-  color: var(--wine);
+  color: var(--favorite);
 }
 
 .wine-row__icon-btn.is-fav .icon {

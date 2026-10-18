@@ -194,7 +194,7 @@ export default function WineRowPanel({
           className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
           onClick={() => onToggleFavorite(wine)}
           disabled={isPending}
-          aria-pressed={wine.favorite}
+          aria-pressed={!!wine.favorite}
         >
           <Icon name="heart" filled={wine.favorite} size={17} />
           Favorito
