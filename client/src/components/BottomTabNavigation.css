@@ -10,8 +10,7 @@
    y el texto de atras se mezcla con las etiquetas. */
 .bottom-tabs-container {
   position: fixed;
-  /* Menos el hueco del viewport corto de iOS (0 casi siempre). */
-  bottom: calc(var(--vp-gap, 0px) * -1);
+  bottom: 0;
   left: 0;
   right: 0;
   /* Sin soporte de blur queda un fondo casi sólido (ver el @supports de abajo): un vidrio

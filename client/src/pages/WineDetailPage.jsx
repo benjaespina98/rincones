@@ -976,21 +976,17 @@ export default function WineDetailPage() {
           </>
         )}
 
-        {/* Eliminar, al final y en voz baja: estaba a un centímetro de "favorito"
-            y "probado", que se tocan todos los días. Ahora es sólo el ícono,
-            mismo lenguaje que el tacho de la fila desplegada en Mi Bodega —
-            ahí ya no hace falta el texto al lado, el ícono solo alcanza y pesa
-            menos en una pantalla que ya cerró con las acciones de todos los días. */}
+        {/* Eliminar, al final y con nombre: un tacho solo no dice qué borra. Texto + ícono, en el
+            color de lo destructivo y lejos de "favorito" y "probado", que se tocan todos los días. */}
         {!editing && (
           <div className="wine-detail-danger">
             <button
               type="button"
               className="wine-detail-danger__btn"
               onClick={() => setShowDeleteConfirm(true)}
-              title={noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
-              aria-label={noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
             >
               <Icon name="trash" size={16} />
+              {noEsTuyo ? "Eliminar de mi historial" : "Eliminar de mi bodega"}
             </button>
           </div>
         )}
