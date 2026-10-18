@@ -83,3 +83,9 @@
     transform: scale(0.98);
   }
 }
+
+/* En el modo selección la barra de acciones (Eliminar, etc.) ocupa el lugar del botón de
+   cámara: tapándola, la mitad de "Eliminar" abría el escáner. Mientras se elige no se agrega. */
+body:has(.bodega-barra) .add-fab {
+  display: none;
+}

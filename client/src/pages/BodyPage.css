@@ -648,8 +648,19 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 .wine-row__acciones {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+/* El principal ocupa su renglón; Favorito y Eliminar comparten el de abajo, con texto: un ícono
+   solo no dice qué hace. */
+.wine-row__acciones .wine-action-btn {
+  flex: 1 1 100%;
+}
+
+.wine-row__acciones .wine-row__icon-btn {
+  flex: 1 1 0;
 }
 
 /* Sin botón principal (vino sin stock: ver el comentario en el JSX sobre por
@@ -661,7 +672,6 @@
 }
 
 .wine-row__acciones .wine-action-btn {
-  flex: 1;
   min-width: 0;
 }
 
@@ -792,9 +802,9 @@
 }
 
 .wines-widened button {
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: var(--radius-full);
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line-accent);
   background: var(--surface-2);
   color: var(--accent-soft);
@@ -853,13 +863,17 @@
 }
 
 .wine-row__icon-btn {
-  width: 44px;
+  min-width: 44px;
   height: 44px;
+  padding: 0 14px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text-secondary);
@@ -1684,7 +1698,7 @@
   /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
      toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
      salir del modo selección, marcar todos— se habían quedado en 34. */
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 10px 0 4px;
   border: 0;
   background: none;
@@ -1712,9 +1726,9 @@
   /* 40px, el mínimo que ya adoptó el resto de la app para cualquier cosa que se
      toque (ver .context-chip). Estos cuatro botones —quitar un filtro, entrar y
      salir del modo selección, marcar todos— se habían quedado en 34. */
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   border: 0;
   background: none;
   color: var(--accent-soft);
@@ -1734,8 +1748,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 42px;
-  border-radius: var(--radius-md);
+  min-height: 44px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
