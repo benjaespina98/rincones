@@ -923,7 +923,7 @@ img {
   font-family: var(--font-family-sans);
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-soft);
 }

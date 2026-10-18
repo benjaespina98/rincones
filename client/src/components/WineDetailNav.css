@@ -11,7 +11,7 @@
   /* A los bordes de la pantalla: una barra pegajosa con aire a los costados
      deja ver pasar el contenido por debajo de ese aire, y se lee como si
      flotara rota. */
-  margin: 0 calc(var(--page-pad-x) * -1);
+  margin: 0;
   padding: 8px var(--page-pad-x);
   background: rgb(var(--bg-rgb) / 0.82);
   border-bottom: 1px solid var(--border-subtle);

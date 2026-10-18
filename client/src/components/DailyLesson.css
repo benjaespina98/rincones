@@ -23,12 +23,10 @@
   gap: 10px;
   width: 100%;
   padding: var(--card-pad);
-  border: 1px solid var(--line-accent);
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(120% 150% at 0% 0%, rgb(var(--accent-rgb) / 0.24), transparent 60%),
-    linear-gradient(160deg, rgb(var(--surface-raised-rgb) / 0.9), rgb(var(--bg-rgb) / 0.94));
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
   text-align: left;
   cursor: pointer;
   transition: transform var(--transition-fast), border-color var(--transition-fast);
@@ -80,7 +78,7 @@
 .lesson-card__eyebrow {
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-soft);
 }
@@ -145,9 +143,9 @@
   flex: 1;
   min-width: 0;
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
-  color: var(--gold-soft);
+  color: var(--text-secondary);
 }
 
 .lesson-card__foot .icon {
