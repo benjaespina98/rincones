@@ -37,6 +37,15 @@
   color: var(--accent-soft);
 }
 
+/* Tablet (768–1023): las pestañas se juntan a la izquierda con aire alrededor; Escanear igual. */
+@media (min-width: 768px) {
+  .add-fab {
+    flex: 0 1 auto;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+}
+
 /* ── Escritorio: la barra es un sidebar y el botón, su encabezado ──────────
    Primera fila de la columna, a todo el ancho y con la palabra al lado del ícono. */
 @media (min-width: 1024px) {
@@ -61,5 +70,10 @@
     width: auto;
     height: auto;
     background: none;
+  }
+
+  /* En el sidebar el fondo ya es el degradé de acento: activo no cambia el color del texto. */
+  .add-fab.active {
+    color: var(--paper);
   }
 }

@@ -191,7 +191,7 @@ código propio de fases anteriores:
   - [x] `WineDetailHero`: un solo encabezado para las dos fichas. La del
         catálogo era una copia recortada que se había quedado atrás (sin fondo
         ambiental, sin marco dorado, sin color del tipo).
-  - [x] `WineDetailNav`: barra pegajosa con Resumen · Plan · Cata · Comunidad.
+  - [x] `WineDetailNav`: barra pegajosa con Resumen · Plan · Cata · Comunidad. **Retirada el 2026-10-18**: no llevaba bien a la sección y el usuario prefirió una ficha de un solo scroll. El botón de cámara flotante también se retiró: Escanear es un lugar de la barra, con nombre.
         Navega, no esconde — ver el porqué en el componente.
   - [x] `WineMoments` (269) y `WineDetailEditor` (252) salen de la página.
         **`WineDetailPage`: 1488 → 1048 líneas.** Movidos tal cual, sin

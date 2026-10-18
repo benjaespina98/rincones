@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { pasaVista, normalizarVista, VISTA_DESEOS, VISTAS } from "../src/utils/cellarViews";
-import { TABS, ADD_PATH, SIN_BOTON_ESCANEAR, tabForPath } from "../src/data/navigation";
+import { TABS, ADD_PATH, tabForPath } from "../src/data/navigation";
 
 /**
  * Las tres vistas de Mi Bodega.
@@ -152,19 +152,6 @@ describe("la barra de navegación", () => {
     // Es una tarea encima de la app, no una sección: si marcara una pestaña
     // estaría diciendo que la persona "está en" un lugar que no existe.
     expect(tabForPath(ADD_PATH)).toBe(null);
-  });
-
-  it("la cámara no se dibuja donde su lugar está ocupado", () => {
-    // El botón va centrado y apoyado sobre la barra. En el Sommelier ese lugar
-    // exacto lo ocupa el campo donde se escribe la consulta: los dos ahí serían
-    // dos controles encimados. Y en la propia carga sería un atajo a donde ya
-    // estás. Fuera de esos dos, va en todas.
-    expect(SIN_BOTON_ESCANEAR.has("/sommelier")).toBe(true);
-    expect(SIN_BOTON_ESCANEAR.has(ADD_PATH)).toBe(true);
-    for (const tab of TABS) {
-      if (tab.path === "/sommelier") continue;
-      expect(SIN_BOTON_ESCANEAR.has(tab.path)).toBe(false);
-    }
   });
 
   it("la ficha de un vino no apaga la barra: sigue marcando de dónde viniste", () => {

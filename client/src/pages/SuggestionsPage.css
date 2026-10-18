@@ -38,14 +38,14 @@
   flex-direction: column;
   gap: 14px;
   /* Lo que mide el compositor fijo (campo + fila de sugerencias), menos lo que
-     `--page-pad-bottom` ya reserva por encima de la barra. Sin esto, la última
+     `--page-pad-bottom` ya reserva por encima de la barra (nav + 24px). Sin esto, la última
      respuesta nace tapada y hay que scrollear para leer lo que acaba de
      llegar. Sobra un poco a propósito: que la respuesta termine con aire arriba
      del campo se lee mejor que si le queda justo. */
   padding-bottom: 72px;
   /* ...y si el compositor mide más (con la fila de repreguntas), se reserva lo que
      mide: `--somm-pie` lo publica la pantalla (ver SuggestionsPage.jsx). */
-  padding-bottom: max(72px, calc(var(--somm-pie, 0px) - 32px));
+  padding-bottom: max(72px, calc(var(--somm-pie, 0px) - 8px));
 }
 
 /* La entrada. Sin el medallón con la copa que iba arriba de todo: un ícono de
