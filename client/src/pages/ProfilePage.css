@@ -66,7 +66,7 @@
 .profile-kicker {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
@@ -303,8 +303,8 @@
 }
 
 .account-item--feature .account-item__icon {
-  background: rgb(var(--gold-rgb) / 0.14);
-  color: var(--gold-soft, var(--gold-soft));
+  background: rgb(var(--accent-rgb) / 0.14);
+  color: var(--accent-soft);
 }
 
 .account-item--feature .account-item__label {

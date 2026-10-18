@@ -645,9 +645,8 @@ export default function DiscoverPage() {
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
                 <Icon name="sparkle" size={12} />
-                Para vos
+                {motivo || "Para vos"}
               </span>
-              {motivo && <span className="spotlight__kicker">{motivo}</span>}
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
                 {metaDelVino(spotlight)}

@@ -281,10 +281,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--accent-soft);
 }
 
@@ -491,7 +490,7 @@
 .explore__group-label {
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
