@@ -216,13 +216,6 @@
   }
 }
 
-/* Las reglas de `.tab-button--add` se fueron con la pestaña.
-   "Agregar" dejó de ser una pestaña disfrazada de botón —un círculo lleno
-   metido en una fila de íconos de contorno, peleando ancho con secciones que
-   se visitan mucho menos— y pasó a ser un botón flotante, centrado y con su
-   nombre escrito, encima de la barra. Ver components/AddWineButton.jsx y su
-   hoja. */
-
 /* Brand only visible in desktop sidebar */
 .sidebar-brand {
   display: none;

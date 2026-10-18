@@ -14,13 +14,14 @@
 .wine-detail-hero {
   position: relative;
   width: 100%;
-  height: clamp(340px, 54vh, 440px);
   background:
     radial-gradient(120% 80% at 50% 0%, rgb(var(--accent-light-rgb) / 0.35), transparent 65%),
     linear-gradient(160deg, rgb(var(--accent-rgb) / 0.32) 0%, rgb(var(--bg-rgb) / 0.95) 100%);
+  /* Foto arriba y título ABAJO, en su propia franja: antes el nombre se dibujaba encima de la foto
+     y se pisaba con la botella y con el botón de ampliar. */
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
   overflow: hidden;
   border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
 }
@@ -57,10 +58,8 @@
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgb(var(--bg-rgb) / 0.05) 44%,
-    rgb(var(--bg-rgb) / 0.32) 66%,
-    rgb(var(--bg-rgb) / 0.68) 83%,
-    rgb(var(--bg-rgb) / 0.92) 100%
+    transparent 55%,
+    rgb(var(--bg-rgb) / 0.55) 100%
   );
   pointer-events: none;
 }
@@ -103,7 +102,8 @@
 .wine-detail-hero__placeholder {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: clamp(260px, 40vh, 340px);
+  flex-shrink: 0;
 }
 
 /* La foto es tocable: abre el visor a pantalla completa. Sin apariencia de
@@ -150,12 +150,9 @@
 
 /* Poster overlay (name + origin over the image) */
 .wine-detail-hero__overlay {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 2;
-  padding: 28px var(--card-pad-hero) 26px;
+  padding: 16px var(--card-pad-hero) 22px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -172,15 +169,13 @@
   line-height: 1.08;
   letter-spacing: -0.025em;
   color: var(--paper);
-  text-shadow: 0 2px 18px rgb(var(--ink-rgb) / 0.55);
 }
 
 .wine-detail-hero__origin {
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 500;
-  color: rgb(var(--paper-rgb) / 0.85);
-  text-shadow: 0 1px 10px rgb(var(--ink-rgb) / 0.5);
+  color: var(--text-secondary);
 }
 
 .wine-detail-hero__actions {
@@ -1200,7 +1195,6 @@
   }
 
   .wine-detail-hero {
-    height: 460px;
     border-radius: var(--radius-2xl);
     position: sticky;
     top: 92px;

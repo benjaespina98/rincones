@@ -1512,11 +1512,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: var(--radius-tag);
-  /* El tinte sale de `data-wine-type` (--type-soft = el color del tipo al 14%). */
-  background: var(--type-soft);
+  /* Sin caja ni contorno: el tipo es un punto de color y una palabra, el mismo lenguaje que el
+     resto de la app (WineMeta). Una píldora tintada junto a la uva se leía como un botón. */
+  height: auto;
+  padding: 0;
   font-size: var(--text-meta);
   font-weight: 600;
   letter-spacing: 0.005em;

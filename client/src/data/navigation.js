@@ -52,16 +52,6 @@ export const TABS = [
 /** Adónde lleva la acción de escanear. Fuera de TABS: no es una sección. */
 export const ADD_PATH = "/agregar";
 
-/**
- * Dónde NO se dibuja el botón de la cámara.
- *
- * En la propia carga sería un atajo a donde ya estás. En el Sommelier, ese
- * lugar —centrado, apoyado sobre la barra— lo ocupa el campo donde se escribe
- * la consulta: dos controles encimados no se leen como dos cosas, se leen como
- * un error. Y ahí la acción principal es preguntar, no cargar una botella.
- */
-export const SIN_BOTON_ESCANEAR = new Set([ADD_PATH, "/sommelier"]);
-
 export const TAB_PATHS = new Set(TABS.map((t) => t.path));
 
 /* De qué pestaña "cuelga" cada pantalla interna. Sirve para que la barra siga

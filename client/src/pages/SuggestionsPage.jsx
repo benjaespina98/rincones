@@ -17,6 +17,7 @@ import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
 import Icon from "../components/Icon";
 import Chip from "../components/Chip";
+import { recorteDeVinos } from "../utils/recorteDeVinos";
 import Logo from "../components/Logo";
 import SommelierChats from "../components/SommelierChats";
 import RespuestaAcciones from "../components/RespuestaAcciones";
@@ -241,6 +242,8 @@ export default function SuggestionsPage() {
   const [pensandoLargo, setPensandoLargo] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  // Respuestas cuyas listas de vinos se abrieron completas (ver `recorteDeVinos`).
+  const [verTodos, setVerTodos] = useState(() => new Set());
 
   // La receta: qué mensaje la está pidiendo, cuál falló, y cuál tiene la
   // hoja abierta. Un vino por vez (como en WinePlan) — no hace falta más:
@@ -1105,11 +1108,11 @@ export default function SuggestionsPage() {
                   foto, mismo "×3" del stock. Que el mismo vino se vea igual en
                   todas las pantallas es lo que hace que la app se sienta una
                   sola cosa y no tres pantallas del mismo proyecto. */}
-              {m.wines?.length > 0 && (
+              {recorteDeVinos(m, verTodos.has(m.id)).bodega.length > 0 && (
                 <>
                   <p className="somm__rotulo">De tu bodega</p>
                   <ul className="somm__lista">
-                    {m.wines.map((wine) => (
+                    {recorteDeVinos(m, verTodos.has(m.id)).bodega.map((wine) => (
                       <li
                         key={wine._id}
                         className="suggestion-card"
@@ -1152,11 +1155,11 @@ export default function SuggestionsPage() {
               )}
 
               {/* ── LO QUE NO ────────────────────────────────────────────── */}
-              {m.descubrir?.length > 0 && (
+              {recorteDeVinos(m, verTodos.has(m.id)).nuevos.length > 0 && (
                 <>
                   <p className="somm__rotulo">Para descubrir</p>
                   <ul className="somm__lista">
-                    {m.descubrir.map((wine) => (
+                    {recorteDeVinos(m, verTodos.has(m.id)).nuevos.map((wine) => (
                       <li
                         key={wine.id}
                         className="discover-card"
@@ -1200,6 +1203,17 @@ export default function SuggestionsPage() {
                     ))}
                   </ul>
                 </>
+              )}
+
+              {recorteDeVinos(m, verTodos.has(m.id)).ocultos > 0 && (
+                <button
+                  type="button"
+                  className="somm__ver-mas"
+                  onClick={() => setVerTodos((prev) => new Set(prev).add(m.id))}
+                >
+                  Ver {recorteDeVinos(m, false).ocultos} más
+                  <Icon name="chevron-down" size={16} />
+                </button>
               )}
             </div>
           )
