@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import Logo from "./Logo";
@@ -77,8 +77,6 @@ export default function BottomTabNavigation() {
             escritorio, donde la barra se convierte en sidebar, vuelve al flujo
             y se acomoda como primer elemento de la columna — sin espaciadores
             inventados ni números mágicos que mantener sincronizados. */}
-        <AddWineButton />
-
         {/* Decorativo: quien anuncia cuál es la pestaña actual es
             `aria-current` en su botón, no esta barrita. */}
         {indicador && (
@@ -89,11 +87,13 @@ export default function BottomTabNavigation() {
           />
         )}
 
-        {TABS.map((tab) => {
+        {TABS.map((tab, i) => {
           const activo = activeTab === tab.id;
           return (
+            <Fragment key={tab.id}>
+            {/* Escanear va entre Sommelier y Mi Bodega: la acción principal en medio de la fila. */}
+            {i === 2 && <AddWineButton />}
             <button
-              key={tab.id}
               ref={activo ? activoRef : null}
               className={`tab-button ${activo ? "active" : ""}`}
               onClick={() => handleTabClick(tab.path)}
@@ -106,6 +106,7 @@ export default function BottomTabNavigation() {
               </span>
               <span className="tab-label">{tab.label}</span>
             </button>
+            </Fragment>
           );
         })}
       </div>

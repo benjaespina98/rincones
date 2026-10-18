@@ -1122,7 +1122,7 @@ img {
   --nav-safe-bottom: env(safe-area-inset-bottom, 0px);
   --topbar-safe-top: max(calc(env(safe-area-inset-top, 0px) - 14px), 0px);
 
-  --page-pad-bottom: calc(var(--nav-height) + 80px + var(--nav-safe-bottom));
+  --page-pad-bottom: calc(var(--nav-height) + 24px + var(--nav-safe-bottom));
 }
 
 @media (min-width: 768px) {

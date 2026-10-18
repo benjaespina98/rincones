@@ -1,91 +1,65 @@
-/* ═══ El botón de escanear ═══════════════════════════════════════════════════
-   No es una pestaña: es una cámara, y una cámara ya dice qué hace, así que no lleva
-   etiqueta. Tampoco es un lugar más de la fila: con tres pestañas, un cuarto lugar caía
-   en el 63% del ancho (medido), nunca en el medio. Por eso sale de la fila y flota.
-
-   Estuvo centrado, apoyado en el borde de arriba de la barra, y tapaba el ícono de
-   Sommelier. Ahora va al borde derecho, encima de la barra, sin solaparse con ninguna
-   pestaña. ════════════════════════════════════════════════════════════════════ */
-
-/* Al borde derecho y flotando justo ENCIMA de la barra: antes estaba centrado y tapaba
-   el ícono de Sommelier. 56×56 con `--radius-fab`, degradé de acento (oscuro, para que el
-   ícono blanco pase 3:1 con holgura) y sin halo: las superficies no brillan.
-
-   Se ancla a la barra (su `backdrop-filter` la vuelve el bloque contenedor de lo `fixed`),
-   así que `bottom` se mide desde el borde de abajo de la barra: zona segura + alto + 12px. */
+/* ═══ Escanear: un lugar de la barra, con nombre ═══════════════════════════════
+   Mismo molde que `.tab-button` (columna: ícono arriba, palabra abajo) para que la fila se
+   reparta pareja. Lo que lo distingue es el ícono: una pastilla de acento con la cámara
+   adentro, que lo marca como la acción principal sin flotar sobre el contenido. */
 .add-fab {
-  position: fixed;
-  right: var(--page-pad-x);
-  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) + 12px);
-  z-index: calc(var(--z-nav) + 1);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: color var(--transition-fast);
+}
 
+.add-fab__icono {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: var(--radius-fab);
+  width: 40px;
+  height: 22px;
+  border-radius: var(--radius-chip);
   background: linear-gradient(145deg, var(--accent) 0%, var(--accent-strong) 100%);
   color: var(--paper);
-  cursor: pointer;
-  /* Un canto de luz y dos sombras oscuras que le dan altura. */
-  box-shadow:
-    inset 0 1px 0 rgb(var(--paper-rgb) / 0.22),
-    0 2px 6px rgb(var(--ink-rgb) / 0.4),
-    0 8px 20px rgb(var(--ink-rgb) / 0.45);
-  transition: transform var(--transition-fast), background var(--transition-fast),
-    box-shadow var(--transition-fast), opacity var(--transition-fast);
 }
 
-.add-fab:active {
-  transform: scale(0.94);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .add-fab:hover {
-    background: linear-gradient(145deg, var(--accent) 30%, var(--accent-strong) 100%);
-  }
+.add-fab.active {
+  color: var(--accent-soft);
 }
 
 /* ── Escritorio: la barra es un sidebar y el botón, su encabezado ──────────
-   En una columna vertical "levantarse un poco" no significa nada, así que ahí
-   la jerarquía la da el ancho completo y el nombre escrito: es la primera fila
-   del sidebar, que es donde vive la acción principal en cualquier herramienta
-   de escritorio. */
+   Primera fila de la columna, a todo el ancho y con la palabra al lado del ícono. */
 @media (min-width: 1024px) {
   .add-fab {
-    /* Vuelve al flujo: está escrito adentro del sidebar (ver
-       BottomTabNavigation.jsx), así que apenas deja de ser `fixed` se ubica
-       solo como primer elemento de la columna, debajo de la marca. Sin números
-       mágicos que mantener sincronizados con la altura de nada. */
-    position: static;
     order: -1;
+    flex: none;
     width: 100%;
     height: 46px;
     margin: 0 0 14px;
-    box-shadow: var(--shadow-accent);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0;
+    flex-direction: row;
     gap: 10px;
     border-radius: var(--radius-md);
-    transform: none;
+    background: linear-gradient(145deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: var(--paper);
+    box-shadow: var(--shadow-accent);
     font-size: var(--text-base);
     font-weight: 700;
-    box-shadow: var(--shadow-accent);
   }
 
-  .add-fab::after {
-    content: "Escanear";
+  .add-fab__icono {
+    width: auto;
+    height: auto;
+    background: none;
   }
-
-  .add-fab:active {
-    transform: scale(0.98);
-  }
-}
-
-/* En el modo selección la barra de acciones (Eliminar, etc.) ocupa el lugar del botón de
-   cámara: tapándola, la mitad de "Eliminar" abría el escáner. Mientras se elige no se agrega. */
-body:has(.bodega-barra) .add-fab {
-  display: none;
 }
