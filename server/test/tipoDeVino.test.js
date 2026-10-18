@@ -104,3 +104,40 @@ test("updateWine aplica un tipo válido", async () => {
   const actualizado = await editar("white");
   assert.equal(actualizado.type, "white");
 });
+
+// ── Reposición: el vino ya estaba, y el tipo basura no puede romper ni pisar nada ──────────
+
+test('reposición con tipo basura ("click"): suma botellas, no falla y no toca el tipo guardado', async () => {
+  const originalFind = Wine.find;
+  const originalFOU = Wine.findOneAndUpdate;
+  const originalFindById = User.findById;
+  const existente = { _id: new mongoose.Types.ObjectId(), name: "QA Manual", winery: "QA", varietal: "", line: "", vintage: null, quantity: 1, type: "red" };
+  const q = Promise.resolve([existente]);
+  q.select = () => q;
+  Wine.find = () => q;
+  let actualizacion = null;
+  Wine.findOneAndUpdate = async (_filtro, cambios) => {
+    actualizacion = cambios;
+    return { ...existente, quantity: 2 };
+  };
+  User.findById = async () => ({ stats: { winesCount: 1, tastedWines: 0 }, save: async () => {} });
+  try {
+    const r = await winesService.createWine(USER_ID, { name: "QA Manual", winery: "QA", quantity: 1, type: "click" });
+    assert.equal(r.merged, true);
+    assert.equal(r.added, 1);
+    assert.ok(!JSON.stringify(actualizacion).includes("click"), "el tipo basura no llega al update");
+  } finally {
+    Wine.find = originalFind;
+    Wine.findOneAndUpdate = originalFOU;
+    User.findById = originalFindById;
+  }
+});
+
+// ── Edición: un tipo vacío o nulo tampoco pisa el que tenía ────────────────────────────────
+
+for (const vacio of [null, ""]) {
+  test(`updateWine con el tipo ${JSON.stringify(vacio)} conserva el anterior y no falla`, async () => {
+    const actualizado = await editar(vacio);
+    assert.equal(actualizado.type, "red");
+  });
+}

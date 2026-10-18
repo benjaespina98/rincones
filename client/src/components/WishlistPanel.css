@@ -120,7 +120,7 @@
   min-height: 38px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line-accent);
+  border: 1px solid var(--border-card);
   background: var(--accent-muted);
   color: var(--accent-soft);
   font-size: var(--text-sm);
