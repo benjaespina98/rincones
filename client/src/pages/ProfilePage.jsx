@@ -203,7 +203,6 @@ export default function ProfilePage() {
           </div>
         )}
         <div className="profile-info">
-          <span className="profile-kicker">Tu cuenta</span>
           {/* Sin nombre cargado, el <h2> quedaba VACÍO: el bloque más
               importante del perfil mostraba un hueco entre el rótulo y la
               edad. Una cuenta creada con Google o desde el panel puede no

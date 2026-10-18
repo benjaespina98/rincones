@@ -35,6 +35,9 @@ const AppLayout = ({ children, pageTitle }) => {
   const location = useLocation();
   /* Descubrí es la raíz: es la pantalla con la que se abre la app. */
   const esInicio = location.pathname === "/";
+  /* La ficha de un vino lleva su propio título (el nombre del vino): el genérico "Vino" sólo
+     estorba. Se queda para lectores de pantalla, pero no se dibuja ni en el grande ni en la barra. */
+  const tituloGenerico = /^\/(vino\/|descubrir\/vino)/.test(location.pathname);
   const { user } = useAuth();
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
@@ -104,7 +107,7 @@ const AppLayout = ({ children, pageTitle }) => {
         <div className="app-topbar__ranura app-topbar__ranura--izq" ref={setIzquierda} />
 
         <span className="app-topbar__title" aria-hidden="true">
-          {pageTitle}
+          {tituloGenerico ? "" : pageTitle}
         </span>
 
         {/* Tocar el avatar lleva a la sección de perfil a pantalla completa
@@ -166,7 +169,7 @@ const AppLayout = ({ children, pageTitle }) => {
             Rincones
           </h1>
         ) : (
-          <h1 className="app-hero-title">{pageTitle}</h1>
+          <h1 className={tituloGenerico ? "sr-only" : "app-hero-title"}>{pageTitle}</h1>
         )}
         {children}
       </main>

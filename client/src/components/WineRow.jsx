@@ -417,7 +417,7 @@ function WineRow({
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Ya lo tomé" : "Sin tomar"}
+            {wine.tasted ? "Ya lo tomé" : "Marcar como tomado"}
           </span>
         </button>
         )}

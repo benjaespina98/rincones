@@ -303,14 +303,23 @@
    relleno ni color; sólo cuando está marcado se enciende (en verde, ver .toggle-chip). */
 .wine-row--vitrina .wine-row__tasted:not(.is-on) {
   background: transparent;
-  color: var(--text-muted);
+  border-color: rgb(var(--paper-rgb) / 0.3);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* Y marcado, más callado que el verde lleno del chip común: es lo que tiene casi toda la
    lista, y repetido en cada tarjeta competía con el vino. */
 .wine-row--vitrina .wine-row__tasted.is-on {
-  background: rgb(var(--success-rgb) / 0.16);
-  border-color: rgb(var(--success-rgb) / 0.4);
+  /* Un estado, no una acción: texto verde con su tilde, sin caja. La caja es para lo que se
+     toca ("Marcar como tomado"); repetida en cada tarjeta, la píldora verde era ruido. Va a ras
+     de la foto (padding izquierdo 0) y el área de toque de 44 sigue por el ::after. */
+  background: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .wine-row--vitrina .wine-row__disclosure {
@@ -609,7 +618,7 @@
 .wine-row__facts dt {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-subtle);
 }
@@ -744,7 +753,7 @@
   margin: 4px 2px -2px;
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -1253,9 +1262,8 @@
   padding: 3px 8px 3px 7px;
   border-radius: var(--radius-full);
   background: rgb(var(--type-white-rgb) / 0.12);
-  border: 1px solid rgb(var(--type-white-rgb) / 0.24);
   font-size: var(--text-xs);
-  font-weight: 800;
+  font-weight: 700;
   color: var(--gold-soft);
   white-space: nowrap;
 }
@@ -1302,7 +1310,7 @@
   white-space: nowrap;
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 

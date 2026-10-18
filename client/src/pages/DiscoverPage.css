@@ -166,12 +166,11 @@
      la marca se queda del otro lado, más bajo. Los dos y no uno solo: con puro
      color del tipo, la tarjeta dejaba de parecer de Rincones y pasaba a
      parecer de la bodega del vino. */
-  border: 1px solid rgb(var(--type-rgb) / 0.3);
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgb(var(--type-rgb) / 0.2), transparent 58%),
-    radial-gradient(120% 140% at 100% 0%, rgb(var(--accent-light-rgb) / 0.14), transparent 55%),
-    linear-gradient(160deg, rgb(var(--surface-raised-rgb) / 0.92), rgb(var(--bg-rgb) / 0.95));
-  box-shadow: var(--shadow-md);
+  /* Neutra, como el resto de las tarjetas: el color del tipo vive en la etiqueta del vino, no en
+     el marco (en un blanco o un espumante el marco salia dorado y se leia como alerta). */
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   animation: rincon-enter-up var(--transition-smooth) both;
 }
@@ -280,17 +279,18 @@
    explicarlo. */
 .spotlight__eyebrow {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.35;
   gap: 5px;
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--accent-soft);
 }
 
 .spotlight__eyebrow .icon {
-  color: var(--gold);
+  color: var(--accent-soft);
 }
 
 /* El motivo: la frase que explica por qué te tocó ESTE vino. En versales una
@@ -299,10 +299,10 @@
    etiqueta para reconocer, y con 12.8px se leía como letra chica legal. */
 .spotlight__kicker {
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   letter-spacing: 0;
-  color: var(--gold-soft);
+  color: var(--text-secondary);
 }
 
 /* Si no hubo ningún motivo verdadero que dar, el renglón no deja un hueco.
@@ -492,7 +492,7 @@
 .explore__group-label {
   font-size: var(--text-2xs);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
