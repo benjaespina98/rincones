@@ -374,7 +374,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) - var(--vp-gap, 0px));
+  bottom: calc(var(--nav-height) + var(--nav-safe-bottom));
   z-index: var(--z-sticky);
   display: flex;
   flex-direction: column;

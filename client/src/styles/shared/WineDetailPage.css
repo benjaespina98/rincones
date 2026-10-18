@@ -877,30 +877,29 @@
    barra: es lo único de esta pantalla que no se puede deshacer del todo. */
 .wine-detail-danger {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 6px;
+  justify-content: center;
+  padding-top: 14px;
 }
 
 .wine-detail-danger__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-  color: var(--text-muted);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-control);
+  border: 0;
+  background: transparent;
+  color: var(--danger-text);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .wine-detail-danger__btn:hover {
-    background: var(--wine-soft);
-    border-color: rgb(var(--wine-rgb) / 0.34);
-    color: var(--type-red);
+    background: var(--danger-soft);
   }
 }
 

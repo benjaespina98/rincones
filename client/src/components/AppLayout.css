@@ -36,14 +36,13 @@
    (el scroll), así que el viewport corto quedaba para siempre. El documento
    vuelve a poder scrollear; lo que se ve lo sigue haciendo `.app-content`.
 
-   `--vp-gap` lo escribe `useViewportGap` con el hueco que quede después de
-   empujar el recálculo (0 en todo lo que no sea iOS en modo app): el shell se
-   estira esos píxeles hacia abajo y la barra, el botón de agregar y el
-   compositor los restan de su `bottom`. */
+   `--vp-gap` lo mide `useViewportGap` sólo para diagnóstico (`?vp=1`): el layout NO lo usa.
+   Se probó estirar el shell y bajar la barra esos píxeles y salió peor: iOS no pinta nada
+   más allá del viewport de layout, así que la barra quedaba en su lugar pero cortada, sin
+   etiquetas. Lo anclado abajo se queda dentro de lo que iOS dibuja. */
 .app-layout {
   position: fixed;
   inset: 0;
-  bottom: calc(var(--vp-gap, 0px) * -1);
   display: flex;
   flex-direction: column;
   /* En horizontal, con muesca, el contenido no queda debajo de ella. En vertical
