@@ -19,6 +19,17 @@ html {
   flex-direction: column;
 }
 
+/* En iOS, al abrir la PWA, el viewport de layout puede quedar ~58px más corto que la pantalla y
+   la barra de abajo flota sobre una franja vacía hasta que el documento scrollea (arrastrar hacia
+   abajo la corrige). Todo lo visible es `fixed`, así que el documento no tenía NADA que scrollear
+   y el `scrollTo` de useViewportGap era un no-op. Con 2px de recorrido, en modo app, ese empujón
+   existe y iOS recalcula. */
+@media (display-mode: standalone) {
+  #root {
+    min-height: calc(100dvh + 2px);
+  }
+}
+
 /* El área que scrollea, y el ÚNICO lugar donde se declara el espacio que despeja
    la barra de navegación. El valor sale de --page-pad-bottom (index.css), que es
    donde está explicado por qué hay un solo dueño. */

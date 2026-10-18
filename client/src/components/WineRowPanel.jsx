@@ -1,5 +1,4 @@
 import Icon from "./Icon";
-import { WINE_TYPE_LABELS } from "../data/wineReference";
 
 
 /**
@@ -75,7 +74,6 @@ export default function WineRowPanel({
           ["Uva", wine.varietal],
           ["Cosecha", wine.vintage],
           ["Región", wine.region],
-          ["Tipo", WINE_TYPE_LABELS[wine.type]],
           ["Guardado en", wine.cellar?.location],
           [
             "Pagaste",
@@ -196,20 +194,19 @@ export default function WineRowPanel({
           className={`wine-row__icon-btn ${wine.favorite ? "is-fav" : ""}`}
           onClick={() => onToggleFavorite(wine)}
           disabled={isPending}
-          title={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-          aria-label={wine.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+          aria-pressed={!!wine.favorite}
         >
           <Icon name="heart" filled={wine.favorite} size={17} />
+          Favorito
         </button>
         <button
           type="button"
           className="wine-row__icon-btn wine-row__icon-btn--danger"
           onClick={() => onEliminar(wine._id)}
           disabled={isPending}
-          title="Eliminar este vino de tu bodega"
-          aria-label="Eliminar vino"
         >
           <Icon name="trash" size={17} />
+          Eliminar
         </button>
       </div>
     </div>
