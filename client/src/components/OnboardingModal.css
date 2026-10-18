@@ -22,7 +22,7 @@
   overflow-y: auto;
   padding: 22px 20px;
   border-radius: var(--radius-2xl);
-  border: 1px solid var(--line-accent);
+  border: 1px solid var(--border-card);
   background:
     radial-gradient(120% 90% at 50% 0%, rgb(var(--accent-light-rgb) / 0.22), transparent 55%),
     linear-gradient(180deg, rgb(var(--surface-raised-rgb) / 0.98), rgb(var(--bg-rgb) / 0.99));

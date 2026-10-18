@@ -191,8 +191,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   /* Era rgba(12,15,25,.68): un chip oscuro sobre una foto que también es
      oscura, así que sólo se notaba por el borde de un píxel. Más claro y con
@@ -597,8 +597,8 @@
 .wine-welcome__close {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   /* El botón mide 40 para el dedo, pero se lo saca del flujo visual para que no
      agrande la tarjeta ni empuje el título. */
   margin: -10px -8px -10px 0;
@@ -649,7 +649,7 @@
   align-items: center;
   gap: 7px;
   align-self: flex-start;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
@@ -828,6 +828,7 @@
 }
 
 .wine-qty-controls--quiet .qty-btn {
+  position: relative;
   width: 32px;
   height: 32px;
   border-color: var(--line);
@@ -942,8 +943,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  /* 40px como el resto de los botones de la app. */
-  min-height: 40px;
+  min-height: 44px;
   border: none;
   background: var(--accent-muted);
   color: var(--accent-light);
@@ -1329,4 +1329,11 @@
   color: var(--text);
   font-size: var(--text-sm);
   font-weight: 700;
+}
+
+/* El paso de botellas de la ficha se ve de 32 y se toca en 44: el área sale por el ::after. */
+.wine-qty-controls--quiet .qty-btn::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
 }
