@@ -5,7 +5,7 @@
   padding: 16px;
   margin: 8px 14px;
   border-radius: var(--radius-xl);
-  border: 1px solid var(--line-accent);
+  border: 1px solid var(--border-card);
   background:
     radial-gradient(120% 90% at 50% 0%, rgb(var(--accent-light-rgb) / 0.16), transparent 55%),
     var(--elevated);
