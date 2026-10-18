@@ -14,6 +14,12 @@ Este es **el** manual. Está en `.claude/README.md` y viaja con el repo.
 Regla para elegir: si es **conocimiento**, skill; si es **opinión independiente**,
 agente; si es una **prohibición o una verificación obligatoria**, hook.
 
+## Los agentes se usan solos
+
+Por regla de `CLAUDE.md`, al terminar un cambio (salvo los triviales) Claude lanza en paralelo
+los agentes que apliquen al diff, sin que los pidas. Los comandos `/` sirven para forzarlos
+o para acotar el alcance.
+
 ## Los comandos `/` (lo que vas a usar)
 
 Escribí `/` y elegí. Los comandos llevan nombre de **acción** (`/revisar-ui`) y los agentes de **persona** (`picasso`): `/revisar-ui` lanza al agente `picasso`. Escribiendo `/revisar` el autocompletado te lista todos. Todos aceptan un argumento opcional: `/revisar-ui BodegaFilters.css`.
