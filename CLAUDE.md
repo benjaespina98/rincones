@@ -76,9 +76,23 @@ Devuelven hallazgos medidos, no opiniones.
 | `tesla` | IA / Gemini | Latencia, tokens, costos, prompts, fallbacks |
 | `fangio` | CI/CD y rendimiento | Pipeline, bundle, velocidad de carga |
 
-Antes de cerrar un cambio grande conviene llamar, en paralelo, a los que apliquen
-(`picasso` si hay UI, `messi` si hay lógica, `houdini` si hay endpoints, `pirlo`
-siempre) y a `sherlock` al final.
+**Los agentes se usan solos, sin que el usuario los pida.** Al terminar un cambio, y antes
+de decir que está listo, lanzá en paralelo los que apliquen al diff (`git diff develop...HEAD`):
+
+| El diff toca… | Lanzá |
+|---|---|
+| cualquier código | `pirlo` |
+| UI o CSS | `picasso` |
+| lógica de vinos, stock o flujos | `messi` |
+| endpoints, auth, fotos, entrada del usuario | `houdini` |
+| Gemini o el Sommelier | `tesla` |
+| dependencias, build o CI | `fangio` |
+| algo visible o un flujo del usuario | `sherlock`, al final y con alcance acotado |
+
+Un cambio trivial (un texto, un margen) no los necesita: alcanzan hooks y CI. Un hallazgo
+*confirmado* alto o crítico se corrige antes de cerrar; los *plausibles* se reportan, no se
+arreglan a ciegas. Si un agente no está registrado, correr uno genérico con su archivo de
+`.claude/agents/` y decirlo. `/publicar` los vuelve obligatorios como compuerta.
 
 ## Hooks (`.claude/hooks/`)
 
