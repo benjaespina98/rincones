@@ -34,3 +34,10 @@ describe("la barra sigue anclada abajo", () => {
     expect(bloque).toMatch(/bottom:\s*0/);
   });
 });
+
+describe("el documento tiene recorrido para que el empujón de iOS funcione", () => {
+  test("en modo app, #root mide 2px más que la pantalla", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/App.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).toMatch(/@media \(display-mode: standalone\)\s*\{\s*#root\s*\{\s*min-height:\s*calc\(100dvh \+ 2px\)/);
+  });
+});
