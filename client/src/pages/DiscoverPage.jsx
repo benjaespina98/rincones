@@ -41,6 +41,12 @@ import "./DiscoverPage.css";
 // el vino del día fuera de la pantalla).
 const CANTIDAD_DE_ATAJOS = 6;
 
+/** La bodega y la región, sin repetir la bodega si el nombre ya la trae ("Navarro Correas Alegoría"). */
+const metaDelVino = ({ name = "", winery = "", region = "" }) => {
+  const yaLaTrae = winery && name.toLowerCase().includes(winery.toLowerCase());
+  return [yaLaTrae ? "" : winery, region].filter(Boolean).join(" · ");
+};
+
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -639,12 +645,12 @@ export default function DiscoverPage() {
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
                 <Icon name="sparkle" size={12} />
-                Recomendado para vos
+                Para vos
               </span>
               {motivo && <span className="spotlight__kicker">{motivo}</span>}
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
-                {spotlight.winery}{spotlight.region ? ` · ${spotlight.region}` : ""}
+                {metaDelVino(spotlight)}
               </p>
               <WineMeta
                 className="spotlight__tags"
