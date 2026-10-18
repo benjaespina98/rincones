@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import Logo from "./Logo";
@@ -70,15 +70,6 @@ export default function BottomTabNavigation() {
           <span className="sidebar-brand__name">Rincones</span>
         </div>
 
-        {/* La cámara está escrita adentro de la barra pero NO ocupa un lugar en
-            la fila: en teléfono se sale con `position: fixed` y se centra
-            sola, porque con tres pestañas ningún reparto de la fila cae en el
-            medio (ver su hoja de estilos). Vive en este marcado porque en
-            escritorio, donde la barra se convierte en sidebar, vuelve al flujo
-            y se acomoda como primer elemento de la columna — sin espaciadores
-            inventados ni números mágicos que mantener sincronizados. */}
-        <AddWineButton />
-
         {/* Decorativo: quien anuncia cuál es la pestaña actual es
             `aria-current` en su botón, no esta barrita. */}
         {indicador && (
@@ -89,23 +80,26 @@ export default function BottomTabNavigation() {
           />
         )}
 
-        {TABS.map((tab) => {
+        {TABS.map((tab, i) => {
           const activo = activeTab === tab.id;
           return (
-            <button
-              key={tab.id}
-              ref={activo ? activoRef : null}
-              className={`tab-button ${activo ? "active" : ""}`}
-              onClick={() => handleTabClick(tab.path)}
-              aria-label={tab.label}
-              aria-current={activo ? "page" : undefined}
-              type="button"
-            >
-              <span className="tab-icon">
-                <Icon name={tab.icon} filled size={22} />
-              </span>
-              <span className="tab-label">{tab.label}</span>
-            </button>
+            <Fragment key={tab.id}>
+              {/* Escanear va entre Sommelier y Mi Bodega: la acción principal en medio de la fila. */}
+              {i === 2 && <AddWineButton />}
+              <button
+                ref={activo ? activoRef : null}
+                className={`tab-button ${activo ? "active" : ""}`}
+                onClick={() => handleTabClick(tab.path)}
+                aria-label={tab.label}
+                aria-current={activo ? "page" : undefined}
+                type="button"
+              >
+                <span className="tab-icon">
+                  <Icon name={tab.icon} filled size={22} />
+                </span>
+                <span className="tab-label">{tab.label}</span>
+              </button>
+            </Fragment>
           );
         })}
       </div>

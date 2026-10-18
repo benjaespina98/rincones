@@ -13,7 +13,6 @@ import WineAbout from "../components/WineAbout";
 import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
-import WineDetailNav from "../components/WineDetailNav";
 import WineDetailHero from "../components/WineDetailHero";
 import WineMoments from "../components/WineMoments";
 import WineDetailEditor from "../components/WineDetailEditor";
@@ -39,21 +38,6 @@ import PhotoLightbox from "../components/PhotoLightbox";
 // El CSS de esta ficha se importa una sola vez, desde App.jsx: ver el
 // comentario ahí sobre por qué (la comparte CatalogWinePage y Rollup la
 // duplicaba entre los dos chunks lazy).
-
-/**
- * Las cuatro partes de la ficha, en el orden en que están en la página.
- *
- * El orden es el del scroll y no el de importancia: una barra que liste
- * "Resumen · Cata · Plan" mientras bajando aparecen en otro orden convierte el
- * índice en un acertijo. Fuera del componente porque es una constante: adentro
- * sería un array nuevo en cada render y el observer se rearmaría con él.
- */
-const SECCIONES = [
-  { id: "resumen", label: "Resumen" },
-  { id: "plan", label: "Plan" },
-  { id: "cata", label: "Cata" },
-  { id: "comunidad", label: "Comunidad" },
-];
 
 const EMPTY_MOMENT = {
   occasion: "",
@@ -606,7 +590,6 @@ export default function WineDetailPage() {
 
       {/* El índice de la ficha. No aparece en modo edición: ahí la pantalla es
           un formulario y no hay secciones que recorrer. */}
-      {!editing && <WineDetailNav secciones={SECCIONES} />}
 
       <div className="wine-detail-body">
         {!editing ? (

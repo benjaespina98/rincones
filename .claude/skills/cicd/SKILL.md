@@ -20,7 +20,7 @@ npm test -w client
 npm test -w server
 npm run build
 ```
-Referencia medida el 2026-10-17: **client 517**, **server 500**, tokens **156/156**, lint limpio. Los conteos pueden subir, nunca bajar. Presupuesto de carga inicial: no pasar de ~143 kB gzip (entry ≈73,6 + vendor ≈35,8 + CSS). Al cerrar, reportar la tabla con los números **medidos**.
+Referencia medida el 2026-10-18: **client 538**, **server 500**, tokens **155/155**, lint limpio. Los conteos pueden subir, nunca bajar. Presupuesto de carga inicial: no pasar de ~143 kB gzip (entry ≈73,6 + vendor ≈35,8 + CSS). Al cerrar, reportar la tabla con los números **medidos**.
 
 ## CI
 `.github/workflows/ci.yml`: lint y tests en Node 22 (el runtime de las funciones en Vercel), con caché de npm y cancelación de corridas viejas. El repo es privado, así que los minutos cuestan: no agregar jobs sin motivo.
