@@ -10,8 +10,9 @@ describe("libros en Descubrí", () => {
   const lecturas = visibleContent(new Date("2026-10-19")).find((g) => g.id === "lecturas");
   const libros = lecturas?.items.filter((i) => i.type === "book") ?? [];
 
-  it("hay libros en el grupo 'Para leer'", () => {
+  it("hay 2 o 3 libros en 'Para leer' (una recomendación corta, no una lista larga)", () => {
     expect(libros.length).toBeGreaterThanOrEqual(2);
+    expect(libros.length).toBeLessThanOrEqual(3);
   });
 
   it("cada libro está en español y lleva título y enlace https", () => {
