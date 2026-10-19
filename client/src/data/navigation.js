@@ -41,12 +41,17 @@
 
    Va entre Sommelier y Mi Bodega, que es adonde va a parar lo que cargues.
 
-   La navegación queda en tres secciones y nada más: Descubrí · Sommelier ·
-   Mi Bodega. Cada una es un lugar donde se está; la acción vive aparte. */
+   ── LA BARRA DE CINCO ───────────────────────────────────────────────────
+   Descubrí · Mi Bodega · [Escanear] · Sommelier · Cuenta. Escanear no está en
+   esta lista: es la acción, no un lugar, y la barra la dibuja en el centro (ver
+   BottomTabNavigation.jsx y AddWineButton.jsx). Cuenta reemplaza al avatar de
+   la barra de arriba: el perfil, la configuración y cerrar sesión viven ahí, y
+   una app con cinco lugares de abajo no necesita un sexto arriba. */
 export const TABS = [
   { id: "descubri", label: "Descubrí", path: "/", icon: "sparkle" },
-  { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass" },
   { id: "bodega", label: "Mi Bodega", path: "/bodega", icon: "bottle" },
+  { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass" },
+  { id: "cuenta", label: "Cuenta", path: "/perfil", icon: "user" },
 ];
 
 /** Adónde lleva la acción de escanear. Fuera de TABS: no es una sección. */
@@ -63,6 +68,8 @@ export const TAB_PATHS = new Set(TABS.map((t) => t.path));
 const SUB_SCREENS = [
   { prefix: "/descubrir/vino", tab: "descubri" },
   { prefix: "/vino", tab: "bodega" },
+  // Las valoraciones se llegan desde el perfil.
+  { prefix: "/valoraciones", tab: "cuenta" },
 ];
 
 export const tabForPath = (pathname) => {

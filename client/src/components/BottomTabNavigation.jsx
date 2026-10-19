@@ -4,12 +4,15 @@ import Icon from "./Icon";
 import Logo from "./Logo";
 import AddWineButton from "./AddWineButton";
 import { tapHaptic } from "../utils/haptics";
+import { useAuth } from "../hooks/useAuth";
+import { initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TABS, tabForPath } from "../data/navigation";
 import "./BottomTabNavigation.css";
 
 export default function BottomTabNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // La lista de pestañas y la regla de "qué pestaña corresponde a esta URL"
   // viven en data/navigation.js, compartidas con AppLayout.
@@ -94,9 +97,26 @@ export default function BottomTabNavigation() {
                 aria-current={activo ? "page" : undefined}
                 type="button"
               >
-                <span className="tab-icon">
-                  <Icon name={tab.icon} filled size={22} />
-                </span>
+                {tab.id === "cuenta" ? (
+                  <span className="tab-icon tab-icon--cuenta">
+                    {/* La foto de Google manda sobre las iniciales, igual que en el perfil. */}
+                    {user?.avatarPhoto ? (
+                      <img className="tab-avatar tab-avatar--photo" src={user.avatarPhoto} alt="" />
+                    ) : (
+                      <span className={`tab-avatar avatar-color--${avatarColor(user?.avatar)}`}>
+                        {initials(user)}
+                      </span>
+                    )}
+                    {/* Un punto y no la palabra "Admin": con qué cuenta entraste, a un vistazo. */}
+                    {isAdminUser(user) && (
+                      <span className="tab-avatar__admin" aria-label="Cuenta de administrador" />
+                    )}
+                  </span>
+                ) : (
+                  <span className="tab-icon">
+                    <Icon name={tab.icon} filled size={22} />
+                  </span>
+                )}
                 <span className="tab-label">{tab.label}</span>
               </button>
             </Fragment>
