@@ -73,7 +73,7 @@ const AdminReviewsPage = () => {
   };
 
   const formatDate = (d) =>
-    d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "—";
+    d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "Sin fecha";
 
   return (
     <div className="admin-users">

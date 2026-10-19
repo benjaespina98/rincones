@@ -19,7 +19,7 @@ import "./WineIdentity.css";
  * la ficha entera se lea distinto— y se ofrece el atajo para completarlos.
  */
 
-const SIN_DATO = "—";
+const SIN_DATO = "Sin dato";
 
 const FECHA_LARGA = { day: "2-digit", month: "short", year: "numeric" };
 
@@ -161,7 +161,7 @@ export default function WineIdentity({ wine, onEdit }) {
             <dt>{f.rotulo}</dt>
             <dd className={f.valor ? "" : "is-empty"}>
               {f.valor && f.concepto ? (
-                <ConceptTerm id={f.concepto} ctx={{ wine }}>{f.valor}</ConceptTerm>
+                <ConceptTerm id={f.concepto} ctx={{ wine, propio: Boolean(onEdit) }}>{f.valor}</ConceptTerm>
               ) : (
                 f.valor
               )}

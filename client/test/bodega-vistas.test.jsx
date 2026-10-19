@@ -132,10 +132,10 @@ describe("la barra de navegación", () => {
     expect(TABS.some((t) => t.path === "/guardados")).toBe(false);
   });
 
-  it("son tres secciones y nada más", () => {
-    // Tres LUGARES. Nada de rellenar la fila para que quede pareja: si una
+  it("son cuatro lugares y nada más (Escanear va en el centro, aparte)", () => {
+    // Cuatro LUGARES. Nada de rellenar la fila para que quede pareja: si una
     // sección no se justifica, la barra tiene una menos y listo.
-    expect(TABS.map((t) => t.path)).toEqual(["/", "/sommelier", "/bodega"]);
+    expect(TABS.map((t) => t.path)).toEqual(["/", "/bodega", "/sommelier", "/perfil"]);
   });
 
   it("agregar no es una pestaña: es la acción flotante", () => {

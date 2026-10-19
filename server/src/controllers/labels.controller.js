@@ -4,7 +4,8 @@ const visionService = require("../services/vision.service");
 const catalogService = require("../services/catalog.service");
 const { composeDisplayName } = require("../data/wineIdentity");
 const { checkCoherence } = require("../data/wineValidation");
-const LabelScanCache = require("../models/labelScanCache.model");
+const { validarImagen } = require("../utils/imagenCabecera");
+const LabelScanCache =require("../models/labelScanCache.model");
 
 const EMPTY_CONFIDENCE = {
   winery: 0, line: 0, name: 0, varietal: 0, vintage: 0, region: 0, type: 0,
@@ -288,6 +289,12 @@ const analyzeLabel = async (req, res, next) => {
       return res.status(400).json({ message: "Falta archivo de imagen" });
     }
 
+    // El mimetype lo declara el cliente; el contenido se mira de verdad, ANTES de gastar el modelo.
+    const imagen = validarImagen(req.file.buffer);
+    if (!imagen.ok) {
+      return res.status(400).json({ message: imagen.mensaje, code: `imagen_${imagen.motivo}` });
+    }
+
     const tHash = process.hrtime.bigint();
     const hash = hashBuffer(req.file.buffer);
     const cached = await getCachedAnalysis(hash);
@@ -304,7 +311,7 @@ const analyzeLabel = async (req, res, next) => {
     if (visionService.isVisionConfigured()) {
       const tVision = process.hrtime.bigint();
       try {
-        const v = await visionService.analyzeWineLabel(req.file.buffer, req.file.mimetype);
+        const v = await visionService.analyzeWineLabel(req.file.buffer, imagen.info.mime);
         const visionMs = ms(tVision);
         const data = {
           winery: v.winery || "",

@@ -3,13 +3,14 @@
    reparta pareja. Lo que lo distingue es el ícono: una pastilla de acento con la cámara
    adentro, que lo marca como la acción principal sin flotar sobre el contenido. */
 .add-fab {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px;
+  padding: 8px 2px;
   background: none;
   border: none;
   cursor: pointer;
@@ -21,6 +22,10 @@
   user-select: none;
   -webkit-touch-callout: none;
   transition: color var(--transition-fast);
+}
+
+.add-fab__texto {
+  white-space: nowrap;
 }
 
 .add-fab__icono {

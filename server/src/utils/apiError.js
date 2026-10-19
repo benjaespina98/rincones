@@ -21,7 +21,7 @@ const { captureException, flush } = require("../config/sentry");
  */
 const fail = async (res, error, req) => {
   const ruta = req ? `${req.method} ${req.originalUrl}` : "";
-  console.error("[error]", ruta, "—", error?.stack || error?.message || error);
+  console.error("[error]", ruta, ":", error?.stack || error?.message || error);
   captureException(error, req ? { method: req.method, url: req.originalUrl } : undefined);
   await flush(2000);
 

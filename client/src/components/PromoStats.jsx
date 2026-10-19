@@ -60,7 +60,7 @@ export default function PromoStats({ promoId, title, onClose }) {
           <h4>{title}</h4>
           {data && (
             <span className="pstats__range">
-              {diaCorto(data.range.from)} — {diaCorto(data.range.to)}
+              {diaCorto(data.range.from)} al {diaCorto(data.range.to)}
             </span>
           )}
         </div>
@@ -112,7 +112,7 @@ export default function PromoStats({ promoId, title, onClose }) {
                 clics no: eran dos cosas distintas en la misma fracción. */}
             <article className="pstats__card">
               <span>Efectividad</span>
-              <strong>{data.period.ctr === null ? "—" : `${data.period.ctr}%`}</strong>
+              <strong>{data.period.ctr === null ? "Sin dato" : `${data.period.ctr}%`}</strong>
               <small>
                 {data.period.ctr === null
                   ? "Hacen falta 20 personas para que el porcentaje signifique algo"

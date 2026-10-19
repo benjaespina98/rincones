@@ -68,9 +68,9 @@ describe("ScanReview", () => {
     render(<ScanReview reading={BUENA} onConfirm={onConfirm} />);
 
     expect(screen.queryByText(/no lo pudimos leer bien/i)).toBeNull();
-    expect(screen.queryByText(/revisá esto antes de guardar/i)).toBeNull();
+    expect(document.querySelector(".scan-review__issues")).toBeNull();
 
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i });
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
@@ -81,7 +81,7 @@ describe("ScanReview", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={BUENA} onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     const draft = onConfirm.mock.calls[0][0];
     expect(draft.identSource).toBe("scan");
@@ -115,10 +115,10 @@ describe("ScanReview", () => {
 
     // El problema se dice: nombre y bodega salieron iguales, y eso casi siempre
     // es un error de lectura.
-    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
+    expect(document.querySelector(".scan-review__issues")).not.toBeNull();
 
     // Pero no se frena: hay nombre, así que hay botella que agregar.
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i });
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
@@ -142,9 +142,9 @@ describe("ScanReview", () => {
 
     // Corregir lo señalado hace desaparecer el aviso: es lo que confirma que el
     // aviso hablaba de ESE campo y no de un estado difuso de "algo anda mal".
-    expect(screen.queryByText(/revisá esto antes de guardar/i)).toBeNull();
+    expect(document.querySelector(".scan-review__issues")).toBeNull();
 
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i });
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
@@ -181,7 +181,7 @@ describe("ScanReview", () => {
     // Y una vez escrito, el aviso se va: hablaba de ese campo.
     expect(screen.queryByText(/no pudimos leer cómo se llama/i)).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0].name).toBe("Cuvée Exceptionnelle");
   });
@@ -217,7 +217,7 @@ describe("ScanReview", () => {
     fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
       target: { value: "Pispi" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     const draft = onConfirm.mock.calls[0][0];
     expect(draft.line).toBe("Pispi");
@@ -242,7 +242,7 @@ describe("ScanReview", () => {
     fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
       target: { value: "Angélica Zapata Alluvial" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     const draft = onConfirm.mock.calls[0][0];
     expect(draft.properName).toBe("Angélica Zapata Alluvial");
@@ -264,13 +264,13 @@ describe("ScanReview", () => {
 
     render(<ScanReview reading={igual} onConfirm={onConfirm} />);
     // Se avisa, porque nombre = bodega casi siempre es un error de lectura…
-    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
+    expect(document.querySelector(".scan-review__issues")).not.toBeNull();
 
     // …y confirmarlo saca el aviso, que es la salida para Norton y compañía.
     fireEvent.click(screen.getByRole("button", { name: /se llama igual que la bodega/i }));
 
-    expect(screen.queryByText(/revisá esto antes de guardar/i)).toBeNull();
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i });
+    expect(document.querySelector(".scan-review__issues")).toBeNull();
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     expect(guardar).not.toBeDisabled();
 
     fireEvent.click(guardar);
@@ -301,12 +301,12 @@ describe("ScanReview", () => {
     render(<ScanReview reading={floja} onConfirm={onConfirm} onRescan={onRescan} onManual={onManual} />);
 
     expect(screen.getByText(/no se pudo identificar el vino/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^guardar$/i })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /intentar nuevamente/i }));
     expect(onRescan).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: /buscar manualmente/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cargar a mano/i }));
     expect(onManual).toHaveBeenCalledTimes(1);
   });
 
@@ -323,7 +323,7 @@ describe("ScanReview", () => {
     // Insistir abre el formulario de siempre. Ya no arranca bloqueado —el
     // escaneo no frena— pero sigue siendo el mismo formulario editable, que es
     // lo que la salida promete.
-    const guardar = screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i });
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     expect(guardar).not.toBeDisabled();
 
     // Un valor DISTINTO del que ya tenía el campo: si se deja el mismo texto,
@@ -355,7 +355,7 @@ describe("ScanReview", () => {
 
     render(<ScanReview reading={rota} onConfirm={onConfirm} />);
     expect(screen.queryByText(/no pudimos identificar el vino con suficiente seguridad/i)).toBeNull();
-    expect(screen.getByText(/revisá esto antes de guardar/i)).toBeTruthy();
+    expect(document.querySelector(".scan-review__issues")).not.toBeNull();
   });
 
   it("una uva rara se muestra editable en vez de esconderse en un chip", () => {
@@ -370,10 +370,11 @@ describe("ScanReview", () => {
     // Aunque el modelo dijo 91 de confianza, el campo se abre igual.
     expect(screen.getByPlaceholderText("Uva")).toBeTruthy();
     // Y no bloquea: es raro, no imposible.
-    expect(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i })).not.toBeDisabled();
-    // Con un dato que no cierra, el veredicto es "unverified" (media
-    // confianza): se pide una confirmación, no se anuncia como resuelto.
-    expect(screen.getByText(/¿este es tu vino\?/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^guardar$/i })).not.toBeDisabled();
+    // Con un dato que no cierra la fila de la uva queda marcada para revisar y el vino no se
+    // anuncia como verificado.
+    expect(screen.getByPlaceholderText("Uva").closest("label").textContent).toMatch(/Revisá/);
+    expect(screen.queryByText(/verificado/i)).toBeNull();
   });
 
   /**
@@ -417,7 +418,7 @@ describe("ScanReview", () => {
     expect(screen.getByText("Serie Q")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /sí, es ese/i }));
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     const draft = onConfirm.mock.calls[0][0];
     expect(draft.name).toBe("Zuccardi Serie A");
@@ -456,14 +457,11 @@ describe("ScanReview", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /sí, es ese/i }));
-    // Aceptado, el nombre pasa a ser un dato confirmado y se muestra como chip:
-    // para corregirlo hay que abrir todos los campos, que es el mismo camino que
-    // haría una persona.
-    fireEvent.click(screen.getByRole("button", { name: /editar todos los datos/i }));
+    // Aceptado, el nombre pasa a ser un dato confirmado; para corregirlo se escribe en su fila.
     fireEvent.change(screen.getByPlaceholderText(/lo que dice grande/i), {
       target: { value: "Angélica Zapata Alluvial" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     const draft = onConfirm.mock.calls[0][0];
     expect(draft.name).toBe("Angélica Zapata Alluvial");
@@ -496,13 +494,14 @@ describe("ScanReview", () => {
     // La pregunta se va —contestar que no es una respuesta— y el vino sigue
     // siendo el que se leyó.
     expect(screen.queryByText(/¿es este vino\?/i)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega|anotarlo como ya tomado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
     expect(onConfirm.mock.calls[0][0].name).toBe("Serie Q");
   });
 
-  it("una lectura sin nada raro se anuncia como encontrada, no como una pregunta", () => {
+  it("una lectura sin nada raro no pregunta ni marca nada", () => {
     render(<ScanReview reading={BUENA} onConfirm={vi.fn()} />);
-    expect(screen.getByText(/vino encontrado/i)).toBeTruthy();
-    expect(screen.queryByText(/¿este es tu vino\?/i)).toBeNull();
+    expect(screen.queryByText(/¿es este vino\?/i)).toBeNull();
+    expect(document.querySelector(".scan-review__marca")).toBeNull();
+    expect(document.querySelector(".scan-review__issues")).toBeNull();
   });
 });

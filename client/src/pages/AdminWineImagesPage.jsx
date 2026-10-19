@@ -215,7 +215,7 @@ const AdminWineImagesPage = () => {
         <h1>Fotos</h1>
         <p className="admin-wineimg__lead">
           Todo lo que Rincones conoce: el catálogo argentino y cada vino que cargó algún usuario.
-          Elegí una foto y queda puesta para cualquiera que busque ese vino — no hace falta
+          Elegí una foto y queda puesta para cualquiera que busque ese vino. No hace falta
           tenerlo en una bodega.
         </p>
       </header>

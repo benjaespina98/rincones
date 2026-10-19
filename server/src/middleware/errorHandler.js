@@ -87,7 +87,7 @@ const errorHandler = async (err, req, res, next) => {
   // mirando": `recordError` deja el mismo detalle en la base, para el tab de
   // Logs del panel — no bloquea la respuesta (no lleva `await`, es
   // best-effort) por el mismo motivo que Sentry ya viaja aparte.
-  console.error("[error]", req.method, req.originalUrl, "—", err.stack || err.message);
+  console.error("[error]", req.method, req.originalUrl, ":", err.stack || err.message);
   recordError({ error: err, req, statusCode: 500 });
   captureException(err, { method: req.method, url: req.originalUrl });
   // En serverless la función puede congelarse apenas sale la respuesta de

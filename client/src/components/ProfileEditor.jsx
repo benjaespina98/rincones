@@ -212,7 +212,7 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
 
               <div className="profile-editor__readonly">
                 <span>Correo</span>
-                <p title={email}>{email || "—"}</p>
+                <p title={email}>{email || "Sin dato"}</p>
               </div>
             </section>
 

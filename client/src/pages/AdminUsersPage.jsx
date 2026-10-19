@@ -130,7 +130,7 @@ const AdminUsersPage = () => {
   };
 
   const formatDate = (d) =>
-    d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "—";
+    d ? new Date(d).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }) : "Sin fecha";
 
   const displayName = (u) =>
     [u.firstName, u.lastName].filter(Boolean).join(" ") || "(sin nombre)";

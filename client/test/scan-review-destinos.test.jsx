@@ -41,7 +41,7 @@ const principal = () => document.querySelector(".scan-review__save");
 describe("el destino por defecto es TU BODEGA", () => {
   it("el botón principal dice 'Agregar a mi bodega' y nunca 'ya tomado'", () => {
     montar();
-    expect(principal()).toHaveTextContent("Agregar a mi bodega");
+    expect(principal()).toHaveTextContent("Guardar");
     expect(screen.queryByText(/anotarlo como ya tomado/i)).toBeNull();
   });
 
@@ -52,15 +52,15 @@ describe("el destino por defecto es TU BODEGA", () => {
     expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
   });
 
-  it("la consecuencia dice que entra con stock", () => {
+  it("con botellas no hay aviso: entra con stock, que es lo esperado", () => {
     montar();
-    expect(screen.getByText("Entra a tu bodega, con stock.")).toBeInTheDocument();
+    expect(screen.queryByText(/queda en «ya tomados»/i)).toBeNull();
   });
 
   it("los atajos de media docena y de una caja suman botellas", () => {
     const { onConfirm } = montar();
     fireEvent.click(screen.getByRole("button", { name: "6" }));
-    expect(principal()).toHaveTextContent("Agregar 6 botellas");
+    expect(screen.getByText("6", { selector: ".scan-qty__n" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "12" }));
     fireEvent.click(principal());
     expect(onConfirm.mock.calls[0][0].quantity).toBe(12);
@@ -68,10 +68,9 @@ describe("el destino por defecto es TU BODEGA", () => {
 });
 
 describe("bajar las botellas a cero: lo probé y no es mío", () => {
-  it("el botón pasa a 'Anotarlo como ya tomado' y la consecuencia lo dice", () => {
+  it("la nota dice que queda en Ya tomados, sin sumar stock", () => {
     montar();
     fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
-    expect(principal()).toHaveTextContent("Anotarlo como ya tomado");
     expect(screen.getByText(/queda en «ya tomados», no suma stock/i)).toBeInTheDocument();
   });
 
@@ -125,7 +124,7 @@ describe("'Quiero probarlo': a la lista de deseos", () => {
 });
 
 describe("las salidas secundarias son chicas y están juntas", () => {
-  it("'Solo consultar' y 'Quiero probarlo' comparten una fila, aparte del botón principal", () => {
+  it("'Solo consultar' y 'Quiero probarlo' comparten una fila, aparte de la barra de Guardar", () => {
     montar();
     const fila = document.querySelector(".scan-review__otras");
     expect(fila).toBeTruthy();
