@@ -183,3 +183,16 @@ export const resultadosDe = (wines = [], { terms = [], enLaVista, pasa }) => {
   }
   return { lista: enVista, ampliada: false };
 };
+
+/**
+ * Los tipos que hay en una lista de vinos y cuántos de cada uno, en el orden de `tipos`, para el
+ * filtro rápido de Mi Bodega. Con un solo tipo no hay nada que filtrar: devuelve [].
+ */
+export const tiposRapidosDe = (wines, tipos) => {
+  const cuenta = new Map();
+  for (const w of Array.isArray(wines) ? wines : []) {
+    if (!w || !tipos.includes(w.type)) continue;
+    cuenta.set(w.type, (cuenta.get(w.type) || 0) + 1);
+  }
+  return cuenta.size >= 2 ? tipos.filter((t) => cuenta.has(t)).map((t) => ({ id: t, n: cuenta.get(t) })) : [];
+};
