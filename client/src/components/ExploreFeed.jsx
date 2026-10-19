@@ -1,3 +1,4 @@
+import { useState } from "react";
 import TrackedCard from "./TrackedCard";
 import DailyLesson from "./DailyLesson";
 import "../styles/shared/DiscoverSections.css";
@@ -30,6 +31,12 @@ export default function ExploreFeed({ groups = [], stats, seed = 0 }) {
   // Los grupos vacíos no se renderizan, así que la sección puede quedarse sólo
   // con la lección y sigue teniendo sentido.
   const conContenido = groups.filter((g) => g.items.length > 0);
+  // Qué grupo se ve. Si el elegido desaparece (cambió el contenido), cae al primero.
+  const [activoId, setActivoId] = useState(null);
+  const grupo = conContenido.find((g) => g.id === activoId) || conContenido[0];
+  // Si todo el grupo es del mismo tipo, el rótulo por fila sobra: el chip ya lo dijo. En un grupo
+  // mixto ("Para ir", con bodegas y eventos) sí hace falta.
+  const mixto = grupo ? new Set(grupo.items.map((i) => i.type)).size > 1 : false;
 
   return (
     <section className="explore">
@@ -44,29 +51,34 @@ export default function ExploreFeed({ groups = [], stats, seed = 0 }) {
           app y lo único elegido por lo que tenés en la bodega. */}
       <DailyLesson stats={stats} seed={seed} />
 
-      {conContenido.map((group) => {
-        /* Si todo el grupo es del mismo tipo, el rótulo por fila sobra: el
-           título del grupo, el ícono y el color ya lo dijeron tres veces. En un
-           grupo mixto ("Para ir", con bodegas y eventos) sí hace falta. */
-        const mixto = new Set(group.items.map((i) => i.type)).size > 1;
-
-        return (
-          <div key={group.id} className="explore__group">
-            <div className="explore__group-head">
-              <span className="explore__group-label" style={{ color: group.accent }}>
-                {group.label}
-              </span>
-              {group.hint && <span className="explore__group-hint">{group.hint}</span>}
-            </div>
-
-            <div className="explore__items">
-              {group.items.map((item) => (
-                <TrackedCard key={item.id} item={item} variant="row" showType={mixto} />
+      {/* Un grupo a la vez: cinco listas apiladas eran una pared de enlaces, una lista de compras.
+          Una fila de chips elige qué ver y debajo hay UNA lista corta. */}
+      {grupo && (
+        <div className="explore__group">
+          {conContenido.length > 1 && (
+            <div className="explore__tabs" role="group" aria-label="Qué explorar">
+              {conContenido.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  aria-pressed={g.id === grupo.id}
+                  className={`explore__tab ${g.id === grupo.id ? "is-active" : ""}`}
+                  onClick={() => setActivoId(g.id)}
+                >
+                  {g.label}
+                </button>
               ))}
             </div>
+          )}
+
+          <div className="explore__items">
+            {grupo.hint && <p className="explore__group-hint">{grupo.hint}</p>}
+            {grupo.items.map((item) => (
+              <TrackedCard key={item.id} item={item} variant="row" showType={mixto} />
+            ))}
           </div>
-        );
-      })}
+        </div>
+      )}
     </section>
   );
 }

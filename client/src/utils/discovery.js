@@ -144,3 +144,20 @@ export const guardarUltimoVisto = (id) => {
     // Sin storage la entrada sigue variando: sólo pierde la memoria de la última.
   }
 };
+
+/**
+ * Las recomendaciones con foto van primero, y si alcanzan, van solas.
+ *
+ * Una recomendación sin foto se ve como una botella genérica en gris: es lo primero que se ve de la
+ * app y no vende nada. Si hay al menos `minimo` vinos con foto, el set queda sólo con ésos (así
+ * "Ver otro" tampoco cae en uno sin foto); si hay menos, van primero los que tienen y atrás los
+ * demás, para no quedarse sin recomendaciones. El orden relativo de cada grupo se conserva: el
+ * ranking por afinidad que ya traía el server no se pierde.
+ */
+export const priorizarConFoto = (wines, minimo = 3) => {
+  const lista = Array.isArray(wines) ? wines : [];
+  const conFoto = lista.filter((w) => w && typeof w.image === "string" && w.image.trim());
+  if (conFoto.length >= minimo) return conFoto;
+  const sinFoto = lista.filter((w) => !conFoto.includes(w));
+  return [...conFoto, ...sinFoto];
+};

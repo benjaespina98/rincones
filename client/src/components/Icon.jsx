@@ -209,6 +209,7 @@ const PATHS = {
       <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" />
     </>
   ),
+  book: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />,
   list: (
     <>
       <path d="M8 6h13M8 12h13M8 18h13" />

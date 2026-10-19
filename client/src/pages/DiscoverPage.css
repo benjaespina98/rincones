@@ -480,27 +480,6 @@
   gap: 10px;
 }
 
-/* Etiqueta y descripción en la misma línea de base: la etiqueta manda por color
-   y peso, la descripción acompaña sin competir. */
-.explore__group-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-}
-
-.explore__group-label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.explore__group-hint {
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-}
-
 .explore__items {
   display: flex;
   flex-direction: column;
@@ -862,4 +841,127 @@
   flex: 0 0 auto;
   animation: rincon-entra-lado 420ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+/* ═══ Resultados de búsqueda: filas compactas, no tarjetas de grilla ═══════════
+   Cada resultado ocupaba ~330px (foto cuadrada grande + texto + botón a todo el ancho), así que en
+   una búsqueda de "cabernet sauvignon" se veían dos vinos por pantalla. Ahora es una fila de
+   ~92px: miniatura, nombre y datos, y el botón de guardar a la derecha. Cinco o seis a la vista. */
+.wine-search__results {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.wine-result-card {
+  flex-direction: row;
+  align-items: center;
+  border-radius: var(--radius-card);
+  border-color: var(--border-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wine-result-card:hover {
+    transform: none;
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.wine-result-card__open {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 0 10px 10px;
+}
+
+.wine-result-card__media {
+  flex-shrink: 0;
+  width: 56px;
+  height: 72px;
+  aspect-ratio: auto;
+  border-radius: var(--radius-photo);
+  background: rgb(var(--paper-rgb) / 0.04);
+}
+
+.wine-result-card__media img {
+  object-fit: contain;
+}
+
+.wine-result-card__body {
+  min-width: 0;
+  gap: 2px;
+  padding: 0;
+}
+
+.wine-result-card__name {
+  min-height: 0;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.wine-result-card__meta {
+  margin-top: 1px;
+}
+
+.wine-result-card__note {
+  margin-top: 2px;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.wine-result-card__actions {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0;
+  padding: 0 10px 0 4px;
+}
+
+.wine-result-card__want,
+.wine-result-card__owned {
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.wine-result-card__owned {
+  max-width: 116px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media (min-width: 720px) {
+  .wine-search__results {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── El vino del día, más contenido ───────────────────────────────────────── */
+.spotlight__art {
+  width: 96px;
+  height: 128px;
+}
+
+.spotlight__name {
+  font-size: var(--text-xl);
+}
+
+/* En una lista de resultados, "Guardar" es una acción secundaria: con borde y sin relleno, para que
+   veinte filas no sean veinte botones violeta. El violeta queda para el vino del día. */
+.wine-result-card__want {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-soft);
+}
+
+.wine-result-card__want.is-wished {
+  background: transparent;
+  border-color: rgb(var(--success-rgb) / 0.4);
+  color: var(--success-text);
 }
