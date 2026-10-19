@@ -20,6 +20,17 @@ const { captureException, flush } = require("../config/sentry");
  * cuando termina, esperar acá adentro alcanza.
  */
 const fail = async (res, error, req) => {
+  // Lo que es culpa del dato y no del servidor no es un 500: un id mal formado es "no existe" y
+  // un valor fuera de rango es "corregí esto". Sin esto la persona veía "Algo falló de nuestro
+  // lado" ante un error propio, sin saber qué cambiar.
+  if (error?.name === "CastError") {
+    return res.status(404).json({ success: false, error: "No lo encontramos" });
+  }
+  if (error?.name === "ValidationError") {
+    const detalle = Object.values(error.errors || {})[0]?.message;
+    return res.status(400).json({ success: false, error: detalle || "Hay un dato que no es válido" });
+  }
+
   const ruta = req ? `${req.method} ${req.originalUrl}` : "";
   console.error("[error]", ruta, ":", error?.stack || error?.message || error);
   captureException(error, req ? { method: req.method, url: req.originalUrl } : undefined);

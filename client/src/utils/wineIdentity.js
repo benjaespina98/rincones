@@ -120,7 +120,12 @@ export const wineDisplayName = (wine = {}) => {
     const tn = nombre.split(/\s+/);
     const tu = uva.split(/\s+/);
     if (tn.length > tu.length && fold(tn.slice(-tu.length).join(" ")) === fold(uva)) {
-      nombre = tn.slice(0, -tu.length).join(" ").trim() || nombre;
+      const resto = tn.slice(0, -tu.length);
+      // "Rosado de Malbec" con uva Malbec NO se acorta a "Rosado de": si lo que queda termina en un
+      // conector, la uva es parte del nombre y se deja como está.
+      const termina = fold(resto[resto.length - 1] || "");
+      const CONECTORES = new Set(["de", "del", "con", "y", "la", "el", "los", "las", "en", "al", "&"]);
+      if (resto.length && !CONECTORES.has(termina)) nombre = resto.join(" ").trim() || nombre;
     }
   }
 

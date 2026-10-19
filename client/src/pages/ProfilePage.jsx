@@ -13,6 +13,7 @@ import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import { exportarMisDatos, eliminarCuenta } from "../services/accountApi";
+import { limpiarDatosLocales } from "../utils/limpiarDatosLocales";
 import ProfileEditor from "../components/ProfileEditor";
 import PreferencesEditor from "../components/PreferencesEditor";
 import TypeSplit from "../components/TypeSplit";
@@ -125,6 +126,7 @@ export default function ProfilePage() {
   const eliminarMiCuenta = async ({ confirmEmail, password }) => {
     await eliminarCuenta({ confirmEmail, password });
     // La sesión ya no vale: el server borró el usuario y limpió las cookies.
+    limpiarDatosLocales();
     navigate("/login", { replace: true });
   };
 

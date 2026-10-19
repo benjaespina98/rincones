@@ -30,6 +30,7 @@ import {
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
+import { payloadParaRestaurar } from "../utils/restoreWine";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
 import { conTransicion } from "../utils/viewTransition";
@@ -871,19 +872,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (toastId) removeToast(toastId);
 
     try {
-      await addWine({
-        name: wineToRestore.name,
-        winery: wineToRestore.winery,
-        vintage: wineToRestore.vintage,
-        region: wineToRestore.region,
-        varietal: wineToRestore.varietal,
-        notes: wineToRestore.notes,
-        rating: wineToRestore.rating,
-        tasted: wineToRestore.tasted,
-        favorite: wineToRestore.favorite,
-        quantity: wineToRestore.quantity,
-        image: wineToRestore.image,
-      });
+      await addWine(payloadParaRestaurar(wineToRestore));
       showSuccess(`"${wineDisplayName(wineToRestore)}" restaurado`);
     } catch {
       showError("No se pudo restaurar el vino");
@@ -1164,8 +1153,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
         <p className="wines-widened">
           <Icon name="search" size={14} />
           <span>
-            En <strong>{VISTA_LABEL[vista] || vista}</strong> no hay ninguno. Esto es
-            lo que encontramos en toda tu bodega.
+            Nada en <strong>{VISTA_LABEL[vista] || vista}</strong>. Esto es lo que
+            encontramos en toda tu bodega.
           </span>
         </p>
       )}

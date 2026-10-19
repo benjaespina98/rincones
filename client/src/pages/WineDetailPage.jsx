@@ -1,4 +1,6 @@
 import { leerCosecha } from "../utils/vintage";
+import { mensajeDelServidor } from "../utils/mensajeDelServidor";
+import { payloadParaRestaurar } from "../utils/restoreWine";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
@@ -23,6 +25,7 @@ import {
   getWineById,
   updateWine,
   deleteWine,
+  createWine,
   adjustWineStock,
   openBottle,
   undoOpenBottle,
@@ -450,8 +453,8 @@ export default function WineDetailPage() {
       setWine(updated);
       setEditing(false);
       showSuccess("Cambios guardados");
-    } catch {
-      showError("No se pudieron guardar los cambios");
+    } catch (err) {
+      showError(mensajeDelServidor(err, "No se pudieron guardar los cambios"));
     } finally {
       setSaving(false);
     }
@@ -460,11 +463,25 @@ export default function WineDetailPage() {
   const handleDelete = async () => {
     setShowDeleteConfirm(false);
     try {
+      const borrado = wine;
       await deleteWine(id);
-      showSuccess(
-        `"${wineDisplayName(wine)}" eliminado de ${
-          nuncaEstuvoEnTuCava(wine) ? "tus ya tomados" : "tu bodega"
-        }`
+      // Igual que al borrar desde la lista: unos segundos para arrepentirse.
+      const toastId = addToast(
+        `"${wineDisplayName(borrado)}" eliminado de ${nuncaEstuvoEnTuCava(borrado) ? "tus ya tomados" : "tu bodega"}`,
+        "warning",
+        8000,
+        {
+          label: "Deshacer",
+          onClick: async () => {
+            removeToast(toastId);
+            try {
+              await createWine(payloadParaRestaurar(borrado));
+              showSuccess(`"${wineDisplayName(borrado)}" restaurado`);
+            } catch {
+              showError("No se pudo restaurar el vino");
+            }
+          },
+        }
       );
       navigate("/bodega");
     } catch {
@@ -474,6 +491,14 @@ export default function WineDetailPage() {
 
   const handleAddMoment = async (event) => {
     event.preventDefault();
+    // Un momento vacío no cuenta nada: se pide al menos un dato o una foto.
+    const algo = ["occasion", "companions", "place", "emotion", "foodPairing", "notes"].some(
+      (campo) => String(momentDraft[campo] || "").trim() !== ""
+    );
+    if (!algo && !(momentDraft.photos || []).length) {
+      showError("Contanos algo del momento: con quién, dónde o qué sentiste");
+      return;
+    }
     setSavingMoment(true);
     try {
       await addWineMoment(id, momentDraft);

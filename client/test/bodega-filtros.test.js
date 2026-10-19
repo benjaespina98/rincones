@@ -256,3 +256,17 @@ describe("la línea de resumen", () => {
     expect(frases([])).toEqual([]);
   });
 });
+
+describe("frasesDelResumen: números grandes", () => {
+  it("lleva separador de miles (es-AR) para que no se pegue ni se corte", async () => {
+    const { frasesDelResumen } = await import("../src/utils/bodegaResumen");
+    const frases = frasesDelResumen({ botellas: 1000100051, vinosConStock: 41, probados: 0, uvasDistintas: 3 });
+    expect(frases[0]).toBe("1.000.100.051 botellas en 41 vinos");
+    expect(frases[1]).toBe("3 uvas");
+  });
+
+  it("singular sin separador", async () => {
+    const { frasesDelResumen } = await import("../src/utils/bodegaResumen");
+    expect(frasesDelResumen({ botellas: 1, vinosConStock: 1, probados: 0, uvasDistintas: 1 })).toEqual(["1 botella", "1 uva"]);
+  });
+});

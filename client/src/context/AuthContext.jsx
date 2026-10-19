@@ -3,6 +3,7 @@ import { createContext, useCallback, useEffect, useMemo, useRef, useState } from
 import { getMe, login as loginRequest, logout as logoutRequest } from "../services/authApi";
 import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
 import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
+import { limpiarDatosLocales } from "../utils/limpiarDatosLocales";
 
 export const AuthContext = createContext(null);
 
@@ -116,7 +117,8 @@ export const AuthProvider = ({ children }) => {
       try {
         const me = await getMe();
         escribir(turno, { estado: AUTENTICADO, user: me });
-        return;
+        // Quien llama ("Ya lo confirmé") necesita saber qué dijo el server.
+        return me;
       } catch (error) {
         if (generacion.current !== turno) return;
 
@@ -197,6 +199,7 @@ export const AuthProvider = ({ children }) => {
        */
       limpiarCacheDeBodega();
       limpiarCacheDeDeseos();
+      limpiarDatosLocales();
       escribir(turno, { estado: ANONIMO, user: null });
     }
   }, [tomarTurno, escribir]);
