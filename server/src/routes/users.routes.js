@@ -64,10 +64,10 @@ router.put("/profile", authenticate, async (req, res) => {
 
     // Preferencias de gusto (onboarding) — arrays de strings, acotados.
     if (Array.isArray(favoriteTypes)) {
-      user.preferences.favoriteTypes = favoriteTypes.map((t) => String(t).trim()).filter(Boolean).slice(0, 10);
+      user.preferences.favoriteTypes = favoriteTypes.map((t) => String(t).trim().slice(0, 40)).filter(Boolean).slice(0, 10);
     }
     if (Array.isArray(favoriteVarietals)) {
-      user.preferences.favoriteVarietals = favoriteVarietals.map((v) => String(v).trim()).filter(Boolean).slice(0, 20);
+      user.preferences.favoriteVarietals = favoriteVarietals.map((v) => String(v).trim().slice(0, 40)).filter(Boolean).slice(0, 20);
     }
     // Marca el onboarding como completado (una sola vez).
     if (onboarded === true && !user.onboardedAt) {

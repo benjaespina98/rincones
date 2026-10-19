@@ -177,3 +177,20 @@
     padding: 0.24rem 0.45rem;
   }
 }
+
+/* Área táctil de 44px sin agrandar lo que se ve: el botón es chico a propósito, el toque no. */
+.toast__action,
+.toast__close {
+  position: relative;
+}
+
+.toast__action::after,
+.toast__close::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}
+
+.toast__close::after {
+  inset: -10px;
+}

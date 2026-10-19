@@ -13,6 +13,7 @@ const {
 } = require("../data/sommelierDomain");
 const { fold } = require("../data/argentineWines");
 const { limpiarDato } = require("../utils/promptSeguro");
+const { validarImagen } = require("../utils/imagenCabecera");
 const { captureException } = require("../config/sentry");
 const { recordError } = require("../services/errorLog.service");
 
@@ -621,8 +622,12 @@ const askPhoto = async (req, res, next) => {
     if (!archivo?.buffer?.length) {
       return res.status(400).json({ message: "Mandá una foto" });
     }
-    if (!esImagenReal(archivo.buffer)) {
-      return res.status(400).json({ message: "Ese archivo no es una imagen válida" });
+    // Misma validación que el escáner de etiquetas (tipo real y tamaño, por la cabecera), con una
+    // diferencia: acá no se exige poder medir la foto, porque las que entran suelen ser cartas y
+    // platos. Los topes de tamaño máximo sí valen.
+    const imagen = validarImagen(archivo.buffer, undefined, { exigirMedidas: false });
+    if (!imagen.ok) {
+      return res.status(400).json({ message: imagen.mensaje });
     }
 
     const texto = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
@@ -645,7 +650,7 @@ const askPhoto = async (req, res, next) => {
     let resultado;
     try {
       resultado = await sommelier.preguntarConFoto({
-        imagen: { mime: mimeDe(archivo.buffer), base64: archivo.buffer.toString("base64") },
+        imagen: { mime: imagen.info.mime, base64: archivo.buffer.toString("base64") },
         question: texto,
         history,
         wines,

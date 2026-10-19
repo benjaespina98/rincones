@@ -112,14 +112,14 @@ const LIMITES = {
  * Valida una subida. Devuelve `{ ok: true, info }` o `{ ok: false, motivo, mensaje }`.
  * Los mensajes están pensados para mostrarse tal cual.
  */
-const validarImagen = (buffer, limites = LIMITES) => {
+const validarImagen = (buffer, limites = LIMITES, { exigirMedidas = true } = {}) => {
   const info = detectarImagen(buffer);
   if (!info) {
     return { ok: false, motivo: "formato", mensaje: "El archivo no es una foto válida. Probá con otra." };
   }
   const { width, height } = info;
   // JPEG y PNG siempre se pueden medir: si no, la cabecera está rota o armada para esquivar los límites.
-  if ((info.type === "jpeg" || info.type === "png") && (width === null || height === null)) {
+  if (exigirMedidas && (info.type === "jpeg" || info.type === "png") && (width === null || height === null)) {
     return { ok: false, motivo: "corrupta", mensaje: "La foto está dañada. Probá sacarla de nuevo." };
   }
   if (width !== null && height !== null) {
