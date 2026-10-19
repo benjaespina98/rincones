@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Portal from "./Portal";
+import { useSheet } from "../hooks/useSheet";
 import Icon from "./Icon";
 import { wineDisplayName } from "../utils/wineIdentity";
 import "./OpenBottleSheet.css";
@@ -32,14 +33,14 @@ export default function OpenBottleSheet({ wine, saving = false, onConfirm, onCan
   const stock = Math.max(0, Number(wine?.quantity) || 0);
   const quedan = Math.max(0, stock - cantidad);
 
+  // Escape, foco atrapado (Tab no se escapa a la pantalla de atrás) y foco devuelto al cerrar:
+  // ver hooks/useSheet. El hook va antes del efecto de abajo para que el foco inicial, que va al
+  // botón de confirmar, se ponga después del suyo.
+  const panelRef = useSheet(onCancel, { enabled: Boolean(wine) });
+
   useEffect(() => {
-    confirmRef.current?.focus();
-    const onKey = (e) => {
-      if (e.key === "Escape") onCancel?.();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+    if (wine) confirmRef.current?.focus();
+  }, [wine]);
 
   if (!wine) return null;
 
@@ -56,7 +57,7 @@ export default function OpenBottleSheet({ wine, saving = false, onConfirm, onCan
           if (e.target === e.currentTarget) onCancel?.();
         }}
       >
-        <div className="open-sheet">
+        <div className="open-sheet" ref={panelRef} tabIndex={-1}>
           <h2 className="open-sheet__title" id="open-sheet-title">
             ¿Cuántas botellas abriste?
           </h2>

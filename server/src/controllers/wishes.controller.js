@@ -1,5 +1,6 @@
 const wishesService = require("../services/wishes.service");
 const { fail } = require("../utils/apiError");
+const { validarVino } = require("../utils/validarVino");
 
 const list = async (req, res) => {
   try {
@@ -12,10 +13,8 @@ const list = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name || String(name).trim() === "") {
-      return res.status(400).json({ success: false, error: "El nombre del vino es obligatorio" });
-    }
+    const invalido = validarVino(req.body);
+    if (invalido) return res.status(400).json({ success: false, error: invalido });
     const wish = await wishesService.createWish(req.user.id, req.body);
     return res.status(201).json({ success: true, data: wish });
   } catch (error) {

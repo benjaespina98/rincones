@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import "../styles/shared/ConfirmModal.css";
 import Portal from "./Portal";
+import { useSheet } from "../hooks/useSheet";
 
 /**
  * Diálogo de confirmación.
@@ -21,17 +22,15 @@ export default function ConfirmModal({
   const confirmRef = useRef(null);
   const cancelRef = useRef(null);
 
+  // Escape cancela, el foco queda atrapado y vuelve a quien abrió el diálogo: ver hooks/useSheet.
+  const panelRef = useSheet(onCancel, { enabled: isOpen });
+
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) return;
     // En acciones destructivas el foco arranca en Cancelar, para que un Enter
-    // reflejo no borre nada. Escape siempre cancela.
+    // reflejo no borre nada.
     (isDangerous ? cancelRef : confirmRef).current?.focus();
-    const onKey = (e) => {
-      if (e.key === "Escape") onCancel?.();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen, onCancel, isDangerous]);
+  }, [isOpen, isDangerous]);
 
   if (!isOpen) return null;
 
@@ -48,7 +47,7 @@ export default function ConfirmModal({
           if (e.target === e.currentTarget) onCancel?.();
         }}
       >
-        <div className="confirm-modal">
+        <div className="confirm-modal" ref={panelRef} tabIndex={-1}>
           <div className="confirm-modal__header">
             <h2 className="confirm-modal__title" id="confirm-modal-title">{title}</h2>
           </div>

@@ -132,3 +132,15 @@ describe("las gamas genéricas se completan con la bodega", () => {
       .toBe("Saint Felicien");
   });
 });
+
+describe("wineDisplayName: no deja un nombre cortado en un conector", () => {
+  it("'Rosado de Malbec' con uva Malbec se queda entero (no 'Rosado de')", () => {
+    expect(wineDisplayName({ name: "Rosado de Malbec", varietal: "Malbec" })).toBe("Rosado de Malbec");
+    expect(wineDisplayName({ name: "Rosé de Malbec", varietal: "Malbec" })).toBe("Rosé de Malbec");
+    expect(wineDisplayName({ name: "Vino con Malbec", varietal: "Malbec" })).toBe("Vino con Malbec");
+  });
+
+  it("sigue sacando la uva pegada cuando el resto es un nombre de verdad", () => {
+    expect(wineDisplayName({ name: "Saint Felicien Malbec", varietal: "Malbec" })).toBe("Saint Felicien");
+  });
+});

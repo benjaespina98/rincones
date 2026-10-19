@@ -1,5 +1,6 @@
 const winesService = require("../services/wines.service");
 const { fail } = require("../utils/apiError");
+const { validarVino } = require("../utils/validarVino");
 
 const list = async (req, res) => {
   try {
@@ -42,10 +43,8 @@ const getOne = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name || String(name).trim() === "") {
-      return res.status(400).json({ success: false, error: "El nombre del vino es obligatorio" });
-    }
+    const invalido = validarVino(req.body);
+    if (invalido) return res.status(400).json({ success: false, error: invalido });
 
     const { wine, merged, added } = await winesService.createWine(req.user.id, req.body);
     // 200 y no 201 cuando fue una reposición: no se creó un recurso nuevo. El
@@ -58,6 +57,8 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
   try {
+    const invalido = validarVino(req.body, { parcial: true });
+    if (invalido) return res.status(400).json({ success: false, error: invalido });
     const updatedWine = await winesService.updateWine(req.user.id, req.params.id, req.body);
     if (!updatedWine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: updatedWine });

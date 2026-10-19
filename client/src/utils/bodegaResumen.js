@@ -97,7 +97,8 @@ export const resumenDeBodega = (wines = []) => {
   };
 };
 
-const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+// Con separador de miles (es-AR: 1.000.099): un número largo pegado se lee mal y se corta en pantallas angostas.
+const plural = (n, uno, varios) => `${Number(n).toLocaleString("es-AR")} ${n === 1 ? uno : varios}`;
 
 /**
  * Las frases de la línea de resumen de Mi Bodega (ver BodegaResumen.jsx): botellas —o, sin

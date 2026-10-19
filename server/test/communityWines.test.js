@@ -371,3 +371,25 @@ test("retirar una de dos contribuciones desverifica pero no borra ni despublica"
     db.restore();
   }
 });
+
+test("un nombre con marcas HTML, caracteres de control o un largo absurdo no se publica", async () => {
+  const originalFindOne = CommunityWine.findOne;
+  const originalSave = CommunityWine.prototype.save;
+  const guardados = [];
+  CommunityWine.findOne = () => Promise.resolve(null);
+  CommunityWine.prototype.save = async function () {
+    guardados.push(this);
+    return this;
+  };
+  try {
+    for (const name of ["<script>alert(1)</script>", "a".repeat(200), "Malbec\u0000raro"]) {
+      await communityWines.contribute({ name, winery: "Bodega Real", varietal: "Malbec" }, { userId: "000000000000000000000001", verdict: "trusted" });
+    }
+    await communityWines.contribute({ name: "Reserva Especial", winery: "Bodega Real", varietal: "Malbec" }, { userId: "000000000000000000000001", verdict: "trusted" });
+    const publicados = guardados.filter((d) => d.published).map((d) => d.name);
+    assert.deepEqual(publicados, ["Reserva Especial"]);
+  } finally {
+    CommunityWine.findOne = originalFindOne;
+    CommunityWine.prototype.save = originalSave;
+  }
+});
