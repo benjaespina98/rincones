@@ -40,9 +40,9 @@ export default function BottomTabNavigation() {
   const medir = useCallback(() => {
     const btn = activoRef.current;
     const fila = filaRef.current;
-    // Se sale sin tocar el estado: una pantalla de detalle no marca ninguna
-    // pestaña, y poner el estado en null en cada render de esas dispara una
-    // cascada de renders por una medición que no existe.
+    // Se sale sin tocar el estado: una pantalla sin pestaña activa no tiene qué medir, y poner el
+    // estado en null dentro de un efecto dispara una cascada de renders. Que el indicador no se vea
+    // en ese caso lo decide el render (abajo): sólo se dibuja si hay pestaña activa.
     if (!btn || !fila) return;
     setIndicador({ left: btn.offsetLeft + btn.offsetWidth / 2 });
   }, []);
@@ -75,7 +75,9 @@ export default function BottomTabNavigation() {
 
         {/* Decorativo: quien anuncia cuál es la pestaña actual es
             `aria-current` en su botón, no esta barrita. */}
-        {indicador && (
+        {/* Sin pestaña activa (Escanear, o una pantalla que no cuelga de ninguna) no hay indicador: si no,
+            quedaba debajo de la pestaña de la que venías, marcando un lugar donde ya no estás. */}
+        {indicador && activeTab && (
           <span
             className="bottom-tabs__indicador"
             aria-hidden="true"

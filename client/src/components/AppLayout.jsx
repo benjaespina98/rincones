@@ -34,7 +34,7 @@ const AppLayout = ({ children, pageTitle }) => {
   const esInicio = location.pathname === "/";
   /* La ficha de un vino lleva su propio título (el nombre del vino): el genérico "Vino" sólo
      estorba. Se queda para lectores de pantalla, pero no se dibuja ni en el grande ni en la barra. */
-  const tituloGenerico = /^\/(vino\/|descubrir\/vino)/.test(location.pathname);
+  const tituloGenerico = /^\/(vino\/|descubrir\/vino|agregar)/.test(location.pathname);
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
   useKeyboardInset();

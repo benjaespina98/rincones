@@ -2,230 +2,42 @@
   /* dvh como en el resto de la app (AppLayout, Auth): con 100vh a secas, la
      barra del navegador móvil queda incluida en la cuenta y la pantalla arranca
      con un scroll que no lleva a ningún lado. */
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Llena el alto que deja la barra de arriba: así la barra de Guardar de la confirmación queda
+     abajo de todo aunque haya pocos datos, y no pegada al último campo. */
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding-bottom: 110px;
+  padding-bottom: 24px;
   background: transparent;
+  /* Nada de lo de adentro puede ser más ancho que la pantalla: un texto largo se corta en vez de
+     empujar el borde (era el desborde horizontal de esta pantalla). */
+  min-width: 0;
+  overflow-x: clip;
 }
 
-.scan-wine-page .page-header {
-  margin: 0.4rem 0.75rem 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgb(var(--accent-light-rgb) / 0.32);
-  background: linear-gradient(135deg, rgb(var(--accent-rgb) / 0.48), rgb(var(--accent-strong-rgb) / 0.82));
-}
-
-/* Con el buscador afuera, la pantalla tiene UNA decisión: escanear (o cargar a
-   mano si la etiqueta no ayuda). Un botón arrimado al techo y media pantalla
-   vacía abajo se lee como algo que no terminó de cargar, así que el bloque se
-   centra y el escaneo toma la presencia que le corresponde. */
-.scan-options {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.6rem 0.95rem;
-}
-
+/* El visor y todo lo que lo acompaña, con el mismo margen lateral que el resto de las pantallas.
+   Sin esto el recuadro, los textos y los botones iban pegados a los bordes del teléfono. */
 .scanner-shell {
   display: grid;
   gap: 0.85rem;
   width: 100%;
+  min-width: 0;
+  padding: 4px var(--page-pad-x) 0;
 }
-
-/* El medallón + título de arriba de las dos opciones. Mismo lenguaje que
-   `.empty-icon` (un círculo teñido, no una esfera con luz), para que el
-   momento de más peso de la app no invente su propio vocabulario. */
-.scan-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
-  text-align: center;
-}
-
-.scan-hero__icon {
-  width: 72px;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: var(--accent-soft);
-  background: var(--accent-muted);
-  border: 1px solid var(--line-accent);
-}
-
-.scan-hero__title {
-  margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.scan-hero__sub {
-  margin: 0;
-  max-width: 260px;
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-  line-height: 1.5;
-}
-
-.btn-manual-entry {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-full);
-  background: var(--glass);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: var(--text-md);
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .btn-manual-entry:hover {
-    border-color: var(--line-accent);
-    color: var(--text);
-    background: var(--surface);
-  }
-}
-
-
-.scan-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  color: var(--text-subtle);
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.scan-divider::before,
-.scan-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
-/* Tarjeta horizontal, no un cuadro gigante: la acción principal es buscar, y
-   escanear es la alternativa. Con el cuadrado de 220px ambas competían. */
-.btn-scan-large {
-  width: 100%;
-  min-height: 108px;
-  padding: 20px 18px;
-  border: 0;
-  border-radius: var(--radius-lg);
-  /* Plano, como el resto de lo primario. El degradado diagonal que tenía era
-     el único de la app que no coincidía con el de los demás botones —dos
-     violetas distintos— así que la acción más importante del producto era
-     también la que menos se parecía a sí misma en otras pantallas. */
-  background: var(--accent-fill);
-  color: var(--paper);
-  box-shadow: var(--shadow-accent);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 14px;
-  align-items: center;
-  text-align: left;
-  transition: filter var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .btn-scan-large:hover:not(:disabled) {
-    filter: brightness(1.06);
-    box-shadow: var(--shadow-glow);
-  }
-}
-
-.btn-scan-large .scan-icon {
-  grid-row: 1 / 3;
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-md);
-  background: rgb(var(--paper-rgb) / 0.16);
-}
-
-.btn-scan-large.scanning {
-  animation: scanPulse 1s ease-in-out infinite;
-}
-
-@keyframes scanPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.04);
-  }
-}
-
-.scan-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.scan-text {
-  grid-column: 2;
-  font-weight: 700;
-  font-size: var(--text-lg);
-}
-
-.scan-hint {
-  grid-column: 2;
-  opacity: 0.85;
-  font-size: var(--text-sm);
-}
-
-/* Acá vivían las diez reglas de `.scan-confirm*`: la pantalla de confirmación
-   que aparecía tras escanear una etiqueta dudosa. La reemplazó `ScanReview`,
-   que tiene sus propios estilos. Ningún selector alcanzaba a nada. */
-
 
 @media (min-width: 768px) {
-  .scan-options {
-    max-width: 700px;
+  .scanner-shell,
+  .scan-review {
+    max-width: 560px;
     margin: 0 auto;
   }
 }
 
-
 /* ── Cuántas botellas entran a la cava ──────────────────────────────────────
    Un vino ya no es "una botella": es una cantidad. Escanear doce veces la misma
-   etiqueta porque compraste una caja no es una experiencia, es una tarea. */
-.scan-qty {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.scan-qty__label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-}
-
+   etiqueta porque compraste una caja no es una experiencia, es una tarea. Vive como una fila
+   más de la lista de ScanReview. */
 .scan-qty__row {
   display: flex;
   align-items: center;
@@ -237,8 +49,8 @@
   align-items: center;
   gap: 2px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  border: 1px solid var(--border-base);
+  background: transparent;
 }
 
 .scan-qty__stepper button {
@@ -260,8 +72,8 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .scan-qty__stepper button:not(:disabled):hover {
-    background: var(--surface-hover);
+  .scan-qty__stepper button:hover:not(:disabled) {
+    background: rgb(var(--paper-rgb) / 0.08);
     color: var(--text);
   }
 }
@@ -275,8 +87,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Media docena y una caja: los dos casos en que nadie quiere tocar el más
-   seis o doce veces. */
+/* Media docena y una caja: los dos casos en que nadie quiere tocar el más doce veces. */
 .scan-qty__presets {
   display: flex;
   gap: 6px;
@@ -288,8 +99,8 @@
   height: 44px;
   padding: 0 12px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--glass);
+  border: 1px solid var(--border-base);
+  background: transparent;
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 700;
@@ -298,20 +109,7 @@
 }
 
 .scan-qty__preset.is-active {
-  border-color: var(--accent);
+  border-color: var(--line-accent);
   background: var(--accent-muted);
-  color: var(--text);
-}
-
-/* ── LA CONSECUENCIA DEL NÚMERO ──────────────────────────────────────────────
-   Acá vivían `.scan-destino*`: dos botones para elegir "la tengo yo" o "la
-   tomé afuera" ANTES de poder tocar el contador. Se fueron porque duplicaban
-   la pregunta que el número ya contesta — en cero no hay botella, así que no
-   hace falta elegir aparte que "no la tenés". Lo único que se conserva de esa
-   idea es decir la consecuencia con todas las letras, ahora debajo del propio
-   contador y actualizándose con él. */
-.scan-qty__consequence {
-  margin: 2px 0 0;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--accent-soft);
 }

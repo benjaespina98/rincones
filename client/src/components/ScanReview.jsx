@@ -50,6 +50,8 @@ const NAME_FIELD = "name";
 const NAME_PARTS = ["line", "properName"];
 
 const EDITABLE_FIELDS = ["winery", NAME_FIELD, "varietal", "vintage", "region"];
+// El orden en pantalla: nombre, bodega, uva, cosecha, región. Después van el tipo y las botellas.
+const DISPLAY_FIELDS = [NAME_FIELD, "winery", "varietal", "vintage", "region"];
 
 /**
  * Qué concepto explica cada rótulo.
@@ -115,7 +117,6 @@ export default function ScanReview({
   }));
   // Al editar un campo, deja de estar en duda: es dato del usuario.
   const [touched, setTouched] = useState(() => new Set());
-  const [showAll, setShowAll] = useState(false);
   /**
    * "Sí, este vino se llama igual que su bodega."
    *
@@ -337,34 +338,23 @@ export default function ScanReview({
   }, [issues]);
 
   /**
-   * ── QUÉ CAMPOS SE MUESTRAN COMO INPUT, Y POR QUÉ SE DECIDE UNA SOLA VEZ ────
-   * Los dudosos, los vacíos y los que arreglan un problema. El resto va en
-   * chips.
+   * ── QUÉ CAMPOS LLEVAN MARCA ──────────────────────────────────────────────────
+   * La lista muestra SIEMPRE todos los campos (antes los seguros se colapsaban en chips y los
+   * dudosos eran inputs; con tres estados había que explicarle a la persona cuál era cuál). Lo que
+   * queda es una marca de acento, un punto y una palabra, en el campo que el modelo no pudo leer o
+   * leyó con poca seguridad, o que arregla un problema. Apenas la persona lo toca, deja de estar en
+   * duda y la marca se va.
    *
-   * Esto se calculaba en cada render con `levelOf`, y ahí estaba el bug que se
-   * reportó como "se desmorona y pierde el foco al escribir": `setField` marca
-   * el campo como TOCADO en cada tecla, y `levelOf` devuelve "trusted" apenas
-   * está tocado. O sea que a la primera letra el campo salía de esta lista, el
-   * input se desmontaba —con el cursor adentro— y reaparecía abajo como chip.
-   * Escribías una letra y el campo desaparecía.
-   *
-   * Qué campos necesitan revisión es una propiedad de LO QUE LEYÓ EL ESCÁNER,
-   * no de lo que la persona está tipeando. Así que se congela con el primer
-   * render y no se vuelve a mirar. Sólo puede crecer: si el servidor reporta un
-   * problema nuevo, `forcedFields` suma ese campo.
+   * No hay problema de foco al escribir: ningún campo se monta ni se desmonta, sólo cambia la marca.
    */
-  const [camposDeEntrada] = useState(
-    () => new Set(EDITABLE_FIELDS.filter((f) => levelOf(f) !== "trusted"))
-  );
-  const needsReview = EDITABLE_FIELDS.filter(
-    (f) => camposDeEntrada.has(f) || forcedFields.has(f)
-  );
-  /* Un campo que ya está arriba como input no baja además a los chips: sería el
-     mismo dato dos veces en la misma pantalla. */
-  const trusted = EDITABLE_FIELDS.filter(
-    (f) => !needsReview.includes(f) && valueOf(f)
-  );
-  const visible = showAll ? EDITABLE_FIELDS : needsReview;
+  const marcaDe = (field) => {
+    if (isManual) return "";
+    if (touched.has(field)) return "";
+    const nivel = levelOf(field);
+    if (nivel === "low" && !valueOf(field)) return "No se leyó";
+    if (nivel === "low" || nivel === "review" || forcedFields.has(field)) return "Revisá";
+    return "";
+  };
 
   // ¿Este vino se llama igual que su bodega? Es la pregunta que habilita la
   // confirmación, y se hace sola apenas los dos textos coinciden.
@@ -461,48 +451,30 @@ export default function ScanReview({
     });
   };
 
-  // Un rótulo por nivel, arriba de todo — es lo primero que se lee y el que
-  // fija la expectativa correcta antes de ver un solo dato.
-  const kicker = isManual
-    ? "Cargar a mano"
-    : sinIdentificar
-      ? "Sin identificar"
-      : verdict === "trusted"
-        ? "Vino encontrado"
-        : verdict === "unverified"
-          ? "¿Este es tu vino?"
-          : "Datos leídos de la etiqueta";
+  const verificado = !isManual && verification?.status === "confirmado" && issues.length === 0;
+  const guardarDeshabilitado = saving || bloqueado;
 
   return (
     <form className="scan-review" onSubmit={submit}>
-      <header className="scan-review__head">
-        {photo && (
-          <img className="scan-review__thumb" src={photo} alt="Foto de la etiqueta que escaneaste" />
+      <header className="scan-review__hero">
+        {/* Sin foto (carga a mano) no se reserva el marco: un recuadro vacío no dice nada. */}
+        {photo && <img className="scan-review__photo" src={photo} alt="Foto de la etiqueta que escaneaste" />}
+        <h2 className="scan-review__title">{title || (isManual ? "Nuevo vino" : "Vino sin nombre")}</h2>
+        {values.winery && <p className="scan-review__winery">{values.winery}</p>}
+        {verificado && (
+          <p
+            className="scan-review__badge"
+            title={VERIFICACION_COPY[verification.source] || "Encontramos este vino en el catálogo"}
+          >
+            <Icon name="check" size={13} /> Verificado
+          </p>
         )}
-        <div className="scan-review__headings">
-          <p className="scan-review__kicker">{kicker}</p>
-          <h2 className="scan-review__title">
-            {title || (isManual ? "Nuevo vino" : "Vino sin nombre")}
-          </h2>
-          {values.winery && <p className="scan-review__winery">{values.winery}</p>}
-        </div>
       </header>
 
-      {/* ── BAJA CONFIANZA, SIN UN CAMPO PUNTUAL QUE SEÑALAR ────────────────────
-          No hay bodega/nombre a medias para mostrar en chips: el modelo no
-          pudo leer la etiqueta con seguridad y punto. Ofrecer el formulario acá
-          sería invitar a completar a ciegas — mejor decirlo así de directo, con
-          las dos salidas reales (repetir la foto o cargarlo a mano) y dejar la
-          puerta de "igual quiero completarlo yo" abierta pero discreta. */}
       {sinIdentificar && !revelarDatos ? (
         <div className="scan-review__unidentified" role="status">
           <Icon name="alert-triangle" size={20} className="scan-review__unidentified-icon" />
-          <p className="scan-review__unidentified-title">
-            No se pudo identificar el vino
-          </p>
-          {/* Acá iba "Preferimos avisarte antes que guardar datos que capaz no
-              son ciertos": la app explicando su propia política. Los dos botones
-              de abajo ya dicen qué se puede hacer. */}
+          <p className="scan-review__unidentified-title">No se pudo identificar el vino</p>
           <div className="scan-review__unidentified-actions">
             {onRescan && (
               <button type="button" className="scan-review__btn-primary" onClick={onRescan}>
@@ -511,373 +483,265 @@ export default function ScanReview({
             )}
             {onManual && (
               <button type="button" className="scan-review__btn-secondary" onClick={onManual}>
-                <Icon name="pencil" size={16} /> Buscar manualmente
+                <Icon name="pencil" size={16} /> Cargar a mano
               </button>
             )}
           </div>
-          <button
-            type="button"
-            className="scan-review__link"
-            onClick={() => setRevelarDatos(true)}
-          >
+          <button type="button" className="scan-review__link" onClick={() => setRevelarDatos(true)}>
             Completar los datos a mano
           </button>
         </div>
       ) : (
         <>
-      {/* ── EL NOMBRE, CONTRASTADO CONTRA ALGO QUE NO ES LA FOTO ───────────
-          El modelo se puntúa a sí mismo: puede leer nítido y aun así equivocarse
-          de nombre, porque en la foto no hay nada contra qué comparar. Esto es lo
-          que el servidor encontró al cruzarlo con fuentes reales de vinos, y se
-          dice ANTES de los campos porque cambia cómo hay que mirarlos.
+          {/* "¿Es este vino?": la app encontró un candidato que encaja pero no lo bastante como para
+              darlo por hecho. Un toque completa bodega, uva, región y tipo. */}
+          {!isManual && verification?.candidate && sugerencia === "pendiente" && (
+            <div className="scan-review__suggestion" role="status">
+              <p className="scan-review__suggestion-q">¿Es este vino?</p>
+              <p className="scan-review__suggestion-name">{verification.candidate.name}</p>
+              <p className="scan-review__suggestion-meta">
+                {[
+                  verification.candidate.winery,
+                  verification.candidate.varietal,
+                  verification.candidate.region,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              <div className="scan-review__suggestion-actions">
+                <button
+                  type="button"
+                  className="scan-review__btn-primary"
+                  onClick={() => aplicarCandidato(verification.candidate)}
+                  disabled={saving}
+                >
+                  <Icon name="check" size={16} /> Sí, es ese
+                </button>
+                <button
+                  type="button"
+                  className="scan-review__btn-secondary"
+                  onClick={() => setSugerencia("descartada")}
+                  disabled={saving}
+                >
+                  No, es otro
+                </button>
+              </div>
+              {verification.alternative?.name && (
+                <button
+                  type="button"
+                  className="scan-review__link"
+                  onClick={() => aplicarCandidato(verification.alternative)}
+                  disabled={saving}
+                >
+                  ¿O es {verification.alternative.name}?
+                </button>
+              )}
+            </div>
+          )}
 
-          Los tres estados son distintos y ninguno se puede tapar con otro:
-          confirmado (no hay nada que revisar), corregido (el nombre que ves NO es
-          el que leímos de la etiqueta, y merece una mirada) y sin verificar
-          (existe la chance de que este vino no se llame así). */}
-      {/* ── "¿ES ESTE VINO?" ─────────────────────────────────────────────────
-          El tramo del medio de la identificación. La app encontró un candidato
-          que encaja pero no lo bastante como para darlo por hecho —dos líneas
-          parecidas de la misma bodega, un nombre leído a medias—, así que no
-          tocó ningún dato y pregunta.
+          {sugerencia === "aceptada" && (
+            <p className="scan-review__aviso scan-review__aviso--ok" role="status">
+              <Icon name="check" size={13} /> Listo, lo tomamos como {title || "ese vino"}.
+            </p>
+          )}
 
-          La pregunta es barata para quien tiene la botella en la mano (la mira y
-          contesta) y evita el error que más molesta: que la app cambie sola el
-          vino por otro. Aceptar es un toque y completa bodega, uva, región y
-          tipo de una; si la segunda opción estaba cerca, también se ofrece. */}
-      {!isManual && verification?.candidate && sugerencia === "pendiente" && (
-        <div className="scan-review__suggestion" role="status">
-          <p className="scan-review__suggestion-q">¿Es este vino?</p>
-          <p className="scan-review__suggestion-name">{verification.candidate.name}</p>
-          <p className="scan-review__suggestion-meta">
-            {[
-              verification.candidate.winery,
-              verification.candidate.varietal,
-              verification.candidate.region,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <div className="scan-review__suggestion-actions">
-            <button
-              type="button"
-              className="scan-review__btn-primary"
-              onClick={() => aplicarCandidato(verification.candidate)}
-              disabled={saving}
-            >
-              <Icon name="check" size={16} /> Sí, es ese
-            </button>
-            <button
-              type="button"
-              className="scan-review__btn-secondary"
-              onClick={() => setSugerencia("descartada")}
-              disabled={saving}
-            >
-              No, es otro
-            </button>
+          {!isManual && verification?.status === "corregido" && (
+            <p className="scan-review__aviso" role="status">
+              <Icon name="sparkles" size={13} />
+              <span>
+                Ajustamos el nombre al del catálogo: <strong>{verification.name}</strong>.
+              </span>
+            </p>
+          )}
+
+          {!isManual && desacuerdos.length > 0 && (
+            <p className="scan-review__aviso scan-review__aviso--revisar" role="status">
+              <Icon name="alert-triangle" size={13} />
+              <span>Mirá la etiqueta: {desacuerdos.join(", ")} puede ser otra.</span>
+            </p>
+          )}
+
+          {!isManual && verification?.status === "sin-verificar" && issues.length === 0 && (
+            <p className="scan-review__aviso scan-review__aviso--revisar" role="status">
+              <Icon name="alert-triangle" size={13} />
+              <span>No está en ningún catálogo. Revisá el nombre.</span>
+            </p>
+          )}
+
+          {issues.length > 0 && (
+            <div className={`scan-review__issues ${bloqueado ? "is-blocking" : ""}`} role="status">
+              <ul>
+                {issues.map((code) => (
+                  <li key={code}>{ISSUE_COPY[code] || "Hay un dato que no cierra."}</li>
+                ))}
+              </ul>
+              {issues.includes("nombre-es-bodega") && (
+                <button
+                  type="button"
+                  className="scan-review__confirm-same"
+                  onClick={() => setSameNameOk(true)}
+                  disabled={saving}
+                >
+                  <Icon name="check" size={14} /> Se llama igual que la bodega
+                </button>
+              )}
+            </div>
+          )}
+
+          {sameNameOk && nombreIgualABodega && (
+            <p className="scan-review__aviso scan-review__aviso--ok" role="status">
+              <Icon name="check" size={13} /> Se llama igual que su bodega.{" "}
+              <button type="button" className="scan-review__link" onClick={() => setSameNameOk(false)}>
+                Deshacer
+              </button>
+            </p>
+          )}
+
+          {/* ── LA LISTA: una fila por dato, label chico arriba y el valor abajo ──────────────── */}
+          <div className="scan-review__list">
+            {DISPLAY_FIELDS.map((field) => {
+              const dl = DATALISTS[field];
+              const marca = marcaDe(field);
+              return (
+                <label key={field} className={`scan-review__row ${marca ? "is-marcada" : ""}`}>
+                  <span className="scan-review__rowlabel">
+                    {FIELD_CONCEPTS[field] ? (
+                      <ConceptTerm id={FIELD_CONCEPTS[field]} ctx={{ wine: values }}>
+                        {FIELD_LABELS[field]}
+                      </ConceptTerm>
+                    ) : (
+                      FIELD_LABELS[field]
+                    )}
+                    {marca && <span className="scan-review__marca">{marca}</span>}
+                  </span>
+                  <input
+                    type={field === "vintage" ? "number" : "text"}
+                    inputMode={field === "vintage" ? "numeric" : undefined}
+                    min={field === "vintage" ? 1900 : undefined}
+                    max={field === "vintage" ? new Date().getFullYear() : undefined}
+                    value={valueOf(field)}
+                    onChange={(e) => setField(field, e.target.value)}
+                    placeholder={field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]}
+                    list={dl?.id}
+                    disabled={saving}
+                    autoComplete="off"
+                  />
+                  {dl && (
+                    <datalist id={dl.id}>
+                      {dl.options.map((o) => (
+                        <option key={o} value={o} />
+                      ))}
+                    </datalist>
+                  )}
+                </label>
+              );
+            })}
+
+            <label className="scan-review__row">
+              <span className="scan-review__rowlabel">Tipo</span>
+              <select
+                value={derivedType}
+                onChange={(e) => setValues((v) => ({ ...v, type: e.target.value }))}
+                disabled={saving}
+              >
+                {Object.entries(WINE_TYPE_LABELS).map(([clave, nombre]) => (
+                  <option key={clave} value={clave}>
+                    {nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {/* Un solo número: cuántas botellas tenés ahora. En cero, la botella no existe en tu casa y
+                el vino queda anotado entre tus probados (ver utils/cellarViews.js). */}
+            <div className="scan-review__row scan-review__row--cantidad">
+              <span className="scan-review__rowlabel">Botellas</span>
+              <div className="scan-qty__row">
+                <div className="scan-qty__stepper">
+                  <button
+                    type="button"
+                    onClick={() => setCantidad((n) => Math.max(0, n - 1))}
+                    disabled={saving || cantidad <= 0}
+                    aria-label="Una botella menos"
+                  >
+                    <Icon name="minus" size={16} />
+                  </button>
+                  <span className="scan-qty__n" aria-live="polite">
+                    {cantidad}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCantidad((n) => Math.min(99, n + 1))}
+                    disabled={saving || cantidad >= 99}
+                    aria-label="Una botella más"
+                  >
+                    <Icon name="plus" size={16} />
+                  </button>
+                </div>
+                <div className="scan-qty__presets">
+                  {[6, 12].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
+                      onClick={() => setCantidad(n)}
+                      disabled={saving}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          {verification.alternative?.name && (
+
+          {cantidad === 0 && (
+            <p className="scan-review__nota" aria-live="polite">
+              Sin botellas: queda en «Ya tomados», no suma stock.
+            </p>
+          )}
+
+          {/* Las otras dos salidas, en voz baja: lo que casi todos vienen a hacer es Guardar. */}
+          <div className="scan-review__otras">
             <button
               type="button"
               className="scan-review__link"
-              onClick={() => aplicarCandidato(verification.alternative)}
-              disabled={saving}
+              onClick={() => onConsult?.({ ...values, type: derivedType, name: title })}
+              disabled={saving || !title || !onConsult}
+              title="Ver la información de este vino sin guardarlo"
             >
-              ¿O es {verification.alternative.name}?
+              Solo consultar
             </button>
-          )}
-        </div>
-      )}
-
-      {/* Confirmado a mano. Se deja dicho —igual que el "se llama igual que la
-          bodega"— para que no parezca que los campos se llenaron solos. */}
-      {sugerencia === "aceptada" && (
-        <p className="scan-review__confirmed" role="status">
-          <Icon name="check" size={13} /> Listo, lo tomamos como {title || "ese vino"}.
-        </p>
-      )}
-
-      {!isManual && verification?.status === "confirmado" && issues.length === 0 && (
-        <p className="scan-review__verified" role="status">
-          <Icon name="check" size={13} />{" "}
-          {VERIFICACION_COPY[verification.source] || "Encontramos este vino en el catálogo"}
-        </p>
-      )}
-
-      {!isManual && verification?.status === "corregido" && (
-        <p className="scan-review__corrected" role="status">
-          <Icon name="sparkles" size={13} />
-          <span>
-            Ajustamos el nombre al del catálogo: <strong>{verification.name}</strong>. Si tu
-            etiqueta dice otra cosa, corregilo.
-          </span>
-        </p>
-      )}
-
-      {/* Lo que la fuente contradice. No se pisó ningún dato —la etiqueta la
-          tenés vos, y las bodegas cambian cortes entre añadas—: los campos en
-          discusión quedaron abiertos abajo, y esto dice cuáles y por qué, que es
-          lo que evita el "revisá algo" sin decir qué. */}
-      {!isManual && desacuerdos.length > 0 && (
-        <p className="scan-review__unverified" role="status">
-          <Icon name="alert-triangle" size={13} />
-          <span>
-            {desacuerdos.length === 1
-              ? `Según esa fuente, ${desacuerdos[0]} de este vino es otra: mirá la etiqueta.`
-              : `Según esa fuente, ${desacuerdos.slice(0, -1).join(", ")} y ${
-                  desacuerdos[desacuerdos.length - 1]
-                } de este vino son otras: mirá la etiqueta.`}
-          </span>
-        </p>
-      )}
-
-      {!isManual && verification?.status === "sin-verificar" && issues.length === 0 && (
-        <p className="scan-review__unverified" role="status">
-          <Icon name="alert-triangle" size={13} />
-          <span>No encontramos este vino en ningún catálogo. Revisá el nombre antes de guardar.</span>
-        </p>
-      )}
-
-      {/* Lo que no cierra. Va arriba de los campos que lo arreglan —que ya están
-          abiertos por `forcedFields`— y desaparece solo apenas se corrige.
-          Se cuenta como una observación sobre lo que LEÍMOS: la que se equivocó
-          fue la app, no la persona que sacó la foto. */}
-      {issues.length > 0 && (
-        <div className={`scan-review__issues ${bloqueado ? "is-blocking" : ""}`} role="status">
-          <p className="scan-review__issues-head">
-            <Icon name="alert-triangle" size={14} />
-            {bloqueado ? "Esto no lo pudimos leer bien" : "Revisá esto antes de guardar"}
-          </p>
-          <ul>
-            {issues.map((code) => (
-              <li key={code}>{ISSUE_COPY[code] || "Hay un dato que no cierra."}</li>
-            ))}
-          </ul>
-          {/* La salida del callejón. Sin esto, un vino que se llama como su
-              bodega —Norton, El Enemigo, Durigutti— no se podía guardar por más
-              que la persona escribiera bien los dos campos: eran correctos y el
-              aviso no se iba. Un toque y sigue. */}
-          {issues.includes("nombre-es-bodega") && (
             <button
               type="button"
-              className="scan-review__confirm-same"
-              onClick={() => setSameNameOk(true)}
-              disabled={saving}
+              className="scan-review__link"
+              onClick={() => onWish?.({ ...values, type: derivedType, name: title })}
+              disabled={saving || !title}
             >
-              <Icon name="check" size={14} /> Está bien, se llama igual que la bodega
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Confirmado. Se deja dicho para que no parezca que el aviso desapareció
-          solo, y se puede volver atrás si fue un toque sin querer. */}
-      {sameNameOk && nombreIgualABodega && (
-        <p className="scan-review__confirmed" role="status">
-          <Icon name="check" size={13} /> Anotado: este vino se llama igual que su bodega.{" "}
-          <button type="button" className="scan-review__link" onClick={() => setSameNameOk(false)}>
-            Deshacer
-          </button>
-        </p>
-      )}
-
-      {trusted.length > 0 && !showAll && (
-        <div className="scan-review__chips">
-          {trusted.map((f) => (
-            <span key={f} className="scan-review__chip">
-              <em>{FIELD_LABELS[f]}</em> {valueOf(f)}
-            </span>
-          ))}
-          {derivedType !== "unknown" && (
-            <span className="scan-review__chip">
-              <em>Tipo</em> {WINE_TYPE_LABELS[derivedType]}
-            </span>
-          )}
-        </div>
-      )}
-
-      {visible.length > 0 && (
-        <div className="scan-review__fields">
-          {!showAll && needsReview.length > 0 && issues.length === 0 && (
-            <p className="scan-review__hint">
-              {isManual
-                ? "Con el nombre y la bodega alcanza."
-                : "Revisá estos datos: no se leyeron con seguridad."}
-            </p>
-          )}
-          {visible.map((field) => {
-            const level = levelOf(field);
-            const dl = DATALISTS[field];
-            // En carga manual no marcamos nada en ámbar: no hay lectura que dudar.
-            const tone = isManual ? "manual" : level;
-            return (
-              <label key={field} className={`scan-review__field is-${tone}`}>
-                <span className="scan-review__label">
-                  {FIELD_CONCEPTS[field] ? (
-                    <ConceptTerm id={FIELD_CONCEPTS[field]} ctx={{ wine: values }}>
-                      {FIELD_LABELS[field]}
-                    </ConceptTerm>
-                  ) : (
-                    FIELD_LABELS[field]
-                  )}
-                  {!isManual && level === "low" && !valueOf(field) && <em> · no lo leímos</em>}
-                  {!isManual && level === "review" && <em> · verificá</em>}
-                </span>
-                <input
-                  type={field === "vintage" ? "number" : "text"}
-                  inputMode={field === "vintage" ? "numeric" : undefined}
-                  min={field === "vintage" ? 1900 : undefined}
-                  max={field === "vintage" ? new Date().getFullYear() : undefined}
-                  value={valueOf(field)}
-                  onChange={(e) => setField(field, e.target.value)}
-                  placeholder={
-                    field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]
-                  }
-                  list={dl?.id}
-                  disabled={saving}
-                  autoComplete="off"
-                />
-                {dl && (
-                  <datalist id={dl.id}>
-                    {dl.options.map((o) => <option key={o} value={o} />)}
-                  </datalist>
-                )}
-              </label>
-            );
-          })}
-        </div>
-      )}
-
-      <button
-        type="button"
-        className="scan-review__toggle"
-        onClick={() => setShowAll((s) => !s)}
-        disabled={saving}
-      >
-        {showAll ? "Ocultar los que están bien" : "Editar todos los datos"}
-      </button>
-
-      {/* ── CUÁNTAS BOTELLAS TENÉS AHORA ─────────────────────────────────────
-          Un solo control, y de él sale todo lo demás: en cero, la botella no
-          existe en tu casa y el vino queda anotado entre tus probados; a
-          partir de una, entra a tu bodega con esa cantidad de stock. La frase
-          de abajo dice la consecuencia con todas las letras porque son dos
-          lugares distintos de la app: una suma botellas a tu cava (con su lote
-          y su fecha), la otra no toca el stock y sólo deja escrito que lo
-          tomaste — y ninguna respuesta obliga a mentirle a la otra (ver
-          utils/cellarViews.js). Los atajos cubren los casos reales —media
-          docena, una caja— sin obligar a tocar doce veces el más. */}
-      <div className="scan-qty">
-        <span className="scan-qty__label">¿Cuántas botellas tenés ahora?</span>
-        <div className="scan-qty__row">
-          <div className="scan-qty__stepper">
-            <button
-              type="button"
-              onClick={() => setCantidad((n) => Math.max(0, n - 1))}
-              disabled={saving || cantidad <= 0}
-              aria-label="Una botella menos"
-            >
-              <Icon name="minus" size={16} />
-            </button>
-            <span className="scan-qty__n" aria-live="polite">{cantidad}</span>
-            <button
-              type="button"
-              onClick={() => setCantidad((n) => Math.min(99, n + 1))}
-              disabled={saving || cantidad >= 99}
-              aria-label="Una botella más"
-            >
-              <Icon name="plus" size={16} />
+              Quiero probarlo
             </button>
           </div>
-          <div className="scan-qty__presets">
-            {[6, 12].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={`scan-qty__preset ${cantidad === n ? "is-active" : ""}`}
-                onClick={() => setCantidad(n)}
-                disabled={saving}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-        <p className="scan-qty__consequence" aria-live="polite">
-          {cantidad === 0
-            ? "Sin botellas: queda en «Ya tomados», no suma stock."
-            : "Entra a tu bodega, con stock."}
-        </p>
-      </div>
 
-      <div className="scan-review__actions">
-        <button
-          type="submit"
-          className="scan-review__save"
-          disabled={saving || bloqueado}
-          title={bloqueado ? "Completá o corregí lo que marcamos arriba" : undefined}
-        >
-          {saving ? (
-            "Guardando…"
-          ) : (
-            <>
-              <Icon name="check" size={17} />{" "}
-              {cantidad === 0
-                ? "Anotarlo como ya tomado"
-                : cantidad === 1
-                  ? "Agregar a mi bodega"
-                  : `Agregar ${cantidad} botellas`}
-            </>
-          )}
-        </button>
-        {/* Por qué no se puede guardar, dicho al lado del botón que no anda.
-            Sin esto, un botón deshabilitado es un callejón sin salida. */}
-        {bloqueado && !saving && (
-          <p className="scan-review__blocked-hint">
-            Corregí los datos marcados arriba.
-          </p>
-        )}
-        {/* Las otras dos salidas, chicas y juntas: el botón de arriba es lo que casi todos
-            vienen a hacer.
-
-            "Solo consultar": estás en una vinoteca o en una cena y querés ver qué es este
-            vino —descripción, precio, reseñas— sin guardar nada. Abre la ficha en modo
-            lectura; de ahí se puede sumar a la bodega si después te decidís. No guarda ni
-            toca el catálogo, así que no lo frena el veredicto: sólo necesita un nombre.
-
-            "Quiero probarlo": guardarlo en la lista es privado, no toca el catálogo
-            público, así que tampoco lo frena el veredicto. Lo único que necesita es un
-            nombre. */}
-        <div className="scan-review__otras">
-          <button
-            type="button"
-            className="scan-review__wish"
-            onClick={() => onConsult?.({ ...values, type: derivedType, name: title })}
-            disabled={saving || !title || !onConsult}
-            title="Ver la información de este vino sin guardarlo"
-          >
-            <Icon name="search" size={15} /> Solo consultar
-          </button>
-          <button
-            type="button"
-            className="scan-review__wish"
-            onClick={() => onWish?.({ ...values, type: derivedType, name: title })}
-            disabled={saving || !title}
-          >
-            <Icon name="heart" size={15} /> Quiero probarlo
-          </button>
-        </div>
-        <div className="scan-review__minor">
-          {onRescan && (
-            <button type="button" className="scan-review__link" onClick={onRescan} disabled={saving}>
-              Sacar otra foto
+          {/* La barra de abajo: un solo botón primario, fijo. El secundario es repetir la foto (o salir,
+              en la carga a mano). */}
+          <div className="scan-review__bar">
+            <button
+              type="button"
+              className="scan-review__secondary"
+              onClick={onRescan || onCancel}
+              disabled={saving}
+            >
+              {onRescan ? "Escanear otra" : "Cancelar"}
             </button>
-          )}
-          <button type="button" className="scan-review__link" onClick={onCancel} disabled={saving}>
-            Cancelar
-          </button>
-        </div>
-      </div>
+            <button
+              type="submit"
+              className="scan-review__save"
+              disabled={guardarDeshabilitado}
+              title={bloqueado ? "Completá o corregí lo que marcamos arriba" : undefined}
+            >
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
         </>
       )}
     </form>
