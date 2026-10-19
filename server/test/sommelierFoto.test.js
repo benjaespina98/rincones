@@ -26,7 +26,13 @@ const res = () => {
 // Los primeros bytes de cada formato, rellenados hasta un tamaño razonable.
 const relleno = (inicio) => Buffer.concat([Buffer.from(inicio), Buffer.alloc(64, 1)]);
 const JPEG = relleno([0xff, 0xd8, 0xff, 0xe0]);
-const PNG = relleno([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+// Un PNG con una cabecera creíble: 800x600 en el IHDR (los bytes 16 a 24), que es lo que mira la validación.
+const PNG = (() => {
+  const b = relleno([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  b.writeUInt32BE(800, 16);
+  b.writeUInt32BE(600, 20);
+  return b;
+})();
 const WEBP = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP"), Buffer.alloc(32, 1)]);
 const HEIC = Buffer.concat([Buffer.alloc(4), Buffer.from("ftypheic"), Buffer.alloc(32, 1)]);
 const PDF = Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.alloc(64, 1)]);
