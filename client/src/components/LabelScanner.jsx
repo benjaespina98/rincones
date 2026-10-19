@@ -191,10 +191,16 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
         source: analysis.source || "",
         rawText: analysis.rawText || "",
       });
-    } catch {
+    } catch (err) {
       // NO llamamos a onCapture: si lo hacíamos, el padre desmontaba el escáner
       // y este mensaje nunca llegaba a verse. Ahora el usuario decide.
-      setAnalyzeError("No se pudo leer la etiqueta. Probá con otra foto o cargá los datos a mano.");
+      // Si el servidor rechazó la FOTO (no es una imagen, muy chica, muy grande), su mensaje dice
+      // qué hacer; lo demás cae al genérico.
+      const delServidor = err?.response?.data;
+      const porLaFoto = String(delServidor?.code || "").startsWith("imagen_") && typeof delServidor?.message === "string";
+      setAnalyzeError(
+        porLaFoto ? delServidor.message : "No se pudo leer la etiqueta. Probá con otra foto o cargá los datos a mano."
+      );
     } finally {
       setAnalyzing(false);
     }

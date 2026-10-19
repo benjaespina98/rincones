@@ -210,6 +210,24 @@ const descartarLetraSuelta = (values) => ({
  * Analiza el buffer de imagen con Gemini y devuelve los datos de la etiqueta.
  * Lanza si falla (el controlador lo captura y cae al OCR).
  */
+// El esquema ya restringe `type` a un enum, pero el esquema es un pedido y no una garantía: lo que
+// vuelve se normaliza igual (mayúsculas, "rose" sin tilde, "tinto") y lo desconocido queda "unknown".
+const TIPOS_VALIDOS = new Set(["red", "white", "rosé", "sparkling", "fortified", "unknown"]);
+const SINONIMOS_TIPO = {
+  rose: "rosé",
+  tinto: "red",
+  blanco: "white",
+  rosado: "rosé",
+  espumante: "sparkling",
+  espumoso: "sparkling",
+  fortificado: "fortified",
+};
+const normalizarTipo = (valor) => {
+  const t = String(valor ?? "").trim().toLowerCase();
+  if (TIPOS_VALIDOS.has(t)) return t;
+  return SINONIMOS_TIPO[t] || "unknown";
+};
+
 const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   const parsed = await geminiService.generateJson({
     parts: [
@@ -243,7 +261,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
       varietal: uva.value,
       vintage: normalizeVintage(parsed.vintage),
       region: String(parsed.region || "").trim(),
-      type: String(parsed.type || "unknown").trim() || "unknown",
+      type: normalizarTipo(parsed.type),
     })
   );
 
@@ -272,6 +290,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
 module.exports = {
   isVisionConfigured,
   analyzeWineLabel,
+  normalizarTipo,
   // `esLetraSuelta` también la usa labels.controller.js para el nombre que
   // saca el OCR local (Tesseract): es el mismo riesgo ("Tomero" → "T") por
   // el mismo motivo —una lectura de imagen que se corta—, así que necesita

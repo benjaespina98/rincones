@@ -30,6 +30,7 @@
 
 const { generateJson, streamJson, isGeminiConfigured } = require("./gemini.service");
 const { extraerRespuestaParcial } = require("../utils/respuestaParcial");
+const { limpiarDato } = require("../utils/promptSeguro");
 
 /**
  * ── ACÁ LA VELOCIDAD ES UNA FUNCIONALIDAD ───────────────────────────────────
@@ -137,9 +138,9 @@ const resumirBodega = (wines = []) => {
 
   const linea = (w) =>
     [
-      w.name,
-      w.varietal,
-      w.vintage || "",
+      limpiarDato(w.name),
+      limpiarDato(w.varietal, 40),
+      limpiarDato(w.vintage, 10),
       Number(w.quantity) > 0 ? `x${w.quantity}` : "sin stock",
       w.rating > 0 ? `${w.rating}/5` : "",
     ]
@@ -174,7 +175,7 @@ const resumirBodega = (wines = []) => {
     // catálogo aparte — algunos de éstos YA aparecieron arriba, en "EN CASA
     // AHORA", si además le queda stock; repetirlos acá es lo que le permite
     // al modelo saber, del vino que tiene en la mesa, que además lo probó.
-    const conPuntaje = (w) => (w.rating > 0 ? `${w.name} (${w.rating}/5)` : w.name);
+    const conPuntaje = (w) => (w.rating > 0 ? `${limpiarDato(w.name)} (${w.rating}/5)` : limpiarDato(w.name));
     partes.push(
       `YA TOMÓ EN ALGÚN MOMENTO (le quede stock o no): sirve para saber qué le gustó: ${probados
         .slice(0, 6)
@@ -198,7 +199,7 @@ const resumirBodega = (wines = []) => {
  */
 const resumirGuardados = (wishes = []) => {
   if (!wishes.length) return "";
-  const linea = (w) => [w.name, w.varietal, w.vintage || ""].filter(Boolean).join(" · ");
+  const linea = (w) => [limpiarDato(w.name), limpiarDato(w.varietal, 40), limpiarDato(w.vintage, 10)].filter(Boolean).join(" · ");
   return `GUARDADOS PARA CONSEGUIR: quiere probarlos, NO los tiene, no se pueden abrir:\n${wishes
     .slice(0, 10)
     .map(linea)
