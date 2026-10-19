@@ -54,10 +54,11 @@ const cadena = (valor) => {
   return q;
 };
 
-const pedirFeatured = async ({ curado = [], comunitarios = [], fotosDelPool = {} } = {}) => {
+const pedirFeatured = async ({ curado = [], comunitarios = [], fotosDelPool = {}, fotosComunitarias = {} } = {}) => {
   const original = {
     pool: catalogService.getCatalogPool,
     comunidad: communityWines.conFoto,
+    imagenes: communityWines.imagenesDe,
     rank: recommendations.rankFeatured,
     enrich: wineImages.enrichWithImages,
     wineFind: Wine.find,
@@ -65,6 +66,7 @@ const pedirFeatured = async ({ curado = [], comunitarios = [], fotosDelPool = {}
   };
   catalogService.getCatalogPool = () => curado;
   communityWines.conFoto = async () => comunitarios;
+  communityWines.imagenesDe = async (ids) => new Map(ids.filter((id) => fotosComunitarias[id]).map((id) => [id, fotosComunitarias[id]]));
   // El ranking de verdad no importa acá: se queda con los primeros `count`, en el orden recibido.
   recommendations.rankFeatured = (lista, _perfil, { count }) => lista.slice(0, count);
   wineImages.enrichWithImages = async (lista) =>
@@ -92,6 +94,7 @@ const pedirFeatured = async ({ curado = [], comunitarios = [], fotosDelPool = {}
   } finally {
     catalogService.getCatalogPool = original.pool;
     communityWines.conFoto = original.comunidad;
+    communityWines.imagenesDe = original.imagenes;
     recommendations.rankFeatured = original.rank;
     wineImages.enrichWithImages = original.enrich;
     Wine.find = original.wineFind;
@@ -135,4 +138,97 @@ test("featured: nunca devuelve más de ocho", async () => {
   const muchos = Array.from({ length: 30 }, (_, i) => vino(`v${i}`, FOTO(i)));
   const { body } = await pedirFeatured({ curado: muchos });
   assert.equal(body.data.length, 8);
+});
+
+test("featured: las fotos comunitarias se traen sólo para los elegidos y no viajan marcas internas", async () => {
+  const diferido = (id) => ({ id, name: `Vino ${id}`, winery: `Bodega ${id}`, image: "", fotoDiferida: true });
+  const { body } = await pedirFeatured({
+    curado: [vino("a", "")],
+    comunitarios: [diferido("com-1"), diferido("com-2")],
+    fotosComunitarias: { "com-1": FOTO("1"), "com-2": FOTO("2") },
+  });
+  assert.deepEqual(body.data.slice(0, 2).map((w) => [w.id, w.image]), [["com-1", FOTO("1")], ["com-2", FOTO("2")]]);
+  assert.ok(body.data.every((w) => !("fotoDiferida" in w)));
+});
+
+test("featured: si la foto diferida ya no está, el vino se recomienda igual, sin foto", async () => {
+  const { body } = await pedirFeatured({
+    comunitarios: [{ id: "com-9", name: "Vino 9", winery: "Bodega 9", image: "", fotoDiferida: true }],
+  });
+  assert.equal(body.data.length, 1);
+  assert.equal(body.data[0].image, "");
+});
+
+test("communityWines.conFoto: la consulta no trae la imagen y el resultado se cachea", async () => {
+  const CommunityWine = require("../src/models/communityWine.model");
+  const original = CommunityWine.find;
+  let llamadas = 0;
+  let proyeccion = "";
+  CommunityWine.find = () => {
+    llamadas += 1;
+    const q = Promise.resolve([{ key: "k1", name: "Uno", winery: "B", count: 2, verified: true }]);
+    q.select = (campos) => ((proyeccion = campos), q);
+    q.sort = () => q;
+    q.limit = () => q;
+    q.lean = () => q;
+    return q;
+  };
+  communityWines.olvidarCache();
+  try {
+    const a = await communityWines.conFoto(300);
+    const b = await communityWines.conFoto(300);
+    assert.equal(llamadas, 1);
+    assert.match(proyeccion, /-image/);
+    assert.equal(a[0].fotoDiferida, true);
+    assert.equal(a[0].image, "");
+    assert.equal(b.length, 1);
+  } finally {
+    CommunityWine.find = original;
+    communityWines.olvidarCache();
+  }
+});
+
+test("featured: con el ranking REAL, un vino comunitario con foto aparece primero", async () => {
+  const original = recommendations.rankFeatured;
+  recommendations.rankFeatured = require("../src/services/recommendations.service").rankFeatured;
+  const real = require("../src/services/recommendations.service");
+  recommendations.rankFeatured = original;
+  assert.equal(typeof real.rankFeatured, "function");
+  // Se llama al ranking real a mano con la forma exacta de un comunitario.
+  const comunitario = { id: "com-k", name: "Uno", winery: "B", region: "Mendoza", varietal: "Malbec", type: "red", image: FOTO("k"), rating: 0, vintage: "", score: 3 };
+  const perfil = real.buildTasteProfile({ wines: [], preferences: {} });
+  const r = real.rankFeatured([comunitario], perfil, { count: 8, seed: 1 });
+  assert.deepEqual(r.map((w) => w.id), ["com-k"]);
+});
+
+test("featured: si la comunidad falla, el catálogo curado se recomienda igual", async () => {
+  const original = communityWines.conFoto;
+  const { body, status } = await pedirFeatured({ curado: [vino("a", ""), vino("b", FOTO("b"))], comunitarios: [] });
+  assert.equal(status, 200);
+  assert.deepEqual(body.data.map((w) => w.id), ["b", "a"]);
+  assert.equal(communityWines.conFoto, original);
+});
+
+test("featured: pide el ranking de los sin foto sólo por lo que falta", async () => {
+  const original = recommendations.rankFeatured;
+  const pedidos = [];
+  const res = { set() {}, status() { return this; }, json() { return this; } };
+  const prev = {
+    pool: catalogService.getCatalogPool, com: communityWines.conFoto, enrich: wineImages.enrichWithImages,
+    wineFind: Wine.find, userFind: User.findById,
+  };
+  catalogService.getCatalogPool = () => [...Array.from({ length: 3 }, (_, i) => vino(`f${i}`, FOTO(i))), vino("s1", ""), vino("s2", "")];
+  communityWines.conFoto = async () => [];
+  wineImages.enrichWithImages = async (l) => l;
+  Wine.find = () => cadena([]);
+  User.findById = () => cadena(null);
+  recommendations.rankFeatured = (lista, _p, { count }) => (pedidos.push({ n: lista.length, count }), lista.slice(0, count));
+  try {
+    await catalogController.featured({ user: { id: "u1" } }, res, (e) => { throw e; });
+  } finally {
+    recommendations.rankFeatured = original;
+    catalogService.getCatalogPool = prev.pool; communityWines.conFoto = prev.com; wineImages.enrichWithImages = prev.enrich;
+    Wine.find = prev.wineFind; User.findById = prev.userFind;
+  }
+  assert.deepEqual(pedidos, [{ n: 3, count: 8 }, { n: 2, count: 5 }]);
 });

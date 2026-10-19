@@ -16,7 +16,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto, conFotoPrimero, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
+import { elegirOtroDistinto, conFotoPrimero, topDeEntrada, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
@@ -128,8 +128,7 @@ export default function DiscoverPage() {
          * y su primer puesto lo decide la afinidad.
          */
         // Se entra por uno CON foto cuando hay (vienen primero): el sorteo no baja a los que no la tienen.
-        const conFoto = w.filter((x) => typeof x.image === "string" && x.image.trim() !== "").length;
-        setSpotlightElegido(w[elegirEntrada(w, ultimoAlEntrar, { top: conFoto > 0 ? Math.min(4, conFoto) : 4 })]?.id ?? null);
+        setSpotlightElegido(w[elegirEntrada(w, ultimoAlEntrar, { top: topDeEntrada(w) })]?.id ?? null);
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));

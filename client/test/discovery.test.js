@@ -143,3 +143,27 @@ describe("conFotoPrimero", () => {
     expect(conFotoPrimero(undefined)).toEqual([]);
   });
 });
+
+describe("topDeEntrada", () => {
+  it("sin ninguno con foto sortea entre las cuatro primeras", async () => {
+    const { topDeEntrada } = await import("../src/utils/discovery");
+    expect(topDeEntrada([{ id: "a" }, { id: "b", image: "" }])).toBe(4);
+    expect(topDeEntrada([])).toBe(4);
+    expect(topDeEntrada(null)).toBe(4);
+  });
+
+  it("con fotos no baja a los que no la tienen: 1, 2, 3 y más de 4", async () => {
+    const { topDeEntrada } = await import("../src/utils/discovery");
+    const f = (n) => Array.from({ length: n }, (_, i) => ({ id: i, image: "https://x/" + i }));
+    expect(topDeEntrada([...f(1), { id: "z" }])).toBe(1);
+    expect(topDeEntrada(f(2))).toBe(2);
+    expect(topDeEntrada(f(3))).toBe(3);
+    expect(topDeEntrada(f(9))).toBe(4);
+  });
+
+  it("con un solo vino con foto, aun si es el último visto, elige ese (no uno sin foto)", async () => {
+    const { topDeEntrada, elegirEntrada } = await import("../src/utils/discovery");
+    const lista = [{ id: "b", image: "https://x/b" }, { id: "a" }, { id: "c" }];
+    expect(elegirEntrada(lista, "b", { top: topDeEntrada(lista) })).toBe(0);
+  });
+});

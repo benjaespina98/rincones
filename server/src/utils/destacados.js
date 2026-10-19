@@ -14,11 +14,14 @@ const { esImagenAceptada } = require("./imagenAceptada");
  * (`esImagenAceptada`): https o data:image en base64, sin comillas ni paréntesis que rompan un
  * `url()` de CSS.
  */
+// `fotoDiferida`: la foto existe pero todavía no se trajo (ver communityWines.conFoto).
+const tieneFoto = (wine) => wine.fotoDiferida === true || esImagenAceptada(wine.image);
+
 const separarPorFoto = (candidatos) => {
   const lista = (Array.isArray(candidatos) ? candidatos : []).filter(Boolean);
   return {
-    con: lista.filter((wine) => esImagenAceptada(wine.image)),
-    sin: lista.filter((wine) => !esImagenAceptada(wine.image)),
+    con: lista.filter(tieneFoto),
+    sin: lista.filter((wine) => !tieneFoto(wine)),
   };
 };
 

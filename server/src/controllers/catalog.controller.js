@@ -345,7 +345,11 @@ const featured = async (req, res, next) => {
     const conFoto = recommendations.rankFeatured(con, perfil, { count: DESTACADOS, seed: semilla });
     const faltan = DESTACADOS - conFoto.length;
     const sinFoto = faltan > 0 ? recommendations.rankFeatured(sin, perfil, { count: faltan, seed: semilla }) : [];
-    const data = conFotoPrimero([...conFoto, ...sinFoto], DESTACADOS);
+    const elegidos = conFotoPrimero([...conFoto, ...sinFoto], DESTACADOS);
+    // La foto de los comunitarios se trae sólo para los elegidos (son pesadas).
+    const diferidas = elegidos.filter((w) => w.fotoDiferida);
+    const fotos = diferidas.length ? await communityWines.imagenesDe(diferidas.map((w) => w.id)) : new Map();
+    const data = elegidos.map(({ fotoDiferida, ...w }) => (fotoDiferida ? { ...w, image: fotos.get(w.id) || "" } : w));
     // `private` y no `public`: desde que el set se arma con la bodega y las
     // preferencias de quien pregunta, la respuesta es de ESA persona y un proxy
     // compartido no puede servírsela a otra.
