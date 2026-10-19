@@ -600,13 +600,6 @@ const esImagenReal = (buffer) => {
   return jpeg || png || webp || heic;
 };
 
-/** El tipo que se le declara a Gemini: el real, no el que dijo el navegador. */
-const mimeDe = (buffer) => {
-  if (buffer[0] === 0xff) return "image/jpeg";
-  if (buffer[0] === 0x89) return "image/png";
-  if (buffer.toString("ascii", 0, 4) === "RIFF") return "image/webp";
-  return "image/heic";
-};
 
 /**
  * POST /api/sommelier/photo — multipart { file, question?, conversationId?, history? }

@@ -86,10 +86,12 @@ test("el prompt del Sommelier llega limpio: pregunta, historial, 'evitar' y gust
   // Cada título de sección aparece UNA vez: lo inyectado no fabrica secciones nuevas.
   assert.equal(prompt.split("\nPREGUNTA\n").length - 1, 1);
   assert.equal(prompt.split("LO QUE VENÍAN HABLANDO").length - 1, 1);
-  assert.ok(!/<b>|```/.test(prompt.slice(prompt.indexOf("GUSTO DECLARADO"))));
+  const desde = prompt.indexOf("GUSTO DECLARADO");
+  assert.ok(desde >= 0);
+  assert.ok(!/<b>|```/.test(prompt.slice(desde)));
 });
 
-test("la foto del Sommelier rechaza una imagen desmedida y acepta una que no se puede medir", async () => {
+test("la foto del Sommelier rechaza una imagen desmedida", async () => {
   const { askPhoto } = require("../src/controllers/sommelier.controller");
   const png = (w, h) => {
     const b = Buffer.alloc(80, 1);
