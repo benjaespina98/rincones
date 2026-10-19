@@ -323,7 +323,75 @@ const search = async (query, limit = 12) => {
   }
 };
 
+/**
+ * Los vinos publicados por la comunidad que YA tienen foto, con la forma del catálogo, para que
+ * Descubrí los pueda recomendar. Sin la imagen: las fotos son data URL y pesan, así que se rankea
+ * con los datos livianos (`fotoDiferida: true` marca que la foto existe) y después se piden
+ * `imagenesDe` sólo para los pocos elegidos.
+ *
+ * El catálogo curado es chico y casi sin fotos; lo que la gente fue cargando (con su foto) es lo
+ * que hace que haya con qué recomendar con foto, y crece solo con el uso. Primero los verificados
+ * por dos personas distintas y los más cargados. Cacheado en memoria unos minutos: es igual para
+ * todos. Nunca lanza.
+ */
+const CACHE_MS = 10 * 60 * 1000;
+let cacheConFoto = { hasta: 0, limit: 0, lista: [] };
+
+const conFoto = async (limit = 300) => {
+  const ahora = Date.now();
+  if (cacheConFoto.hasta > ahora && cacheConFoto.limit >= limit) return cacheConFoto.lista.slice(0, limit);
+  try {
+    const docs = await CommunityWine.find({
+      published: true,
+      image: { $regex: /^(https:\/\/|data:image\/)/ },
+    })
+      .select("-image -contributors")
+      .sort({ verified: -1, count: -1 })
+      .limit(limit)
+      .lean();
+    const lista = docs.map((d) => ({
+      id: `com-${d.key}`,
+      name: d.name,
+      winery: d.winery || "",
+      region: d.region || "",
+      varietal: d.varietal || "",
+      type: d.type || "unknown",
+      image: "",
+      fotoDiferida: true,
+      vintage: "",
+      rating: 0,
+      barcode: "",
+      source: d.verified ? "comunidad-verificada" : "comunidad",
+      score: d.count || 1,
+    }));
+    cacheConFoto = { hasta: ahora + CACHE_MS, limit, lista };
+    return lista;
+  } catch {
+    return [];
+  }
+};
+
+/** Las fotos de unos pocos vinos comunitarios, por id (`com-<key>`). Sólo las que son válidas. */
+const imagenesDe = async (ids = []) => {
+  const keys = ids.map((id) => String(id).replace(/^com-/, "")).filter(Boolean);
+  if (keys.length === 0) return new Map();
+  try {
+    const docs = await CommunityWine.find({ key: { $in: keys }, published: true }).select("key image").lean();
+    return new Map(docs.filter((d) => looksLikeImage(d.image)).map((d) => [`com-${d.key}`, d.image.trim()]));
+  } catch {
+    return new Map();
+  }
+};
+
+/** Para los tests: olvida lo cacheado. */
+const olvidarCache = () => {
+  cacheConFoto = { hasta: 0, limit: 0, lista: [] };
+};
+
 module.exports = {
+  conFoto,
+  imagenesDe,
+  olvidarCache,
   contribute,
   retract,
   search,
