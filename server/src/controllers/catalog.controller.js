@@ -10,7 +10,8 @@ const WineInfo = require("../models/wineInfo.model");
 const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
-const { soloConFoto } = require("../utils/destacados");
+const { conFotoPrimero, separarPorFoto } = require("../utils/destacados");
+const communityWines = require("../services/communityWines.service");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
 
@@ -294,16 +295,6 @@ const pairing = async (req, res, next) => {
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
 const DESTACADOS = 8;
 
-/**
- * Cuántos candidatos se piden antes de quedarse con `DESTACADOS`.
- *
- * La foto no se sabe hasta después de consultar el pool compartido, así que la
- * única forma de priorizar a los que la tienen es traer de más y recortar
- * después. Ocho veces: al ser un filtro estricto (ver `soloConFoto`) y haber pocas fotos,
- * hace falta mirar bastante pool para encontrar alguna; a medida que se llene, sobra.
- */
-const CANDIDATOS = DESTACADOS * 8;
-
 /** La semilla del día: mismo set mientras dura la jornada, otro mañana. */
 const semillaDelDia = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24));
 
@@ -333,26 +324,28 @@ const featured = async (req, res, next) => {
     });
 
     /**
-     * Se rankea de más y después se recorta, por dos razones que empujan igual:
-     * la foto no se sabe hasta consultar el pool compartido, y priorizar a los
-     * que la tienen exige tener de dónde elegir.
+     * Se arma el universo (catálogo curado + lo que la gente cargó con foto), se le pega la foto
+     * del pool compartido a quien la tenga, y se recomienda CON FOTO primero.
      *
-     * SÓLO los que tienen foto. La tarjeta grande de Descubrí es casi toda imagen: sin foto
-     * muestra la botella genérica, que es la misma para todos los vinos y no dice nada de ese
-     * vino en particular, o sea que no es una recomendación.
+     * Con foto porque la tarjeta grande de Descubrí luce mucho más con la botella real. Pero es una
+     * PRIORIDAD y no un filtro: si con foto no alcanzan los ocho, se completa con los que no la
+     * tienen (que se ven como antes, con la botella genérica) y la pantalla nunca queda sin
+     * recomendación. A medida que se carguen más vinos con su foto, habrá más para recomendar.
      *
-     * Es un FILTRO, no un orden: puede devolver menos de ocho, o ninguno, y la pantalla lo
-     * resuelve (sin recomendación y con una invitación a sumar una foto). El orden del ranking
-     * por afinidad se conserva.
+     * El orden dentro de cada grupo es el de afinidad con el gusto de la persona.
      */
-    const rankeados = recommendations.rankFeatured(catalogService.getCatalogPool(), perfil, {
-      count: CANDIDATOS,
-      seed: semillaDelDia(),
-    });
-    const candidatos = await wineImages.enrichWithImages(rankeados);
-    // Sólo con foto (ver `soloConFoto`): sin foto no es una recomendación. El orden del ranking
-    // por afinidad se conserva.
-    const data = soloConFoto(candidatos, DESTACADOS);
+    const curado = catalogService.getCatalogPool();
+    const vistos = new Set(curado.map((w) => poolKey(w.name, w.winery, w.varietal)));
+    const comunitarios = (await communityWines.conFoto(300)).filter(
+      (w) => !vistos.has(poolKey(w.name, w.winery, w.varietal))
+    );
+    const universo = await wineImages.enrichWithImages([...curado, ...comunitarios]);
+    const { con, sin } = separarPorFoto(universo);
+    const semilla = semillaDelDia();
+    const conFoto = recommendations.rankFeatured(con, perfil, { count: DESTACADOS, seed: semilla });
+    const faltan = DESTACADOS - conFoto.length;
+    const sinFoto = faltan > 0 ? recommendations.rankFeatured(sin, perfil, { count: faltan, seed: semilla }) : [];
+    const data = conFotoPrimero([...conFoto, ...sinFoto], DESTACADOS);
     // `private` y no `public`: desde que el set se arma con la bodega y las
     // preferencias de quien pregunta, la respuesta es de ESA persona y un proxy
     // compartido no puede servírsela a otra.

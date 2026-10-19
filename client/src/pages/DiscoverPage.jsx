@@ -16,7 +16,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto, soloConFoto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
+import { elegirOtroDistinto, conFotoPrimero, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
@@ -54,14 +54,8 @@ export default function DiscoverPage() {
   const { stats } = useWineStats();
   const { showError, showSuccess } = useToast();
 
-  // Vinos recomendados con foto, tal como llegaron. `featured` (abajo) es lo que queda después de
-  // descartar los que no cargaron la foto: la rotación y "Ver otro" sólo ven ese.
-  const [destacados, setDestacados] = useState([]);
-  const [fotosCaidas, setFotosCaidas] = useState(() => new Set());
-  const featured = useMemo(
-    () => destacados.filter((w) => !fotosCaidas.has(w.id)),
-    [destacados, fotosCaidas]
-  );
+  // Los vinos recomendados, con los de foto primero.
+  const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [addingId, setAddingId] = useState(null);
@@ -124,16 +118,18 @@ export default function DiscoverPage() {
     getFeaturedWines()
       .then((todos) => {
         if (!active) return;
-        // Sólo con foto (ver `soloConFoto`): una recomendación sin foto no es una recomendación.
-        const w = soloConFoto(todos);
-        setDestacados(w);
+        // Con foto primero (ver `conFotoPrimero`), sin sacar ninguno.
+        const w = conFotoPrimero(todos);
+        setFeatured(w);
         /**
          * Se entra por una de las primeras del ranking y nunca por la que se vio
          * la vez anterior (ver `elegirEntrada`). Entrar siempre por la primera
          * dejaba la home idéntica en cada visita: el set es estable durante el día
          * y su primer puesto lo decide la afinidad.
          */
-        setSpotlightElegido(w[elegirEntrada(w, ultimoAlEntrar)]?.id ?? null);
+        // Se entra por uno CON foto cuando hay (vienen primero): el sorteo no baja a los que no la tienen.
+        const conFoto = w.filter((x) => typeof x.image === "string" && x.image.trim() !== "").length;
+        setSpotlightElegido(w[elegirEntrada(w, ultimoAlEntrar, { top: conFoto > 0 ? Math.min(4, conFoto) : 4 })]?.id ?? null);
       })
       .catch(() => active && setLoadFailed(true))
       .finally(() => active && setLoading(false));
@@ -617,14 +613,10 @@ export default function DiscoverPage() {
             compact
           />
         ) : (
-          // Sin ningún vino con foto no se recomienda nada: mostrar la botella genérica como si fuera
-          // una sugerencia es peor que decir que todavía no hay. La salida es sumar una foto.
           <EmptyState
             illustration="busqueda"
-            title="Todavía no hay recomendaciones con foto"
-            hint="Las sugerencias usan fotos reales. Escaneá una etiqueta y sumá la tuya, o buscá un vino."
-            actionLabel="Sumá una foto"
-            onAction={() => navigate("/agregar", { state: { modo: "camara", intento: Date.now() } })}
+            title="No hay recomendaciones ahora"
+            hint="Probá buscando un vino."
             compact
           />
         )
@@ -653,7 +645,6 @@ export default function DiscoverPage() {
                 artSize={150}
                 fit="contain"
                 priority
-                onFail={() => setFotosCaidas((prev) => new Set(prev).add(spotlight.id))}
               />
             </div>
             <div className="spotlight__body">

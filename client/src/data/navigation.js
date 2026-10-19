@@ -49,8 +49,8 @@
    una app con cinco lugares de abajo no necesita un sexto arriba. */
 export const TABS = [
   { id: "descubri", label: "Descubrí", path: "/", icon: "sparkle" },
-  { id: "bodega", label: "Mi Bodega", path: "/bodega", icon: "bottle" },
   { id: "sommelier", label: "Sommelier", path: "/sommelier", icon: "wine-glass" },
+  { id: "bodega", label: "Mi Bodega", path: "/bodega", icon: "bottle" },
   { id: "cuenta", label: "Cuenta", path: "/perfil", icon: "user" },
 ];
 

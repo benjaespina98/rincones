@@ -129,3 +129,17 @@ describe("elegirEntrada", () => {
     expect(elegirEntrada(dos, "q")).toBe(0);
   });
 });
+
+describe("conFotoPrimero", () => {
+  it("pone los que tienen foto primero, sin sacar ninguno y respetando el orden de cada grupo", async () => {
+    const { conFotoPrimero } = await import("../src/utils/discovery");
+    const r = conFotoPrimero([{ id: "a", image: "" }, { id: "b", image: "https://x/b.jpg" }, { id: "c" }, { id: "d", image: " " }, { id: "e", image: "https://x/e.jpg" }]);
+    expect(r.map((w) => w.id)).toEqual(["b", "e", "a", "c", "d"]);
+  });
+
+  it("tolera lo que no es una lista", async () => {
+    const { conFotoPrimero } = await import("../src/utils/discovery");
+    expect(conFotoPrimero(null)).toEqual([]);
+    expect(conFotoPrimero(undefined)).toEqual([]);
+  });
+});

@@ -69,10 +69,10 @@ describe("BottomTabNavigation", () => {
     expect(screen.getByRole("button", { name: /escanear/i })).toBeInTheDocument();
   });
 
-  it("el orden es Descubrí, Mi Bodega, Escanear, Sommelier, Cuenta", () => {
+  it("el orden es Descubrí, Sommelier, Escanear, Mi Bodega, Cuenta", () => {
     const { container } = enRuta("/");
     const nombres = [...container.querySelectorAll(".bottom-tabs > button")].map((b) => b.textContent.trim());
-    expect(nombres).toEqual(["Descubrí", "Mi Bodega", "Escanear", "Sommelier", expect.stringMatching(/Cuenta$/)]);
+    expect(nombres).toEqual(["Descubrí", "Sommelier", "Escanear", "Mi Bodega", expect.stringMatching(/Cuenta$/)]);
   });
 
   it("Cuenta lleva al perfil y toma el estado de la ficha de valoraciones", () => {

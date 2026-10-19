@@ -323,7 +323,44 @@ const search = async (query, limit = 12) => {
   }
 };
 
+/**
+ * Los vinos publicados por la comunidad que YA tienen foto, con la forma del catálogo, para que
+ * Descubrí los pueda recomendar.
+ *
+ * El catálogo curado es chico y casi sin fotos; lo que la gente fue cargando (con su foto) es lo
+ * que hace que haya con qué recomendar con foto, y crece solo con el uso. Primero los verificados
+ * por dos personas distintas y los más cargados. Nunca lanza.
+ */
+const conFoto = async (limit = 300) => {
+  try {
+    const docs = await CommunityWine.find({ published: true, image: { $nin: ["", null] } })
+      .sort({ verified: -1, count: -1 })
+      .limit(limit * 2)
+      .lean();
+    return docs
+      .filter((d) => looksLikeImage(d.image))
+      .slice(0, limit)
+      .map((d) => ({
+        id: `com-${d.key}`,
+        name: d.name,
+        winery: d.winery || "",
+        region: d.region || "",
+        varietal: d.varietal || "",
+        type: d.type || "unknown",
+        image: d.image,
+        vintage: "",
+        rating: 0,
+        barcode: "",
+        source: d.verified ? "comunidad-verificada" : "comunidad",
+        score: d.count || 1,
+      }));
+  } catch {
+    return [];
+  }
+};
+
 module.exports = {
+  conFoto,
   contribute,
   retract,
   search,

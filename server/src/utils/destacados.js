@@ -1,21 +1,30 @@
 const { esImagenAceptada } = require("./imagenAceptada");
 
 /**
- * De los candidatos ya rankeados, sólo los que tienen una foto válida, en el mismo orden, hasta
- * `cantidad`.
+ * Los candidatos ya rankeados, con los que tienen foto primero y el resto después, hasta
+ * `cantidad`. Mantiene el orden del ranking dentro de cada grupo (afinidad), y NUNCA deja la lista
+ * vacía mientras haya candidatos: sin foto se recomienda igual, con la botella genérica.
  *
- * La tarjeta grande de Descubrí es casi toda imagen: sin foto muestra la botella genérica, igual
- * para todos los vinos, y eso no es una recomendación. Antes sólo se ORDENABA con foto primero y
- * se completaba con el resto; ahora es un filtro, y si no hay ninguno con foto la respuesta es
- * una lista vacía (la pantalla lo dice y ofrece sumar una foto).
+ * La tarjeta grande de Descubrí luce mucho más con foto real, por eso se prioriza; pero que una
+ * foto falte no puede dejar a la persona sin recomendación. A medida que la gente cargue vinos con
+ * su foto (el pool compartido y el catálogo comunitario), cada vez habrá más con qué llenar el
+ * lugar de las que tienen.
  *
  * "Foto válida" es la misma regla con la que el server acepta una imagen en todos lados
  * (`esImagenAceptada`): https o data:image en base64, sin comillas ni paréntesis que rompan un
- * `url()` de CSS. Una cadena vacía, en blanco, o con otro esquema no cuenta.
+ * `url()` de CSS.
  */
-const soloConFoto = (candidatos, cantidad) =>
-  (Array.isArray(candidatos) ? candidatos : [])
-    .filter((wine) => esImagenAceptada(wine?.image))
-    .slice(0, cantidad);
+const separarPorFoto = (candidatos) => {
+  const lista = (Array.isArray(candidatos) ? candidatos : []).filter(Boolean);
+  return {
+    con: lista.filter((wine) => esImagenAceptada(wine.image)),
+    sin: lista.filter((wine) => !esImagenAceptada(wine.image)),
+  };
+};
 
-module.exports = { soloConFoto };
+const conFotoPrimero = (candidatos, cantidad) => {
+  const { con, sin } = separarPorFoto(candidatos);
+  return [...con, ...sin].slice(0, cantidad);
+};
+
+module.exports = { conFotoPrimero, separarPorFoto };
