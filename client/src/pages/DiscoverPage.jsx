@@ -471,7 +471,7 @@ export default function DiscoverPage() {
                     <div className="wine-result-card__body">
                       <p className="wine-result-card__name" title={r.name}>{r.name}</p>
                       <p className="wine-result-card__winery">
-                        {r.winery || "Bodega no especificada"}
+                        {[r.winery || "Bodega no especificada", r.region].filter(Boolean).join(" · ")}
                       </p>
 
                       {/* El tipo va acá, junto al resto de los datos, no flotando

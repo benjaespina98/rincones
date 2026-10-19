@@ -56,15 +56,12 @@ export default function ExploreFeed({ groups = [], stats, seed = 0 }) {
       {grupo && (
         <div className="explore__group">
           {conContenido.length > 1 && (
-            <div className="explore__tabs" role="tablist" aria-label="Qué explorar">
+            <div className="explore__tabs" role="group" aria-label="Qué explorar">
               {conContenido.map((g) => (
                 <button
                   key={g.id}
                   type="button"
-                  role="tab"
-                  id={`explore-tab-${g.id}`}
-                  aria-selected={g.id === grupo.id}
-                  aria-controls="explore-panel"
+                  aria-pressed={g.id === grupo.id}
                   className={`explore__tab ${g.id === grupo.id ? "is-active" : ""}`}
                   onClick={() => setActivoId(g.id)}
                 >
@@ -74,12 +71,7 @@ export default function ExploreFeed({ groups = [], stats, seed = 0 }) {
             </div>
           )}
 
-          <div
-            className="explore__items"
-            role="tabpanel"
-            id="explore-panel"
-            aria-labelledby={`explore-tab-${grupo.id}`}
-          >
+          <div className="explore__items">
             {grupo.hint && <p className="explore__group-hint">{grupo.hint}</p>}
             {grupo.items.map((item) => (
               <TrackedCard key={item.id} item={item} variant="row" showType={mixto} />

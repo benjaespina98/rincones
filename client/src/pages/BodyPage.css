@@ -1918,8 +1918,10 @@
 .bodega-tipos {
   display: flex;
   gap: 8px;
-  margin: 0 calc(var(--page-pad-x) * -1) 4px;
-  padding: 2px var(--page-pad-x);
+  /* El padding vertical da lugar al ::after de 44 de los chips: con overflow-x el contenedor recorta
+     lo que sale, y sin esto el área de toque real era de 36. El margen negativo lo compensa. */
+  margin: -5px calc(var(--page-pad-x) * -1) -3px;
+  padding: 7px var(--page-pad-x);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;

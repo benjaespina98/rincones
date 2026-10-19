@@ -480,27 +480,6 @@
   gap: 10px;
 }
 
-/* Etiqueta y descripción en la misma línea de base: la etiqueta manda por color
-   y peso, la descripción acompaña sin competir. */
-.explore__group-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-}
-
-.explore__group-label {
-  font-size: var(--text-2xs);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.explore__group-hint {
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-}
-
 .explore__items {
   display: flex;
   flex-direction: column;
