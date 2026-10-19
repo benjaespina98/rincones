@@ -64,7 +64,7 @@ export const useShareCard = () => {
           await navigator.share({
             files: [file],
             title: "Rincones",
-            text: `🍷 ${wineDisplayName(wine)} — desde Rincones`,
+            text: `🍷 ${wineDisplayName(wine)}, desde Rincones`,
           });
           return "shared";
         } catch (err) {

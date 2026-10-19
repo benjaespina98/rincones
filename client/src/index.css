@@ -663,7 +663,6 @@ button:not(:disabled):active,
     .wine-row__disclosure,
     .wine-row__gridfav,
     .wine-row__icon-btn,
-    .app-topbar__account,
     .app-topbar__nav-btn,
     .search-clear,
     .qty-btn,
@@ -835,7 +834,7 @@ button svg {
   /* Sin escala al presionar (es movimiento); el velo de luz es opacidad y se queda. */
   button:not(:disabled):active,
   [role="button"]:not([aria-disabled="true"]):active,
-  :is(.bodega-modo, .bodega-filtros, .wine-row__disclosure, .wine-row__gridfav, .wine-row__icon-btn, .app-topbar__account, .app-topbar__nav-btn, .search-clear, .qty-btn, .add-fab):not(:disabled):active,
+  :is(.bodega-modo, .bodega-filtros, .wine-row__disclosure, .wine-row__gridfav, .wine-row__icon-btn, .app-topbar__nav-btn, .search-clear, .qty-btn, .add-fab):not(:disabled):active,
   .wine-row:has(.wine-row__main:active) {
     transform: none;
   }

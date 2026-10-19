@@ -370,7 +370,7 @@ function WineRow({
               }`}
               title={nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
             >
-              {Number(wine.quantity) <= 0 ? "—" : `×${wine.quantity}`}
+              {Number(wine.quantity) <= 0 ? "0" : `×${wine.quantity}`}
             </span>
             {/* Numérico en vez de cinco estrellas: dice lo mismo en un
                 cuarto del ancho. */}

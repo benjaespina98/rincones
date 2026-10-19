@@ -39,6 +39,7 @@ function WinePhotoInner({
   className = "",
   priority = false,
   fit = "cover",
+  onFail,
 }) {
   const [loaded, setLoaded] = useState(false);
   // Proporción real de la imagen (ancho / alto), sólo para fit="auto".
@@ -77,7 +78,12 @@ function WinePhotoInner({
             if (w && h) setProporcion(w / h);
             setLoaded(true);
           }}
-          onError={() => setFailed(true)}
+          onError={() => {
+            setFailed(true);
+            // Quien necesite saber que la foto no cargó (la recomendación de Descubrí no puede mostrar
+            // la botella genérica) se entera acá.
+            onFail?.();
+          }}
         />
       )}
       {acreditar && (

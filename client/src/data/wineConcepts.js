@@ -1,3 +1,4 @@
+import { leerCosecha, hayValorDeCosecha } from "../utils/vintage";
 /**
  * Conceptos clave del vino, explicados donde aparece la palabra.
  *
@@ -24,9 +25,10 @@ export const CONCEPTS = {
   taninos: {
     title: "Taninos",
     body: [
-      "Son lo que te seca la lengua, como cuando dejás el saquito de té de más en la taza. Vienen de la piel y la semilla de la uva, y de la madera si pasó por barrica — y los dos se sienten distinto: el de la uva envuelve y se queda, el de la madera raspa más adelante y a veces deja la boca áspera. Son el esqueleto de un tinto y lo que le permite aguantar años: con el tiempo se van puliendo, por eso un vino que hoy te parece duro puede estar perfecto en cinco.",
-      "Un vino muy tánico pide comida —la grasa y la proteína los ablandan en la boca—, y por eso el mismo vino que solo te parece áspero, con un bife funciona.",
+      "Los taninos son lo que seca y frunce la boca, como un té que se pasó de tiempo. Vienen de la piel y las semillas de la uva, y también de la barrica.",
+      "Un tinto con mucho tanino pide comida: la grasa de un bife lo suaviza. Con los años se pule y gana suavidad.",
     ],
+    copa: "Fijate si la sequedad se queda en las encías o pasa rápido.",
     anchor: ({ info }) => {
       const n = Number(info?.structure?.tannin);
       if (!Number.isFinite(n)) return null;
@@ -41,9 +43,10 @@ export const CONCEPTS = {
   acidez: {
     title: "Acidez",
     body: [
-      "Es lo que te hace agua la boca, como una rodaja de limón. Suena a defecto y es lo contrario: mantiene el vino fresco y limpia el paladar entre bocado y bocado.",
-      "Por eso uno con buena acidez salva un plato pesado —una provoleta, una salsa con crema— y uno sin acidez se vuelve pesado él mismo a la tercera copa. Es además lo que decide si un vino puede guardarse: sin acidez no hay guarda que aguante, por más tanino y madera que tenga. Y es la razón por la que en Argentina se plantó cada vez más alto — la noche fría es lo que la conserva.",
+      "La acidez es lo que te hace agua la boca, como un limón. Mantiene el vino fresco y limpia el paladar entre bocado y bocado.",
+      "Por eso un vino con buena acidez rescata un plato pesado, como una provoleta, y es lo que le permite guardarse años.",
     ],
+    copa: "Notá si te hace salivar al tragar: esa es la acidez trabajando.",
     anchor: ({ info }) => {
       const n = Number(info?.structure?.acidity);
       if (!Number.isFinite(n)) return null;
@@ -55,8 +58,8 @@ export const CONCEPTS = {
   cuerpo: {
     title: "Cuerpo",
     body: [
-      "Es cuánto pesa el vino en la boca, y se entiende mejor con leche: agua, leche descremada, leche entera. Un vino liviano pasa y se va; uno corpulento se queda y se siente denso. Ojo con confundirlo con intensidad de sabor: un Pinot Noir puede ser liviano y tener muchísimo aroma.",
-      "Lo que da cuerpo es sobre todo el alcohol —de ahí que los vinos de zonas cálidas se sientan más densos— y también el azúcar que quedó y el paso por madera. No es calidad: hay livianos excelentes y corpulentos mediocres. Lo que sí decide es con qué comida va, porque el plato y el vino tienen que pesar parecido.",
+      "El cuerpo es cuánto pesa el vino en la boca. Pensalo como agua, leche descremada y leche entera: un vino liviano pasa rápido y uno con cuerpo se queda.",
+      "No es lo mismo que la intensidad: un Pinot Noir puede ser liviano y oler muchísimo. Lo define sobre todo el alcohol, y sirve para elegir el plato: comida y vino tendrían que pesar parecido.",
     ],
     anchor: ({ info }) => {
       const n = Number(info?.structure?.body);
@@ -70,8 +73,8 @@ export const CONCEPTS = {
   guarda: {
     title: "Guarda",
     body: [
-      "Un vino no mejora para siempre: sube, llega a una meseta y baja. En la subida los taninos se pulen y la fruta se vuelve más compleja; pasada la meseta pierde fruta y queda seco y sin gracia. La mayoría de lo que se compra en el súper está hecho para tomarse dentro de los tres años.",
-      "Un Malbec de gama media aguanta cinco o seis; para hablar de diez o quince tenés que estar ante un vino con acidez y tanino de sobra, que son pocos y se notan al tomarlos jóvenes porque parecen cerrados. Y algo que pesa más que la añada: DÓNDE lo guardás. Un vino bueno en un placard que en verano llega a 30 grados envejece mal y rápido; uno modesto a 16 grados constantes te sorprende.",
+      "La guarda es el tiempo que un vino mejora antes de empezar a decaer. Sube, llega a una meseta y baja: en la subida los taninos se pulen y la fruta se vuelve más compleja.",
+      "La mayoría de los vinos está hecha para tomarse en pocos años. Y pesa más dónde lo guardás que la añada: un lugar muy caluroso lo envejece mal y rápido.",
     ],
     anchor: ({ guarda }) => {
       if (!guarda?.label) return null;
@@ -84,8 +87,8 @@ export const CONCEPTS = {
   temperatura: {
     title: "Temperatura de servicio",
     body: [
-      "Es el error más común, y el más fácil de arreglar. Un tinto a temperatura ambiente de verano argentino —30 grados— sabe a alcohol y nada más: el calor le tapa la fruta.",
-      "Y un blanco recién sacado de la heladera está tan frío que no se siente nada. Veinte minutos de heladera para el tinto y quince fuera para el blanco arreglan más vinos que cualquier decantador.",
+      "Servir a la temperatura justa cambia más un vino que casi cualquier otra cosa. Un tinto a temperatura de verano sabe a alcohol, y un blanco recién sacado de la heladera casi no se siente.",
+      "Un truco simple: veinte minutos de heladera para el tinto y quince fuera de ella para el blanco.",
     ],
     anchor: ({ serve }) => (serve ? `Para este: ${serve}. Si está más caliente, veinte minutos de heladera.` : null),
   },
@@ -93,8 +96,8 @@ export const CONCEPTS = {
   decantar: {
     title: "Decantar o airear",
     body: [
-      "Airear es dejar que el vino tome oxígeno, y sirve de verdad en dos casos: un tinto joven y muy tánico, que se afloja con media hora, y un vino viejo con sedimento, que se pasa a un decantador para dejar el poso en la botella.",
-      "Fuera de eso es pose. Y ojo: un vino muy viejo puede desarmarse con el aire en veinte minutos, así que ahí conviene servir y tomar.",
+      "Decantar es pasar el vino a otro recipiente para que tome aire. Sirve de verdad en dos casos: un tinto joven y muy tánico, que se afloja con media hora, y uno viejo con sedimento, para dejar el poso en la botella.",
+      "En los demás casos es más ceremonia que necesidad, y un vino muy viejo puede apagarse con el aire.",
     ],
     anchor: ({ info, wine }) => {
       const n = Number(info?.structure?.tannin);
@@ -109,8 +112,8 @@ export const CONCEPTS = {
   maridaje: {
     title: "Maridaje: tres reglas",
     body: [
-      "Una: el peso manda. Un plato contundente tapa a un vino liviano, y al revés el vino se come el plato.",
-      "Dos: la acidez corta la grasa —por eso un blanco fresco con una empanada frita funciona mejor de lo que parece—. Tres: lo que crece junto va junto; la cocina de una región suele pedir el vino de esa región. Todo lo demás son detalles, y ninguna regla le gana a lo que te guste.",
+      "Tres reglas alcanzan para empezar. Primera: el peso manda, un plato contundente tapa a un vino liviano y al revés.",
+      "Segunda: la acidez corta la grasa, por eso un blanco fresco funciona con una empanada frita. Tercera: lo que crece junto va junto. Y si algo te gusta, ninguna regla le gana.",
     ],
     anchor: () => null,
   },
@@ -129,8 +132,8 @@ export const CONCEPTS = {
     // aclaración menor cuando cada una da para su propia tarjeta. Ahora las
     // tienen (`anada` y `corte`).
     body: [
-      "Lo que más dice de una etiqueta es lo más chico que esté impreso: el origen. Cuanto más específico, más se compromete quien lo escribió. \"Mendoza\" es media provincia y no significa casi nada — pueden ser uvas compradas a treinta productores distintos.",
-      "\"Valle de Uco\" ya es una zona con carácter. \"Gualtallary\" o \"Paraje Altamira\" son lugares concretos, y una bodega que los imprime está apostando a que vos notes la diferencia. Si aparece el nombre de un viñedo o de una parcela, el vino salió de ahí y de ningún otro lado; \"single vineyard\" y \"vino de finca\" son la misma idea dicha en marketing. La regla es simple y no falla: cuanto más grande el lugar que nombra la etiqueta, menos sabe la bodega de dónde vino esa uva.",
+      "Lo más revelador de una etiqueta es el origen: cuanto más específico, más se compromete la bodega.",
+      "Mendoza es media provincia, Valle de Uco ya es una zona con carácter y el nombre de un viñedo es un lugar concreto. Cuanto más grande el lugar que nombra, menos dice del origen exacto de la uva.",
     ],
     anchor: ({ wine }) =>
       wine?.region
@@ -141,24 +144,35 @@ export const CONCEPTS = {
   anada: {
     title: "Cómo leer una añada",
     body: [
-      "El año de la etiqueta es el de la COSECHA, no el del embotellado, y no es un dato de archivo: es el clima de ese verano. En Mendoza un año fresco da vinos más tensos, con menos alcohol y más acidez; uno caluroso, más maduros y más dulces de fruta. Por eso el mismo vino de dos años seguidos puede no parecerse. 2016 fue el año del Niño y llovió como nunca — muchos tintos salieron livianos y hay quien los adora justamente por eso.",
-      "Dos advertencias prácticas. Una: \"añada vieja\" no es sinónimo de mejor, es sinónimo de más vieja, y la mayoría de los vinos no está hecha para esperar. Dos: en un blanco joven o un espumante sin añada, el año importa poco y la frescura importa todo — ahí conviene el más nuevo que encuentres.",
+      "La añada es el año de la cosecha, no el del embotellado. Cuenta cómo fue el clima de ese ciclo, y por eso el mismo vino puede cambiar de un año al siguiente.",
+      "Un año fresco suele dar vinos más tensos y con más acidez, y uno caluroso, más maduros. Añada vieja no significa mejor: significa más vieja.",
     ],
-    anchor: ({ wine }) => {
-      const año = Number(wine?.vintage);
-      if (!Number.isFinite(año)) return "El tuyo no tiene cosecha cargada; si la etiqueta la dice, vale la pena anotarla.";
+    anchor: ({ wine, propio = true }) => {
+      // Sin vino no hay nada que decir de "el tuyo": la lección de la home abre este pop-up sin
+      // ninguna botella adelante.
+      if (!wine) return null;
+      const año = leerCosecha(wine);
+      if (año === null) {
+        // Hay algo escrito que no es un año (NV, "2019/20"): no se afirma que falte.
+        if (hayValorDeCosecha(wine)) return null;
+        // Sin dato: sólo se invita a anotarla si el vino es del usuario. Una ficha del catálogo
+        // nunca trae cosecha (es el vino, no la botella) y decirle "el tuyo" sería falso.
+        return propio
+          ? "Este vino no tiene cosecha cargada. Si la etiqueta la dice, vale la pena anotarla."
+          : null;
+      }
       const edad = new Date().getFullYear() - año;
       if (edad <= 2) return `El tuyo es ${año}: joven, con la fruta en su punto más directo.`;
       if (edad <= 6) return `El tuyo es ${año}, así que tiene ${edad} años: la fruta empieza a dar paso a otra cosa.`;
-      return `El tuyo es ${año} — ${edad} años. Si no era un vino de guarda, no lo esperes más.`;
+      return `El tuyo es ${año}, de hace ${edad} años. Si no era un vino de guarda, no lo esperes más.`;
     },
   },
 
   corte: {
     title: "Qué es un corte",
     body: [
-      "Un corte (o blend) es un vino hecho con más de una uva, y no es una versión rebajada de nada: los vinos más caros del mundo, en Burdeos, son cortes. La idea es que cada uva aporte lo que a la otra le falta — el Malbec pone fruta y carnosidad, el Cabernet Sauvignon estructura y ese dejo herbal, el Petit Verdot color y tanino.",
-      "Un dato para leer la etiqueta: el orden en que aparecen las uvas es el orden de proporción, así que un \"Malbec-Cabernet\" tiene más Malbec que Cabernet. Si no dice porcentajes es casi siempre porque cambian todos los años, según cómo vino cada cosecha. Y ojo con el vocabulario argentino: acá muchas bodegas llaman \"Gran Corte\" a su vino más caro, que suele ser un corte, pero la palabra no está regulada y no garantiza nada por sí sola.",
+      "Un corte, o blend, es un vino hecho con más de una uva. No es una versión rebajada: los grandes vinos de Burdeos son cortes.",
+      "Cada uva aporta algo distinto: el Malbec suma fruta y cuerpo, y el Cabernet Sauvignon, estructura. En la etiqueta, la primera uva que se nombra suele ser la que más pesa.",
     ],
     anchor: ({ wine }) => {
       const uva = String(wine?.varietal || "").toLowerCase();
@@ -172,8 +186,8 @@ export const CONCEPTS = {
   precio: {
     title: "Por qué dos Malbec cuestan tan distinto",
     body: [
-      "Casi nada de la diferencia está en la uva: está en el rendimiento y en el tiempo. Una viña cargada da doce mil kilos por hectárea y una podada para concentrar da cuatro mil, así que la segunda reparte los mismos costos de todo el año entre un tercio de las botellas.",
-      "Después está la madera: una barrica nueva de roble francés cuesta como mil dólares y rinde unas trescientas botellas, o sea que sólo el envase de crianza puede poner varios dólares en cada una. Sumá los años que el vino pasa en bodega sin venderse —guardar plata quieta también cuesta— y el viñedo: una hectárea en Gualtallary vale muchísimo más que una en el este de Mendoza. Lo que casi nunca justifica el precio es el peso de la botella ni lo lindo del papel, que es donde algunas bodegas ponen la diferencia cuando no está adentro.",
+      "Dos Malbec pueden costar muy distinto sobre todo por rendimiento y tiempo, más que por la uva. Una viña que da menos kilos por hectárea reparte los mismos costos entre menos botellas.",
+      "Pesan además la barrica de roble, los años en bodega y el viñedo de origen. El precio no se explica por el peso de la botella ni por lo lindo de la etiqueta.",
     ],
     anchor: ({ wine }) =>
       wine?.purchase?.price > 0
@@ -184,8 +198,8 @@ export const CONCEPTS = {
   reserva: {
     title: "Reserva y Gran Reserva",
     body: [
-      "En España e Italia son categorías reguladas por ley, con años mínimos de barrica y de botella. En Argentina no: cada bodega usa la palabra como quiere.",
-      "Suele indicar la gama media o alta de esa bodega —y muchas veces sí implica algo más de madera— pero no lo garantiza nadie, y entre dos bodegas distintas no significan lo mismo. Como señal de calidad, vale menos de lo que parece; como pista del lugar que ocupa ese vino dentro de su bodega, sirve.",
+      "En España e Italia, Reserva y Gran Reserva son categorías reguladas, con tiempos mínimos de barrica y de botella. En Argentina cada bodega usa la palabra a su criterio.",
+      "Suele señalar la gama media o alta de esa bodega, a veces con más madera. Sirve como pista dentro de una misma bodega, menos para comparar entre bodegas.",
     ],
     anchor: () => null,
   },
@@ -193,8 +207,8 @@ export const CONCEPTS = {
   crianza: {
     title: "Crianza: roble, cemento y huevo",
     body: [
-      "Los aromas a vainilla, coco, tostado o humo no vienen de la uva: los pone la madera. El roble aporta esos sabores y también tanino, y cuanto más nueva la barrica, más se nota.",
-      "El cemento y el huevo de hormigón hacen lo contrario: no aportan sabor y dejan la fruta limpia, por eso volvieron a usarse en los últimos años. \"Sin madera\" no es peor: es otra intención.",
+      "La crianza es el tiempo que el vino pasa en barrica, cemento u otro recipiente antes de embotellarse. Los aromas a vainilla, coco o tostado no vienen de la uva: los aporta la madera.",
+      "El cemento no aporta sabor y deja la fruta más limpia. Un vino sin madera no es peor, tiene otra intención.",
     ],
     anchor: ({ info }) => {
       const aromas = Array.isArray(info?.aromas) ? info.aromas.join(" ").toLowerCase() : "";
@@ -208,8 +222,8 @@ export const CONCEPTS = {
   terroir: {
     title: "Terroir",
     body: [
-      "Suena místico y es bastante concreto: suelo, altura y clima. En Mendoza la altura es la que más manda. Cada 100 metros que subís, la noche refresca más, la uva madura más lento y conserva acidez y color; por eso los vinos de altura son frescos aunque el día haya sido de 35 grados.",
-      "El suelo hace el resto: en Gualtallary hay calcáreo y las raíces pelean, y eso da vinos más tensos y salinos; en Luján de Cuyo el suelo es más profundo y los Malbec salen más redondos y carnosos. Nada de esto es mejor ni peor, es otra cosa — y explica por qué dos Malbec de la misma bodega y el mismo año pueden no parecerse.",
+      "Terroir es el conjunto de suelo, altura y clima que le da carácter a un vino. Suena misterioso y es bastante concreto.",
+      "En Mendoza la altura pesa mucho: a mayor altura las noches son más frescas y la uva madura más lento, conservando acidez y color. Por eso dos Malbec de la misma bodega pueden no parecerse.",
     ],
     anchor: ({ wine }) => (wine?.region ? `El tuyo viene de ${wine.region}.` : null),
   },
@@ -227,8 +241,8 @@ export const CONCEPTS = {
   uvas: {
     title: "Las uvas argentinas",
     body: [
-      "Malbec: en Francia daba vinos duros y rústicos; acá la altura le dio fruta y taninos redondos, y por eso es nuestro. No es una uva, son muchas — un Malbec de Uco a 1.200 metros y uno de Luján a 900 no se parecen en nada. Cabernet Sauvignon: más firme y herbal, ese dejo a pimiento verde que aparece cuando la uva no terminó de madurar (en su punto es grafito y tabaco).",
-      "Bonarda: la segunda más plantada y la más subestimada, jugosa y sin pretensiones; si te cansaste de la madera, empezá por acá. Syrah: especiado y oscuro, y en San Juan da algo que no da en ningún otro lado. Torrontés: floral en la nariz y seco en la boca — engaña a todo el mundo, porque huele dulce y no lo es. Y Criolla y Cereza, que son la mitad del viñedo argentino y casi nunca ves en una etiqueta: van al vino de mesa.",
+      "Las uvas argentinas más conocidas cuentan historias distintas. El Malbec es la insignia, la Bonarda es jugosa y sin pretensiones, el Syrah es especiado y el Torrontés huele dulce pero es seco.",
+      "La Criolla y la Cereza son muy plantadas, pero casi nunca figuran en una etiqueta.",
     ],
     anchor: ({ wine }) => (wine?.varietal ? `El tuyo es ${wine.varietal}.` : null),
   },
@@ -251,9 +265,10 @@ const UVAS = {
     title: "Malbec",
     rasgo: "fruta negra madura y taninos redondos",
     body: [
-      "En Francia daba vinos duros, delgados y con un dejo áspero: en Cahors la usaban casi por obligación. Acá la altura le dio lo que allá no tenía —sol de sobra para madurar la piel y noches frías para no perder la acidez— y el resultado es otra uva: fruta negra madura, violetas, taninos redondos y un final que no raspa. Por eso es nuestra, y no por decreto.",
-      "No es una sola cosa. Un Malbec de Uco a 1.200 metros es tenso, floral y con filo; uno de Luján de Cuyo a 900 es más carnoso y redondo; uno del este de Mendoza es simple y jugoso, para tomar sin pensar. Va con todo lo que salga de una parrilla, y con la carne al horno mejor todavía.",
+      "El Malbec es la uva insignia de Argentina: da vinos de fruta negra madura, violetas y taninos redondos.",
+      "En Francia era una uva rústica; acá la altura le dio sol para madurar y noches frías para conservar la acidez. Un Malbec de Uco es más tenso y floral que uno de Luján de Cuyo, más carnoso.",
     ],
+    copa: "Buscá las violetas en la nariz.",
     donde: [
       [/uco|gualtallary|altamira|tupungato|vista flores|chacayes/i, "que es donde el Malbec sale más tenso y floral, con filo en vez de dulzor"],
       [/luj[áa]n|agrelo|per?drie?l|vistalba|may[úu]/i, "cuna del Malbec moderno: ahí sale más carnoso y redondo que en Uco"],
@@ -266,8 +281,8 @@ const UVAS = {
     title: "Cabernet Sauvignon",
     rasgo: "cassis, grafito y un tanino que ordena",
     body: [
-      "La uva más plantada del mundo, y la más reconocible: piel gruesa, grano chico, mucho color y mucho tanino. En la copa es firme y vertical —cassis, grafito, tabaco, cedro— con un dejo herbal que la delata siempre. Si ese dejo aparece como pimiento verde, la uva no terminó de madurar; en su punto es hoja de tabaco y menta, y ahí no molesta: ordena.",
-      "Es la que mejor envejece de las tintas argentinas y la que más pide tiempo: joven puede parecer dura y cerrada, y a los cinco o seis años recién se suelta. Pide grasa y proteína —un bife de chorizo, un cordero— porque el tanino necesita algo que morder.",
+      "El Cabernet Sauvignon es una de las uvas más plantadas del mundo: piel gruesa, mucho color y mucho tanino, con aromas a cassis, grafito y tabaco.",
+      "Suele tener un dejo herbal que, en su punto, es menta u hoja de tabaco. Necesita tiempo y comida con grasa, como un bife de chorizo.",
     ],
     donde: [
       [/luj[áa]n|agrelo|per?drie?l|vistalba/i, "Luján de Cuyo es la zona clásica del Cabernet argentino: maduro, con el herbal justo"],
@@ -279,8 +294,8 @@ const UVAS = {
     title: "Cabernet Franc",
     rasgo: "frambuesa, grafito y esa nota herbal que lo delata",
     body: [
-      "Es el padre del Cabernet Sauvignon —salió de un cruce espontáneo con Sauvignon Blanc en Burdeos— y no se parece a su hijo: madura antes, tiene menos tanino y muchísimo más perfume. Frambuesa, grafito, tinta, y esa nota verde inconfundible que en su punto es pimiento asado, hoja de tabaco o menta, y no el pimiento crudo del Cabernet inmaduro. En boca es de cuerpo medio, filoso, con acidez alta y un final más largo de lo que su peso hace suponer.",
-      "En Argentina venía de relleno en los cortes y en los últimos diez años se volvió la uva de moda entre bodegas serias: en Uco, a más de mil metros, da vinos frescos y aromáticos que muchos prefieren al Malbec del mismo viñedo. Pide platos con hierbas y verdura antes que grasa pura: cordero al romero, berenjenas, carnes con pimientos. Se toma un punto más fresco que un Cabernet Sauvignon —esos dos grados de menos le levantan el perfume.",
+      "El Cabernet Franc es uno de los padres del Cabernet Sauvignon, más perfumado y con menos tanino: frambuesa, grafito y una nota herbal inconfundible.",
+      "En Argentina ganó prestigio en los últimos años, sobre todo en Uco. Va bien con cordero, berenjenas y platos con hierbas, y se toma un poco más fresco que otros tintos.",
     ],
     donde: [
       [/uco|gualtallary|altamira|tupungato|vista flores/i, "es donde el Cabernet Franc argentino se puso serio: fresco, floral y con esa nota de grafito"],
@@ -293,8 +308,8 @@ const UVAS = {
     title: "Merlot",
     rasgo: "ciruela madura y taninos sin esquinas",
     body: [
-      "La tinta amable: piel más fina, tanino suave y fruta roja madura —ciruela, cereza negra— con un fondo que a veces va al chocolate. Es la que se le da a alguien que dice que el vino le resulta áspero, porque no tiene esquinas. Eso mismo le dio mala fama: muchísimo Merlot barato se hizo aguado y sin gracia, y la uva pagó por el rendimiento.",
-      "Bien hecho es otra cosa: en Burdeos es la mayoría de los vinos más caros del mundo. En Argentina anda mejor donde hace frío —Uco alto, Patagonia—, que es donde conserva acidez en vez de volverse dulzón. Va con pastas con salsa de tomate, cerdo, quesos semiduros: comida sabrosa que no necesite un tanino que lo pelee.",
+      "El Merlot es el tinto amable: piel más fina, tanino suave y fruta madura como ciruela y cereza negra.",
+      "Por no tener esquinas suele gustarle a quien encuentra áspero el vino. En Argentina funciona mejor en zonas frías, como Uco alto y la Patagonia. Va con pastas, cerdo y quesos semiduros.",
     ],
     donde: [
       [/uco|tupungato|altamira|gualtallary/i, "en Uco el Merlot conserva acidez y deja de ser dulzón"],
@@ -306,8 +321,8 @@ const UVAS = {
     title: "Syrah",
     rasgo: "pimienta negra, aceituna y fruta oscura",
     body: [
-      "Oscura, especiada y carnosa: pimienta negra, aceituna, mora, cuero, y en las versiones más cálidas algo casi ahumado. Es de las pocas uvas donde el aroma a especia no viene de la barrica sino de la propia uva, y por eso un Syrah sin madera igual huele a pimienta.",
-      "En San Juan —sobre todo en el Valle de Pedernal— da algo que no da en ningún otro lado del país: mineral, tenso, con el pimentón bien marcado. Es la uva del chorizo, de la carne especiada, del cordero con romero y de cualquier plato al que le hayas puesto pimienta en serio.",
+      "El Syrah es oscuro, especiado y carnoso: pimienta negra, aceituna y mora. Parte de esa pimienta viene de la propia uva, no de la barrica.",
+      "En San Juan suele dar vinos más tensos y minerales que en otras zonas. Es buen compañero del chorizo, el cordero y cualquier plato bien especiado.",
     ],
     donde: [
       [/san juan|pedernal|tulum|zonda/i, "San Juan es LA zona del Syrah argentino: más tenso y especiado que el mendocino"],
@@ -319,9 +334,10 @@ const UVAS = {
     title: "Pinot Noir",
     rasgo: "cereza, un fondo terroso y casi nada de tanino",
     body: [
-      "La uva difícil: piel finita, se pudre con la lluvia, se cocina con el calor y no perdona un viñedo mal elegido. Cuando sale bien no se parece a ninguna otra tinta — color claro (no confundir con liviano de sabor), frutilla y cereza, un fondo terroso o a hongo, tanino bajo y acidez alta. Es la prueba de que cuerpo e intensidad son cosas distintas: pesa poco en la boca y aromáticamente llena la copa.",
-      "Necesita frío, así que en Argentina vive en la Patagonia y en la punta alta de Uco. Se sirve más fresco que cualquier otro tinto —15 °C, incluso 20 minutos de heladera— y es de los pocos que van con salmón, atún sellado, hongos o un pollo al horno.",
+      "El Pinot Noir es una uva delicada: piel fina, color claro y poco tanino, con aromas a cereza, frutilla y un fondo terroso.",
+      "Necesita frío, por eso en Argentina vive en la Patagonia y en Uco alto. Se sirve algo más fresco que otros tintos y acompaña bien salmón, hongos o pollo al horno.",
     ],
+    copa: "El color claro no significa liviano de sabor.",
     donde: [
       [/patagonia|r[íi]o negro|neuqu[ée]n|chubut|trevelin/i, "la Patagonia es donde el Pinot argentino tiene sentido: frío, viento y ciclo largo"],
       [/uco|gualtallary|tupungato|altamira/i, "en la parte más alta de Uco el Pinot funciona; abajo, el calor se lo come"],
@@ -332,8 +348,8 @@ const UVAS = {
     title: "Bonarda",
     rasgo: "fruta jugosa y directa, sin una astilla de madera",
     body: [
-      "La segunda uva más plantada del país y la más subestimada de todas. Es jugosa, de fruta negra y roja bien directa, tanino bajo y acidez viva: entra sola, sin ceremonia y sin madera que la disfrace. Durante décadas fue a parar al vino de mesa en damajuana, y por eso todavía carga fama de barata.",
-      "Si te cansaste del roble y de los tintos que hay que masticar, empezá por acá. Anda mejor en el este de Mendoza y en San Juan, con viñedos viejos que ya nadie replanta. Va con milanesas, empanadas, pizza, fiambres — la comida de todos los días, que es justamente donde más se agradece un tinto que no exija nada.",
+      "La Bonarda es una de las uvas más plantadas de Argentina y de las más subestimadas: jugosa, de fruta directa, con poco tanino y buena acidez.",
+      "Suele salir sin madera, así que es una buena opción si te cansaste del roble. Se da bien en el este de Mendoza y en San Juan, y va con milanesas, empanadas y fiambres.",
     ],
     donde: [
       [/san rafael|\beste\b|rivadavia|jun[íi]n|santa rosa|la paz/i, "el este de Mendoza es tierra de Bonarda vieja, y ahí es donde da lo mejor"],
@@ -345,8 +361,8 @@ const UVAS = {
     title: "Tannat",
     rasgo: "tanino de los que se mastican",
     body: [
-      "El nombre lo dice: es la uva con más tanino del mundo occidental. Viene del sudoeste francés, se hizo famosa en Uruguay y en Argentina aparece sobre todo en Salta y en cortes. Color casi opaco, fruta negra, tanino que te seca la lengua entera y una capacidad de guarda enorme.",
-      "Joven puede ser directamente incómoda; con años, o con la mano de un enólogo que la trabaje suave, se vuelve profunda y sedosa. Es la uva que más pide comida: sin un asado adelante, un Tannat de verdad no se disfruta.",
+      "El Tannat es una uva de mucho tanino, con color casi opaco, fruta negra y gran capacidad de guarda.",
+      "Viene del sudoeste de Francia y es la insignia de Uruguay. Joven puede resultar áspera; con años o buena mano de enólogo se vuelve profunda. Pide un plato con grasa, como un asado.",
     ],
   },
 
@@ -354,8 +370,8 @@ const UVAS = {
     title: "Petit Verdot",
     rasgo: "violetas, tinta y estructura de sobra",
     body: [
-      "En Burdeos es un condimento: madura tarde, muchas añadas no llega, y se usa en dosis chicas para dar color y tanino a un corte. En Mendoza el sol le sobra, así que acá sí llega — y por eso hay Petit Verdot solos, que allá casi no existen.",
-      "Es intensa y oscura: violeta, fruta negra muy madura, especias, tanino firme. No es una uva para tomar en cantidad ni sola: brilla al lado de un plato contundente o adentro de un corte, donde pone la columna vertebral sin llevarse el protagonismo.",
+      "El Petit Verdot es una uva intensa y oscura: violetas, fruta negra, especias y tanino firme.",
+      "En Burdeos se usa en dosis chicas dentro de los cortes porque madura tarde. En Mendoza el sol le alcanza, y por eso se hacen Petit Verdot solos. Brilla con platos contundentes.",
     ],
   },
 
@@ -363,8 +379,8 @@ const UVAS = {
     title: "Tempranillo",
     rasgo: "cuero, tabaco y roble americano",
     body: [
-      "La uva de Rioja, y una de las primeras que se plantó en serio en Mendoza — mucho antes de que el Malbec fuera el Malbec. Madura temprano (de ahí el nombre), da fruta roja, cuero y tabaco, tanino de término medio y una afinidad enorme con el roble americano, que le pone el coco y la vainilla del estilo español clásico.",
-      "En Argentina quedó relegada y sobrevive en viñedos viejos que dan vinos serios y baratos, de los que casi nadie habla. Va con chorizo, cordero, jamón, guisos: comida española sin vueltas.",
+      "El Tempranillo es la uva de Rioja: fruta roja, cuero y tabaco, tanino medio y buena afinidad con el roble americano, que le suma vainilla y coco.",
+      "Se llama así porque madura temprano. En Argentina quedó en segundo plano, en viñedos viejos. Va con chorizo, cordero y guisos.",
     ],
   },
 
@@ -372,8 +388,8 @@ const UVAS = {
     title: "Sangiovese",
     rasgo: "cereza ácida, tomate seco y acidez de mesa italiana",
     body: [
-      "La uva del Chianti, y en Argentina la trajeron los inmigrantes italianos antes que cualquier moda. Cereza ácida, tomate seco, hierbas, un tanino áspero y una acidez muy alta: sola puede parecer flaca, y con comida se explica sola.",
-      "Está hecha para la mesa italiana: salsa de tomate, pizza, provoleta, cualquier cosa con orégano. Es de las pocas uvas que mejora con un plato ácido, porque su propia acidez lo acompaña en vez de pelearlo.",
+      "El Sangiovese es la uva del Chianti: cereza ácida, tomate seco, hierbas y una acidez muy alta.",
+      "La trajeron los inmigrantes italianos. Solo puede parecer flaco, pero con comida se entiende: pasta con salsa, pizza o provoleta. Su acidez acompaña los platos ácidos en lugar de pelearlos.",
     ],
   },
 
@@ -381,8 +397,8 @@ const UVAS = {
     title: "Criolla",
     rasgo: "color pálido y liviandad de otra época",
     body: [
-      "Criolla Chica, Criolla Grande y Cereza son las uvas que trajeron los españoles en el siglo XVI y de las que salió el vino argentino durante cuatrocientos años. Todavía son cerca de un tercio del viñedo del país, y casi nunca las ves en una etiqueta: van al vino de mesa y al mosto.",
-      "En los últimos años un puñado de bodegas empezó a tomarlas en serio, sobre todo la Criolla Chica de viñedos viejos: color pálido, fruta roja, tanino casi nulo, muy poca graduación. Son vinos livianos, para tomar fríos y sin ninguna solemnidad — y son lo más parecido a un vino histórico argentino que se puede comprar hoy.",
+      "Criolla Chica, Criolla Grande y Cereza son las uvas que trajeron los españoles hace siglos y dieron origen al vino argentino. Hoy casi no figuran en las etiquetas.",
+      "Un grupo de bodegas las trabaja de nuevo, sobre todo la Criolla Chica de viñedos viejos: color pálido, fruta roja, poco tanino y poco alcohol. Se toman frescos.",
     ],
   },
 
@@ -390,9 +406,10 @@ const UVAS = {
     title: "Chardonnay",
     rasgo: "cítrico o manteca, según cuánta barrica haya visto",
     body: [
-      "El camaleón: por sí sola es una uva neutra, y lo que tomás es en gran medida lo que le hizo la bodega. Sin madera y en frío es cítrica, tensa y mineral. Fermentada en barrica y con la lía trabajada se vuelve untuosa, con manteca, avellana y pan tostado. Las dos son Chardonnay, y quien dice que no le gusta el Chardonnay casi siempre está pensando en la segunda.",
-      "En Argentina la mejor viene de arriba —Gualtallary, Tupungato, la Patagonia—, donde la noche fría le deja la acidez. Va con pollo, cerdo, pescados con salsa, quesos cremosos y, si tiene madera, con una pastas al fungi.",
+      "El Chardonnay es un camaleón: lo que tomás depende mucho de lo que hizo la bodega. Sin madera es cítrico y tenso; con barrica es más untuoso, con manteca y avellana.",
+      "En Argentina los mejores suelen venir de zonas altas y frías, como Uco y la Patagonia, que conservan la acidez. Va con pollo, pescado con salsa y quesos cremosos.",
     ],
+    copa: "Fijate si predomina lo cítrico o la manteca.",
     donde: [
       [/uco|gualtallary|tupungato|altamira/i, "la altura de Uco es lo que le deja la acidez y evita el Chardonnay pesado"],
       [/patagonia|r[íi]o negro|neuqu[ée]n|chubut/i, "en la Patagonia sale filoso y cítrico, casi tenso"],
@@ -403,8 +420,8 @@ const UVAS = {
     title: "Sauvignon Blanc",
     rasgo: "pomelo y pasto recién cortado",
     body: [
-      "El blanco que se reconoce con la nariz a un metro de la copa: pomelo, maracuyá, pasto recién cortado, a veces algo que recuerda a la ruda. Nunca lleva madera y no la necesita — todo su atractivo es la frescura, y por eso conviene tomarlo joven y bien frío.",
-      "Es un cuchillo contra la grasa: va con provoleta, empanadas fritas, mariscos, ceviche, ensaladas con queso de cabra y todo lo que lleve limón. En Argentina lo mejor sale de Uco alto y de la Patagonia; en zonas cálidas pierde el filo y se vuelve dulzón.",
+      "El Sauvignon Blanc se reconoce a un metro de la copa: pomelo, maracuyá y pasto recién cortado. Rara vez lleva madera, porque su atractivo es la frescura.",
+      "Conviene tomarlo joven y bien frío. Corta la grasa, así que va con provoleta, mariscos, ceviche o ensaladas con queso de cabra.",
     ],
     donde: [
       [/uco|gualtallary|tupungato|altamira/i, "en Uco alto conserva el filo cítrico que la uva pierde con el calor"],
@@ -416,8 +433,8 @@ const UVAS = {
     title: "Torrontés",
     rasgo: "jazmín en la nariz y sequedad en la boca",
     body: [
-      "La única uva verdaderamente argentina: un cruce criollo entre Moscatel de Alejandría y Criolla Chica que no existe en ningún otro lado. Engaña a todo el mundo, porque huele dulce —jazmín, azahar, durazno, rosa— y en la boca es seco, con acidez alta y un final levemente amargo, casi como una cáscara de cítrico.",
-      "Cafayate, a 1.700 metros, es su lugar: el sol de Salta le da el perfume y la noche fría le deja la acidez. Se toma bien frío y joven, y va con comida picante o especiada —tailandesa, peruana, ceviche, empanadas salteñas— porque el perfume aguanta el picante donde otro blanco se rendiría.",
+      "El Torrontés es una uva típica de Argentina, cruce de Moscatel de Alejandría y Criolla Chica. Engaña: huele dulce, a jazmín, azahar y durazno, pero en la boca es seco.",
+      "Cafayate, en Salta, es su zona clásica. Se toma joven y muy frío, y su perfume aguanta platos picantes o especiados, como el ceviche o las empanadas salteñas.",
     ],
     donde: [
       [/cafayate|salta|calchaqu|molinos|colom[ée]/i, "Cafayate es la casa del Torrontés: es de donde salen los mejores del país"],
@@ -430,8 +447,8 @@ const UVAS = {
     title: "Semillón",
     rasgo: "manzana, cera de abeja y un filo que envejece raro",
     body: [
-      "Fue el blanco más plantado de la Argentina antes de que el Chardonnay se llevara todo, y hoy sobrevive en viñedos viejos de Mendoza y de la Patagonia que están dando algunos de los vinos más interesantes del país. Es cerosa, de cuerpo medio, con nota de manzana, cera de abeja y algo de hierba; la acidez no salta pero sostiene.",
-      "Envejece de una manera rarísima para un blanco: a los cinco o diez años se vuelve más complejo, no menos. Va con pescado de mar, cerdo, pollo con hierbas y quesos de cabra curados.",
+      "El Semillón es un blanco de cuerpo medio, con notas de manzana, cera de abeja y hierba, y una acidez que sostiene sin saltar.",
+      "Fue muy plantado en Argentina y hoy sobrevive en viñedos viejos. Envejece raro para un blanco: con los años gana complejidad. Va con pescado de mar, cerdo y quesos de cabra.",
     ],
   },
 
@@ -439,8 +456,8 @@ const UVAS = {
     title: "Viognier",
     rasgo: "damasco, madreselva y una textura casi grasa",
     body: [
-      "Un blanco de perfume enorme y acidez baja: damasco, durazno blanco, madreselva, a veces algo de jengibre. Se siente untuoso, casi graso en la boca, y por eso muchas veces se lo confunde con un vino dulce cuando es seco.",
-      "Justamente por la acidez baja pide beberse joven y bien frío, y anda mejor donde hace frío de noche. Va con curry suave, cerdo con frutas, calabaza y quesos untuosos.",
+      "El Viognier es un blanco de perfume enorme y poca acidez: damasco, durazno blanco y madreselva, con una textura casi untuosa.",
+      "Por eso se lo confunde con un vino dulce, aunque es seco. Conviene tomarlo joven y bien frío, con curry suave, cerdo con frutas o calabaza.",
     ],
   },
 
@@ -448,8 +465,8 @@ const UVAS = {
     title: "Chenin Blanc",
     rasgo: "manzana verde y acidez de cuchillo",
     body: [
-      "La uva más versátil que existe: en el Loira hace desde espumantes hasta dulces de guardar cincuenta años. Su marca es la acidez —altísima— con nota de manzana verde, membrillo, miel y un fondo de lana mojada que suena raro y funciona.",
-      "En Argentina hay Chenin viejo en el este de Mendoza y en San Juan, plantado cuando nadie sabía lo que tenía, y de ahí salen blancos secos, tensos y muy baratos para lo que dan. Va con pescado, pollo, cerdo agridulce y quesos de cabra.",
+      "El Chenin Blanc es una de las uvas más versátiles: en el Loira da desde espumantes hasta vinos dulces de guarda larga. Su marca es la acidez alta, con manzana verde, membrillo y miel.",
+      "En Argentina hay Chenin viejo en el este de Mendoza y en San Juan, con blancos secos y muy buenos para su precio. Va con pescado, pollo y quesos de cabra.",
     ],
   },
 
@@ -457,8 +474,8 @@ const UVAS = {
     title: "Pinot Grigio",
     rasgo: "cítrico liviano, de aperitivo y sin ceremonia",
     body: [
-      "Es la misma uva que el Pinot Gris, con dos estilos detrás del nombre: el italiano (Grigio) es liviano, cítrico y neutro, hecho para tomar sin pensar; el alsaciano (Gris) es más gordo, especiado y con nota de pera y jengibre.",
-      "Lo que llega a la mesa argentina suele ser el primero: un blanco fácil, de aperitivo, para tomar muy frío con picadas, sushi o pescado a la plancha. No pide guarda ni ceremonia.",
+      "Pinot Grigio y Pinot Gris son la misma uva con dos estilos. El italiano es liviano, cítrico y fácil de tomar; el alsaciano es más pleno, especiado y con notas de pera.",
+      "Lo que suele llegar a la mesa argentina es el primero: un blanco de aperitivo, muy frío, para picadas, sushi o pescado a la plancha.",
     ],
   },
 
@@ -466,8 +483,8 @@ const UVAS = {
     title: "Riesling",
     rasgo: "lima, flores blancas y una acidez que dura décadas",
     body: [
-      "Para mucha gente que sabe, la mejor uva blanca del mundo, y la peor vendida: arrastra fama de dulce por unas botellas alemanas baratas de los años ochenta, cuando la enorme mayoría de los Riesling es seca. Lima, manzana verde, flores blancas y una acidez filosa que lo mantiene vivo décadas.",
-      "En Argentina es rarísimo y sale casi todo de la Patagonia. Va con comida asiática, cerdo, pescado y todo lo que tenga un toque agridulce o picante.",
+      "El Riesling es muy valorado por quienes saben de vino y mal vendido: cargó con fama de dulce, aunque la mayoría es seca. Tiene lima, manzana verde, flores blancas y una acidez que lo mantiene vivo por décadas.",
+      "En Argentina es raro y sale casi todo de la Patagonia. Va con cocina asiática, cerdo y platos agridulces o picantes.",
     ],
   },
 
@@ -475,8 +492,8 @@ const UVAS = {
     title: "Moscatel",
     rasgo: "uva fresca y azahar, tal cual salen de la parra",
     body: [
-      "Una de las pocas uvas cuyo vino huele igual que la uva comida de la mano: uva fresca, azahar, cáscara de naranja. Es la familia más antigua que se conoce en viticultura y la madre de nuestro Torrontés.",
-      "Aparece sobre todo en espumantes dulces y en vinos de postre. Se toma muy frío, en copa chica, con fruta, tartas o un flan — y es el vino que más gente odia por prejuicio y termina disfrutando.",
+      "El Moscatel es una de las pocas uvas cuyo vino huele como la uva fresca: azahar, cáscara de naranja y uva de mesa. Es una familia muy antigua y parte del origen del Torrontés.",
+      "Aparece en espumantes dulces y vinos de postre. Se toma muy frío, en copa chica, con frutas, tartas o flan.",
     ],
   },
 };
@@ -572,6 +589,7 @@ Object.entries(UVAS).forEach(([clave, uva]) => {
   CONCEPTS[`uva:${clave}`] = {
     title: uva.title,
     body: uva.body,
+    copa: uva.copa,
     anchor: ({ wine }) => {
       const region = String(wine?.region || "").trim();
       if (!region) return null;

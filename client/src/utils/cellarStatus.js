@@ -87,7 +87,7 @@ export function getCellarStatus(wine) {
  * son dos años. El rango dice lo mismo y se lee de un vistazo.
  */
 function buildResult(currentYear, from, until, source) {
-  const ventana = `${from} – ${until}`;
+  const ventana = `${from} a ${until}`;
   const base = { from, until, source, detail: ventana };
 
   if (currentYear < from) {

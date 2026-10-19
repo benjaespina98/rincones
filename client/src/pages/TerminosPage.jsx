@@ -56,7 +56,7 @@ export default function TerminosPage() {
       <h2>Lo que cargás es tuyo</h2>
       <p>
         Tus vinos, tus fotos, tus notas y tus momentos siguen siendo tuyos. Nos das permiso para
-        guardarlos y mostrártelos —que es lo que hace falta para que la app funcione— y nada más:
+        guardarlos y mostrártelos (que es lo que hace falta para que la app funcione) y nada más:
         no los usamos para otra cosa ni se los damos a nadie.
       </p>
       <p>
@@ -105,7 +105,7 @@ export default function TerminosPage() {
       <h2>Los avisos</h2>
       <p>
         La app muestra avisos de vinotecas y marcas. Están señalados como tales. No recibimos
-        nada tuyo para mostrarlos —se ven igual para todos— y lo que hagas con ellos es entre vos
+        nada tuyo para mostrarlos (se ven igual para todos) y lo que hagas con ellos es entre vos
         y quien publica.
       </p>
 

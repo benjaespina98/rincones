@@ -229,7 +229,7 @@ export default function CatalogWinePage() {
         </div>
 
         <button type="button" className="catalog-have-btn" onClick={() => navigate("/agregar")}>
-          <Icon name="camera" size={16} /> Ya lo tengo — escaneálo para tu bodega
+          <Icon name="camera" size={16} /> Ya lo tengo: escaneálo para tu bodega
         </button>
       </div>
     </div>

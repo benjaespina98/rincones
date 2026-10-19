@@ -10,6 +10,7 @@ import { calculateAge } from "../utils/age";
 import { initials, avatarColor } from "../utils/identity";
 import { errorHaptic } from "../utils/haptics";
 import Icon from "../components/Icon";
+import EmptyState from "../components/EmptyState";
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import { exportarMisDatos, eliminarCuenta } from "../services/accountApi";
 import ProfileEditor from "../components/ProfileEditor";
@@ -363,7 +364,7 @@ export default function ProfilePage() {
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
-            {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "—"}
+            {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "Sin dato"}
           </div>
           <div className="label">Puntuación</div>
           {/* La raya sola, sin nada abajo, se leía como un dato roto. Ahora dice
@@ -384,15 +385,14 @@ export default function ProfilePage() {
       {/* Usuario nuevo: sin esto, después de los tres ceros la pantalla se
           cortaba sin explicar que el perfil de gusto se construye solo. */}
       {!statsLoading && (wineStats?.totals?.total || 0) === 0 && (
-        <div className="profile-empty">
-          <p className="profile-empty__title">Todavía no hay datos suficientes</p>
-          <p className="profile-empty__hint">
-            Cargá vinos y acá vas a ver tus uvas, tus regiones y cómo puntuás.
-          </p>
-          <button type="button" className="empty-cta" onClick={() => navigate("/agregar")}>
-            Escanear una etiqueta
-          </button>
-        </div>
+        <EmptyState
+          compact
+          illustration="cava"
+          title="Todavía no hay datos suficientes"
+          hint="Cargá vinos y acá vas a ver tus uvas, tus regiones y cómo puntuás."
+          actionLabel="Escanear una etiqueta"
+          onAction={() => navigate("/agregar")}
+        />
       )}
 
       {/* Antes acá había SIETE tarjetas del mismo peso visual —tipo, varietales,

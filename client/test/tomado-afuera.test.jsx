@@ -42,7 +42,7 @@ describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /agregar a mi bodega/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
     expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
   });
 
@@ -52,21 +52,19 @@ describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
 
-    // El botón cambia de nombre solo, con el número: es lo que hace que la
-    // consecuencia se lea ANTES de tocarlo, y no después en un aviso.
-    const guardar = screen.getByRole("button", { name: /anotarlo como ya tomado/i });
+    // El botón es siempre "Guardar": la consecuencia de ese cero se lee en la nota de abajo del
+    // contador (ver el test siguiente), no en el nombre del botón.
+    const guardar = screen.getByRole("button", { name: /^guardar$/i });
     fireEvent.click(guardar);
     expect(onConfirm.mock.calls[0][0].quantity).toBe(0);
   });
 
-  it("la frase de abajo del contador cambia con el número", () => {
+  it("la nota de abajo del contador aparece sólo en cero", () => {
     render(<ScanReview reading={LECTURA} onConfirm={vi.fn()} />);
-    expect(screen.getByText(/entra a tu bodega, con stock/i)).toBeInTheDocument();
     expect(screen.queryByText(/queda en «ya tomados»/i)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
     expect(screen.getByText(/queda en «ya tomados»/i)).toBeInTheDocument();
-    expect(screen.queryByText(/entra a tu bodega, con stock/i)).toBeNull();
   });
 });
 

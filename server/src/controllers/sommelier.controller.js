@@ -12,6 +12,7 @@ const {
   normalizarPregunta,
 } = require("../data/sommelierDomain");
 const { fold } = require("../data/argentineWines");
+const { limpiarDato } = require("../utils/promptSeguro");
 const { captureException } = require("../config/sentry");
 const { recordError } = require("../services/errorLog.service");
 
@@ -50,13 +51,14 @@ const FUERA_DE_TEMA = {
 const encontrarVino = (nombre, candidatos = [], excluidos = new Set()) => {
   const buscado = fold(nombre);
   if (!buscado) return null;
+  // El modelo copia el nombre tal como se lo mostramos en el prompt, o sea YA limpiado (ver
+  // `limpiarDato`): un nombre con "---" o "<>" no sería subcadena del original. Se compara contra
+  // las dos formas.
+  const formas = (w) => [fold(w.name), fold(limpiarDato(w.name))];
+  const libre = (w) => !excluidos.has(String(w._id));
   return (
-    candidatos.find((w) => !excluidos.has(String(w._id)) && fold(w.name) === buscado) ||
-    candidatos.find(
-      (w) =>
-        !excluidos.has(String(w._id)) &&
-        (fold(w.name).includes(buscado) || buscado.includes(fold(w.name)))
-    ) ||
+    candidatos.find((w) => libre(w) && formas(w).includes(buscado)) ||
+    candidatos.find((w) => libre(w) && formas(w).some((f) => f && (f.includes(buscado) || buscado.includes(f)))) ||
     null
   );
 };

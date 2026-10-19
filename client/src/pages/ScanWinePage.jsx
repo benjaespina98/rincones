@@ -1,3 +1,4 @@
+import { leerCosecha } from "../utils/vintage";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
@@ -23,7 +24,7 @@ const toWinePayload = (draft) => ({
   line: draft.line?.trim() || "",
   region: draft.region?.trim() || "",
   varietal: draft.varietal?.trim() || "",
-  vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+  vintage: leerCosecha(draft),
   type: draft.type || "unknown",
   image: draft.image || "",
   // Las botellas que elegiste en la revisión. Cero es la respuesta a "lo tomé
@@ -79,17 +80,14 @@ export default function ScanWinePage() {
    */
 
   /**
-   * El escáner arranca abierto si se entró por el botón de la cámara.
-   *
-   * Es el 95% de las veces que alguien llega acá, y hasta ahora todas pagaban
-   * una pantalla intermedia con dos botones antes de poder apuntar a la
-   * etiqueta. Se decide en el primer render y no en un efecto: montar la
-   * pantalla de las dos puertas para taparla un frame después es un parpadeo
-   * que se ve.
+   * ── ESCANEAR LLEVA DIRECTO A LA CÁMARA ───────────────────────────────────────
+   * No hay una pantalla de "dos puertas" antes: esta ruta ES el escáner. Cargar a mano está a un
+   * toque adentro de la propia vista de captura, y cancelar vuelve a donde estabas. Antes había una
+   * pantalla intermedia con un título, un párrafo y dos botones, y casi todo el mundo pagaba ese paso
+   * para llegar a la cámara.
    */
-  const [showScanner, setShowScanner] = useState(
-    () => location.state?.modo === "camara"
-  );
+  // Cancelar la captura: vuelve a la pantalla anterior; si se entró directo a esta URL, a la bodega.
+  const salir = () => (location.key !== "default" ? navigate(-1) : navigate("/bodega", { replace: true }));
   // Lectura pendiente de revisión. SIEMPRE pasamos por acá tras una foto: es lo
   // que evita que un dato mal leído entre a la bodega sin que nadie lo vea.
   const [review, setReview] = useState(null);
@@ -111,6 +109,16 @@ export default function ScanWinePage() {
    * tenía que volver a escribir las tres. Ahora el vino viaja por el estado de
    * la navegación y esto lo levanta una sola vez, al entrar.
    */
+  // "Escanear" de la barra, tocado estando en esta misma pantalla: la barra manda un `intento` nuevo
+  // cada vez, y si había una revisión abierta se descarta para volver a la cámara.
+  const intento = location.state?.intento;
+  useEffect(() => {
+    if (!intento) return;
+    setReview(null);
+    navigate(".", { replace: true, state: null });
+    // Sólo cuando cambia el intento: las demás dependencias son estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intento]);
   const desdeGuardadoId = location.state?.desdeGuardado || "";
   const wishPrecargado = location.state?.wish || null;
   useEffect(() => {
@@ -136,7 +144,7 @@ export default function ScanWinePage() {
   // seguridad para el toque equivocado, no una confirmación adicional.
   const saveWine = async (draft) => {
     const payload = toWinePayload(draft);
-    const { wine: created } = await createWine(payload);
+    const { wine: created, merged, added } = await createWine(payload);
     successHaptic();
     // El evento que más dice del producto: cargar un vino es la acción por la que
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
@@ -157,26 +165,40 @@ export default function ScanWinePage() {
         ? `"${created.name}" anotado como ya tomado`
         : `"${created.name}" agregado a tu bodega`;
 
-    const toastId = addToast(mensaje, "success", 8000, {
-      label: "Deshacer",
-      onClick: async () => {
-        removeToast(toastId);
-        try {
-          await deleteWine(created._id);
-          // "Deshecho" es un participio suelto: suena a log del sistema, no a
-          // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
-          // dónde, que no es lo mismo si el vino nunca entró a la bodega.
-          showSuccess(
-            payload.quantity === 0
-              ? `"${created.name}" ya no figura como tomado`
-              : `"${created.name}" ya no está en tu bodega`
-          );
-          navigate("/agregar", { replace: true });
-        } catch {
-          showError("No se pudo deshacer");
-        }
-      },
-    });
+    // El servidor reconoce un vino que ya tenías (`merged`) y le suma las botellas en vez de crear
+    // otro. Ese vino tiene historial (puntaje, notas, momentos): "Deshacer" borrándolo sería perder
+    // todo eso por un toque equivocado. Se avisa lo que pasó y no se ofrece borrar.
+    if (merged) {
+      const n = Number(added) || 0;
+      addToast(
+        n > 0
+          ? `Ya tenías "${created.name}": sumamos ${n === 1 ? "1 botella" : `${n} botellas`}`
+          : `Ya tenías "${created.name}": quedó como estaba`,
+        "success",
+        6000
+      );
+    } else {
+      const toastId = addToast(mensaje, "success", 8000, {
+        label: "Deshacer",
+        onClick: async () => {
+          removeToast(toastId);
+          try {
+            await deleteWine(created._id);
+            // "Deshecho" es un participio suelto: suena a log del sistema, no a
+            // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
+            // dónde, que no es lo mismo si el vino nunca entró a la bodega.
+            showSuccess(
+              payload.quantity === 0
+                ? `"${created.name}" ya no figura como tomado`
+                : `"${created.name}" ya no está en tu bodega`
+            );
+            navigate("/bodega", { replace: true });
+          } catch {
+            showError("No se pudo deshacer");
+          }
+        },
+      });
+    }
 
     // `recienAgregado` enciende, una sola vez y en la ficha, el "¿sabías que?"
     // del vino: acabás de guardar la botella y en vez de un "listo" seco la app
@@ -201,7 +223,6 @@ export default function ScanWinePage() {
    * revisión ahora hay una sola espera.
    */
   const handleCapture = (payload) => {
-    setShowScanner(false);
     setReview({
       photo: payload.preview || "",
       source: payload.source || "",
@@ -298,7 +319,8 @@ export default function ScanWinePage() {
    */
   const handleConsult = (draft) => {
     trackEvent("scan_consult", { source: draft?.source || "escaneo" });
-    const imagen = typeof draft.image === "string" && draft.image.length < 400000 ? draft.image : "";
+    const foto = draft.image || review?.photo;
+    const imagen = typeof foto === "string" && foto.length < 400000 ? foto : "";
     navigate("/descubrir/vino", {
       state: {
         wine: {
@@ -307,7 +329,7 @@ export default function ScanWinePage() {
           line: draft.line?.trim() || "",
           region: draft.region?.trim() || "",
           varietal: draft.varietal?.trim() || "",
-          vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+          vintage: leerCosecha(draft),
           type: draft.type || "unknown",
           image: imagen,
         },
@@ -355,7 +377,7 @@ export default function ScanWinePage() {
           onWish={handleWishReview}
           onConsult={handleConsult}
           onCancel={() => setReview(null)}
-          onRescan={review.source === "manual" ? undefined : () => { setReview(null); setShowScanner(true); }}
+          onRescan={review.source === "manual" ? undefined : () => setReview(null)}
           // "Buscar manualmente": la misma pantalla de revisión, en blanco, que
           // ya usa "Cargar a mano" desde la vista principal.
           onManual={review.source === "manual" ? undefined : startManual}
@@ -364,60 +386,11 @@ export default function ScanWinePage() {
     );
   }
 
-  // --- Escáner abierto ---
-  if (showScanner) {
-    return (
-      <div className="scan-wine-page">
-        <div className="scanner-shell">
-          <LabelScanner
-            onCapture={handleCapture}
-            onCancel={() => setShowScanner(false)}
-            onManual={() => { setShowScanner(false); startManual(); }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // --- Vista principal: las dos puertas a la bodega ---
-  //
-  // Sólo escanear y cargar a mano. El buscador de catálogo que vivía acá se fue
-  // a Descubrí: desde un resultado no se podía sumar nada a la bodega —todo
-  // terminaba en Guardados— así que era descubrimiento disfrazado de alta.
+  // --- La captura: la cámara (o la galería si no hay permiso), con "Cargar a mano" adentro ---
   return (
     <div className="scan-wine-page">
-      <div className="scan-options">
-        {/* El botón solo, centrado en la pantalla, se leía como algo a medio
-            cargar: es la puerta de entrada de toda la app —lo que hay del otro
-            lado de la etiqueta— y no tenía ni una línea que lo dijera. Un
-            medallón y un título son la misma solución que ya usan los estados
-            vacíos (`.empty-icon`), acá aplicada al momento con más peso de la
-            app en vez de a su ausencia. */}
-        <div className="scan-hero">
-          <span className="scan-hero__icon" aria-hidden="true">
-            <Icon name="camera" size={30} />
-          </span>
-          <h2 className="scan-hero__title">Sumá un vino a tu bodega</h2>
-          <p className="scan-hero__sub">
-            Escaneá la etiqueta y completamos bodega, varietal y cosecha por vos.
-          </p>
-        </div>
-
-        <button
-          className="btn-scan-large"
-          onClick={() => setShowScanner(true)}
-          type="button"
-          aria-label="Escanear etiqueta de vino"
-          disabled={saving}
-        >
-          <span className="scan-icon"><Icon name="camera" size={26} /></span>
-          <span className="scan-text">{saving ? "Guardando…" : "Escanear etiqueta"}</span>
-          <span className="scan-hint">Sacá una foto y lo agregamos solo</span>
-        </button>
-
-        <button type="button" className="btn-manual-entry" onClick={() => startManual()}>
-          <Icon name="pencil" size={15} /> Cargar a mano
-        </button>
+      <div className="scanner-shell">
+        <LabelScanner onCapture={handleCapture} onCancel={salir} onManual={() => startManual()} />
       </div>
     </div>
   );

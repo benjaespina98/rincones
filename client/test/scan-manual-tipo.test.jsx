@@ -17,7 +17,15 @@ vi.mock("../src/context/ToastContext", () => ({ useToast: () => toast }));
 vi.mock("../src/services/wineApi", () => ({ createWine, deleteWine: vi.fn() }));
 vi.mock("../src/services/wishApi", () => ({ createWish: vi.fn(), deleteWish: vi.fn() }));
 vi.mock("../src/services/analyticsApi", () => ({ trackEvent: vi.fn() }));
-vi.mock("../src/components/LabelScanner", () => ({ default: () => null }));
+// El botón de Cargar a mano vive adentro del escáner y le entrega al padre lo que se le pase al
+// `onClick`: si la página cableara `onManual={startManual}`, el EVENTO llegaría como `previo` (el bug).
+vi.mock("../src/components/LabelScanner", () => ({
+  default: ({ onManual }) => (
+    <button type="button" onClick={onManual}>
+      Cargar a mano
+    </button>
+  ),
+}));
 
 const { default: ScanWinePage } = await import("../src/pages/ScanWinePage");
 

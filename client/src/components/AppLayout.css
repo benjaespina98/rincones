@@ -71,6 +71,9 @@
   /* Reserva menos que la zona segura entera (ver --topbar-safe-top en index.css): el avatar
      queda más cerca de la hora y la barra ocupa menos de lo que se lleva el contenido. */
   padding: calc(0.6rem + var(--topbar-safe-top)) 1rem 0;
+  /* Alto de siempre (44px de contenido) aunque ya no haya avatar: el título del eco y el botón de
+     volver se centran ahí, y la capa de blur de abajo cubre esa altura. */
+  min-height: calc(0.6rem + var(--topbar-safe-top) + 44px);
   /* Transparente: el encabezado y el cuerpo comparten el MISMO fondo. Antes llevaba un
      degradé propio y se leía como una banda más oscura pegada arriba. */
   background: transparent;
@@ -216,73 +219,13 @@
   right: 0;
 }
 
-/* La altura del título (33px) centrada contra el botón de cuenta (44px): 0,6rem + inset + 5,5px. */
+/* La altura del título (33px) centrada contra una fila de 44px (la del eco de la barra): 0,6rem + inset + 5,5px. */
 .app-layout--titulo-en-barra:not(:has(.app-topbar__ranura--izq > *)) .app-content--with-topbar {
   padding-top: calc(0.6rem + var(--topbar-safe-top) + 5.5px);
 }
 
 .app-layout--titulo-en-barra:not(:has(.app-topbar__ranura--izq > *)) .app-hero-title {
   margin-top: 0;
-}
-
-/* Botón de cuenta: sólo el avatar. Tocarlo lleva al perfil a pantalla completa
-   (no un desplegable) — ahí viven configuración y cerrar sesión.
-
-   Sin caja ni borde propios: el avatar YA es una forma cerrada y reconocible,
-   y meterlo adentro de una cápsula con contorno era dibujar dos veces el mismo
-   límite. 40px de área tocable alrededor de un círculo de 32. */
-.app-topbar__account {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-right: -6px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: transparent;
-  cursor: pointer;
-}
-
-/* El color lo pone `.avatar-color--*` (index.css) con lo que la persona eligió
-   en su perfil: acá no se declara fondo, o pisaría a los siete con el violeta. */
-.app-topbar__avatar {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  border: 1px solid rgb(var(--paper-rgb) / 0.18);
-  color: var(--paper);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Con foto, el círculo lo llena la imagen: sin el color de fondo (se asomaría
-   por las esquinas mientras carga) y recortada al círculo en vez de deformada.
-   `display: block` lo trae `img` desde index.css. */
-.app-topbar__avatar--photo {
-  background: var(--surface-2);
-  object-fit: cover;
-}
-
-/* La chapita "ADMIN" era una cápsula con texto en versalitas al lado del
-   nombre: tres palabras de cromo permanentes para un dato que sólo importa
-   confirmar de vez en cuando. Un punto sobre el avatar dice lo mismo y no
-   compite con el título. */
-.app-topbar__admin-dot {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--gold);
-  border: 2px solid var(--bg);
 }
 
 .app-content--with-topbar {

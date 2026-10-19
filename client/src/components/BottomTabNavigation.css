@@ -78,13 +78,17 @@
 }
 
 .tab-button {
-  flex: 1;
+  /* Cinco lugares iguales: `flex: 1 1 0` (base 0) los reparte parejo aunque una etiqueta sea más
+     larga, y `min-width: 0` deja que el botón se achique en vez de empujar a los vecinos. Así
+     Escanear queda en el centro exacto de la pantalla. */
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px;
+  padding: 8px 2px;
   background: none;
   border: none;
   cursor: pointer;
@@ -182,6 +186,7 @@
 .tab-label {
   font-size: 11px;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 @media (min-width: 768px) {
@@ -334,4 +339,50 @@
     border-radius: var(--radius-full);
     background: var(--accent-light);
   }
+}
+
+/* ── La pestaña "Cuenta": el avatar hace de ícono ─────────────────────────────
+   El mismo círculo de antes, ahora de 22px (como los demás íconos) y en la barra de abajo. El color lo pone
+   `.avatar-color--*` (index.css) con lo que la persona eligió en su perfil. */
+.tab-icon--cuenta {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+
+.tab-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--paper-rgb) / 0.18);
+  color: var(--paper);
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-avatar--photo {
+  background: var(--surface-2);
+  object-fit: cover;
+}
+
+/* Activa: el aro del avatar toma el acento (el color de la persona se conserva). */
+.tab-button.active .tab-avatar {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.tab-avatar__admin {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--gold);
+  border: 2px solid var(--bg);
 }

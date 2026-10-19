@@ -10,6 +10,7 @@ const WineInfo = require("../models/wineInfo.model");
 const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
+const { soloConFoto } = require("../utils/destacados");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
 
@@ -298,10 +299,10 @@ const DESTACADOS = 8;
  *
  * La foto no se sabe hasta después de consultar el pool compartido, así que la
  * única forma de priorizar a los que la tienen es traer de más y recortar
- * después. Cuatro veces: hoy hay pocas fotos y con un margen chico el orden no
- * cambiaría nada; a medida que el pool se llene, va a alcanzar de sobra.
+ * después. Ocho veces: al ser un filtro estricto (ver `soloConFoto`) y haber pocas fotos,
+ * hace falta mirar bastante pool para encontrar alguna; a medida que se llene, sobra.
  */
-const CANDIDATOS = DESTACADOS * 4;
+const CANDIDATOS = DESTACADOS * 8;
 
 /** La semilla del día: mismo set mientras dura la jornada, otro mañana. */
 const semillaDelDia = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24));
@@ -336,29 +337,22 @@ const featured = async (req, res, next) => {
      * la foto no se sabe hasta consultar el pool compartido, y priorizar a los
      * que la tienen exige tener de dónde elegir.
      *
-     * Primero los que tienen foto. La tarjeta grande de Descubrí es casi toda
-     * imagen: sin foto muestra la botella genérica, que es la misma para todos
-     * los vinos y no dice nada de ese vino en particular.
+     * SÓLO los que tienen foto. La tarjeta grande de Descubrí es casi toda imagen: sin foto
+     * muestra la botella genérica, que es la misma para todos los vinos y no dice nada de ese
+     * vino en particular, o sea que no es una recomendación.
      *
-     * Es un ORDEN, no un filtro: si no hay ocho con foto —hoy no los hay— se
-     * completan con el resto en vez de devolver menos. Y el orden es estable
-     * dentro de cada grupo, así que el ranking por afinidad se conserva.
+     * Es un FILTRO, no un orden: puede devolver menos de ocho, o ninguno, y la pantalla lo
+     * resuelve (sin recomendación y con una invitación a sumar una foto). El orden del ranking
+     * por afinidad se conserva.
      */
     const rankeados = recommendations.rankFeatured(catalogService.getCatalogPool(), perfil, {
       count: CANDIDATOS,
       seed: semillaDelDia(),
     });
     const candidatos = await wineImages.enrichWithImages(rankeados);
-    const data = candidatos
-      .map((wine, i) => ({ wine, i }))
-      .sort((a, b) => {
-        const fotoA = Boolean(a.wine.image);
-        const fotoB = Boolean(b.wine.image);
-        if (fotoA !== fotoB) return fotoA ? -1 : 1;
-        return a.i - b.i;
-      })
-      .slice(0, DESTACADOS)
-      .map(({ wine }) => wine);
+    // Sólo con foto (ver `soloConFoto`): sin foto no es una recomendación. El orden del ranking
+    // por afinidad se conserva.
+    const data = soloConFoto(candidatos, DESTACADOS);
     // `private` y no `public`: desde que el set se arma con la bodega y las
     // preferencias de quien pregunta, la respuesta es de ESA persona y un proxy
     // compartido no puede servírsela a otra.

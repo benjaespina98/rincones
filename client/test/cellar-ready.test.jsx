@@ -19,7 +19,7 @@ vi.mock("../src/services/wineApi", () => ({ getCellarReady: vi.fn() }));
  * La cosecha es lo que permite calcular la ventana, y va a propósito: la
  * tarjeta NO usa el `cellarStatus` que manda el servidor —que dice "Último año
  * óptimo", las palabras viejas— sino el mismo `getCellarStatus` del cliente que
- * usa la ficha del vino. Un Malbec 2019 da la ventana 2022 – 2029.
+ * usa la ficha del vino. Un Malbec 2019 da la ventana 2022 a 2029.
  */
 const UN_VINO = [
   {
@@ -60,7 +60,7 @@ describe("Listos para abrir", () => {
     // La ventana calculada por el cliente, la misma que muestra la ficha del
     // vino. Si esto empieza a fallar es porque las dos mitades de la app
     // volvieron a contar la guarda de dos maneras distintas.
-    expect(screen.getByText("2022 – 2029")).toBeTruthy();
+    expect(screen.getByText("2022 a 2029")).toBeTruthy();
     expect(screen.getByText("2 botellas")).toBeTruthy();
     expect(screen.queryByText(/óptimo/i)).toBeNull();
   });

@@ -127,7 +127,7 @@ export default function MomentsDiary({ probados = 0 }) {
         <p className="diary__invite">
           Ya probaste {probados === 1 ? "un vino" : `${probados} vinos`}, pero todavía no
           escribiste ninguna noche. Cuando abrís una botella podés anotar con quién estabas,
-          dónde y qué comieron — y eso queda para siempre, sólo para vos.
+          dónde y qué comieron. Eso queda para siempre, sólo para vos.
         </p>
         <button type="button" className="diary__more" onClick={() => navigate("/bodega?filter=probados")}>
           Empezar por un vino que ya tomaste <Icon name="arrow-right" size={15} />

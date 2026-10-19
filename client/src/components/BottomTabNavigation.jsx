@@ -4,12 +4,15 @@ import Icon from "./Icon";
 import Logo from "./Logo";
 import AddWineButton from "./AddWineButton";
 import { tapHaptic } from "../utils/haptics";
+import { useAuth } from "../hooks/useAuth";
+import { initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TABS, tabForPath } from "../data/navigation";
 import "./BottomTabNavigation.css";
 
 export default function BottomTabNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // La lista de pestañas y la regla de "qué pestaña corresponde a esta URL"
   // viven en data/navigation.js, compartidas con AppLayout.
@@ -37,9 +40,9 @@ export default function BottomTabNavigation() {
   const medir = useCallback(() => {
     const btn = activoRef.current;
     const fila = filaRef.current;
-    // Se sale sin tocar el estado: una pantalla de detalle no marca ninguna
-    // pestaña, y poner el estado en null en cada render de esas dispara una
-    // cascada de renders por una medición que no existe.
+    // Se sale sin tocar el estado: una pantalla sin pestaña activa no tiene qué medir, y poner el
+    // estado en null dentro de un efecto dispara una cascada de renders. Que el indicador no se vea
+    // en ese caso lo decide el render (abajo): sólo se dibuja si hay pestaña activa.
     if (!btn || !fila) return;
     setIndicador({ left: btn.offsetLeft + btn.offsetWidth / 2 });
   }, []);
@@ -72,7 +75,9 @@ export default function BottomTabNavigation() {
 
         {/* Decorativo: quien anuncia cuál es la pestaña actual es
             `aria-current` en su botón, no esta barrita. */}
-        {indicador && (
+        {/* Sin pestaña activa (Escanear, o una pantalla que no cuelga de ninguna) no hay indicador: si no,
+            quedaba debajo de la pestaña de la que venías, marcando un lugar donde ya no estás. */}
+        {indicador && activeTab && (
           <span
             className="bottom-tabs__indicador"
             aria-hidden="true"
@@ -94,9 +99,26 @@ export default function BottomTabNavigation() {
                 aria-current={activo ? "page" : undefined}
                 type="button"
               >
-                <span className="tab-icon">
-                  <Icon name={tab.icon} filled size={22} />
-                </span>
+                {tab.id === "cuenta" ? (
+                  <span className="tab-icon tab-icon--cuenta">
+                    {/* La foto de Google manda sobre las iniciales, igual que en el perfil. */}
+                    {user?.avatarPhoto ? (
+                      <img className="tab-avatar tab-avatar--photo" src={user.avatarPhoto} alt="" />
+                    ) : (
+                      <span className={`tab-avatar avatar-color--${avatarColor(user?.avatar)}`}>
+                        {initials(user)}
+                      </span>
+                    )}
+                    {/* Un punto y no la palabra "Admin": con qué cuenta entraste, a un vistazo. */}
+                    {isAdminUser(user) && (
+                      <span className="tab-avatar__admin" role="img" aria-label="Cuenta de administrador" />
+                    )}
+                  </span>
+                ) : (
+                  <span className="tab-icon">
+                    <Icon name={tab.icon} filled size={22} />
+                  </span>
+                )}
                 <span className="tab-label">{tab.label}</span>
               </button>
             </Fragment>

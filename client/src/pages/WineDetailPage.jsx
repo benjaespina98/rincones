@@ -1,3 +1,4 @@
+import { leerCosecha } from "../utils/vintage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
@@ -431,7 +432,7 @@ export default function WineDetailPage() {
         winery: draft.winery.trim(),
         region: draft.region.trim(),
         varietal: draft.varietal.trim(),
-        vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+        vintage: leerCosecha(draft),
         type: draft.type,
         notes: draft.notes.trim(),
         // La foto viaja siempre (aunque sea ""), porque el vacío también es una
@@ -928,7 +929,7 @@ export default function WineDetailPage() {
                           : `${Math.round(brecha * 100)}% por encima del promedio`;
                     return (
                       <p className="wine-price__yours">
-                        Vos pagaste ${tuyo.toLocaleString("es-AR")} — {veredicto}.
+                        Vos pagaste ${tuyo.toLocaleString("es-AR")}: {veredicto}.
                       </p>
                     );
                   })()}

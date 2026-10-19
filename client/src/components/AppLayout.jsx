@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { useViewportGap } from "../hooks/useViewportGap";
 import ViewportDebug from "./ViewportDebug";
@@ -8,8 +7,6 @@ import { useHeaderCollapse } from "../hooks/useHeaderCollapse";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
 import Logo from "./Logo";
-import { tapHaptic } from "../utils/haptics";
-import { displayName, initials, isAdminUser, avatarColor } from "../utils/identity";
 import { TAB_PATHS } from "../data/navigation";
 import { TopbarContext } from "../context/TopbarContext";
 import "./AppLayout.css";
@@ -37,8 +34,7 @@ const AppLayout = ({ children, pageTitle }) => {
   const esInicio = location.pathname === "/";
   /* La ficha de un vino lleva su propio título (el nombre del vino): el genérico "Vino" sólo
      estorba. Se queda para lectores de pantalla, pero no se dibuja ni en el grande ni en la barra. */
-  const tituloGenerico = /^\/(vino\/|descubrir\/vino)/.test(location.pathname);
-  const { user } = useAuth();
+  const tituloGenerico = /^\/(vino\/|descubrir\/vino|agregar)/.test(location.pathname);
   // Una sola vez para toda la app: la barra de abajo y cualquier compositor
   // fijo de pantalla (ver SuggestionsPage) comparten la misma variable CSS.
   useKeyboardInset();
@@ -75,14 +71,6 @@ const AppLayout = ({ children, pageTitle }) => {
   // única salida era adivinar a qué pestaña ir. Con la regla al revés, cada
   // pantalla nueva que no sea pestaña nace con su salida puesta.
   const isSubScreen = !TAB_PATHS.has(location.pathname);
-  const name = displayName(user);
-  const admin = isAdminUser(user);
-
-  const goToProfile = () => {
-    tapHaptic();
-    navigate("/perfil");
-  };
-
   return (
     <TopbarContext.Provider value={ranuras}>
     <div className={`app-layout${isSubScreen ? "" : " app-layout--titulo-en-barra"}`}>
@@ -110,37 +98,9 @@ const AppLayout = ({ children, pageTitle }) => {
           {tituloGenerico ? "" : pageTitle}
         </span>
 
-        {/* Tocar el avatar lleva a la sección de perfil a pantalla completa
-            (no un desplegable): configuración y cerrar sesión viven ahí. */}
+        {/* La cuenta ya no está acá arriba: es el quinto lugar de la barra de abajo. Esta ranura es
+            para las acciones propias de cada pantalla (nueva consulta, etc.). */}
         <div className="app-topbar__ranura" ref={setDerecha} />
-
-        <button
-          className="app-topbar__account"
-          type="button"
-          onClick={goToProfile}
-          aria-label={`Ir a mi perfil (${name})`}
-        >
-          {/* La foto de Google manda sobre las iniciales, igual que en el
-              perfil: es la foto de verdad, no un símbolo derivado del nombre.
-              `alt=""` porque el botón que la contiene ya se anuncia entero
-              ("Ir a mi perfil (Benja)") — repetir el nombre acá lo diría dos
-              veces seguidas. */}
-          {user?.avatarPhoto ? (
-            <img
-              className="app-topbar__avatar app-topbar__avatar--photo"
-              src={user.avatarPhoto}
-              alt=""
-            />
-          ) : (
-            <span className={`app-topbar__avatar avatar-color--${avatarColor(user?.avatar)}`}>
-              {initials(user)}
-            </span>
-          )}
-          {/* Un punto y no la palabra "Admin": es un recordatorio de con qué
-              cuenta entraste, no un rótulo que haya que leer en cada pantalla.
-              El nombre completo del rol está en el perfil, a un toque. */}
-          {admin && <span className="app-topbar__admin-dot" aria-label="Cuenta de administrador" />}
-        </button>
       </header>
 
       {/* key por ruta: al navegar, el contenido se remonta y hace un fade-in

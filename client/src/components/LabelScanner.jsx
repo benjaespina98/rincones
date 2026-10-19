@@ -51,7 +51,6 @@ const puedeUsarCamaraEnVivo = () =>
   typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia);
 
 const LabelScanner = ({ onCapture, onCancel, onManual }) => {
-  const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -192,10 +191,16 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
         source: analysis.source || "",
         rawText: analysis.rawText || "",
       });
-    } catch {
+    } catch (err) {
       // NO llamamos a onCapture: si lo hacíamos, el padre desmontaba el escáner
       // y este mensaje nunca llegaba a verse. Ahora el usuario decide.
-      setAnalyzeError("No se pudo leer la etiqueta. Probá con otra foto o cargá los datos a mano.");
+      // Si el servidor rechazó la FOTO (no es una imagen, muy chica, muy grande), su mensaje dice
+      // qué hacer; lo demás cae al genérico.
+      const delServidor = err?.response?.data;
+      const porLaFoto = String(delServidor?.code || "").startsWith("imagen_") && typeof delServidor?.message === "string";
+      setAnalyzeError(
+        porLaFoto ? delServidor.message : "No se pudo leer la etiqueta. Probá con otra foto o cargá los datos a mano."
+      );
     } finally {
       setAnalyzing(false);
     }
@@ -243,14 +248,6 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
    */
   const selectores = (
     <>
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleInputChange}
-        className="label-scanner__input"
-      />
       <input
         ref={galleryInputRef}
         type="file"
@@ -377,51 +374,31 @@ const LabelScanner = ({ onCapture, onCancel, onManual }) => {
     );
   }
 
-  // ── El selector de archivos de siempre: sin permiso de cámara, o elegido a
-  // propósito (el botón de galería en el modo vivo cae acá). ─────────────────
+  // ── Sin cámara (permiso negado o navegador sin soporte): un estado corto con una salida. ──────
+  // La galería del sistema ya ofrece "Sacar foto" en iOS y en Android, así que la función no se
+  // pierde. Sin consejos ni párrafos: la pantalla dice qué pasó y qué hacer.
   return (
-    <div className="label-scanner">
+    <div className="label-scanner label-scanner--sin-camara">
       {selectores}
 
-      <div className="label-scanner__frame" aria-hidden="true">
-        <span className="label-scanner__frame-corner label-scanner__frame-corner--tl" />
-        <span className="label-scanner__frame-corner label-scanner__frame-corner--tr" />
-        <span className="label-scanner__frame-corner label-scanner__frame-corner--bl" />
-        <span className="label-scanner__frame-corner label-scanner__frame-corner--br" />
+      <div className="label-scanner__frame" role="status">
         <Icon name="camera" size={38} className="label-scanner__frame-icon" />
-        <p className="label-scanner__frame-hint">Que la etiqueta llene el recuadro</p>
+        <p className="label-scanner__frame-hint">No pudimos abrir la cámara</p>
       </div>
 
-      {/* Dos consejos, no tres. Son instrucciones que de verdad cambian el
-          resultado del OCR —por eso sobreviven al recorte de textos—, pero el
-          tercero ("¿No ves el año? Suele estar en el cuello o atrás") habla de
-          un dato que se completa después, en la revisión, y no de cómo sacar
-          esta foto. */}
-      <ul className="label-scanner__tips">
-        <li><Icon name="search" size={13} /> Acercate hasta que se lea la letra chica</li>
-        <li><Icon name="sparkle" size={13} /> Evitá el reflejo: mové la botella, no la luz</li>
-      </ul>
-
-      <div className="label-scanner__actions">
+      <div className="label-scanner__actions label-scanner__actions--una">
         <button
           type="button"
           className="label-scanner__btn label-scanner__btn--primary"
-          onClick={() => cameraInputRef.current?.click()}
-        >
-          <Icon name="camera" size={18} /> Tomar foto
-        </button>
-        <button
-          type="button"
-          className="label-scanner__btn"
           onClick={() => galleryInputRef.current?.click()}
         >
-          <Icon name="image" size={18} /> Galería
+          <Icon name="image" size={18} /> Elegir de la galería
         </button>
       </div>
 
-      {onCancel && (
-        <button type="button" className="label-scanner__cancel" onClick={onCancel}>
-          Cancelar
+      {onManual && (
+        <button type="button" className="label-scanner__manual-link" onClick={onManual}>
+          <Icon name="pencil" size={14} /> Cargar a mano
         </button>
       )}
     </div>

@@ -487,3 +487,33 @@ acento claro 4,9 · etiqueta de tipo sobre su fondo tinteado 5,3–8,3 · "Ya lo
 ### Sin verificar
 La barra en un iPhone real (ver arriba), el tacto del `:active` (no se siente con mouse), fotos reales
 con `fit="auto"` y las vistas "Ya tomados" y "Favoritos" con el fondo nuevo.
+
+---
+
+## Última tanda de pulido (2026-10-19)
+
+Rama `refresh/ultima-tanda`, un commit por frente (F, A, B, C, D, E). **Sin push ni merge**: queda para
+revisar y publicar con `/publicar`.
+
+| Frente | Qué cambió | Decisión y porqué |
+|---|---|---|
+| **F** cosecha | `utils/vintage.js`: `leerCosecha` / `hayValorDeCosecha`, un solo lugar | Los lotes no traen cosecha y la lección del día abre la hoja sin vino: el ancla de "añada" decía "no tiene" cuando no correspondía. NV y rangos ("2019/20") no son error. `propio` distingue ficha propia de consulta |
+| **A** conceptos | 37 conceptos reescritos (definición, ejemplo, "En tu copa:"), voseo, 40 a 70 palabras; lectura 16px, interlineado 1,55, 12px entre párrafos | Test que falla ante rayas largas o medias en textos visibles (AST con `@babel/parser`, devDependency). Prompts del server sin ellas |
+| **B** Descubrí | `GET /api/catalog/featured` sólo devuelve vinos con foto (`utils/destacados.js`, candidatos x8); el cliente también filtra y descarta fotos que fallan | Sin foto no se recomienda. Estado vacío con acción "Sumá una foto" |
+| **C** barra | 5 lugares: Descubrí / Mi bodega / Escanear (centro) / Sommelier / Cuenta; sin avatar arriba; punto de admin en Cuenta | Revisar a 360, 390 y 430 |
+| **D** escaneo | Va directo a la captura; confirmación como lista con un solo primario (Guardar); marca con punto de acento lo no leído o dudoso | "Solo consultar" y "Quiero probarlo" quedan como links chicos; se agregó el selector de Tipo; deshacer vuelve a `/bodega` |
+| **E** lector | Ver abajo | |
+
+### E: lector de etiquetas
+
+Hecho (no depende de fotos):
+- `utils/imagenCabecera.js`: el tipo y las dimensiones salen de la firma del archivo (JPEG, PNG, WebP, HEIC), sin dependencias. El endpoint rechaza con 400 y un mensaje claro (no es foto, muy chica, muy grande) **antes** de llamar al modelo, y le pasa a Gemini el mime detectado, no el declarado.
+- `utils/promptSeguro.js`: el texto leído de la etiqueta, los nombres guardados y lo que escribe la persona se limpian y van delimitados como dato en los prompts de verificación, ficha, receta, búsqueda, plato y resúmenes del Sommelier.
+- `normalizarTipo` en `vision.service`: el enum se normaliza también del lado del servidor.
+- 23 tests nuevos en el server.
+- Se mantienen 2000 px / 0,92 (decisión tomada).
+
+**Pendiente (necesita fotos reales):** `server/scripts/medirLector.js`, escrito y **sin ejecutar**. Mide cada foto a 1280, 1600 y 2000 px: tiempo, tamaño del envío, campos leídos y vacíos, confianza. Uso: `node server/scripts/medirLector.js <carpeta>` con la clave de Gemini en el entorno y `npm install --no-save sharp` (no entra al package.json). No toca ninguna base. Con sus resultados se decide si bajar `SCAN_MAX_DIM`.
+
+### Sin verificar
+iPhone real (la barra, el empuje de 2px en modo standalone), cámara real, calidad de lectura de etiquetas reales.

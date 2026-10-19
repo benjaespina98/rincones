@@ -1,8 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import BottomTabNavigation from "../src/components/BottomTabNavigation";
 import { TABS } from "../src/data/navigation";
+
+const auth = vi.hoisted(() => ({ user: { name: "Benja", email: "b@x.com", role: "user" } }));
+vi.mock("../src/hooks/useAuth", () => ({ useAuth: () => ({ user: auth.user }) }));
 
 /**
  * El cableado de la barra, que es lo que se puede romper sin que se note.
@@ -50,18 +53,44 @@ describe("BottomTabNavigation", () => {
   });
 
   it("sin pestaña activa no dibuja indicador", () => {
-    // /perfil no es una pestaña ni cuelga de ninguna: el indicador no tiene
+    // /privacidad no es una pestaña ni cuelga de ninguna: el indicador no tiene
     // dónde pararse, y poner uno en la posición cero sería marcar Descubrí.
-    const { container } = enRuta("/perfil");
+    const { container } = enRuta("/privacidad");
     expect(container.querySelector('[aria-current="page"]')).toBeNull();
     expect(container.querySelector(".bottom-tabs__indicador")).toBeNull();
   });
 
-  it("renderiza las tres pestañas y el botón de cámara", () => {
+  it("renderiza las cuatro pestañas y Escanear en el centro, con su nombre", () => {
     enRuta("/");
     for (const tab of TABS) {
       expect(screen.getByLabelText(tab.label)).toBeInTheDocument();
     }
-    expect(TABS).toHaveLength(3);
+    expect(TABS).toHaveLength(4);
+    expect(screen.getByRole("button", { name: /escanear/i })).toBeInTheDocument();
+  });
+
+  it("el orden es Descubrí, Mi Bodega, Escanear, Sommelier, Cuenta", () => {
+    const { container } = enRuta("/");
+    const nombres = [...container.querySelectorAll(".bottom-tabs > button")].map((b) => b.textContent.trim());
+    expect(nombres).toEqual(["Descubrí", "Mi Bodega", "Escanear", "Sommelier", expect.stringMatching(/Cuenta$/)]);
+  });
+
+  it("Cuenta lleva al perfil y toma el estado de la ficha de valoraciones", () => {
+    const { container } = enRuta("/valoraciones");
+    expect(container.querySelector('[aria-current="page"]')).toHaveAttribute("aria-label", "Cuenta");
+  });
+
+  it("Cuenta muestra el avatar (iniciales o foto) y el punto de admin sólo para administradores", () => {
+    const antes = auth.user;
+    auth.user = { name: "Benja", email: "b@x.com", role: "user" };
+    let r = enRuta("/");
+    expect(r.container.querySelector(".tab-avatar")).not.toBeNull();
+    expect(r.container.querySelector(".tab-avatar__admin")).toBeNull();
+    r.unmount();
+    auth.user = { name: "Benja", email: "b@x.com", role: "admin", avatarPhoto: "https://x.com/f.jpg" };
+    r = enRuta("/");
+    expect(r.container.querySelector(".tab-avatar--photo")).not.toBeNull();
+    expect(r.container.querySelector(".tab-avatar__admin")).not.toBeNull();
+    auth.user = antes;
   });
 });
