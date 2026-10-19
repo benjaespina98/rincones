@@ -108,14 +108,21 @@
    descansar la vista. 18px entre párrafos —bastante más que el interlineado
    propio de cada uno— para que el quiebre se note como quiebre. */
 .concept-sheet__body {
-  gap: 18px;
+  /* 12px entre párrafos: el mismo ritmo en todos los conceptos. */
+  gap: 12px;
 }
 
 .concept-sheet__text {
   margin: 0;
-  font-size: var(--text-base);
-  line-height: 1.7;
+  /* Lectura cómoda: 16px, interlineado de 1,55 y un renglón de unos 55 caracteres en la hoja de 460. */
+  font-size: 16px;
+  line-height: 1.55;
   color: var(--text-secondary);
+}
+
+.concept-sheet__copa strong {
+  font-weight: 700;
+  color: var(--accent-soft);
 }
 
 /* El renglón que la ata a tu botella. Lleva el acento porque es lo único de la

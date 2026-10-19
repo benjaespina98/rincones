@@ -222,7 +222,7 @@ export default function StyleguidePage() {
       {/* ══ COMPONENTES ═══════════════════════════════════════════════════════
           Desde acá abajo no son tokens sino piezas armadas. Se revisan con sus
           ESTADOS, no sólo en reposo: un componente que sólo se mira lleno es
-          uno cuyo vacío y cuyo error nadie vio nunca — que es exactamente cómo
+          uno cuyo vacío y cuyo error nadie vio nunca, que es exactamente cómo
           quedaron los siete estados faltantes que encontró la auditoría. */}
 
       <Seccion titulo="Button" nota="Las variantes son jerarquía: cuál es la acción de la pantalla, cuál es la alternativa, cuál se puede ignorar.">
@@ -325,7 +325,7 @@ export default function StyleguidePage() {
           </div>
           <p className="sg__nota">
             El cuerpo scrollea solo si hace falta, y el gesto de arrastrar sale
-            del asa de arriba — no del contenido, o no se podría leer una lista
+            del asa de arriba, no del contenido, o no se podría leer una lista
             larga sin cerrarla sin querer.
           </p>
         </BottomSheet>
@@ -384,7 +384,7 @@ export default function StyleguidePage() {
             onRetry={() => {}}
           />
           <div>
-            <p className="sg__nota">Skeleton de lista — tiene que tener la forma de la fila real, o al cargar salta.</p>
+            <p className="sg__nota">Skeleton de lista: tiene que tener la forma de la fila real, o al cargar salta.</p>
             <LoadingSkeleton type="list" count={2} />
           </div>
           <div>

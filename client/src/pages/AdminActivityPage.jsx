@@ -248,7 +248,7 @@ const AdminActivityPage = () => {
             onChange={(e) => { setFrom(e.target.value); setPage(1); }}
             aria-label="Desde"
           />
-          <span className="admin-filter-group__sep" aria-hidden="true">–</span>
+          <span className="admin-filter-group__sep" aria-hidden="true">a</span>
           <input
             type="date"
             className="admin-date-input"
@@ -313,7 +313,7 @@ const AdminActivityPage = () => {
                           </td>
                           <td>{ENTITY_LABELS[log.entityType] || log.entityType}</td>
                           <td className="admin-table__desc admin-table__id">{describirLog(log)}</td>
-                          <td>{log.actor?.email || "—"}</td>
+                          <td>{log.actor?.email || "Sin dato"}</td>
                         </tr>
                       ))}
                     </Fragment>

@@ -198,9 +198,9 @@ Otra persona leyó la etiqueta de una botella con un lector automático y sacó 
 ${leido}
 
 Tu tarea NO es buscar vinos parecidos: es decir si ESTE vino existe y si está bien
-transcripto. El lector se equivoca de maneras típicas —se come una letra, junta la
+transcripto. El lector se equivoca de maneras típicas (se come una letra, junta la
 línea con la uva, confunde el nombre de fantasía con la bodega, inventa una región
-que suena bien— y vos sos el control.
+que suena bien) y vos sos el control.
 
 Devolvé:
 - exists: true SÓLO si conocés este vino como un producto que existe de verdad. Si
@@ -353,6 +353,7 @@ precisión de quien sabe y el tono de quien no necesita demostrarlo.
 ${parts}
 
 CÓMO HABLAR (vale para todos los campos):
+- Sin guiones largos ni guiones medios: separá las ideas con punto, coma o dos puntos.
 - Español rioplatense, de vos. Informal pero cuidado: ni "che, un vinazo" ni
   "este ejemplar despliega una notable expresión".
 - PROHIBIDO arrancar con "Este [vino] es/presenta/despliega/ofrece/se caracteriza
@@ -378,14 +379,14 @@ Devolvé:
     · "Este Malbec del Valle de Uco despliega una fruta roja madura…"
 
   Después sí, con el detalle, en el orden que mejor fluya:
-    · de dónde viene y qué le da esa zona (altura, suelo, amplitud térmica, clima) —
+    · de dónde viene y qué le da esa zona (altura, suelo, amplitud térmica, clima):
       concreto sobre ESA región, no "terroir único";
     · qué hace la uva en este estilo;
     · si lleva madera, cuánta se nota y qué aporta (o decí que no tiene y se nota en
       la fruta más directa);
     · qué se percibe al tomarlo: la fruta, las especias, el final.
   Nombrá lo que se percibe en vez de calificarlo. Nada de "excelente", "exquisito",
-  "de gran calidad" ni "equilibrado" a secas — no dicen nada y podrían estar hablando
+  "de gran calidad" ni "equilibrado" a secas: no dicen nada y podrían estar hablando
   de cualquier botella. Que suene a alguien que lo tomó y sabe de dónde sale, no a una
   contraetiqueta. Si no conocés la botella puntual, hablá del estilo con la misma
   profundidad: la región y la uva alcanzan para llenar seis oraciones ciertas.
@@ -393,7 +394,7 @@ Devolvé:
   para qué momento va, con qué compañía, cuánto conviene esperarlo todavía.
   PROHIBIDO hablar de temperatura de servicio, de grados, de heladera, de decantar o
   de airear: eso va en el campo "serve" y la app lo muestra aparte como instrucción,
-  arriba de este texto — dicho acá, la misma frase aparece dos veces en la misma
+  arriba de este texto: dicho acá, la misma frase aparece dos veces en la misma
   pantalla. Tampoco repitas cuerpo, taninos ni acidez: eso ya va en structure y la app
   lo muestra en barras justo arriba.
 - profile: 3 etiquetas MUY cortas de perfil, estilo ficha (ej: "Cuerpo medio", "Taninos suaves", "Frutado"). Solo el atributo, sin explicación.
@@ -417,7 +418,7 @@ Devolvé:
   que en la Patagonia el viento y la amplitud térmica dan uvas de piel más gruesa;
   que el Torrontés es un cruce criollo que sólo existe acá.
   PROHIBIDO: premios, puntajes, la historia de la bodega o cualquier cosa sobre
-  ESA botella puntual — ahí es donde se inventa. Nada de datos que no puedas
+  ESA botella puntual: ahí es donde se inventa. Nada de datos que no puedas
   sostener. Si no tenés algo bueno y verificable, devolvé la cadena vacía: un
   "sabías que" flojo es peor que ninguno.
 
@@ -561,7 +562,7 @@ un cocinero: con criterio, con el punto justo y con una razón detrás de cada p
   en todas las pantallas y una receta en infinitivo suena a manual fotocopiado.
   Escribilos como un chef que enseña:
   nombrá la técnica (sellar, nacarar, reducir, napar, dejar reposar) y decí CÓMO se
-  sabe que está listo —el color, el sonido, el tiempo, la textura—, que es lo que
+  sabe que está listo (el color, el sonido, el tiempo, la textura), que es lo que
   separa una receta que sale de una que no. Sin numerar (la app numera).
 
 Reglas: ningún ingrediente que no esté en la lista, ningún paso que necesite

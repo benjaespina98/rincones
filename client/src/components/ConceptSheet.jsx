@@ -97,6 +97,14 @@ export default function ConceptSheet({ id, ctx, onClose }) {
               </p>
             ))}
 
+            {/* "En tu copa:" es lo único que se hace con la copa en la mano: qué notar. Es opcional
+                y de todos los conceptos, no depende de ningún dato de tu bodega. */}
+            {concepto.copa && (
+              <p className="concept-sheet__text concept-sheet__copa">
+                <strong>En tu copa:</strong> {concepto.copa}
+              </p>
+            )}
+
             {/* Lo que ninguna enciclopedia puede decirte: cómo se aplica a la
                 botella que tenés adelante. Si el dato no está, no hay línea
                 —jamás se completa con una frase genérica—. */}

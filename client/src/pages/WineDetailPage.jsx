@@ -929,7 +929,7 @@ export default function WineDetailPage() {
                           : `${Math.round(brecha * 100)}% por encima del promedio`;
                     return (
                       <p className="wine-price__yours">
-                        Vos pagaste ${tuyo.toLocaleString("es-AR")} — {veredicto}.
+                        Vos pagaste ${tuyo.toLocaleString("es-AR")}: {veredicto}.
                       </p>
                     );
                   })()}

@@ -363,7 +363,7 @@ export default function ProfilePage() {
         </div>
         <div className="stat-card">
           <div className={`value ${statsLoading ? "is-loading" : ""}`}>
-            {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "—"}
+            {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "Sin dato"}
           </div>
           <div className="label">Puntuación</div>
           {/* La raya sola, sin nada abajo, se leía como un dato roto. Ahora dice

@@ -7,7 +7,7 @@ const APP_URL = "https://rincones.vercel.app";
 const buildText = (wine) => {
   const origin = [wine.winery, wine.region].filter(Boolean).join(" · ");
   const lines = [
-    `🍷 ${wine.name}${origin ? ` — ${origin}` : ""}`,
+    `🍷 ${wine.name}${origin ? `, ${origin}` : ""}`,
     wine.varietal ? `Varietal: ${wine.varietal}` : "",
     "Te lo recomiendo desde Rincones 🍇",
   ].filter(Boolean);

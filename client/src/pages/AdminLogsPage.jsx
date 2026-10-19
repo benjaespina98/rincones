@@ -88,7 +88,7 @@ const AdminLogsPage = () => {
             onChange={(e) => { setFrom(e.target.value); setPage(1); }}
             aria-label="Desde"
           />
-          <span className="admin-filter-group__sep" aria-hidden="true">–</span>
+          <span className="admin-filter-group__sep" aria-hidden="true">a</span>
           <input
             type="date"
             className="admin-date-input"
@@ -147,7 +147,7 @@ const AdminLogsPage = () => {
                           <td>
                             <span className="admin-log-badge admin-log-badge--delete">{log.statusCode || 500}</span>
                           </td>
-                          <td className="admin-table__id">{log.method} {log.route || "—"}</td>
+                          <td className="admin-table__id">{log.method} {log.route || "Sin dato"}</td>
                           <td className="admin-table__desc">{log.message}</td>
                         </tr>
                         {expanded && (
