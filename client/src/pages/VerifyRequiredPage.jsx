@@ -42,7 +42,11 @@ export default function VerifyRequiredPage() {
   const checkAgain = async () => {
     try {
       setChecking(true);
-      await refreshUser();
+      const me = await refreshUser();
+      // Si sigue sin confirmar, el botón no puede quedarse mudo: se le dice qué falta.
+      if (me && me.emailVerified === false) {
+        showError("Todavía no vemos tu email confirmado. Abrí el enlace que te mandamos y volvé a tocar acá.");
+      }
     } finally {
       setChecking(false);
     }

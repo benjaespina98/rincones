@@ -1,4 +1,5 @@
 import { leerCosecha } from "../utils/vintage";
+import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
@@ -302,8 +303,8 @@ export default function ScanWinePage() {
         limpiarCacheDeDeseos();
       }
       setReview(null);
-    } catch {
-      showError("No se pudo guardar el vino. Probá de nuevo.");
+    } catch (err) {
+      showError(mensajeDelServidor(err, "No se pudo guardar el vino. Probá de nuevo."));
     } finally {
       setSaving(false);
     }

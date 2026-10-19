@@ -572,7 +572,11 @@ export default function ScanReview({
             <div className={`scan-review__issues ${bloqueado ? "is-blocking" : ""}`} role="status">
               <ul>
                 {issues.map((code) => (
-                  <li key={code}>{ISSUE_COPY[code] || "Hay un dato que no cierra."}</li>
+                  <li key={code}>
+                    {isManual && code === "sin-nombre"
+                      ? "Escribí la línea o el nombre del vino."
+                      : ISSUE_COPY[code] || "Hay un dato que no cierra."}
+                  </li>
                 ))}
               </ul>
               {issues.includes("nombre-es-bodega") && (
@@ -622,6 +626,7 @@ export default function ScanReview({
                     value={valueOf(field)}
                     onChange={(e) => setField(field, e.target.value)}
                     placeholder={field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]}
+                    maxLength={field === "vintage" ? undefined : 120}
                     list={dl?.id}
                     disabled={saving}
                     autoComplete="off"

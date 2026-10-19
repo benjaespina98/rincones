@@ -84,6 +84,19 @@ router.put("/profile", authenticate, async (req, res) => {
       user.birthDate = birthValidation.date;
     }
 
+    // Largos: la pantalla ya los limita, pero la API se puede llamar sin la pantalla.
+    for (const [valor, max, etiqueta, largo] of [
+      [firstName, 40, "El nombre", "largo"],
+      [lastName, 40, "El apellido", "largo"],
+      [city, 60, "La ciudad", "larga"],
+      [country, 60, "El país", "largo"],
+      [bio, 500, "La bio", "larga"],
+    ]) {
+      if (typeof valor === "string" && valor.trim().length > max) {
+        return res.status(400).json({ success: false, error: `${etiqueta} es demasiado ${largo} (máximo ${max} caracteres)` });
+      }
+    }
+
     // Actualizar campos de perfil
     if (firstName !== undefined) user.firstName = firstName.trim();
     if (lastName !== undefined) user.lastName = lastName.trim();
@@ -177,7 +190,8 @@ router.delete("/me", authenticate, async (req, res) => {
     }
     if (user.passwordHash) {
       const passwordOk = await user.comparePassword(String(req.body?.password || ""));
-      if (!passwordOk) return res.status(401).json({ message: "La contraseña no es correcta" });
+      // 403 y no 401: un 401 le dice al cliente "la sesión venció" y lo manda al login.
+      if (!passwordOk) return res.status(403).json({ message: "La contraseña no es correcta" });
     }
 
     const result = await deleteAccount(user._id);
@@ -220,7 +234,8 @@ router.put("/password", authenticate, async (req, res) => {
     const isPasswordValid = await user.comparePassword(currentPassword);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, error: "Contraseña actual incorrecta" });
+      // 403 y no 401, por lo mismo que en DELETE /me: no es una sesión vencida.
+      return res.status(403).json({ success: false, error: "Contraseña actual incorrecta" });
     }
 
     // Este endpoint NO validaba la fortaleza: se podía pasar de una contraseña

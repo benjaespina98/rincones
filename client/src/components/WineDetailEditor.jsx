@@ -58,6 +58,7 @@ export default function WineDetailEditor({
         type="text"
         className="scan-edit-input"
         placeholder="Nombre del vino *"
+        maxLength={120}
           aria-label="Nombre del vino"
         value={draft.name}
         onChange={(event) => updateDraftField("name", event.target.value)}
@@ -70,6 +71,7 @@ export default function WineDetailEditor({
         type="text"
         className="scan-edit-input"
         placeholder="Bodega"
+        maxLength={120}
           aria-label="Bodega (productor)"
         list="wine-wineries"
         value={draft.winery}
@@ -83,6 +85,7 @@ export default function WineDetailEditor({
         type="text"
         className="scan-edit-input"
         placeholder="Región"
+        maxLength={120}
           aria-label="Región"
         list="wine-regions"
         value={draft.region}
@@ -96,6 +99,7 @@ export default function WineDetailEditor({
         type="text"
         className="scan-edit-input"
         placeholder="Varietal"
+        maxLength={80}
           aria-label="Varietal"
         list="wine-varietals"
         value={draft.varietal}
@@ -128,6 +132,7 @@ export default function WineDetailEditor({
       <textarea
         className="scan-edit-textarea"
         placeholder="Notas"
+        maxLength={4000}
           aria-label="Notas"
         value={draft.notes}
         onChange={(event) => updateDraftField("notes", event.target.value)}
@@ -147,6 +152,7 @@ export default function WineDetailEditor({
           type="text"
           className="scan-edit-input"
           placeholder="Lugar (ej: Cava 1, Heladera)"
+        maxLength={120}
           aria-label="Lugar en tu casa"
           value={draft.cellarLocation}
           onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
@@ -159,6 +165,7 @@ export default function WineDetailEditor({
           type="text"
           className="scan-edit-input"
           placeholder="Posición (ej: Estante 3)"
+        maxLength={120}
           aria-label="Posición dentro de ese lugar"
           value={draft.cellarShelf}
           onChange={(e) => updateDraftField("cellarShelf", e.target.value)}
@@ -209,6 +216,7 @@ export default function WineDetailEditor({
         type="text"
         className="scan-edit-input"
         placeholder="Tienda o vinoteca"
+        maxLength={120}
         list="detail-stores"
         value={draft.store}
         onChange={(e) => updateDraftField("store", e.target.value)}

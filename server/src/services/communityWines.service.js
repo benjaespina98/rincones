@@ -36,7 +36,13 @@ const CONTRIBUTORS_TO_VERIFY = 2;
  * texto para los dos campos. Cuando eso pasa sabemos que uno de los dos está
  * mal pero no cuál, y una fila así no identifica ninguna botella.
  */
+// Lo que un nombre de vino jamás lleva: marcas HTML, caracteres de control o un largo absurdo. Nada
+// de eso es una botella, y el catálogo es público para todos.
+const MAX_IDENTIDAD = 120;
+const parecidoABasura = (texto) => /[<>\u0000-\u001f]/.test(texto) || String(texto).length > MAX_IDENTIDAD;
+
 const identidadCompleta = (doc = {}) => {
+  if (parecidoABasura(doc.name || "") || parecidoABasura(doc.winery || "")) return false;
   const nombre = fold(doc.name || "");
   const bodega = fold(doc.winery || "");
   if (!nombre || !bodega) return false;
@@ -343,6 +349,10 @@ const conFoto = async (limit = 300) => {
   try {
     const docs = await CommunityWine.find({
       published: true,
+      // Para RECOMENDAR (no para buscar) se pide algo más que existir: que dos personas lo hayan
+      // confirmado o que al menos una lectura haya sido confiable. Una lectura floja aparece en la
+      // búsqueda, abajo, pero no se le sugiere a nadie.
+      $or: [{ verified: true }, { trustedCount: { $gt: 0 } }],
       image: { $regex: /^(https:\/\/|data:image\/)/ },
     })
       .select("-image -contributors")
