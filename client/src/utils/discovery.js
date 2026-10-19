@@ -146,14 +146,26 @@ export const guardarUltimoVisto = (id) => {
 };
 
 /**
- * Sólo los vinos con foto: una recomendación sin foto no es una recomendación.
+ * Los vinos con foto primero, y después los que no la tienen. No saca ninguno: una recomendación
+ * sin foto se ve igual que siempre (con la botella genérica); lo que se prioriza es mostrar primero
+ * las que tienen la foto real, que es lo que más luce.
  *
- * El servidor ya manda sólo los que la tienen; esto es la defensa de este lado para lo que viene
- * de una caché vieja del navegador (el set del día se guarda en sessionStorage). Es un filtro en
- * el ORIGEN de la selección, no algo que se esconda después: lo que no pasa por acá no entra a la
- * rotación automática ni a "Ver otro". El orden se conserva (el ranking por afinidad).
+ * El servidor ya los manda así; esto cubre lo que viene de una caché vieja del navegador (el set
+ * del día se guarda en sessionStorage). El orden dentro de cada grupo es el de afinidad.
  */
-export const soloConFoto = (wines) =>
-  (Array.isArray(wines) ? wines : []).filter(
+/**
+ * Entre cuántas de las primeras se sortea la recomendación de entrada: hasta cuatro, pero sin
+ * bajar a los que no tienen foto cuando los hay (vienen primero). Sin ninguno con foto, las cuatro.
+ */
+export const topDeEntrada = (wines) => {
+  const conFoto = (Array.isArray(wines) ? wines : []).filter(
     (w) => w && typeof w.image === "string" && w.image.trim() !== ""
-  );
+  ).length;
+  return conFoto > 0 ? Math.min(4, conFoto) : 4;
+};
+
+export const conFotoPrimero = (wines) => {
+  const lista = (Array.isArray(wines) ? wines : []).filter(Boolean);
+  const tieneFoto = (w) => typeof w.image === "string" && w.image.trim() !== "";
+  return [...lista.filter(tieneFoto), ...lista.filter((w) => !tieneFoto(w))];
+};

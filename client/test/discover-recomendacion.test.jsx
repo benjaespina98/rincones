@@ -3,10 +3,8 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router-dom";
 
 /**
- * La recomendación de Descubrí sólo usa vinos con foto. Sin foto no hay recomendación: se dice, y
- * se ofrece sumar una. Si la foto de la que se está mostrando no carga, se descarta (nunca queda
- * la botella genérica como si fuera una sugerencia). Y con un solo vino con foto no se ofrece
- * "Ver otro".
+ * La recomendación de Descubrí prioriza los vinos con foto, pero NUNCA queda vacía por no tener:
+ * con foto primero y los demás después, como siempre. Sin ninguno con foto se recomienda igual.
  */
 const { featured, navigate } = vi.hoisted(() => ({ featured: { lista: [] }, navigate: vi.fn() }));
 
@@ -56,15 +54,26 @@ const montar = async (lista) => {
 
 const nombreRecomendado = async () => (await screen.findByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).textContent;
 
-describe("Descubrí: recomendación sólo con foto", () => {
-  it("nunca muestra un vino sin foto, aunque venga en el set", async () => {
-    await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d")), vino("e", "  ")]);
-    const nombre = await nombreRecomendado();
-    expect(["Vino b", "Vino c", "Vino d"]).toContain(nombre);
+describe("Descubrí: recomienda con foto primero", () => {
+  it("entra por uno con foto aunque haya otros sin foto en el set (repetido: el sorteo es al azar)", async () => {
+    for (let i = 0; i < 12; i += 1) {
+      cleanup();
+      await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d")), vino("e", "  ")]);
+      const nombre = await nombreRecomendado();
+      expect(["Vino b", "Vino c", "Vino d"]).toContain(nombre);
+    }
   });
 
-  it("'Ver otro' recorre sólo los que tienen foto y nunca repite el mismo", async () => {
-    await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d"))]);
+  it("sin ningún vino con foto recomienda igual, sin pantalla de error ni de pedido de foto", async () => {
+    await montar([vino("a"), vino("b", "")]);
+    const nombre = await nombreRecomendado();
+    expect(["Vino a", "Vino b"]).toContain(nombre);
+    expect(screen.queryByRole("button", { name: "Sumá una foto" })).toBeNull();
+    expect(screen.queryByText(/todavía no hay recomendaciones con foto/i)).toBeNull();
+  });
+
+  it("'Ver otro' recorre todos los vinos del set, con los de foto primero, sin repetir el mismo seguido", async () => {
+    await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c"))]);
     let actual = await nombreRecomendado();
     const vistos = new Set([actual]);
     for (let i = 0; i < 6; i += 1) {
@@ -74,46 +83,20 @@ describe("Descubrí: recomendación sólo con foto", () => {
         expect(n).not.toBe(actual);
         return n;
       });
-      expect(["Vino b", "Vino c", "Vino d"]).toContain(siguiente);
       vistos.add(siguiente);
       actual = siguiente;
     }
-    expect(vistos.has("Vino a")).toBe(false);
+    expect(vistos.size).toBeGreaterThan(1);
   });
 
-  it("con un solo vino con foto no hay 'Ver otro'", async () => {
-    await montar([vino("a"), vino("b", FOTO("b"))]);
-    expect(await nombreRecomendado()).toBe("Vino b");
+  it("con un solo vino no hay 'Ver otro'", async () => {
+    await montar([vino("a")]);
+    expect(await nombreRecomendado()).toBe("Vino a");
     expect(screen.queryByRole("button", { name: /ver otro/i })).toBeNull();
   });
 
-  it("sin ningún vino con foto no recomienda y ofrece sumar una", async () => {
-    await montar([vino("a"), vino("b", "")]);
-    const accion = await screen.findByRole("button", { name: "Sumá una foto" });
-    expect(screen.queryByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).toBeNull();
-    fireEvent.click(accion);
-    expect(navigate).toHaveBeenCalledWith("/agregar", expect.objectContaining({ state: expect.objectContaining({ modo: "camara" }) }));
-  });
-
-  it("si la foto del recomendado no carga, se descarta y no queda la botella genérica", async () => {
-    await montar([vino("b", FOTO("b")), vino("c", FOTO("c"))]);
-    const primero = await nombreRecomendado();
-    fireEvent.error(document.querySelector(".spotlight__art img"));
-    const otro = await waitFor(() => {
-      const n = screen.getByRole("heading", { level: 2, name: /^Vino [a-z]$/ }).textContent;
-      expect(n).not.toBe(primero);
-      return n;
-    });
-    expect(["Vino b", "Vino c"]).toContain(otro);
-    // Ya queda uno solo: no se ofrece "Ver otro".
-    expect(screen.queryByRole("button", { name: /ver otro/i })).toBeNull();
-  });
-
-  it("si la foto del único recomendado no carga, no queda ninguna recomendación", async () => {
-    await montar([vino("b", FOTO("b"))]);
-    await nombreRecomendado();
-    fireEvent.error(document.querySelector(".spotlight__art img"));
-    expect(await screen.findByRole("button", { name: "Sumá una foto" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).toBeNull();
+  it("si el set viene vacío dice que no hay recomendaciones ahora", async () => {
+    await montar([]);
+    expect(await screen.findByText(/no hay recomendaciones ahora/i)).toBeInTheDocument();
   });
 });
