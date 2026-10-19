@@ -16,7 +16,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
+import { elegirOtroDistinto, priorizarConFoto, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
@@ -114,8 +114,10 @@ export default function DiscoverPage() {
     setLoading(true);
     setLoadFailed(false);
     getFeaturedWines()
-      .then((w) => {
+      .then((todos) => {
         if (!active) return;
+        // Con foto primero (ver `priorizarConFoto`): una recomendación sin foto no vende nada.
+        const w = priorizarConFoto(todos);
         setFeatured(w);
         /**
          * Se entra por una de las primeras del ranking y nunca por la que se vio
@@ -491,7 +493,6 @@ export default function DiscoverPage() {
                             ? r.owned.vintages.join(" · ")
                             : r.vintage
                         }
-                        region={r.region}
                       />
 
                       {/* Una línea sobre a qué sabe o con qué va, cuando el
@@ -699,18 +700,19 @@ export default function DiscoverPage() {
               pagar una consulta para descubrirlo. */}
           <CellarReady enabled={(stats?.totals?.stock || 0) > 0} />
 
-          {/* ── 3. Dónde comprar ───────────────────────────────────────────
-              Va acá, pegada a la recomendación, porque contesta la pregunta que
-              deja abierta: "me gustó, ¿dónde lo consigo?". Reemplaza al carrusel
-              de publicidad — el mismo espacio comercial, pero como utilidad. Sin
-              vinotecas al aire, el componente devuelve null. */}
-          <WineShops shops={shops} />
 
-          {/* ── 4. Aprendé y explorá ───────────────────────────────────────
+          {/* ── 3. Aprendé y explorá ───────────────────────────────────────
               El feed mixto: la lección propia primero, después videos, cursos,
               música y lo que se cargue del panel (notas, bodegas, eventos que no
               se llevaron la tarjeta grande). Todos con la misma tarjeta. */}
           <ExploreFeed groups={feedGroups} stats={stats} seed={seed} />
+
+          {/* ── 4. Dónde comprar ───────────────────────────────────────────
+              Va DESPUÉS del contenido para leer y explorar: lo comercial primero hacía de Descubrí
+              una lista de compras. Contesta la pregunta que deja abierta la recomendación: "me gustó, ¿dónde lo consigo?". Reemplaza al carrusel
+              de publicidad — el mismo espacio comercial, pero como utilidad. Sin
+              vinotecas al aire, el componente devuelve null. */}
+          <WineShops shops={shops} />
 
           {/* ── 5. Eventos destacados ──────────────────────────────────────
               Última porque es lo menos urgente: una feria de octubre no compite

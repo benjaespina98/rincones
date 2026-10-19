@@ -25,6 +25,7 @@ import {
   opcionesDe,
   ordenarVinos,
   resultadosDe,
+  tiposRapidosDe,
 } from "../utils/bodegaFiltros";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
@@ -50,6 +51,9 @@ import "./BodyPage.css";
 
 /** Los tipos de vino, para validar lo que llega por la URL. */
 const TIPOS = ["red", "white", "rosé", "sparkling", "fortified"];
+
+/** Cómo se llama cada tipo en plural en los chips de filtro rápido. */
+const TIPOS_PLURAL = { red: "Tintos", white: "Blancos", rosé: "Rosados", sparkling: "Espumantes", fortified: "Fortificados" };
 
 /** El nombre de cada vista, para decir "en Favoritos no hay ninguno" y no
  *  un id técnico. Vive acá y no en el segmentado de más abajo porque este
@@ -407,6 +411,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
   );
 
   const filteredWines = resultados.lista;
+
+  /**
+   * El filtro rápido por tipo: una fila de chips chicos (Todos · Tintos · Blancos…) con cuántos hay de
+   * cada uno EN ESTA VISTA. Con veinte botellas, abrir el panel de filtros para ver sólo los tintos
+   * es tedioso; acá es un toque. Usa el mismo filtro que el panel (`tipoFilter`), así que ficha
+   * de "Tipo" y chip siempre dicen lo mismo. No aparece si la vista sólo tiene un tipo.
+   */
+  const tiposRapidos = useMemo(
+    () => tiposRapidosDe(wines.filter(enLaVista), TIPOS),
+    [wines, enLaVista]
+  );
 
   /**
    * Agrupación: el eje con el que se corta la lista.
@@ -1079,6 +1094,30 @@ export default function BodyPage({ initialFilter = "instock" }) {
           una tarjeta de números grandes que se llevaba media pantalla. Va DESPUÉS de las
           fichas de filtro a propósito: describe el resultado del segmentado y de los filtros,
           así que se lee como consecuencia de lo de arriba y no como un encabezado suelto. */}
+      {!loading && !error && tiposRapidos.length > 0 && (
+        <div className="bodega-tipos" role="group" aria-label="Filtrar por tipo de vino">
+          <button
+            type="button"
+            className={`bodega-tipos__chip ${tipoFilter === "all" ? "is-active" : ""}`}
+            aria-pressed={tipoFilter === "all"}
+            onClick={() => setTipoFilter("all")}
+          >
+            Todos
+          </button>
+          {tiposRapidos.map(({ id, n }) => (
+            <button
+              key={id}
+              type="button"
+              className={`bodega-tipos__chip ${tipoFilter === id ? "is-active" : ""}`}
+              aria-pressed={tipoFilter === id}
+              onClick={() => setTipoFilter(tipoFilter === id ? "all" : id)}
+            >
+              {TIPOS_PLURAL[id]} <span className="bodega-tipos__n">{n}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {!loading && !error && (
         <div className="bodega-seleccion-entrada">
           <BodegaResumen wines={filteredWines} />

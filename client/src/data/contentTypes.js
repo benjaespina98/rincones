@@ -75,6 +75,12 @@ export const CONTENT_TYPES = {
     accent: "#7e59c9",
     cta: "Leer",
   },
+  book: {
+    label: "Libro",
+    icon: "book",
+    accent: "#7e59c9",
+    cta: "Ver el libro",
+  },
   course: {
     label: "Curso",
     icon: "graduation",

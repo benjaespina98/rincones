@@ -68,6 +68,13 @@ import { suggestedPlaylists, playlistUrl, DEEP_PROGRESSIVE } from "./playlists";
  */
 export const DISCOVER_GROUPS = [
   {
+    id: "lecturas",
+    label: "Para leer",
+    hint: "Para leer con una copa",
+    icon: "list",
+    accent: "#7e59c9",
+  },
+  {
     id: "videos",
     label: "Videos",
     hint: "Catas y guías para ver tranquilo",
@@ -95,13 +102,6 @@ export const DISCOVER_GROUPS = [
      estos dos decían "Notas y lecturas sobre vino" y "Bodegas y eventos": el
      rótulo repetido en otras palabras, que es exactamente el relleno que se
      escribe cuando un campo pide texto y no hay nada que agregar. */
-  {
-    id: "lecturas",
-    label: "Para leer",
-    hint: "Para leer con una copa",
-    icon: "list",
-    accent: "#7e59c9",
-  },
   {
     id: "lugares",
     label: "Para ir",
@@ -175,6 +175,29 @@ export const DISCOVER_ITEMS = [
     source: { name: "Web oficial", url: "https://www.wsetglobal.com/" },
     tags: ["certificación"],
     badge: "Pago · inglés",
+  },
+  /* ── Libros ────────────────────────────────────────────────────────────────
+     En español, y sólo los que se verificaron abriendo la página oficial del editor (Blume) y que
+     carguen. Antes de sumar uno, abrir la URL y confirmar título y autor: no se inventan enlaces. */
+  {
+    id: "libro-atlas-mundial-del-vino",
+    group: "lecturas",
+    type: "book",
+    title: "Atlas mundial del vino",
+    summary: "Hugh Johnson y Jancis Robinson: las regiones del mundo, con 230 mapas",
+    source: { name: "Blume", url: "https://blume.net/enologia/2026-atlas-mundial-del-vino-9788418075933.html" },
+    tags: ["regiones", "referencia"],
+    badge: "En español",
+  },
+  {
+    id: "libro-permitame-que-le-hable-sobre-el-vino",
+    group: "lecturas",
+    type: "book",
+    title: "Permítame que le hable sobre el vino",
+    summary: "Oz Clarke: cómo elegir, servir y disfrutar el vino, sin tecnicismos",
+    source: { name: "Blume", url: "https://blume.net/enologia/25-permitame-que-le-hable-sobre-el-vino-9788416138005.html" },
+    tags: ["básico", "guía"],
+    badge: "En español",
   },
 ];
 
@@ -322,6 +345,7 @@ const GRUPO_POR_TIPO = {
   video: "videos",
   course: "cursos",
   article: "lecturas",
+  book: "lecturas",
   winery: "lugares",
   event: "lugares",
 };
