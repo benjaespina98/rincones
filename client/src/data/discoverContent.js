@@ -177,16 +177,28 @@ export const DISCOVER_ITEMS = [
     badge: "Pago · inglés",
   },
   /* ── Libros ────────────────────────────────────────────────────────────────
-     En español, y sólo los que se verificaron abriendo la página oficial del editor (Blume) y que
-     carguen. Antes de sumar uno, abrir la URL y confirmar título y autor: no se inventan enlaces. */
+     Tres, no más: una recomendación corta se lee, una lista larga se saltea. En español, y sólo los
+     que se verificaron abriendo la página (la nota de prensa o la ficha del editor) y que carguen.
+     Antes de sumar uno, abrir la URL y confirmar título y autor: no se inventan enlaces ni se
+     afirma una editorial que la página no dice. */
   {
-    id: "libro-atlas-mundial-del-vino",
+    id: "libro-malbec-mon-amour",
     group: "lecturas",
     type: "book",
-    title: "Atlas mundial del vino",
-    summary: "Hugh Johnson y Jancis Robinson: las regiones del mundo, con 230 mapas",
-    source: { name: "Blume", url: "https://blume.net/enologia/2026-atlas-mundial-del-vino-9788418075933.html" },
-    tags: ["regiones", "referencia"],
+    title: "Malbec mon amour",
+    summary: "Laura Catena y Alejandro Vigil: la historia de la cepa argentina, ilustrada",
+    source: { name: "La Nación", url: "https://www.lanacion.com.ar/sabado/defensores-de-la-cepa-insignia-argentina-laura-catena-y-alejandro-vigil-el-malbec-es-como-un-postre-nid08012022/" },
+    tags: ["malbec", "argentina"],
+    badge: "En español",
+  },
+  {
+    id: "libro-los-buenos-vinos-argentinos",
+    group: "lecturas",
+    type: "book",
+    title: "Los Buenos Vinos Argentinos",
+    summary: "Elisabeth Checa: guía anual para comprar, sin puntajes y con qué tomar en cada ocasión",
+    source: { name: "Revista Mercado", url: "https://mercado.com.ar/protagonistas/los-buenos-vinos-argentinos" },
+    tags: ["guía", "argentina"],
     badge: "En español",
   },
   {
