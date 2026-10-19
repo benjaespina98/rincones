@@ -11,6 +11,7 @@ const sessions = require("../services/session.service");
 const wineReviews = require("../services/wineReviews.service");
 const { deleteAccount } = require("../services/accountDeletion.service");
 const { exportAccount } = require("../services/accountExport.service");
+const { acotarLista } = require("../utils/acotarLista");
 
 
 // GET /api/users/profile - Obtener perfil del usuario actual
@@ -64,10 +65,10 @@ router.put("/profile", authenticate, async (req, res) => {
 
     // Preferencias de gusto (onboarding) — arrays de strings, acotados.
     if (Array.isArray(favoriteTypes)) {
-      user.preferences.favoriteTypes = favoriteTypes.map((t) => String(t).trim()).filter(Boolean).slice(0, 10);
+      user.preferences.favoriteTypes = acotarLista(favoriteTypes, { items: 10 });
     }
     if (Array.isArray(favoriteVarietals)) {
-      user.preferences.favoriteVarietals = favoriteVarietals.map((v) => String(v).trim()).filter(Boolean).slice(0, 20);
+      user.preferences.favoriteVarietals = acotarLista(favoriteVarietals, { items: 20 });
     }
     // Marca el onboarding como completado (una sola vez).
     if (onboarded === true && !user.onboardedAt) {

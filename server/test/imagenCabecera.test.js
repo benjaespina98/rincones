@@ -123,3 +123,13 @@ test("el endpoint responde 400 con un mensaje claro y NO llama al modelo", async
     vision.analyzeWineLabel = original;
   }
 });
+
+test("exigirMedidas:false acepta un JPEG sin medidas (foto de una carta); por defecto se rechaza", () => {
+  const sinMedida = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0]), Buffer.alloc(12)]);
+  assert.equal(validarImagen(sinMedida).motivo, "corrupta");
+  const r = validarImagen(sinMedida, undefined, { exigirMedidas: false });
+  assert.equal(r.ok, true);
+  assert.equal(r.info.mime, "image/jpeg");
+  // Los topes de tamaño máximo siguen valiendo cuando sí se puede medir.
+  assert.equal(validarImagen(png(30000, 30000), undefined, { exigirMedidas: false }).motivo, "grande");
+});

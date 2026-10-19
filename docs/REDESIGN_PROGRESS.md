@@ -517,3 +517,10 @@ Hecho (no depende de fotos):
 
 ### Sin verificar
 iPhone real (la barra, el empuje de 2px en modo standalone), cámara real, calidad de lectura de etiquetas reales.
+
+### Pendientes de la tanda, resueltos después (2026-10-19)
+- Áreas táctiles de 44px (sin cambiar lo que se ve) en la acción y el cierre del aviso y en los términos del glosario. Medido en la ficha: un toque a 13px del texto cae en el botón.
+- La foto del Sommelier usa la misma validación de imagen que el escáner (tipo real y topes de tamaño; ahí no se exige poder medir) y manda a Gemini el tipo detectado.
+- Preferencias de gusto: tope de 40 caracteres por ítem.
+- "2019/20": no era un hueco real. El modelo guarda la cosecha como número y el lector (`normalizeVintage`) ya se queda con el primer año; un "NV" o un rango no puede llegar a guardarse.
+- Siguen abiertos: `server/scripts/medirLector.js` sin ejecutar (faltan fotos reales); iPhone real, cámara real y calidad de lectura sin verificar.
