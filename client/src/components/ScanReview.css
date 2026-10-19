@@ -54,7 +54,7 @@
   align-items: center;
   gap: 5px;
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--text-meta);
   font-weight: 600;
   color: var(--accent-soft);
 }
@@ -84,7 +84,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--text-meta);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -94,7 +94,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--accent-soft);
 }
@@ -159,7 +159,7 @@
 
 .scan-review__nota {
   margin: -6px 2px 0;
-  font-size: 13px;
+  font-size: var(--text-meta);
   color: var(--text-secondary);
 }
 
@@ -169,7 +169,7 @@
   align-items: flex-start;
   gap: 6px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-meta);
   line-height: 1.4;
   color: var(--text-secondary);
 }
@@ -205,7 +205,7 @@
 
 .scan-review__suggestion-q {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-meta);
   font-weight: 600;
   color: var(--accent-soft);
 }
@@ -222,7 +222,7 @@
 
 .scan-review__suggestion-meta {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-meta);
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
@@ -257,7 +257,7 @@
 }
 
 .scan-review__issues li {
-  font-size: 13px;
+  font-size: var(--text-meta);
   line-height: 1.4;
   color: var(--text-secondary);
 }
@@ -273,7 +273,7 @@
   border: 1px solid var(--line-accent);
   background: transparent;
   color: var(--accent-soft);
-  font-size: 13px;
+  font-size: var(--text-meta);
   font-weight: 600;
   cursor: pointer;
 }
@@ -296,7 +296,7 @@
   border: 0;
   background: none;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
 }

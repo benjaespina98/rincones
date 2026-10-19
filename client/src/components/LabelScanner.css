@@ -17,7 +17,7 @@
   justify-content: center;
   gap: 10px;
   aspect-ratio: 4 / 3;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-card);
   background:
     radial-gradient(120% 80% at 50% 30%, rgb(var(--accent-light-rgb) / 0.16), transparent 60%),
     var(--glass);
@@ -91,7 +91,7 @@
   justify-content: center;
   gap: 8px;
   min-height: 50px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-chip);
   border: 1px solid var(--line-strong);
   background: var(--glass);
   color: var(--text);
@@ -139,7 +139,7 @@
   width: 100%;
   max-height: 340px;
   object-fit: contain;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: var(--bg-deep);
 }
@@ -148,7 +148,7 @@
   position: absolute;
   inset: 0;
   bottom: 44px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   overflow: hidden;
   background: rgb(var(--bg-deep-rgb) / 0.35);
   backdrop-filter: blur(1px);
@@ -183,7 +183,7 @@
   max-width: min(320px, 88%);
   margin-bottom: 14px;
   padding: 10px 16px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   background: rgb(var(--bg-rgb) / 0.8);
   border: 1px solid var(--line-accent);
   color: var(--paper);
@@ -219,7 +219,7 @@
   gap: 8px;
   background: rgb(var(--danger-rgb) / 0.12);
   border: 1px solid rgb(var(--danger-rgb) / 0.32);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-chip);
   padding: 11px 13px;
   color: var(--danger-text);
   font-size: var(--text-base);
@@ -261,7 +261,7 @@
 .label-scanner__viewport {
   position: relative;
   height: min(60vh, 60dvh, 480px);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-card);
   overflow: hidden;
   background: var(--ink);
 }
