@@ -140,6 +140,13 @@
 
 .scan-review__row:focus-within {
   background: rgb(var(--paper-rgb) / 0.04);
+  /* Un campo sin contorno necesita otra señal de foco: la raya de acento a la izquierda. */
+  box-shadow: inset 3px 0 0 var(--accent-soft);
+}
+
+.scan-review__desplegar {
+  margin-left: auto;
+  color: var(--text-secondary);
 }
 
 .scan-review__row:focus-within .scan-review__rowlabel {

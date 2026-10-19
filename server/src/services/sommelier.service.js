@@ -277,7 +277,7 @@ const armarPrompt = ({
 }) => {
   const partes = [SISTEMA];
 
-  if (taste) partes.push(`GUSTO DECLARADO: ${taste}`);
+  if (taste) partes.push(`GUSTO DECLARADO: ${limpiarDato(taste, 300)}`);
   if (cellar) partes.push(`SU BODEGA\n${cellar}`);
   // `resumirGuardados` ya trae su propio título con la aclaración de que no
   // se puede abrir — no lleva el prefijo "SU BODEGA" porque no lo es.
@@ -285,7 +285,7 @@ const armarPrompt = ({
 
   if (history.length) {
     const charla = history
-      .map((m) => `${m.role === "user" ? "Persona" : "Vos"}: ${String(m.text || "").slice(0, LARGO_MENSAJE_VIEJO)}`)
+      .map((m) => `${m.role === "user" ? "Persona" : "Vos"}: ${limpiarDato(m.text, LARGO_MENSAJE_VIEJO)}`)
       .join("\n");
     partes.push(`LO QUE VENÍAN HABLANDO\n${charla}`);
   }
@@ -301,11 +301,11 @@ const armarPrompt = ({
      devolvería casi la misma frase y el botón parecería roto. */
   if (evitar) {
     partes.push(
-      `OTRA OPCIÓN: la persona no quedó conforme con esta respuesta y pidió otra. NO la repitas ni la reformules: proponé una alternativa distinta (otra uva, otro estilo u otra botella de su bodega). Respuesta anterior: «${String(evitar).slice(0, 400)}»`
+      `OTRA OPCIÓN: la persona no quedó conforme con esta respuesta y pidió otra. NO la repitas ni la reformules: proponé una alternativa distinta (otra uva, otro estilo u otra botella de su bodega). Respuesta anterior: «${limpiarDato(evitar, 400)}»`
     );
   }
 
-  partes.push(`PREGUNTA\n${question}`);
+  partes.push(`PREGUNTA\n${limpiarDato(question, 600)}`);
   return partes.join("\n\n");
 };
 

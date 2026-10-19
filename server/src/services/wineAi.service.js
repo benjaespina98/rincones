@@ -536,7 +536,7 @@ const buildRecipePrompt = (wine, plan) => {
 
 ${datos}
 
-El plan es ${PLANS[plan] || PLANS.cena}.
+El plan es ${Object.hasOwn(PLANS, plan) ? PLANS[plan] : PLANS.cena}.
 
 Proponé UN plato para acompañarla, de cocina de casa pero pensado como lo pensaría
 un cocinero: con criterio, con el punto justo y con una razón detrás de cada paso.

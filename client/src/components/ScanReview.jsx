@@ -617,8 +617,8 @@ export default function ScanReview({
                   <input
                     type={field === "vintage" ? "number" : "text"}
                     inputMode={field === "vintage" ? "numeric" : undefined}
-                    min={field === "vintage" ? 1900 : undefined}
-                    max={field === "vintage" ? new Date().getFullYear() : undefined}
+                    min={field === "vintage" ? 1800 : undefined}
+                    max={field === "vintage" ? new Date().getFullYear() + 1 : undefined}
                     value={valueOf(field)}
                     onChange={(e) => setField(field, e.target.value)}
                     placeholder={field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]}
@@ -638,7 +638,10 @@ export default function ScanReview({
             })}
 
             <label className="scan-review__row">
-              <span className="scan-review__rowlabel">Tipo</span>
+              <span className="scan-review__rowlabel">
+                Tipo
+                <Icon name="chevron-down" size={14} className="scan-review__desplegar" />
+              </span>
               <select
                 value={derivedType}
                 onChange={(e) => setValues((v) => ({ ...v, type: e.target.value }))}

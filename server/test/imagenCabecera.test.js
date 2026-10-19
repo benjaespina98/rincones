@@ -88,8 +88,15 @@ test("rechaza lo demasiado chico, lo desmedido y lo de dimensión cero", () => {
 test("acepta una foto normal de celular y no rechaza lo que no se puede medir", () => {
   assert.equal(validarImagen(jpeg(3024, 4032)).ok, true);
   assert.equal(validarImagen(heic(3024, 4032)).ok, true);
-  const sinMedida = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0]), Buffer.alloc(12)]);
-  assert.equal(validarImagen(sinMedida).ok, true);
+  // HEIC sin la caja ispe: se acepta por su firma, no se puede medir.
+  const heicSinMedida = heic(3024, 4032);
+  heicSinMedida.write("xxxx", 32, "latin1");
+  assert.equal(validarImagen(heicSinMedida).ok, true);
+});
+
+test("un JPEG o PNG que no se puede medir se rechaza: la cabecera está rota o armada para esquivar los límites", () => {
+  const jpegSinMedida = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0]), Buffer.alloc(12)]);
+  assert.equal(validarImagen(jpegSinMedida).motivo, "corrupta");
 });
 
 test("el endpoint responde 400 con un mensaje claro y NO llama al modelo", async () => {

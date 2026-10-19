@@ -144,7 +144,7 @@ export default function ScanWinePage() {
   // seguridad para el toque equivocado, no una confirmación adicional.
   const saveWine = async (draft) => {
     const payload = toWinePayload(draft);
-    const { wine: created } = await createWine(payload);
+    const { wine: created, merged, added } = await createWine(payload);
     successHaptic();
     // El evento que más dice del producto: cargar un vino es la acción por la que
     // existe la app. `source` distingue el escaneo de la carga a mano, que es lo
@@ -165,26 +165,40 @@ export default function ScanWinePage() {
         ? `"${created.name}" anotado como ya tomado`
         : `"${created.name}" agregado a tu bodega`;
 
-    const toastId = addToast(mensaje, "success", 8000, {
-      label: "Deshacer",
-      onClick: async () => {
-        removeToast(toastId);
-        try {
-          await deleteWine(created._id);
-          // "Deshecho" es un participio suelto: suena a log del sistema, no a
-          // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
-          // dónde, que no es lo mismo si el vino nunca entró a la bodega.
-          showSuccess(
-            payload.quantity === 0
-              ? `"${created.name}" ya no figura como tomado`
-              : `"${created.name}" ya no está en tu bodega`
-          );
-          navigate("/bodega", { replace: true });
-        } catch {
-          showError("No se pudo deshacer");
-        }
-      },
-    });
+    // El servidor reconoce un vino que ya tenías (`merged`) y le suma las botellas en vez de crear
+    // otro. Ese vino tiene historial (puntaje, notas, momentos): "Deshacer" borrándolo sería perder
+    // todo eso por un toque equivocado. Se avisa lo que pasó y no se ofrece borrar.
+    if (merged) {
+      const n = Number(added) || 0;
+      addToast(
+        n > 0
+          ? `Ya tenías "${created.name}": sumamos ${n === 1 ? "1 botella" : `${n} botellas`}`
+          : `Ya tenías "${created.name}": quedó como estaba`,
+        "success",
+        6000
+      );
+    } else {
+      const toastId = addToast(mensaje, "success", 8000, {
+        label: "Deshacer",
+        onClick: async () => {
+          removeToast(toastId);
+          try {
+            await deleteWine(created._id);
+            // "Deshecho" es un participio suelto: suena a log del sistema, no a
+            // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
+            // dónde, que no es lo mismo si el vino nunca entró a la bodega.
+            showSuccess(
+              payload.quantity === 0
+                ? `"${created.name}" ya no figura como tomado`
+                : `"${created.name}" ya no está en tu bodega`
+            );
+            navigate("/bodega", { replace: true });
+          } catch {
+            showError("No se pudo deshacer");
+          }
+        },
+      });
+    }
 
     // `recienAgregado` enciende, una sola vez y en la ficha, el "¿sabías que?"
     // del vino: acabás de guardar la botella y en vez de un "listo" seco la app
@@ -305,7 +319,8 @@ export default function ScanWinePage() {
    */
   const handleConsult = (draft) => {
     trackEvent("scan_consult", { source: draft?.source || "escaneo" });
-    const imagen = typeof draft.image === "string" && draft.image.length < 400000 ? draft.image : "";
+    const foto = draft.image || review?.photo;
+    const imagen = typeof foto === "string" && foto.length < 400000 ? foto : "";
     navigate("/descubrir/vino", {
       state: {
         wine: {

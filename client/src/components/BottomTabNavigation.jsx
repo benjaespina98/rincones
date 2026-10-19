@@ -111,7 +111,7 @@ export default function BottomTabNavigation() {
                     )}
                     {/* Un punto y no la palabra "Admin": con qué cuenta entraste, a un vistazo. */}
                     {isAdminUser(user) && (
-                      <span className="tab-avatar__admin" aria-label="Cuenta de administrador" />
+                      <span className="tab-avatar__admin" role="img" aria-label="Cuenta de administrador" />
                     )}
                   </span>
                 ) : (

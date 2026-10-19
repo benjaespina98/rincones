@@ -118,6 +118,10 @@ const validarImagen = (buffer, limites = LIMITES) => {
     return { ok: false, motivo: "formato", mensaje: "El archivo no es una foto válida. Probá con otra." };
   }
   const { width, height } = info;
+  // JPEG y PNG siempre se pueden medir: si no, la cabecera está rota o armada para esquivar los límites.
+  if ((info.type === "jpeg" || info.type === "png") && (width === null || height === null)) {
+    return { ok: false, motivo: "corrupta", mensaje: "La foto está dañada. Probá sacarla de nuevo." };
+  }
   if (width !== null && height !== null) {
     if (!(width > 0 && height > 0)) {
       return { ok: false, motivo: "corrupta", mensaje: "La foto está dañada. Probá sacarla de nuevo." };
