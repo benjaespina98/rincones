@@ -161,7 +161,7 @@ export default function WineIdentity({ wine, onEdit }) {
             <dt>{f.rotulo}</dt>
             <dd className={f.valor ? "" : "is-empty"}>
               {f.valor && f.concepto ? (
-                <ConceptTerm id={f.concepto} ctx={{ wine }}>{f.valor}</ConceptTerm>
+                <ConceptTerm id={f.concepto} ctx={{ wine, propio: Boolean(onEdit) }}>{f.valor}</ConceptTerm>
               ) : (
                 f.valor
               )}

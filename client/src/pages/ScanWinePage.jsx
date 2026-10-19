@@ -1,3 +1,4 @@
+import { leerCosecha } from "../utils/vintage";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
@@ -23,7 +24,7 @@ const toWinePayload = (draft) => ({
   line: draft.line?.trim() || "",
   region: draft.region?.trim() || "",
   varietal: draft.varietal?.trim() || "",
-  vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+  vintage: leerCosecha(draft),
   type: draft.type || "unknown",
   image: draft.image || "",
   // Las botellas que elegiste en la revisión. Cero es la respuesta a "lo tomé
@@ -307,7 +308,7 @@ export default function ScanWinePage() {
           line: draft.line?.trim() || "",
           region: draft.region?.trim() || "",
           varietal: draft.varietal?.trim() || "",
-          vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+          vintage: leerCosecha(draft),
           type: draft.type || "unknown",
           image: imagen,
         },

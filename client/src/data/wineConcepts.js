@@ -1,3 +1,4 @@
+import { leerCosecha, hayValorDeCosecha } from "../utils/vintage";
 /**
  * Conceptos clave del vino, explicados donde aparece la palabra.
  *
@@ -144,13 +145,24 @@ export const CONCEPTS = {
       "El año de la etiqueta es el de la COSECHA, no el del embotellado, y no es un dato de archivo: es el clima de ese verano. En Mendoza un año fresco da vinos más tensos, con menos alcohol y más acidez; uno caluroso, más maduros y más dulces de fruta. Por eso el mismo vino de dos años seguidos puede no parecerse. 2016 fue el año del Niño y llovió como nunca — muchos tintos salieron livianos y hay quien los adora justamente por eso.",
       "Dos advertencias prácticas. Una: \"añada vieja\" no es sinónimo de mejor, es sinónimo de más vieja, y la mayoría de los vinos no está hecha para esperar. Dos: en un blanco joven o un espumante sin añada, el año importa poco y la frescura importa todo — ahí conviene el más nuevo que encuentres.",
     ],
-    anchor: ({ wine }) => {
-      const año = Number(wine?.vintage);
-      if (!Number.isFinite(año)) return "El tuyo no tiene cosecha cargada; si la etiqueta la dice, vale la pena anotarla.";
+    anchor: ({ wine, propio = true }) => {
+      // Sin vino no hay nada que decir de "el tuyo": la lección de la home abre este pop-up sin
+      // ninguna botella adelante.
+      if (!wine) return null;
+      const año = leerCosecha(wine);
+      if (año === null) {
+        // Hay algo escrito que no es un año (NV, "2019/20"): no se afirma que falte.
+        if (hayValorDeCosecha(wine)) return null;
+        // Sin dato: sólo se invita a anotarla si el vino es del usuario. Una ficha del catálogo
+        // nunca trae cosecha (es el vino, no la botella) y decirle "el tuyo" sería falso.
+        return propio
+          ? "Este vino no tiene cosecha cargada. Si la etiqueta la dice, vale la pena anotarla."
+          : null;
+      }
       const edad = new Date().getFullYear() - año;
       if (edad <= 2) return `El tuyo es ${año}: joven, con la fruta en su punto más directo.`;
       if (edad <= 6) return `El tuyo es ${año}, así que tiene ${edad} años: la fruta empieza a dar paso a otra cosa.`;
-      return `El tuyo es ${año} — ${edad} años. Si no era un vino de guarda, no lo esperes más.`;
+      return `El tuyo es ${año}, de hace ${edad} años. Si no era un vino de guarda, no lo esperes más.`;
     },
   },
 

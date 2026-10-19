@@ -1,3 +1,4 @@
+import { leerCosecha } from "../utils/vintage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
@@ -431,7 +432,7 @@ export default function WineDetailPage() {
         winery: draft.winery.trim(),
         region: draft.region.trim(),
         varietal: draft.varietal.trim(),
-        vintage: draft.vintage ? Number.parseInt(draft.vintage, 10) : null,
+        vintage: leerCosecha(draft),
         type: draft.type,
         notes: draft.notes.trim(),
         // La foto viaja siempre (aunque sea ""), porque el vacío también es una
