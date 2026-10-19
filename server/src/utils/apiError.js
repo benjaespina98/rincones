@@ -24,9 +24,11 @@ const fail = async (res, error, req) => {
   // un valor fuera de rango es "corregí esto". Sin esto la persona veía "Algo falló de nuestro
   // lado" ante un error propio, sin saber qué cambiar.
   if (error?.name === "CastError") {
+    console.warn("[dato inválido]", req ? `${req.method} ${req.originalUrl}` : "", ":", error.message);
     return res.status(404).json({ success: false, error: "No lo encontramos" });
   }
   if (error?.name === "ValidationError") {
+    console.warn("[dato inválido]", req ? `${req.method} ${req.originalUrl}` : "", ":", error.message);
     const detalle = Object.values(error.errors || {})[0]?.message;
     return res.status(400).json({ success: false, error: detalle || "Hay un dato que no es válido" });
   }

@@ -861,8 +861,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
     });
   };
 
+  const restaurandoRef = useRef(false);
   const restoreDeletedWine = async (wineToRestore, toastId) => {
     if (!wineToRestore) return;
+    // Un segundo toque mientras se restaura sumaría las botellas otra vez.
+    if (restaurandoRef.current) return;
+    restaurandoRef.current = true;
 
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current);
@@ -876,6 +880,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
       showSuccess(`"${wineDisplayName(wineToRestore)}" restaurado`);
     } catch {
       showError("No se pudo restaurar el vino");
+    } finally {
+      restaurandoRef.current = false;
     }
   };
 

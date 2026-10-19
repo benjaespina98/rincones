@@ -79,7 +79,8 @@ const wineSchema = new mongoose.Schema(
     vintage: {
       type: Number,
       min: [1900, "El año debe ser válido"],
-      max: [new Date().getFullYear(), "El año no puede ser futuro"],
+      // El año que viene también: las añadas salen a la venta antes de que termine el año (igual que validarVino).
+      max: [new Date().getFullYear() + 1, "El año no puede ser futuro"],
     },
     region: {
       type: String,

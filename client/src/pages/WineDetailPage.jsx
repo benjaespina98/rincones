@@ -464,6 +464,7 @@ export default function WineDetailPage() {
     setShowDeleteConfirm(false);
     try {
       const borrado = wine;
+      let restaurando = false;
       await deleteWine(id);
       // Igual que al borrar desde la lista: unos segundos para arrepentirse.
       const toastId = addToast(
@@ -474,6 +475,9 @@ export default function WineDetailPage() {
           label: "Deshacer",
           onClick: async () => {
             removeToast(toastId);
+            // Un segundo toque sumaría las botellas otra vez.
+            if (restaurando) return;
+            restaurando = true;
             try {
               await createWine(payloadParaRestaurar(borrado));
               showSuccess(`"${wineDisplayName(borrado)}" restaurado`);
