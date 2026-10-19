@@ -381,33 +381,6 @@
   opacity: 0.5;
 }
 
-.profile-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 26px 20px;
-  text-align: center;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line-accent);
-  background: var(--glass);
-}
-
-.profile-empty__title {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.profile-empty__hint {
-  margin: 0;
-  max-width: 320px;
-  font-size: var(--text-base);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
 /* Los logros se veían clickeables (tienen `transition`) pero no reaccionaban a
    nada. Son informativos: alcanza con un realce suave del borde. */
 @media (hover: hover) and (pointer: fine) {
