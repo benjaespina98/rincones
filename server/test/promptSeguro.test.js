@@ -59,3 +59,17 @@ test("normalizarTipo: el enum válido pasa; sinónimos y mayúsculas se normaliz
   assert.equal(normalizarTipo(undefined), "unknown");
   assert.equal(normalizarTipo(42), "unknown");
 });
+
+test("un pick del Sommelier ata al vino aunque el nombre del prompt haya sido limpiado", () => {
+  const { encontrarVino } = require("../src/controllers/sommelier.controller");
+  const bodega = [
+    { _id: "a", name: "Gran --- Reserva <Edición> Malbec" },
+    { _id: "b", name: "Otro Vino" },
+  ];
+  // Lo que el modelo copia del prompt: el nombre ya limpio.
+  const copiado = limpiarDato(bodega[0].name);
+  assert.notEqual(copiado, bodega[0].name);
+  assert.equal(encontrarVino(copiado, bodega)._id, "a");
+  // Un nombre normal sigue atando como antes.
+  assert.equal(encontrarVino("Otro Vino", bodega)._id, "b");
+});
