@@ -270,3 +270,51 @@ describe("frasesDelResumen: números grandes", () => {
     expect(frasesDelResumen({ botellas: 1, vinosConStock: 1, probados: 0, uvasDistintas: 1 })).toEqual(["1 botella", "1 uva"]);
   });
 });
+
+describe("filtros por bodega y puntaje, y fichas rápidas por dimensión", () => {
+  it("pasaBusqueda filtra por bodega exacta y por puntaje mínimo (sin puntuar no pasa)", async () => {
+    const { pasaBusqueda } = await import("../src/utils/bodegaFiltros");
+    const a = { name: "A", winery: "Catena", rating: 4.5 };
+    const b = { name: "B", winery: "Rutini", rating: 3 };
+    const c = { name: "C", winery: "Catena", rating: 0 };
+    expect(pasaBusqueda(a, [], { winery: "Catena" })).toBe(true);
+    expect(pasaBusqueda(b, [], { winery: "Catena" })).toBe(false);
+    expect(pasaBusqueda(a, [], { puntajeMin: "4" })).toBe(true);
+    expect(pasaBusqueda(b, [], { puntajeMin: "4" })).toBe(false);
+    expect(pasaBusqueda(c, [], { puntajeMin: "3" })).toBe(false);
+    expect(pasaBusqueda(c, [], { puntajeMin: "all", winery: "all" })).toBe(true);
+  });
+
+  it("opcionesDe suma las bodegas, sin repetir y en orden", async () => {
+    const { opcionesDe } = await import("../src/utils/bodegaFiltros");
+    expect(opcionesDe([{ winery: "Rutini" }, { winery: "Catena" }, { winery: "Rutini" }, {}]).bodegas).toEqual(["Catena", "Rutini"]);
+  });
+
+  it("chipsRapidosDe: por cantidad, con el activo siempre visible y sin nada si hay un solo valor", async () => {
+    const { chipsRapidosDe } = await import("../src/utils/bodegaFiltros");
+    const vinos = [
+      ...Array.from({ length: 3 }, () => ({ varietal: "Malbec" })),
+      ...Array.from({ length: 2 }, () => ({ varietal: "Cabernet Sauvignon" })),
+      { varietal: "Tannat" },
+      { varietal: "Syrah" },
+    ];
+    expect(chipsRapidosDe(vinos, "uva").map((c) => [c.id, c.n])).toEqual([
+      ["Malbec", 3],
+      ["Cabernet Sauvignon", 2],
+      ["Syrah", 1],
+      ["Tannat", 1],
+    ]);
+    // Con corte a 2, el activo que quedó afuera se agrega igual.
+    expect(chipsRapidosDe(vinos, "uva", { max: 2, activo: "Tannat" }).map((c) => c.id)).toEqual(["Malbec", "Cabernet Sauvignon", "Tannat"]);
+    expect(chipsRapidosDe([{ varietal: "Malbec" }, { varietal: "Malbec" }], "uva")).toEqual([]);
+    expect(chipsRapidosDe(vinos, "inexistente")).toEqual([]);
+    expect(chipsRapidosDe(null, "uva")).toEqual([]);
+  });
+
+  it("chipsRapidosDe sirve también para región y bodega", async () => {
+    const { chipsRapidosDe } = await import("../src/utils/bodegaFiltros");
+    const vinos = [{ region: "Salta", winery: "Colomé" }, { region: "Mendoza", winery: "Catena" }, { region: "Mendoza", winery: "Catena" }];
+    expect(chipsRapidosDe(vinos, "region").map((c) => c.id)).toEqual(["Mendoza", "Salta"]);
+    expect(chipsRapidosDe(vinos, "bodega").map((c) => c.id)).toEqual(["Catena", "Colomé"]);
+  });
+});

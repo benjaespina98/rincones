@@ -20,6 +20,7 @@ export default function WineRowPanel({
   nuncaFueTuyo,
   enCava,
   onAbrirBotella,
+  onSumarStock,
   onToggleTasted,
   onToggleFavorite,
   onEliminar,
@@ -153,6 +154,20 @@ export default function WineRowPanel({
           >
             <Icon name="bottle" size={16} />
             Abrí una botella
+          </button>
+        )}
+
+        {/* Volver a tener stock: sobre todo para un vino que ya tomaste y volviste a comprar. Sin stock
+            es la acción principal de la fila (no hay nada que abrir); con stock queda al lado de abrir. */}
+        {onSumarStock && (
+          <button
+            className={`wine-action-btn ${Number(wine.quantity) <= 0 ? "wine-action-btn--open" : ""}`}
+            onClick={() => onSumarStock(wine)}
+            type="button"
+            disabled={isPending}
+          >
+            <Icon name="plus" size={16} />
+            {Number(wine.quantity) <= 0 ? "Tengo stock de nuevo" : "Sumar botellas"}
           </button>
         )}
 

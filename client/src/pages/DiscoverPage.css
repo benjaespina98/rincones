@@ -257,8 +257,8 @@
 .spotlight__art {
   position: relative;
   flex-shrink: 0;
-  width: 118px;
-  height: 156px;
+  width: 132px;
+  height: 176px;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -289,8 +289,19 @@
   color: var(--accent-soft);
 }
 
-.spotlight__eyebrow .icon {
-  color: var(--accent-soft);
+/* Sin ícono delante: el texto en acento alcanza para decir que es el motivo de la recomendación. */
+
+/* La línea de maridaje: una frase corta debajo de los datos del vino. */
+.spotlight__pairing {
+  margin: 4px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* La tarjeta entra completa, con un fade corto, una vez que la foto está lista. */
+.spotlight--entra {
+  animation: rincon-fade 220ms var(--ease-out) both;
 }
 
 /* El motivo: la frase que explica por qué te tocó ESTE vino. En versales una
@@ -944,8 +955,8 @@
 
 /* ── El vino del día, más contenido ───────────────────────────────────────── */
 .spotlight__art {
-  width: 96px;
-  height: 128px;
+  width: 132px;
+  height: 176px;
 }
 
 .spotlight__name {
