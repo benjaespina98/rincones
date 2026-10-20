@@ -278,6 +278,26 @@ async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
   );
 }
 
+/**
+ * "Deshacer" tras eliminar vuelve a crear el vino con un _id nuevo, y los momentos del diario (que
+ * sobrevivieron al borrado) seguían apuntando al viejo. Si el cliente avisa de cuál vino se está
+ * restaurando (`restauraDe`), se re-vinculan al nuevo.
+ *
+ * Sólo los momentos DE ESTA PERSONA (el filtro por `userId` es lo que impide tocar los de otra) y
+ * sólo si el id viejo es un ObjectId válido y distinto del nuevo. Nunca lanza: el diario es una
+ * mejora de la restauración, no un requisito.
+ */
+async function reenlazarMomentos(userId, viejoId, nuevoId) {
+  try {
+    // Sólo un id en texto de 24 hexadecimales: nada de objetos ni arreglos que lleguen en el cuerpo.
+    if (typeof viejoId !== "string" || !/^[0-9a-fA-F]{24}$/.test(viejoId)) return;
+    if (String(viejoId) === String(nuevoId)) return;
+    await WineMoment.updateMany({ userId, wineId: viejoId }, { $set: { wineId: nuevoId } });
+  } catch {
+    // Best-effort.
+  }
+}
+
 async function createWine(userId, payload) {
   const {
     name,
@@ -340,6 +360,7 @@ async function createWine(userId, payload) {
         },
         { returnDocument: "after" }
       );
+      await reenlazarMomentos(userId, payload.restauraDe, full._id);
       return { wine: full, merged: true, added: 0 };
     }
     // Las botellas que entran hoy son un LOTE nuevo, con la fecha de hoy: es la
@@ -355,6 +376,7 @@ async function createWine(userId, payload) {
       [...buildStockStages("restock", { $literal: suman }), { $set: { restockedAt: "$$NOW" } }],
       { returnDocument: "after", updatePipeline: true }
     );
+    await reenlazarMomentos(userId, payload.restauraDe, full._id);
     return { wine: full, merged: true, added: suman };
   }
 
@@ -516,6 +538,7 @@ async function createWine(userId, payload) {
 
   // Misma forma que el camino de reposición, para que el llamador no tenga que
   // adivinar cuál de los dos ocurrió.
+  await reenlazarMomentos(userId, payload.restauraDe, savedWine._id);
   return { wine: savedWine, merged: false, added: savedWine.quantity };
 }
 

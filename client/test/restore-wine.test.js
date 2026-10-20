@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { payloadParaRestaurar } from "../src/utils/restoreWine";
 
 const VINO = {
+  _id: "viejo123",
   name: "Chardonnay",
   winery: "Zuccardi",
   line: "Serie A",
@@ -42,6 +43,10 @@ describe("payloadParaRestaurar (Deshacer tras eliminar)", () => {
       matchedFrom: "catalogo-ar",
       sameNameConfirmed: false,
     });
+  });
+
+  it("avisa de qué vino se restaura, para re-vincular sus momentos", () => {
+    expect(payloadParaRestaurar(VINO).restauraDe).toBe("viejo123");
   });
 
   it("no manda el veredicto: lo recalcula el servidor", () => {
