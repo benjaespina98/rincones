@@ -976,3 +976,54 @@
   border-color: rgb(var(--success-rgb) / 0.4);
   color: var(--success-text);
 }
+
+/* ══ El porqué de la recomendación ══════════════════════════════════════════
+   Un medidor chico de cuánto coincide el vino con el gusto de la persona (como el "match" de las
+   apps de vino) y las razones concretas debajo del nombre. Todo en tonos apagados: la foto y el
+   nombre siguen siendo lo primero que se ve. */
+.spotlight__razones {
+  margin: 2px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.spotlight__match {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin-top: 12px;
+}
+
+.spotlight__match-rotulo {
+  font-size: var(--text-meta);
+  color: var(--text-secondary);
+}
+
+.spotlight__match-pct {
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.spotlight__match-pista {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--paper-rgb) / 0.1);
+  overflow: hidden;
+}
+
+.spotlight__match-barra {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-soft);
+  /* Se anima sólo transform: el ancho real sale de --pct. */
+  transform-origin: left;
+  transform: scaleX(calc(var(--pct) / 100));
+  transition: transform 500ms var(--ease-out);
+}

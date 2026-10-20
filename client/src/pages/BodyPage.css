@@ -1675,11 +1675,15 @@
 }
 
 .bodega-barra__accion {
-  display: grid;
-  place-items: center;
-  width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 48px;
   height: 44px;
-  padding: 0;
+  padding: 0 18px;
+  font-size: var(--text-sm);
+  font-weight: 700;
   border: 0;
   border-radius: var(--radius-full);
   background: transparent;
@@ -2037,4 +2041,87 @@
 /* Sin botón principal a la izquierda no hay nada que empuje los íconos: se quedan a la derecha. */
 .wine-row__acciones--compacta:not(:has(.wine-action-btn)) {
   justify-content: flex-end;
+}
+
+/* ══ El stepper junto a la cantidad ═════════════════════════════════════════
+   "− ×2 +" en el lugar del "×2": sumar o abrir una botella sin desplegar la fila. Es una cápsula
+   chica y apagada (sin bordes ni relleno fuerte) para que la fila no se vea más densa. El "−" abre
+   una botella (descuenta y deja el vino como probado, con Deshacer) y no es una corrección de
+   inventario: eso se hace en la ficha. */
+.wine-row__head {
+  position: relative;
+}
+
+.wine-row__qty.tiene-stepper {
+  /* Reserva el ancho del stepper (queda debajo, invisible) para que el nombre no lo pise. */
+  visibility: hidden;
+  min-width: 92px;
+}
+
+/* Sin stock el stepper es sólo el "+": reserva menos. */
+.wine-row__qty.tiene-stepper.is-empty {
+  min-width: 52px;
+}
+
+.wine-row__stepper {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--paper-rgb) / 0.08);
+}
+
+.wines-list--archivo .wine-row__stepper {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.wine-row__stepper-n {
+  min-width: 18px;
+  text-align: center;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wine-row__stepper-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* El área de toque llega a 44 sin agrandar lo que se ve. */
+.wine-row__stepper-btn::after {
+  content: "";
+  position: absolute;
+  inset: -8px -9px;
+}
+
+.wine-row__stepper-btn:active:not(:disabled) {
+  color: var(--text);
+  background: rgb(var(--paper-rgb) / 0.12);
+}
+
+.wine-row__stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wine-row__stepper-btn:hover:not(:disabled) {
+    color: var(--text);
+  }
 }

@@ -19,12 +19,11 @@
   margin-top: 0.4rem;
   padding: 22px;
   background:
-    radial-gradient(120% 130% at 100% 0%, rgb(var(--wine-rgb) / 0.24), transparent 55%),
-    linear-gradient(150deg, rgb(var(--accent-rgb) / 0.55), rgb(var(--accent-strong-rgb) / 0.9));
+    radial-gradient(120% 140% at 100% 0%, rgb(var(--accent-rgb) / 0.16), transparent 60%),
+    var(--elevated);
   color: var(--text);
   border-radius: var(--radius-xl);
-  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--line);
   display: flex;
   gap: 16px;
   align-items: center;
@@ -147,9 +146,9 @@
 
 /* Título que separa el bloque "Tu perfil de vino" de las acciones de cuenta. */
 .profile-section-title {
-  margin: 8px 0 -4px;
+  margin: 10px 0 -6px;
   font-family: var(--font-family-serif);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -163,23 +162,14 @@
 
 .stat-card {
   background: var(--elevated);
-  border: 1px solid rgb(var(--accent-light-rgb) / 0.2);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 16px 12px;
-  box-shadow: var(--shadow-sm);
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   align-items: center;
   text-align: center;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .stat-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--line-accent);
-  }
 }
 
 .stat-card .value {
@@ -241,7 +231,7 @@
   /* Mismo aire vertical arriba y abajo en las cinco: era `min-height: 52px`
      sin padding, así que una fila que llegara a dos renglones se apretaba
      contra los bordes mientras las demás respiraban. */
-  padding: 14px 16px;
+  padding: 11px 14px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -270,8 +260,8 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius-md);
-  background: var(--accent-muted);
-  color: var(--accent-soft);
+  background: rgb(var(--paper-rgb) / 0.07);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 

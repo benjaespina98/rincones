@@ -154,3 +154,33 @@ describe("Descubrí: la tarjeta aparece entera", () => {
     expect(screen.getByRole("button", { name: /quiero probarlo/i })).toBeInTheDocument();
   });
 });
+
+describe("Descubrí: el porqué de la recomendación", () => {
+  const conMotivo = (motivo) => ({ ...vino("a"), motivo });
+
+  it("muestra la primera razón arriba, el resto debajo y el medidor de coincidencia", async () => {
+    await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)", "Repetís Mendoza"] })]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Tomás Malbec (3 en tu bodega)");
+    expect(document.querySelector(".spotlight__razones").textContent).toBe("Repetís Mendoza");
+    expect(screen.getByRole("img", { name: /coincide un 92 por ciento/i })).toBeInTheDocument();
+  });
+
+  it("con una coincidencia baja (menos de 50) no se muestra el medidor", async () => {
+    await montar([conMotivo({ modo: "afinidad", coincidencia: 31, razones: ["Repetís Mendoza"] })]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__match")).toBeNull();
+  });
+
+  it("sin coincidencia no hay medidor, y sin motivo queda el texto de siempre", async () => {
+    await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: ["Uva nueva para vos"] })]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__match")).toBeNull();
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Uva nueva para vos");
+    cleanup();
+    await montar([vino("a")]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__match")).toBeNull();
+    expect(document.querySelector(".spotlight__eyebrow").textContent.length).toBeGreaterThan(0);
+  });
+});

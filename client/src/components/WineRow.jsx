@@ -55,6 +55,8 @@ function WineRow({
   onExpandir,
   onAbrirBotella,
   onSumarStock,
+  onSumarUna,
+  onAbrirUna,
   onMantener,
   onEliminar,
 }) {
@@ -70,6 +72,11 @@ function WineRow({
   // "En stock" normal esto no cambia nada, porque ahí todo lo que
   // llega ya tiene stock por construcción (`pasaVista`).
   const esVitrina = vista === "instock" && Number(wine.quantity) > 0;
+  // El stepper (− ×1 +) junto a la cantidad: sumar o abrir una botella sin desplegar la fila. No en
+  // grilla (no hay lugar) ni mientras se elige. Un vino que tomaste afuera SÍ lo muestra, sólo con el "+":
+  // sumarle una botella es exactamente lo que pasa cuando después lo comprás.
+  // Sólo en En stock y Ya tomados: en Favoritos el chip de probado ocupa ese lugar de la fila.
+  const conStepper = Boolean(onSumarUna) && !esGrilla && !modoSeleccion && (vista === "instock" || vista === "probados");
   // Mantener apretado: entra en el modo selección con este vino elegido (igual que "Seleccionar").
   const mantener = useLongPress(() => onMantener?.(wine._id), { habilitado: Boolean(onMantener) && !modoSeleccion });
   /**
@@ -387,7 +394,7 @@ function WineRow({
             <span
               className={`wine-row__qty ${Number(wine.quantity) <= 0 ? "is-empty" : ""} ${
                 Number(wine.quantity) === 1 ? "is-last" : ""
-              }`}
+              } ${conStepper ? "tiene-stepper" : ""}`}
               title={nuncaFueTuyo ? "Lo tomaste afuera" : stockLabel(wine.quantity)}
             >
               {Number(wine.quantity) <= 0 ? "0" : `×${wine.quantity}`}
@@ -399,6 +406,36 @@ function WineRow({
                 las acciones rápidas. */}
           </span>
         </button>
+
+        {conStepper && (
+          <span className="wine-row__stepper" role="group" aria-label={`Botellas de ${wineDisplayName(wine)}`}>
+            {Number(wine.quantity) > 0 && (
+              <button
+                type="button"
+                className="wine-row__stepper-btn"
+                onClick={() => onAbrirUna?.(wine)}
+                disabled={isPending}
+                aria-label="Tomé una botella"
+                title="Tomé una botella"
+              >
+                <Icon name="minus" size={14} />
+              </button>
+            )}
+            <span className="wine-row__stepper-n" aria-live="polite">
+              {Number(wine.quantity) > 0 ? wine.quantity : "0"}
+            </span>
+            <button
+              type="button"
+              className="wine-row__stepper-btn"
+              onClick={() => onSumarUna(wine)}
+              disabled={isPending}
+              aria-label="Sumar una botella"
+              title="Sumar una botella"
+            >
+              <Icon name="plus" size={14} />
+            </button>
+          </span>
+        )}
 
         {/* Probado o por probar, siempre explícito y siempre editable:
             la ausencia de marca no se lee como "pendiente", se lee como
@@ -423,16 +460,16 @@ function WineRow({
           // El tooltip dice el ESTADO; que se pueda tocar lo dice que
           // sea un botón. "Tocá para desmarcarlo" es la app narrando
           // una interacción que el control ya ofrece.
-          title={wine.tasted ? "Ya lo tomé" : "Todavía no lo tomé: tocá cuando lo hayas tomado, sea tuyo o no"}
+          title={wine.tasted ? "Ya lo probé" : "Todavía no lo probaste: tocá cuando lo hayas probado, sea tuyo o no"}
           aria-label={
             wine.tasted
-              ? `Marcar ${wineDisplayName(wine)} como sin tomar`
-              : `Marcar ${wineDisplayName(wine)} como ya tomado`
+              ? `Marcar ${wineDisplayName(wine)} como sin probar`
+              : `Marcar ${wineDisplayName(wine)} como ya probado`
           }
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Ya lo tomé" : "Marcar como tomado"}
+            {wine.tasted ? "Ya lo probé" : "Marcar como probado"}
           </span>
         </button>
         )}

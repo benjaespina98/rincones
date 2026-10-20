@@ -240,6 +240,13 @@ export default function DiscoverPage() {
   // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
   const motivo = whyThisWine(spotlight, stats);
   const maridaje = maridajeCorto(spotlight);
+  // El porqué que calculó el servidor con la bodega de esta persona: razones concretas y, si hay base
+  // para decirlo, un porcentaje de coincidencia. Si no vino (set viejo en caché), queda el motivo de siempre.
+  const porque = spotlight?.motivo || null;
+  const razones = Array.isArray(porque?.razones) ? porque.razones : [];
+  // El medidor sólo cuando la coincidencia es convincente (50% o más): un 31% en la puerta de entrada de la
+  // app no suma. Las razones se muestran siempre.
+  const coincidencia = Number.isFinite(porque?.coincidencia) && porque.coincidencia >= 50 ? porque.coincidencia : null;
 
   /**
    * La tarjeta aparece ENTERA o no aparece: mientras la foto no cargó se muestra el esqueleto
@@ -692,7 +699,9 @@ export default function DiscoverPage() {
                   utils/momentCopy.js), no de un modelo: es instantáneo, gratis
                   y siempre verificable. Si no hay nada verificable que decir,
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
-              <span className="spotlight__eyebrow">{motivo || "Para vos"}</span>
+              <span className="spotlight__eyebrow">
+                {razones[0] || motivo || (porque?.modo === "descubrimiento" ? "Para descubrir" : "Para vos")}
+              </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
                 {metaDelVino(spotlight)}
@@ -702,9 +711,23 @@ export default function DiscoverPage() {
                 type={spotlight.type}
                 varietal={spotlight.varietal}
               />
+              {razones.length > 1 && <p className="spotlight__razones">{razones.slice(1).join(" · ")}</p>}
               {maridaje && <p className="spotlight__pairing">Va con {maridaje.charAt(0).toLowerCase() + maridaje.slice(1)}</p>}
             </div>
           </button>
+          {coincidencia !== null && (
+            <div
+              className="spotlight__match"
+              role="img"
+              aria-label={`Coincide un ${coincidencia} por ciento con tu gusto`}
+            >
+              <span className="spotlight__match-rotulo">Coincide con tu gusto</span>
+              <span className="spotlight__match-pct">{coincidencia}%</span>
+              <span className="spotlight__match-pista" aria-hidden="true">
+                <span className="spotlight__match-barra" style={{ "--pct": coincidencia }} />
+              </span>
+            </div>
+          )}
           <div className="spotlight__actions">
             <button
               type="button"
