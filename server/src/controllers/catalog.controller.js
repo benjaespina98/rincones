@@ -10,7 +10,8 @@ const WineInfo = require("../models/wineInfo.model");
 const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
-const { conFotoPrimero, separarPorFoto } = require("../utils/destacados");
+const { conFotoPrimero } = require("../utils/destacados");
+const { esImagenAceptada } = require("../utils/imagenAceptada");
 const communityWines = require("../services/communityWines.service");
 const WineRecipe = require("../models/wineRecipe.model");
 const DishPairing = require("../models/dishPairing.model");
@@ -293,7 +294,21 @@ const pairing = async (req, res, next) => {
 };
 
 // GET /api/catalog/featured - vinos destacados para la home Descubrí.
-const DESTACADOS = 8;
+// Doce y no ocho: "Ver otro" recorre el set, y con un universo grande hay de dónde elegir.
+const DESTACADOS = 12;
+
+// Cuánto puede mover el desempate diario a un vino de lugar (ver `rankFeatured`).
+// Máximo 1: menos que lo que pesa la región (1,5) y que lo que suman la foto y la buena identificación
+// juntas (1,25) con lo que pesa la uva (3), para que la rotación mueva a los parecidos y nunca ponga
+// delante a un vino sin ninguna afinidad.
+const JITTER_DIARIO = 1;
+
+// Un entero estable por persona, para que dos personas con el mismo gusto no reciban el mismo set.
+const semillaDePersona = (id) => {
+  let h = 7;
+  for (const c of String(id || "")) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return Math.abs(h % 9973);
+};
 
 /** La semilla del día: mismo set mientras dura la jornada, otro mañana. */
 const semillaDelDia = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24));
@@ -324,32 +339,64 @@ const featured = async (req, res, next) => {
     });
 
     /**
-     * Se arma el universo (catálogo curado + lo que la gente cargó con foto), se le pega la foto
-     * del pool compartido a quien la tenga, y se recomienda CON FOTO primero.
+     * El universo es TODO lo que hay: el catálogo curado más lo que cargó la gente (el catálogo
+     * comunitario, con o sin foto), menos lo que esta persona ya tiene. Se rankea por gusto, y la
+     * foto y la buena identificación SUMAN puntos pero no filtran:
      *
-     * Con foto porque la tarjeta grande de Descubrí luce mucho más con la botella real. Pero es una
-     * PRIORIDAD y no un filtro: si con foto no alcanzan los ocho, se completa con los que no la
-     * tienen (que se ven como antes, con la botella genérica) y la pantalla nunca queda sin
-     * recomendación. A medida que se carguen más vinos con su foto, habrá más para recomendar.
+     *   · foto (+0,75): la tarjeta grande luce mucho más con la botella real. Pero un vino que todavía
+     *     no tiene foto puede ser la mejor recomendación, y entra igual.
+     *   · bien identificado (+0,5 / +0,25): un vino confirmado por dos personas, o leído con
+     *     confianza, sale antes que uno dudoso del mismo gusto.
      *
-     * El orden dentro de cada grupo es el de afinidad con el gusto de la persona.
+     * Las fotos vienen de la base de TODAS las personas: la del catálogo comunitario y el pool
+     * compartido (`WineImage`). Para no traer cientos de imágenes pesadas se sabe SI tiene foto
+     * (consulta liviana) y recién se pide la imagen de los pocos elegidos.
+     *
+     * Para que no sean siempre los mismos: con un universo grande, vinos de gusto parecido rotan de
+     * un día al otro (`jitter`) y distintas personas reciben desempates distintos (la semilla suma
+     * la persona). Dentro del día el set es estable.
      */
     const curado = catalogService.getCatalogPool();
-    const vistos = new Set(curado.map((w) => poolKey(w.name, w.winery, w.varietal)));
-    const comunitarios = (await communityWines.conFoto(300)).filter(
-      (w) => !vistos.has(poolKey(w.name, w.winery, w.varietal))
-    );
-    const universo = await wineImages.enrichWithImages([...curado, ...comunitarios]);
-    const { con, sin } = separarPorFoto(universo);
-    const semilla = semillaDelDia();
-    const conFoto = recommendations.rankFeatured(con, perfil, { count: DESTACADOS, seed: semilla });
-    const faltan = DESTACADOS - conFoto.length;
-    const sinFoto = faltan > 0 ? recommendations.rankFeatured(sin, perfil, { count: faltan, seed: semilla }) : [];
-    const elegidos = conFotoPrimero([...conFoto, ...sinFoto], DESTACADOS);
-    // La foto de los comunitarios se trae sólo para los elegidos (son pesadas).
+    // `poolKey` devuelve null con un nombre demasiado corto: esas entradas no entran a los conjuntos (si no,
+    // un null descartaría a todos los demás que tampoco tienen clave).
+    const claveOk = (w) => poolKey(w.name, w.winery, w.varietal) || null;
+    const propios = new Set(wines.map(claveOk).filter(Boolean));
+    const vistos = new Set(curado.map(claveOk).filter(Boolean));
+    const comunitarios = (await communityWines.paraRecomendar(800)).filter((w) => {
+      const k = claveOk(w);
+      if (!k) return true;
+      if (vistos.has(k)) return false;
+      vistos.add(k);
+      return true;
+    });
+    // Lo que ya tenés no se recomienda, aunque lo tengas escrito de otra forma (misma clave de
+    // identidad que usa todo el catálogo).
+    const universo = [...curado, ...comunitarios].filter((w) => !propios.has(claveOk(w)));
+
+    const clavesConFoto = await wineImages.keysConFoto(universo);
+    const tieneFoto = (w) =>
+      w.fotoDiferida === true || esImagenAceptada(w.image) || clavesConFoto.has(poolKey(w.name, w.winery, w.varietal));
+    const calidad = (w) => (w.source === "catalogo-ar" || w.source === "comunidad-verificada" ? 0.5 : w.confiable ? 0.25 : 0);
+
+    const elegidos = recommendations.rankFeatured(universo, perfil, {
+      count: DESTACADOS,
+      seed: semillaDelDia() + semillaDePersona(req.user.id),
+      extra: (w) => (tieneFoto(w) ? 0.75 : 0) + calidad(w),
+      jitter: JITTER_DIARIO,
+    });
+
+    // Las fotos, sólo de los elegidos: la del catálogo comunitario (si es de allí) y si no la del pool.
     const diferidas = elegidos.filter((w) => w.fotoDiferida);
-    const fotos = diferidas.length ? await communityWines.imagenesDe(diferidas.map((w) => w.id)) : new Map();
-    const data = elegidos.map(({ fotoDiferida, ...w }) => (fotoDiferida ? { ...w, image: fotos.get(w.id) || "" } : w));
+    const deLaComunidad = diferidas.length ? await communityWines.imagenesDe(diferidas.map((w) => w.id)) : new Map();
+    const sinFoto = elegidos.filter((w) => !deLaComunidad.get(w.id) && !esImagenAceptada(w.image));
+    const delPool = sinFoto.length ? await wineImages.getImagesFor(sinFoto) : new Map();
+    const conImagen = elegidos.map(({ fotoDiferida, confiable, ...w }) => {
+      const propia = deLaComunidad.get(w.id) || (esImagenAceptada(w.image) ? w.image : "");
+      const image = propia || delPool.get(poolKey(w.name, w.winery, w.varietal)) || "";
+      return { ...w, image: esImagenAceptada(image) ? image : "" };
+    });
+    // Con foto primero (la primera tarjeta es la que más luce), manteniendo el orden del ranking.
+    const data = conFotoPrimero(conImagen, DESTACADOS);
     // `private` y no `public`: desde que el set se arma con la bodega y las
     // preferencias de quien pregunta, la respuesta es de ESA persona y un proxy
     // compartido no puede servírsela a otra.

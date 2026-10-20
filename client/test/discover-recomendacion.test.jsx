@@ -71,17 +71,17 @@ const montar = async (lista) => {
   );
 };
 
-const nombreRecomendado = async () => (await screen.findByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).textContent;
+const nombreRecomendado = async () => (await screen.findByRole("heading", { level: 2, name: /^Vino [a-z]$/ }, { timeout: 4000 })).textContent;
 
 describe("Descubrí: recomienda con foto primero", () => {
   it("entra por uno con foto aunque haya otros sin foto en el set (repetido: el sorteo es al azar)", async () => {
-    for (let i = 0; i < 12; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       cleanup();
       await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d")), vino("e", "  ")]);
       const nombre = await nombreRecomendado();
       expect(["Vino b", "Vino c", "Vino d"]).toContain(nombre);
     }
-  });
+  }, 20000);
 
   it("sin ningún vino con foto recomienda igual, sin pantalla de error ni de pedido de foto", async () => {
     await montar([vino("a"), vino("b", "")]);

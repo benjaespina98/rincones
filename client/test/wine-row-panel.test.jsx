@@ -59,11 +59,29 @@ describe("WineRowPanel", () => {
     expect(screen.getByText(/Abrí una botella/)).toBeInTheDocument();
   });
 
-  it("sin stock quedan sólo Favorito y Eliminar", () => {
+  it("sin stock quedan sólo Favorito y Eliminar (son sólo ícono, con su nombre accesible)", () => {
     montar({ ...VINO, quantity: 0 });
-    const nombres = screen.getAllByRole("button").map((b) => b.textContent.trim());
+    const nombres = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
     expect(nombres).toEqual(["Favorito", "Eliminar"]);
     expect(screen.queryByText(/Abrí una botella/)).toBeNull();
+  });
+
+  it("es una sola fila: una línea de resumen y las acciones, sin la ficha en grilla", () => {
+    const { container } = montar({ ...VINO, varietal: "Malbec", vintage: 2019, region: "Valle de Uco" });
+    expect(container.querySelector(".wine-row__facts")).toBeNull();
+    expect(container.querySelector(".wine-row__resumen")?.textContent).toMatch(/Malbec · 2019 · Valle de Uco/);
+    expect(container.querySelectorAll(".wine-row__acciones").length).toBe(1);
+  });
+
+  it("con stock, abrir es lo principal y sumar queda como ícono; sin stock, sumar es lo principal", () => {
+    const onSumarStock = vi.fn();
+    const conStock = montar({ ...VINO, quantity: 2 }, { onSumarStock });
+    expect(screen.getByRole("button", { name: /abrí una botella/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sumar botellas" }));
+    expect(onSumarStock).toHaveBeenCalledTimes(1);
+    conStock.unmount();
+    montar({ ...VINO, quantity: 0 }, { onSumarStock });
+    expect(screen.getByRole("button", { name: /tengo stock de nuevo/i })).toBeInTheDocument();
   });
 
   it("no repite el tipo del vino (ya está en la etiqueta de la fila)", () => {
