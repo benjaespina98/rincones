@@ -110,7 +110,6 @@ export default function ConceptSheet({ id, ctx, onClose }) {
                 —jamás se completa con una frase genérica—. */}
             {enTuBodega && (
               <p className="concept-sheet__anchor">
-                <Icon name="bottle" size={14} />
                 <span>{enTuBodega}</span>
               </p>
             )}

@@ -36,12 +36,31 @@ const { default: DiscoverPage } = await import("../src/pages/DiscoverPage");
 const vino = (id, image = "") => ({ id, name: `Vino ${id}`, winery: "Bodega", varietal: "Malbec", type: "red", region: "Mendoza", image });
 const FOTO = (n) => `https://res.cloudinary.com/x/image/upload/${n}.jpg`;
 
+/* La precarga de la foto (Image aparte) no existe en jsdom: se simula. Por defecto "carga" al asignar
+   el src; con `imagenes.modo = "nunca"` no responde, para ver el esqueleto. */
+const imagenes = { modo: "carga" };
+class ImagenFalsa {
+  set src(valor) {
+    this._src = valor;
+    if (imagenes.modo === "carga") setTimeout(() => this.onload?.(), 0);
+    else if (imagenes.modo === "error") setTimeout(() => this.onerror?.(), 0);
+  }
+  get src() {
+    return this._src;
+  }
+}
+
 beforeEach(() => {
+  imagenes.modo = "carga";
+  vi.stubGlobal("Image", ImagenFalsa);
   navigate.mockReset();
   sessionStorage.clear();
   localStorage.clear();
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const montar = async (lista) => {
   featured.lista = lista;
@@ -98,5 +117,40 @@ describe("Descubrí: recomienda con foto primero", () => {
   it("si el set viene vacío dice que no hay recomendaciones ahora", async () => {
     await montar([]);
     expect(await screen.findByText(/no hay recomendaciones ahora/i)).toBeInTheDocument();
+  });
+});
+
+describe("Descubrí: la tarjeta aparece entera", () => {
+  it("mientras la foto no cargó se ve el esqueleto y no el texto del vino", async () => {
+    imagenes.modo = "nunca";
+    await montar([vino("b", FOTO("b")), vino("c", FOTO("c"))]);
+    expect(await screen.findByRole("status", { name: /cargando la recomendación/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).toBeNull();
+  });
+
+  it("cuando la foto carga aparece la tarjeta y el esqueleto se va", async () => {
+    await montar([vino("b", FOTO("b")), vino("c", FOTO("c"))]);
+    await nombreRecomendado();
+    expect(screen.queryByRole("status", { name: /cargando la recomendación/i })).toBeNull();
+  });
+
+  it("si la foto falla la tarjeta aparece igual (con la botella genérica)", async () => {
+    imagenes.modo = "error";
+    await montar([vino("b", FOTO("b"))]);
+    expect(await nombreRecomendado()).toBe("Vino b");
+  });
+
+  it("un vino sin foto no espera nada: aparece de una", async () => {
+    imagenes.modo = "nunca";
+    await montar([vino("a")]);
+    expect(await nombreRecomendado()).toBe("Vino a");
+  });
+
+  it("sin ícono delante del motivo, con la frase de maridaje y el botón 'Quiero probarlo'", async () => {
+    await montar([vino("b", FOTO("b"))]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__eyebrow .icon")).toBeNull();
+    expect(screen.getByText(/^Va con carnes rojas a la parrilla/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /quiero probarlo/i })).toBeInTheDocument();
   });
 });

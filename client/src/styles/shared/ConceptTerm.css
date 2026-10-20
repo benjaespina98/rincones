@@ -141,12 +141,6 @@
   color: var(--text);
 }
 
-.concept-sheet__anchor .icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--accent-soft);
-}
-
 /* Texto en línea, pero el toque tiene que caber en un dedo: el área sale del texto hacia arriba y
    abajo (44px de alto en total) sin mover nada de lo que se ve. */
 .concept-term::after {

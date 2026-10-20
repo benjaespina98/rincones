@@ -70,6 +70,8 @@ export const pasaBusqueda = (wine, terms, facetas = {}) => {
     varietal = "all",
     region = "all",
     vintage = "all",
+    winery = "all",
+    puntajeMin = "all",
   } = facetas;
 
   const haystack = haystackDe(wine);
@@ -77,6 +79,9 @@ export const pasaBusqueda = (wine, terms, facetas = {}) => {
   if (tipo !== "all" && wine.type !== tipo) return false;
   if (varietal !== "all" && wine.varietal !== varietal) return false;
   if (region !== "all" && wine.region !== region) return false;
+  if (winery !== "all" && wine.winery !== winery) return false;
+  // Puntaje mínimo: 4 es "4 o más". Un vino sin puntuar no pasa: no es un 0, es un dato que falta.
+  if (puntajeMin !== "all" && !(Number(wine.rating) >= Number(puntajeMin))) return false;
   // El año se compara como texto porque la opción viene del combo, que maneja
   // strings; el vino lo guarda como número.
   if (vintage !== "all" && String(wine.vintage || "") !== vintage) return false;
@@ -105,6 +110,7 @@ export const pasaFiltros = (wine, { probado = null, soloListos = false } = {}) =
 export const opcionesDe = (wines = []) => ({
   varietales: [...new Set(wines.map((w) => w.varietal).filter(Boolean))].sort(),
   regiones: [...new Set(wines.map((w) => w.region).filter(Boolean))].sort(),
+  bodegas: [...new Set(wines.map((w) => w.winery).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")),
   cosechas: [...new Set(wines.map((w) => w.vintage).filter(Boolean))]
     .sort((a, b) => b - a)
     .map(String),
@@ -195,4 +201,36 @@ export const tiposRapidosDe = (wines, tipos) => {
     cuenta.set(w.type, (cuenta.get(w.type) || 0) + 1);
   }
   return cuenta.size >= 2 ? tipos.filter((t) => cuenta.has(t)).map((t) => ({ id: t, n: cuenta.get(t) })) : [];
+};
+
+/**
+ * El filtro rápido por una dimensión: los valores que hay en una lista de vinos, con cuántos vinos
+ * de cada uno, para las fichas de arriba de Mi Bodega (Tipo · Uva · Región · Bodega).
+ *
+ * Ordenados por cantidad (los que más tenés primero) y después por nombre. Se cortan en `max` para
+ * que la fila no sea una pared de fichas; el valor ACTIVO se conserva siempre, aunque quede afuera
+ * del corte, porque si no la ficha que filtra la lista desaparecería de la fila.
+ * Con un solo valor no hay nada que filtrar: devuelve [].
+ */
+const CLAVE_DE_DIMENSION = { uva: "varietal", region: "region", bodega: "winery" };
+
+export const chipsRapidosDe = (wines, dimension, { max = 10, activo = "all" } = {}) => {
+  const clave = CLAVE_DE_DIMENSION[dimension];
+  if (!clave) return [];
+  const cuenta = new Map();
+  for (const w of Array.isArray(wines) ? wines : []) {
+    const valor = w && typeof w[clave] === "string" ? w[clave].trim() : "";
+    if (!valor) continue;
+    cuenta.set(valor, (cuenta.get(valor) || 0) + 1);
+  }
+  if (cuenta.size < 2) return [];
+  const todos = [...cuenta.entries()]
+    .map(([id, n]) => ({ id, n }))
+    .sort((a, b) => b.n - a.n || a.id.localeCompare(b.id, "es"));
+  const visibles = todos.slice(0, max);
+  if (activo !== "all" && !visibles.some((c) => c.id === activo)) {
+    const elActivo = todos.find((c) => c.id === activo);
+    if (elActivo) visibles.push(elActivo);
+  }
+  return visibles;
 };
