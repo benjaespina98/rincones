@@ -5,6 +5,7 @@ import OpenBottleSheet from "../components/OpenBottleSheet";
 import AddStockSheet from "../components/AddStockSheet";
 import BulkEditSheet from "../components/BulkEditSheet";
 import { instantaneaPrevia } from "../utils/deshacerLote";
+import { recorrerDeUno } from "../utils/enLote";
 import Icon from "../components/Icon";
 import BodegaFilters from "../components/BodegaFilters";
 import Segmented from "../components/Segmented";
@@ -787,19 +788,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const ids = [...seleccion];
     if (ids.length === 0 || enLote) return 0;
     setEnLote(true);
-    const fallidos = [];
-    const exitosos = [];
-    for (const id of ids) {
-      try {
-        await operacion(id);
-        exitosos.push(id);
-      } catch {
-        // Sigue con los demás; el resumen dice cuántos fueron.
-        fallidos.push(id);
-      }
-    }
+    const resultado = await recorrerDeUno(ids, operacion);
     setEnLote(false);
-    return { ok: exitosos.length, fallidos, exitosos };
+    return resultado;
   };
 
   // Tras una operación en lote: si salió todo bien se sale de la selección; si falló alguno, quedan
@@ -823,17 +814,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
         label: "Deshacer",
         onClick: async () => {
           removeToast(toastId);
-          let vueltos = 0;
-          for (const id of exitosos) {
-            try {
-              await adjustStock(id, -n);
-              vueltos += 1;
-            } catch {
-              // Sigue con los demás.
-            }
-          }
-          if (vueltos === exitosos.length) showSuccess("Stock devuelto a como estaba");
-          else showError(`Se devolvió el stock de ${vueltos} de ${exitosos.length} vinos`);
+          const { ok: vueltos, total: cuantos } = await recorrerDeUno(exitosos, (id) => adjustStock(id, -n));
+          if (vueltos === cuantos) showSuccess("Stock devuelto a como estaba");
+          else showError(`Se devolvió el stock de ${vueltos} de ${cuantos} vinos`);
         },
       });
     }
@@ -855,17 +838,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
         label: "Deshacer",
         onClick: async () => {
           removeToast(toastId);
-          let vueltos = 0;
-          for (const id of exitosos) {
-            try {
-              await updateWine(id, previos[id] || {});
-              vueltos += 1;
-            } catch {
-              // Sigue con los demás.
-            }
-          }
-          if (vueltos === exitosos.length) showSuccess("Cambios deshechos");
-          else showError(`Se deshicieron los cambios de ${vueltos} de ${exitosos.length} vinos`);
+          // Sin foto previa de un vino no hay nada que devolver: cuenta como falla, no como un falso OK.
+          const { ok: vueltos, total: cuantos } = await recorrerDeUno(exitosos, async (id) => {
+            if (!previos[id]) throw new Error("sin estado previo");
+            await updateWine(id, previos[id]);
+          });
+          if (vueltos === cuantos) showSuccess("Cambios deshechos");
+          else showError(`Se deshicieron los cambios de ${vueltos} de ${cuantos} vinos`);
         },
       });
     }

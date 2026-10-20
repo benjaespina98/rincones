@@ -342,6 +342,9 @@ test("createWine con restauraDe re-vincula los momentos del diario del vino borr
     // Un id inválido, o ninguno, no toca nada.
     await winesService.createWine(ID, { name: "QA Otro", winery: "QA B", quantity: 1, restauraDe: "no-es-un-id" });
     await winesService.createWine(ID, { name: "QA Otro 2", winery: "QA B", quantity: 1 });
+    // Un objeto en lugar de un texto (intento de inyectar un operador) tampoco toca nada.
+    await winesService.createWine(ID, { name: "QA Otro 3", winery: "QA B", quantity: 1, restauraDe: { $ne: null } });
+    await winesService.createWine(ID, { name: "QA Otro 4", winery: "QA B", quantity: 1, restauraDe: [viejo] });
     assert.equal(llamadas.length, 1);
   } finally {
     Wine.find = orig.find;

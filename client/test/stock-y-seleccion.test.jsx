@@ -172,3 +172,43 @@ describe("deshacer una edición en lote", () => {
     expect(instantaneaPrevia([], null, null)).toEqual({});
   });
 });
+
+describe("recorrerDeUno (operaciones en lote)", () => {
+  it("aplica a cada uno en orden y separa los que salieron bien de los que fallaron", async () => {
+    const { recorrerDeUno } = await import("../src/utils/enLote");
+    const orden = [];
+    const r = await recorrerDeUno(["a", "b", "c", "d"], async (id) => {
+      orden.push(id);
+      if (id === "b" || id === "d") throw new Error("falló");
+    });
+    expect(orden).toEqual(["a", "b", "c", "d"]);
+    expect(r.exitosos).toEqual(["a", "c"]);
+    expect(r.fallidos).toEqual(["b", "d"]);
+    expect(r).toMatchObject({ ok: 2, total: 4 });
+  });
+
+  it("sin ids, o con algo que no es una lista, no hace nada", async () => {
+    const { recorrerDeUno } = await import("../src/utils/enLote");
+    const fn = vi.fn();
+    expect(await recorrerDeUno([], fn)).toMatchObject({ ok: 0, total: 0 });
+    expect(await recorrerDeUno(null, fn)).toMatchObject({ ok: 0, total: 0 });
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("si falla todo, ok es 0 (la selección no se cierra)", async () => {
+    const { recorrerDeUno } = await import("../src/utils/enLote");
+    const r = await recorrerDeUno(["a", "b"], async () => {
+      throw new Error("x");
+    });
+    expect(r).toMatchObject({ ok: 0, total: 2, fallidos: ["a", "b"] });
+  });
+});
+
+describe("BulkEditSheet: lista de regiones", () => {
+  it("ofrece las regiones recibidas para elegir (evita escribirlas distinto)", () => {
+    render(<BulkEditSheet cantidad={2} regiones={["Salta", "Valle de Uco"]} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    const lista = document.getElementById("bulk-edit-regiones");
+    expect([...lista.querySelectorAll("option")].map((o) => o.value)).toEqual(["Salta", "Valle de Uco"]);
+    expect(screen.getByPlaceholderText(/valle de uco/i).getAttribute("list")).toBe("bulk-edit-regiones");
+  });
+});

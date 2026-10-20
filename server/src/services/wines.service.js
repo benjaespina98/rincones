@@ -289,7 +289,8 @@ async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
  */
 async function reenlazarMomentos(userId, viejoId, nuevoId) {
   try {
-    if (!viejoId || !mongoose.Types.ObjectId.isValid(String(viejoId))) return;
+    // Sólo un id en texto de 24 hexadecimales: nada de objetos ni arreglos que lleguen en el cuerpo.
+    if (typeof viejoId !== "string" || !/^[0-9a-fA-F]{24}$/.test(viejoId)) return;
     if (String(viejoId) === String(nuevoId)) return;
     await WineMoment.updateMany({ userId, wineId: viejoId }, { $set: { wineId: nuevoId } });
   } catch {
