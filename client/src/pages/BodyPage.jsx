@@ -489,8 +489,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   const effectiveGroupBy = useMemo(() => {
     if (groupBy !== "auto") return groupBy;
-    return filteredWines.length >= AUTO_GROUP_FROM ? "type" : "none";
-  }, [groupBy, filteredWines.length]);
+    // Con el orden por defecto (lo más reciente primero) no se agrupa: cortar la lista por tipo
+    // mezclaba el orden por fecha. Sólo se agrupa si la persona eligió otro orden y la lista es larga.
+    return sortBy !== "recent" && filteredWines.length >= AUTO_GROUP_FROM ? "type" : "none";
+  }, [groupBy, sortBy, filteredWines.length]);
 
   const groupOf = useCallback(
     (wine) => {

@@ -1995,3 +1995,53 @@
   from { opacity: 0; transform: translate(-50%, 8px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* ══ El panel desplegado, en versión compacta ═══════════════════════════════
+   Una línea de texto apagado y una sola fila de acciones (la principal con texto, las demás sólo
+   ícono). Ver WineRowPanel.jsx. */
+.wine-row__expand--compacto {
+  gap: 8px;
+  padding: 8px 12px 12px;
+  background: none;
+}
+
+.wine-row__resumen {
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.wine-row__acciones--compacta {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.wine-row__acciones--compacta .wine-action-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+}
+
+/* Los secundarios: sólo el ícono, sin recuadro. Se leen como acciones de la fila y no como cuatro
+   botones más compitiendo con el principal. */
+.wine-row__icon-btn--solo {
+  flex: 0 0 44px;
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+  gap: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.wine-row__icon-btn--solo.is-fav {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Sin botón principal a la izquierda no hay nada que empuje los íconos: se quedan a la derecha. */
+.wine-row__acciones--compacta:not(:has(.wine-action-btn)) {
+  justify-content: flex-end;
+}
