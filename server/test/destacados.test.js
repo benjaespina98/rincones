@@ -10,6 +10,7 @@ const WineImage = require("../src/models/wineImage.model");
 const CommunityWine = require("../src/models/communityWine.model");
 const Wine = require("../src/models/wine.model");
 const User = require("../src/models/user.model");
+const WineWish = require("../src/models/wineWish.model");
 
 /**
  * GET /api/catalog/featured recomienda de TODO lo cargado (catálogo curado + lo que cargó la gente,
@@ -59,6 +60,7 @@ const pedirFeatured = async ({
   comunitarios = [],
   clavesConFoto = new Set(),
   propios = [],
+  guardados = [],
   preferencias = {},
   fotosComunidad = {},
   fotosPool = {},
@@ -73,6 +75,7 @@ const pedirFeatured = async ({
     delPool: wineImages.getImagesFor,
     wineFind: Wine.find,
     userFind: User.findById,
+    wishFind: WineWish.find,
     now: Date.now,
   };
   catalogService.getCatalogPool = () => curado;
@@ -89,6 +92,7 @@ const pedirFeatured = async ({
   };
   Wine.find = () => cadena(propios);
   User.findById = () => cadena({ preferences: preferencias });
+  WineWish.find = () => cadena(guardados);
   Date.now = () => ahora;
   try {
     let status = null;
@@ -116,6 +120,7 @@ const pedirFeatured = async ({
     wineImages.getImagesFor = original.delPool;
     Wine.find = original.wineFind;
     User.findById = original.userFind;
+    WineWish.find = original.wishFind;
     Date.now = original.now;
   }
 };
@@ -363,4 +368,79 @@ test("rankFeatured: con un pool de una sola uva el cupo se afloja y el set se co
   const perfil = recommendations.buildTasteProfile({ wines: [], preferences: {} });
   const pool = Array.from({ length: 30 }, (_, i) => vino(`u${i}`, { winery: `B${i}` }));
   assert.equal(recommendations.rankFeatured(pool, perfil, { count: 12, seed: 3 }).length, 12);
+});
+
+// ── precisión del gusto: porcentaje, razones, lo que no le gustó y lo que ya guardó ────────────
+
+const perfilDe = (wines, preferences = {}) => recommendations.buildTasteProfile({ wines, preferences });
+const bodegaMalbec = Array.from({ length: 6 }, (_, i) => ({
+  name: `M${i}`, winery: `W${i}`, varietal: "Malbec", region: "Mendoza", type: "red", rating: i < 3 ? 5 : 0,
+}));
+
+test("explicarRecomendacion: el porcentaje y las razones salen de la bodega de la persona", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const igual = recommendations.explicarRecomendacion(vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }), perfil);
+  assert.equal(igual.modo, "afinidad");
+  assert.ok(igual.coincidencia >= 90, `coincide en todo lo que sabemos: ${igual.coincidencia}%`);
+  assert.ok(igual.razones.some((r) => /Tomás Malbec \(6 en tu bodega\)/.test(r)));
+  assert.ok(igual.razones.some((r) => /Puntuaste alto el Malbec/.test(r)));
+  assert.ok(igual.razones.some((r) => /Repetís Mendoza/.test(r)));
+  assert.ok(igual.razones.length <= 3);
+
+  const parecido = recommendations.explicarRecomendacion(vino("b", { varietal: "Malbec", region: "Salta", type: "red" }), perfil);
+  assert.ok(parecido.coincidencia < igual.coincidencia, "otra región coincide menos");
+});
+
+test("explicarRecomendacion: con poco historial no inventa un porcentaje", () => {
+  const poco = perfilDe(bodegaMalbec.slice(0, 2));
+  assert.equal(recommendations.explicarRecomendacion(vino("a"), poco).coincidencia, null);
+  const conGustos = perfilDe([], { favoriteVarietals: ["Malbec"] });
+  assert.ok(recommendations.explicarRecomendacion(vino("a"), conGustos).coincidencia > 0, "los gustos elegidos alcanzan de base");
+});
+
+test("explicarRecomendacion: un descubrimiento se dice como tal y sin porcentaje", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const nuevo = recommendations.explicarRecomendacion(vino("n", { varietal: "Tannat", region: "Uruguay", type: "red" }), perfil);
+  assert.equal(nuevo.modo, "descubrimiento");
+  assert.equal(nuevo.coincidencia, null);
+  assert.match(nuevo.razones[0], /Uva nueva para vos, del color que tomás \(tintos\)/);
+});
+
+test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () => {
+  const bodega = [
+    ...bodegaMalbec,
+    { name: "T1", winery: "Z1", varietal: "Tannat", region: "Salta", type: "red", rating: 1 },
+    { name: "T2", winery: "Z2", varietal: "Tannat", region: "Salta", type: "red", rating: 2 },
+  ];
+  const perfil = perfilDe(bodega);
+  assert.ok(perfil.evitados.has("tannat"));
+  assert.ok(!perfil.evitados.has("malbec"));
+  const pool = [vino("tan", { varietal: "Tannat", region: "Salta", type: "red", winery: "BT" }), vino("mal", { varietal: "Malbec", region: "Mendoza", type: "red", winery: "BM" })];
+  const r = recommendations.rankFeatured(pool, perfil, { count: 2, seed: 1 });
+  assert.equal(r[0].id, "mal");
+  // Si puntuó alto alguna vez esa uva, ya no se evita.
+  const mixto = perfilDe([...bodega, { name: "T3", winery: "Z3", varietal: "Tannat", rating: 5 }]);
+  assert.ok(!mixto.evitados.has("tannat"));
+});
+
+test("el peso de lo que tomás depende de cuánto lo tomás", () => {
+  const poco = perfilDe([
+    { name: "a", winery: "x", varietal: "Tannat", type: "red" },
+    ...Array.from({ length: 19 }, (_, i) => ({ name: `m${i}`, winery: `w${i}`, varietal: "Malbec", type: "red" })),
+  ]);
+  const tannat = vino("t", { varietal: "Tannat" });
+  const malbec = vino("m", { varietal: "Malbec" });
+  const explicar = (w) => recommendations.explicarRecomendacion(w, poco).coincidencia;
+  assert.ok(explicar(malbec) > explicar(tannat), "la uva que es casi toda la bodega pesa más que la de una sola botella");
+});
+
+test("featured: lo que ya guardó para probar no se recomienda, y cada recomendación trae su motivo", async () => {
+  const { body } = await pedirFeatured({
+    curado: [vino("guardado", { name: "Vino guardado", winery: "Bodega guardada" }), vino("otro")],
+    propios: bodegaMalbec,
+    guardados: [{ name: "Vino guardado", winery: "Bodega guardada", varietal: "Malbec" }],
+  });
+  assert.deepEqual(body.data.map((w) => w.id), ["otro"]);
+  assert.ok(body.data[0].motivo && ["afinidad", "descubrimiento"].includes(body.data[0].motivo.modo));
+  assert.ok(Array.isArray(body.data[0].motivo.razones));
 });

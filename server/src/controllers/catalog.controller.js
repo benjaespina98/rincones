@@ -7,6 +7,7 @@ const { describeWine, suggestRecipe, classifyDish, PLANS } = require("../service
 const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");
+const WineWish = require("../models/wineWish.model");
 const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
@@ -332,6 +333,8 @@ const featured = async (req, res, next) => {
         .catch(() => []),
       User.findById(req.user.id).select("preferences").lean().catch(() => null),
     ]);
+    // Lo que ya guardó para probar tampoco se recomienda: ya lo tiene en la mira.
+    const guardados = await WineWish.find({ userId: req.user.id }).select("name winery varietal").lean().catch(() => []);
 
     const perfil = recommendations.buildTasteProfile({
       wines,
@@ -360,7 +363,7 @@ const featured = async (req, res, next) => {
     // `poolKey` devuelve null con un nombre demasiado corto: esas entradas no entran a los conjuntos (si no,
     // un null descartaría a todos los demás que tampoco tienen clave).
     const claveOk = (w) => poolKey(w.name, w.winery, w.varietal) || null;
-    const propios = new Set(wines.map(claveOk).filter(Boolean));
+    const propios = new Set([...wines, ...guardados].map(claveOk).filter(Boolean));
     const vistos = new Set(curado.map(claveOk).filter(Boolean));
     const comunitarios = (await communityWines.paraRecomendar(800)).filter((w) => {
       const k = claveOk(w);
@@ -391,9 +394,10 @@ const featured = async (req, res, next) => {
     const sinFoto = elegidos.filter((w) => !deLaComunidad.get(w.id) && !esImagenAceptada(w.image));
     const delPool = sinFoto.length ? await wineImages.getImagesFor(sinFoto) : new Map();
     const conImagen = elegidos.map(({ fotoDiferida, confiable, ...w }) => {
+      const motivo = recommendations.explicarRecomendacion(w, perfil);
       const propia = deLaComunidad.get(w.id) || (esImagenAceptada(w.image) ? w.image : "");
       const image = propia || delPool.get(poolKey(w.name, w.winery, w.varietal)) || "";
-      return { ...w, image: esImagenAceptada(image) ? image : "" };
+      return { ...w, image: esImagenAceptada(image) ? image : "", motivo };
     });
     // Con foto primero (la primera tarjeta es la que más luce), manteniendo el orden del ranking.
     const data = conFotoPrimero(conImagen, DESTACADOS);
