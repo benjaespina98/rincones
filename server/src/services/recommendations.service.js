@@ -52,10 +52,14 @@ const PESOS = {
   regionQueTomas: 1.5,
   tipoQueTomas: 1,
   tipoElegido: 1,
+  varietalQueEvitas: 3, // se RESTA: puntuó esa uva siempre bajo
 };
 
 /** Una puntuación alta: de 4 para arriba es "esto me gustó de verdad". */
 const PUNTUACION_ALTA = 4;
+
+/** Una puntuación baja: de 2 para abajo es "esto no me gustó". */
+const PUNTUACION_BAJA = 2;
 
 /**
  * El retrato de gustos de una persona, a partir de su bodega y su onboarding.
@@ -70,6 +74,9 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
   const regions = new Map();
   const types = new Map();
   const puntuadosAlto = new Set();
+  // Uvas que puntuó y siempre bajo (2 o menos): lo que NO le gustó. Recomendarle más de eso es el error más
+  // visible que puede cometer la home.
+  const notas = new Map();
   const yaLoTiene = new Set();
 
   const sumar = (mapa, valor) => {
@@ -86,13 +93,23 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
     if (Number(wine.rating) >= PUNTUACION_ALTA && norm(wine.varietal)) {
       puntuadosAlto.add(norm(wine.varietal));
     }
+    if (Number(wine.rating) > 0 && norm(wine.varietal)) {
+      const n = notas.get(norm(wine.varietal)) || [];
+      n.push(Number(wine.rating));
+      notas.set(norm(wine.varietal), n);
+    }
   }
+  const evitados = new Set(
+    [...notas.entries()].filter(([, lista]) => lista.every((n) => n <= PUNTUACION_BAJA)).map(([uva]) => uva)
+  );
 
   return {
     varietals,
     regions,
     types,
     puntuadosAlto,
+    evitados,
+    total: wines.length,
     yaLoTiene,
     elegidos: {
       varietals: new Set((preferences.favoriteVarietals || []).map(norm).filter(Boolean)),
@@ -113,18 +130,32 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
  * la tarjeta después tiene que poder DECIR por qué, y sólo se puede explicar lo
  * que se puede justificar.
  */
+/**
+ * Cuánto pesa algo que tomás según CUÁNTO lo tomás: una uva que es la cuarta parte de tu bodega
+ * pesa entero; la que probaste una vez entre veinte vinos, bastante menos. Sin esto, una sola botella
+ * de Tannat te hacía "tomador de Tannat" igual que a quien tiene diez.
+ */
+const peso = (mapa, clave, base, total) => {
+  const n = mapa.get(clave) || 0;
+  if (!n) return 0;
+  const parte = total > 0 ? n / total : 1;
+  return base * (0.5 + 0.5 * Math.min(1, parte / 0.25));
+};
+
 const puntajeDeAfinidad = (wine, perfil) => {
   const uva = norm(wine.varietal);
   const region = norm(wine.region);
   const tipo = norm(wine.type);
   let puntaje = 0;
 
-  if (perfil.varietals.has(uva)) puntaje += PESOS.varietalQueTomas;
+  puntaje += peso(perfil.varietals, uva, PESOS.varietalQueTomas, perfil.total);
   if (perfil.elegidos.varietals.has(uva)) puntaje += PESOS.varietalElegido;
   if (perfil.puntuadosAlto.has(uva)) puntaje += PESOS.varietalQuePuntuasteAlto;
-  if (perfil.regions.has(region)) puntaje += PESOS.regionQueTomas;
-  if (perfil.types.has(tipo)) puntaje += PESOS.tipoQueTomas;
+  puntaje += peso(perfil.regions, region, PESOS.regionQueTomas, perfil.total);
+  puntaje += peso(perfil.types, tipo, PESOS.tipoQueTomas, perfil.total);
   if (perfil.elegidos.types.has(tipo)) puntaje += PESOS.tipoElegido;
+  // Lo que no le gustó resta: el vino de esa uva baja y deja de competir por los primeros lugares.
+  if (perfil.evitados?.has(uva)) puntaje -= PESOS.varietalQueEvitas;
 
   return puntaje;
 };
@@ -143,6 +174,7 @@ const puntajeDeDescubrimiento = (wine, perfil) => {
   const uva = norm(wine.varietal);
   const region = norm(wine.region);
   const tipo = norm(wine.type);
+  if (perfil.evitados?.has(uva)) return -PESOS.varietalQueEvitas;
 
   const uvaNueva = Boolean(uva) && !perfil.varietals.has(uva);
   if (!uvaNueva) {
@@ -212,7 +244,8 @@ const TOPE_POR_GAMA = 3;
  */
 const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jitter = 0 } = {}) => {
   const candidatos = (catalogo || [])
-    .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)))
+    // Una uva que puntuó siempre bajo no se recomienda: mejor un set más corto que ofrecerle lo que no le gustó.
+    .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)) && !perfil.evitados?.has(norm(wine.varietal)))
     .map((wine) => {
       const e = typeof extra === "function" ? Number(extra(wine)) || 0 : 0;
       const ruido = desempate(wine, seed);
@@ -296,8 +329,72 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jit
   return elegidos;
 };
 
+const TIPO_PLURAL = { red: "tintos", white: "blancos", "rosé": "rosados", sparkling: "espumantes", fortified: "fortificados" };
+
+/**
+ * Por qué se recomienda este vino a ESTA persona, dicho con los datos de su bodega: un porcentaje de
+ * coincidencia y hasta tres razones concretas. Es lo que hace que la tarjeta no sea una frase
+ * genérica sino algo verificable (cada razón se puede señalar en su bodega).
+ *
+ * ── EL PORCENTAJE ───────────────────────────────────────────────────────────
+ * Es qué parte de lo que esta persona nos dejó ver de su gusto cubre el vino: los puntos que suma
+ * sobre los que PODRÍA sumar con su perfil (si nunca puntuó nada, "puntuaste alto" no cuenta en el
+ * total). Así un vino que coincide en todo lo que sabemos de alguien con poco historial puede
+ * llegar al 100%, y uno que sólo comparte el color queda bajo. Sólo se calcula con una base mínima
+ * (tres vinos o gustos elegidos): con menos, un porcentaje sería inventar precisión.
+ *
+ * Devuelve `{ modo, coincidencia, razones }`: modo "afinidad" (se parece a lo que tomás) o
+ * "descubrimiento" (nuevo, pero por un lado que conocés).
+ */
+const explicarRecomendacion = (wine, perfil) => {
+  const uva = norm(wine.varietal);
+  const region = norm(wine.region);
+  const tipo = norm(wine.type);
+
+  if (perfil.evitados?.has(uva)) return { modo: "descubrimiento", coincidencia: null, razones: [] };
+
+  const hayBase = perfil.tieneHistorial || perfil.elegidos.varietals.size > 0 || perfil.elegidos.types.size > 0;
+  const maximo =
+    (perfil.varietals.size ? PESOS.varietalQueTomas : 0) +
+    (perfil.elegidos.varietals.size ? PESOS.varietalElegido : 0) +
+    (perfil.puntuadosAlto.size ? PESOS.varietalQuePuntuasteAlto : 0) +
+    (perfil.regions.size ? PESOS.regionQueTomas : 0) +
+    (perfil.types.size ? PESOS.tipoQueTomas : 0) +
+    (perfil.elegidos.types.size ? PESOS.tipoElegido : 0);
+  const bruto = puntajeDeAfinidad(wine, perfil);
+  const coincidencia =
+    hayBase && maximo > 0 ? Math.max(0, Math.min(99, Math.round((100 * bruto) / maximo))) : null;
+
+  const razones = [];
+  const cuantas = perfil.varietals.get(uva);
+  const enBodega = (n) => (n === 1 ? "1 en tu bodega" : `${n} en tu bodega`);
+  if (cuantas) razones.push(`Tomás ${wine.varietal} (${enBodega(cuantas)})`);
+  if (perfil.elegidos.varietals.has(uva)) razones.push(`Elegiste ${wine.varietal} entre tus gustos`);
+  if (perfil.puntuadosAlto.has(uva) && cuantas) razones.push(`Puntuaste alto el ${wine.varietal}`);
+  if (perfil.regions.has(region)) razones.push(`Repetís ${wine.region}`);
+  if (perfil.types.has(tipo) && razones.length < 3 && TIPO_PLURAL[tipo]) {
+    razones.push(`Sos de ${TIPO_PLURAL[tipo]} (${perfil.types.get(tipo)})`);
+  }
+
+  const esDescubrimiento = razones.length === 0 || (bruto < 2 && puntajeDeDescubrimiento(wine, perfil) > 0);
+  if (esDescubrimiento) {
+    const puente = [];
+    if (uva && !perfil.varietals.has(uva)) puente.push(`Uva nueva para vos`);
+    if (perfil.types.has(tipo) && TIPO_PLURAL[tipo]) puente.push(`del color que tomás (${TIPO_PLURAL[tipo]})`);
+    else if (perfil.regions.has(region)) puente.push(`de ${wine.region}, que ya conocés`);
+    return {
+      modo: "descubrimiento",
+      coincidencia: null,
+      razones: puente.length ? [puente.join(", ")] : [],
+    };
+  }
+
+  return { modo: "afinidad", coincidencia, razones: razones.slice(0, 3) };
+};
+
 module.exports = {
   buildTasteProfile,
+  explicarRecomendacion,
   rankFeatured,
   // Exportados para los tests: son las dos decisiones que definen la home y
   // conviene poder fijarlas por separado de cómo se intercalan.

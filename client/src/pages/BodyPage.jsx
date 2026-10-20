@@ -3,9 +3,6 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import OpenBottleSheet from "../components/OpenBottleSheet";
 import AddStockSheet from "../components/AddStockSheet";
-import BulkEditSheet from "../components/BulkEditSheet";
-import { instantaneaPrevia } from "../utils/deshacerLote";
-import { recorrerDeUno } from "../utils/enLote";
 import Icon from "../components/Icon";
 import BodegaFilters from "../components/BodegaFilters";
 import Segmented from "../components/Segmented";
@@ -32,7 +29,7 @@ import {
   tiposRapidosDe,
   chipsRapidosDe,
 } from "../utils/bodegaFiltros";
-import { WINE_TYPE_LABELS, REGIONS } from "../data/wineReference";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { payloadParaRestaurar } from "../utils/restoreWine";
@@ -92,7 +89,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     error,
     addWine,
     deleteWine,
-    updateWine,
     toggleFavorite,
     updateWineTasted,
     openBottle,
@@ -195,9 +191,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [abriendo, setAbriendo] = useState(null);
   // El vino al que se le están sumando botellas (hoja "¿Cuántas botellas sumás?").
   const [sumando, setSumando] = useState(null);
-  // Sumar botellas o editar a varios a la vez, desde la selección.
-  const [sumandoLote, setSumandoLote] = useState(false);
-  const [editandoLote, setEditandoLote] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -784,76 +777,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
   };
 
-  // Una misma operación sobre cada vino elegido, de a uno (el servidor no tiene un endpoint de lote
-  // para esto). Devuelve cuántos salieron bien, para decir la verdad si alguno falló.
-  const aplicarAcadaUno = async (operacion) => {
-    const ids = [...seleccion];
-    if (ids.length === 0 || enLote) return 0;
-    setEnLote(true);
-    const resultado = await recorrerDeUno(ids, operacion);
-    setEnLote(false);
-    return resultado;
-  };
-
-  // Tras una operación en lote: si salió todo bien se sale de la selección; si falló alguno, quedan
-  // elegidos SÓLO los que fallaron, para reintentar sin repetir los que ya salieron (sumar no es
-  // idempotente: volver a mandar un vino que ya se sumó lo sumaría dos veces).
-  const cerrarLote = ({ fallidos }) => {
-    if (fallidos.length === 0) salirDeSeleccion();
-    else setSeleccion(new Set(fallidos));
-  };
-
-  const sumarStockEnLote = async (cantidad) => {
-    const n = Math.max(1, Math.min(999, Number(cantidad) || 1));
-    setSumandoLote(false);
-    const total = seleccion.size;
-    const resultado = await aplicarAcadaUno((id) => adjustStock(id, n));
-    const { ok, exitosos } = resultado;
-    trackEvent("stock_added_lote", { vinos: ok, cantidad: n });
-    if (ok > 0) {
-      const mensaje = `${n === 1 ? "1 botella sumada" : `${n} botellas sumadas`} a ${ok === 1 ? "1 vino" : `${ok} vinos`}`;
-      const toastId = addToast(mensaje, "success", 9000, {
-        label: "Deshacer",
-        onClick: async () => {
-          removeToast(toastId);
-          const { ok: vueltos, total: cuantos } = await recorrerDeUno(exitosos, (id) => adjustStock(id, -n));
-          if (vueltos === cuantos) showSuccess("Stock devuelto a como estaba");
-          else showError(`Se devolvió el stock de ${vueltos} de ${cuantos} vinos`);
-        },
-      });
-    }
-    if (ok !== total) showError(`Se sumó en ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
-    cerrarLote(resultado);
-  };
-
-  const editarEnLote = async (cambios) => {
-    setEditandoLote(false);
-    const total = seleccion.size;
-    // Lo que cada vino tenía ANTES, para poder deshacer sin pisar a todos con un mismo valor.
-    const previos = instantaneaPrevia(wines, [...seleccion], cambios);
-    const resultado = await aplicarAcadaUno((id) => updateWine(id, cambios));
-    const { ok, exitosos } = resultado;
-    trackEvent("edicion_lote", { vinos: ok, campos: Object.keys(cambios).length });
-    if (ok > 0) {
-      const mensaje = ok === 1 ? "1 vino actualizado" : `${ok} vinos actualizados`;
-      const toastId = addToast(mensaje, "success", 9000, {
-        label: "Deshacer",
-        onClick: async () => {
-          removeToast(toastId);
-          // Sin foto previa de un vino no hay nada que devolver: cuenta como falla, no como un falso OK.
-          const { ok: vueltos, total: cuantos } = await recorrerDeUno(exitosos, async (id) => {
-            if (!previos[id]) throw new Error("sin estado previo");
-            await updateWine(id, previos[id]);
-          });
-          if (vueltos === cuantos) showSuccess("Cambios deshechos");
-          else showError(`Se deshicieron los cambios de ${vueltos} de ${cuantos} vinos`);
-        },
-      });
-    }
-    if (ok !== total) showError(`Se actualizaron ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
-    cerrarLote(resultado);
-  };
-
   const clearAllFilters = () => {
     setSoloListos(false);
     setProbado(null);
@@ -993,6 +916,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
       );
     });
   };
+
+  // Para el stepper de cada fila: funciones ESTABLES (WineRow está memoizada; una función nueva en
+  // cada render la haría re-renderizar entera) que siempre llaman a la versión actual.
+  const accionesRef = useRef({});
+  useEffect(() => {
+    accionesRef.current = { sumar: (w) => handleAddStock(w, 1), abrir: (w) => handleOpenBottle(w, 1) };
+  });
+  const sumarUna = useCallback((w) => accionesRef.current.sumar?.(w), []);
+  const abrirUna = useCallback((w) => accionesRef.current.abrir?.(w), []);
 
   const handleOpenBottle = (wine, cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
@@ -1461,6 +1393,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
                 onExpandir={setExpandedId}
                 onAbrirBotella={setAbriendo}
                 onSumarStock={setSumando}
+                onSumarUna={sumarUna}
+                onAbrirUna={abrirUna}
                 onMantener={entrarEnSeleccion}
                 onEliminar={setShowDeleteConfirm}
               />
@@ -1589,25 +1523,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
           son reversibles con el mismo botón que las aplicó. */}
       {modoSeleccion && (
         <div className="bodega-barra" role="group" aria-label="Acciones sobre lo seleccionado">
-          {[
-            { id: "tasted", icono: "check", rotulo: "Ya lo tomé", onClick: () => aplicarEnLote("tasted") },
-            { id: "favorite", icono: "heart", rotulo: "Favorito", onClick: () => aplicarEnLote("favorite") },
-            { id: "sumar", icono: "plus", rotulo: "Sumar botellas", onClick: () => setSumandoLote(true) },
-            { id: "editar", icono: "pencil", rotulo: "Editar", onClick: () => setEditandoLote(true) },
-            { id: "eliminar", icono: "trash", rotulo: "Eliminar", peligro: true, onClick: () => setConfirmarLote(true) },
-          ].map(({ id, icono, rotulo, onClick, peligro }) => (
-            <button
-              key={id}
-              type="button"
-              className={`bodega-barra__accion ${peligro ? "bodega-barra__accion--peligro" : ""}`}
-              disabled={seleccion.size === 0 || enLote}
-              onClick={onClick}
-              aria-label={rotulo}
-              title={rotulo}
-            >
-              <Icon name={icono} size={20} />
-            </button>
-          ))}
+          {/* Una sola acción: eliminar. Favorito, sumar o editar son cosas de cada vino y se hacen de a
+              uno; lo que tiene sentido hacer sobre varios es borrar. */}
+          <button
+            type="button"
+            className="bodega-barra__accion bodega-barra__accion--peligro"
+            disabled={seleccion.size === 0 || enLote}
+            onClick={() => setConfirmarLote(true)}
+          >
+            <Icon name="trash" size={18} />
+            <span>{seleccion.size > 1 ? `Eliminar ${seleccion.size}` : "Eliminar"}</span>
+          </button>
         </div>
       )}
 
@@ -1641,27 +1567,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onConfirm={() => handleDeleteWine(showDeleteConfirm)}
         onCancel={() => setShowDeleteConfirm(null)}
       />
-
-      {sumandoLote && (
-        <AddStockSheet
-          // Con un solo vino elegido se ve ese vino (y su stock real); con varios, "a cada uno de los N".
-          wine={(seleccion.size === 1 && wines.find((w) => w._id === [...seleccion][0])) || { name: "Varios vinos", quantity: 0 }}
-          lote={seleccion.size}
-          saving={enLote}
-          onCancel={() => setSumandoLote(false)}
-          onConfirm={sumarStockEnLote}
-        />
-      )}
-
-      {editandoLote && (
-        <BulkEditSheet
-          cantidad={seleccion.size}
-          regiones={[...new Set([...regionOptions, ...REGIONS])].sort((a, b) => a.localeCompare(b, "es"))}
-          saving={enLote}
-          onCancel={() => setEditandoLote(false)}
-          onConfirm={editarEnLote}
-        />
-      )}
 
       {sumando && (
         <AddStockSheet
