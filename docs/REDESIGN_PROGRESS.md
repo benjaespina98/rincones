@@ -536,3 +536,10 @@ Decisiones, con su porqué:
 - **La región del lote** se elige de una lista (las que ya usás y las conocidas) para que no se escriba distinto en cada vino.
 
 Sigue sin verificar: iPhone real (la pulsación larga y el callout de iOS, que se suprimió por CSS), cámara real y correos reales. Playwright sigue sin instalar: agrega una dependencia y la descarga de navegadores, y queda a decisión de quien mantiene el proyecto.
+
+### Stepper, selección, recomendación y Cuenta (2026-10-20)
+- **Marcar una botella tomada:** el "−" junto a la cantidad es "Tomé una botella" (descuenta del lote más viejo, marca el vino como probado y ofrece Deshacer y "Contá el momento"); el "+" suma una. Un solo gesto para lo más frecuente, sin abrir el panel. Sólo en las vistas En stock y Probados, no en la grilla ni en modo selección.
+- **Selección:** sólo eliminar. Favorito, sumar y editar son cosas de cada vino y se hacen de a uno; se borró el código del lote (BulkEditSheet, deshacerLote, enLote, camposDelLote). El chip dice "Ya lo probé".
+- **Recomendación de Descubrí:** el universo es catálogo + comunidad, menos lo que ya tenés y lo que guardaste para probar. Las uvas pesan por frecuencia; lo que puntuaste siempre bajo resta. Variación diaria y por persona, 12 resultados, fotos primero. El servidor devuelve `motivo` por vino: razones concretas ("Tomás Malbec (2 en tu bodega)") y un porcentaje de coincidencia (puntos ganados sobre los alcanzables con tu perfil; sólo con base mínima, y la tarjeta lo muestra desde 50%). Inspirado en el "Match for You" de Vivino.
+- **Cuenta:** "Tu perfil" (los números) va primero y la lista de ajustes pasa abajo bajo "Cuenta"; bordes neutros, íconos de la lista sin tinte violeta, sin salto al pasar el mouse.
+- Sigue sin verificar: iPhone real, cámara real, latencia de `/catalog/featured` en producción.

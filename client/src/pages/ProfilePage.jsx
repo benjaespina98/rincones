@@ -234,75 +234,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Cuenta: editar, admin y cerrar sesión. Separado de tu gusto de vino. */}
-      <div className="account-list">
-        <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
-          <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
-          <span className="account-item__label">Editar perfil</span>
-          <Icon name="chevron-right" size={16} className="account-item__chevron" />
-        </button>
-
-        <button className="account-item" type="button" onClick={() => setShowPrefs(true)}>
-          <span className="account-item__icon"><Icon name="sparkles" size={18} /></span>
-          <span className="account-item__label">Preferencias de gusto</span>
-          <Icon name="chevron-right" size={16} className="account-item__chevron" />
-        </button>
-
-        {/* "Cambiar contraseña" vivía acá, como pantalla propia con contraseña
-            actual + nueva. Se fue: el camino de siempre es "Olvidé mi
-            contraseña" desde el login, que ya existe (ResetPasswordPage) y no
-            depende de que la persona recuerde la actual — que es justo el caso
-            en el que más se necesita cambiarla. Mantener las dos puertas para
-            la misma acción era el problema, no la solución. */}
-        {isAdmin && (
-          <button className="account-item" type="button" onClick={() => navigate("/admin")}>
-            <span className="account-item__icon"><Icon name="grid" size={18} /></span>
-            <span className="account-item__label">Panel de administración</span>
-            <Icon name="chevron-right" size={16} className="account-item__chevron" />
-          </button>
-        )}
-
-        {/* ── TUS DATOS ──────────────────────────────────────────────────────
-            Llevárselos y darse de baja van juntos y en ese orden, porque son la
-            misma decisión vista de dos lados. Sin la exportación, la baja
-            obliga a elegir entre irse y conservar lo propio — y lo propio acá
-            son años de cargar botellas con lo que se pagó, dónde está guardada
-            cada una y con quién se tomó. */}
-        <button className="account-item" type="button" onClick={() => navigate("/privacidad")}>
-          <span className="account-item__icon"><Icon name="lock" size={18} /></span>
-          <span className="account-item__label">Privacidad y términos</span>
-          <Icon name="chevron-right" size={16} className="account-item__chevron" />
-        </button>
-
-        <button className="account-item" type="button" onClick={exportarDatos} disabled={exportando}>
-          <span className="account-item__icon"><Icon name="arrow-right" size={18} /></span>
-          <span className="account-item__label">
-            {exportando ? "Preparando el archivo…" : "Descargar mis datos"}
-          </span>
-          {!exportando && <Icon name="chevron-right" size={16} className="account-item__chevron" />}
-        </button>
-
-        <button
-          className="account-item account-item--danger"
-          type="button"
-          onClick={() => setShowLogoutConfirm(true)}
-        >
-          <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
-          <span className="account-item__label">Cerrar sesión</span>
-        </button>
-
-        {/* La baja va última y separada del resto: es la única acción de esta
-            pantalla que no se puede deshacer. */}
-        <button
-          className="account-item account-item--danger"
-          type="button"
-          onClick={() => setShowDeleteAccount(true)}
-        >
-          <span className="account-item__icon"><Icon name="trash" size={18} /></span>
-          <span className="account-item__label">Eliminar mi cuenta</span>
-        </button>
-      </div>
-
       <h2 className="profile-section-title">Tu perfil</h2>
 
       {/* ── UN NÚMERO CON TIEMPO ADENTRO ────────────────────────────────────
@@ -501,6 +432,77 @@ export default function ProfilePage() {
       {/* Cuántos vinos probaste: es lo que decide si el diario vacío se muestra
           como invitación o no se muestra en absoluto. Ver MomentsDiary. */}
       <MomentsDiary probados={wineStats?.totals?.consumed || 0} />
+
+      {/* Cuenta: editar, admin y cerrar sesión. Va después de tu perfil de vino: lo que la persona
+          viene a mirar son sus números, no una lista de ajustes de seis filas. */}
+      <h2 className="profile-section-title">Cuenta</h2>
+      <div className="account-list">
+        <button className="account-item" type="button" onClick={() => setIsEditing(true)}>
+          <span className="account-item__icon"><Icon name="pencil" size={18} /></span>
+          <span className="account-item__label">Editar perfil</span>
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
+        </button>
+
+        <button className="account-item" type="button" onClick={() => setShowPrefs(true)}>
+          <span className="account-item__icon"><Icon name="sparkles" size={18} /></span>
+          <span className="account-item__label">Preferencias de gusto</span>
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
+        </button>
+
+        {/* "Cambiar contraseña" vivía acá, como pantalla propia con contraseña
+            actual + nueva. Se fue: el camino de siempre es "Olvidé mi
+            contraseña" desde el login, que ya existe (ResetPasswordPage) y no
+            depende de que la persona recuerde la actual — que es justo el caso
+            en el que más se necesita cambiarla. Mantener las dos puertas para
+            la misma acción era el problema, no la solución. */}
+        {isAdmin && (
+          <button className="account-item" type="button" onClick={() => navigate("/admin")}>
+            <span className="account-item__icon"><Icon name="grid" size={18} /></span>
+            <span className="account-item__label">Panel de administración</span>
+            <Icon name="chevron-right" size={16} className="account-item__chevron" />
+          </button>
+        )}
+
+        {/* ── TUS DATOS ──────────────────────────────────────────────────────
+            Llevárselos y darse de baja van juntos y en ese orden, porque son la
+            misma decisión vista de dos lados. Sin la exportación, la baja
+            obliga a elegir entre irse y conservar lo propio — y lo propio acá
+            son años de cargar botellas con lo que se pagó, dónde está guardada
+            cada una y con quién se tomó. */}
+        <button className="account-item" type="button" onClick={() => navigate("/privacidad")}>
+          <span className="account-item__icon"><Icon name="lock" size={18} /></span>
+          <span className="account-item__label">Privacidad y términos</span>
+          <Icon name="chevron-right" size={16} className="account-item__chevron" />
+        </button>
+
+        <button className="account-item" type="button" onClick={exportarDatos} disabled={exportando}>
+          <span className="account-item__icon"><Icon name="arrow-right" size={18} /></span>
+          <span className="account-item__label">
+            {exportando ? "Preparando el archivo…" : "Descargar mis datos"}
+          </span>
+          {!exportando && <Icon name="chevron-right" size={16} className="account-item__chevron" />}
+        </button>
+
+        <button
+          className="account-item account-item--danger"
+          type="button"
+          onClick={() => setShowLogoutConfirm(true)}
+        >
+          <span className="account-item__icon"><Icon name="log-out" size={18} /></span>
+          <span className="account-item__label">Cerrar sesión</span>
+        </button>
+
+        {/* La baja va última y separada del resto: es la única acción de esta
+            pantalla que no se puede deshacer. */}
+        <button
+          className="account-item account-item--danger"
+          type="button"
+          onClick={() => setShowDeleteAccount(true)}
+        >
+          <span className="account-item__icon"><Icon name="trash" size={18} /></span>
+          <span className="account-item__label">Eliminar mi cuenta</span>
+        </button>
+      </div>
 
       {/* El final de la pantalla, a propósito: la letra chica de la app. */}
       <PieDeLaApp />
