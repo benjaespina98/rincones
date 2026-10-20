@@ -41,7 +41,7 @@ describe("WineRow: stepper junto a la cantidad", () => {
     const onAbrirFicha = vi.fn();
     const { onSumarUna, onAbrirUna } = montar({ onAbrirFicha });
     fireEvent.click(screen.getByRole("button", { name: "Sumar una botella" }));
-    fireEvent.click(screen.getByRole("button", { name: "Abrí una botella" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tomé una botella" }));
     expect(onSumarUna).toHaveBeenCalledWith(VINO);
     expect(onAbrirUna).toHaveBeenCalledWith(VINO);
     expect(onAbrirFicha).not.toHaveBeenCalled();
@@ -50,7 +50,7 @@ describe("WineRow: stepper junto a la cantidad", () => {
   it("sin stock sólo hay '+': no hay nada que abrir", () => {
     montar({}, { ...VINO, quantity: 0 });
     expect(screen.getByRole("button", { name: "Sumar una botella" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Abrí una botella" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tomé una botella" })).toBeNull();
   });
 
   it("no aparece en grilla, mientras se selecciona, ni sin el handler", () => {
@@ -67,7 +67,7 @@ describe("WineRow: stepper junto a la cantidad", () => {
   it("con una acción en vuelo los botones se apagan", () => {
     montar({ isPending: true });
     expect(screen.getByRole("button", { name: "Sumar una botella" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Abrí una botella" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tomé una botella" })).toBeDisabled();
   });
 
   it("el chip de probado dice 'Ya lo probé' / 'Marcar como probado'", () => {

@@ -1684,7 +1684,6 @@
   padding: 0 18px;
   font-size: var(--text-sm);
   font-weight: 700;
-  padding: 0;
   border: 0;
   border-radius: var(--radius-full);
   background: transparent;
@@ -2059,10 +2058,15 @@
   min-width: 92px;
 }
 
+/* Sin stock el stepper es sólo el "+": reserva menos. */
+.wine-row__qty.tiene-stepper.is-empty {
+  min-width: 52px;
+}
+
 .wine-row__stepper {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 10px;
+  right: 12px;
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -2103,7 +2107,7 @@
 .wine-row__stepper-btn::after {
   content: "";
   position: absolute;
-  inset: -8px -4px;
+  inset: -8px -9px;
 }
 
 .wine-row__stepper-btn:active:not(:disabled) {

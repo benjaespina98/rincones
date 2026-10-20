@@ -73,8 +73,10 @@ function WineRow({
   // llega ya tiene stock por construcción (`pasaVista`).
   const esVitrina = vista === "instock" && Number(wine.quantity) > 0;
   // El stepper (− ×1 +) junto a la cantidad: sumar o abrir una botella sin desplegar la fila. No en
-  // grilla (no hay lugar), ni mientras se elige, ni en lo que nunca fue tuyo.
-  const conStepper = Boolean(onSumarUna) && !esGrilla && !modoSeleccion;
+  // grilla (no hay lugar) ni mientras se elige. Un vino que tomaste afuera SÍ lo muestra, sólo con el "+":
+  // sumarle una botella es exactamente lo que pasa cuando después lo comprás.
+  // Sólo en En stock y Ya tomados: en Favoritos el chip de probado ocupa ese lugar de la fila.
+  const conStepper = Boolean(onSumarUna) && !esGrilla && !modoSeleccion && (vista === "instock" || vista === "probados");
   // Mantener apretado: entra en el modo selección con este vino elegido (igual que "Seleccionar").
   const mantener = useLongPress(() => onMantener?.(wine._id), { habilitado: Boolean(onMantener) && !modoSeleccion });
   /**
@@ -413,8 +415,8 @@ function WineRow({
                 className="wine-row__stepper-btn"
                 onClick={() => onAbrirUna?.(wine)}
                 disabled={isPending}
-                aria-label="Abrí una botella"
-                title="Abrí una botella"
+                aria-label="Tomé una botella"
+                title="Tomé una botella"
               >
                 <Icon name="minus" size={14} />
               </button>
