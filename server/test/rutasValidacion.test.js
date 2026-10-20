@@ -18,9 +18,9 @@ const CommunityWine = require("../src/models/communityWine.model");
  * y es la que desloguea a quien se equivoca de contraseña al eliminar su cuenta.
  */
 const ID = "000000000000000000000001";
-const token = () => jwt.sign({ sub: ID, email: "qa@example.com", role: "user" }, process.env.JWT_SECRET, { expiresIn: "5m" });
+const token = (sub = ID) => jwt.sign({ sub, email: "qa@example.com", role: "user" }, process.env.JWT_SECRET, { expiresIn: "5m" });
 
-const pedir = (metodo, path, body) =>
+const pedir = (metodo, path, body, sub) =>
   new Promise((resolve, reject) => {
     const server = http.createServer(app).listen(0, () => {
       const datos = body === undefined ? null : JSON.stringify(body);
@@ -30,7 +30,7 @@ const pedir = (metodo, path, body) =>
           path,
           method: metodo,
           headers: {
-            Authorization: `Bearer ${token()}`,
+            Authorization: `Bearer ${token(sub)}`,
             ...(datos ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(datos) } : {}),
           },
         },
@@ -183,5 +183,43 @@ test("communityWines.conFoto: sólo publicados con foto Y (verificados o con una
   } finally {
     CommunityWine.find = original;
     communityWines.olvidarCache();
+  }
+});
+
+test("PUT /users/password: después de 10 intentos fallidos corta con 429 (por usuario)", async () => {
+  await conUsuario(async () => {
+    const OTRO = "000000000000000000000099";
+    let ultimo = null;
+    for (let i = 0; i < 11; i += 1) {
+      ultimo = await pedir("PUT", "/api/users/password", { currentPassword: "mala", newPassword: "Nueva12345!" }, OTRO);
+      if (i < 10) assert.equal(ultimo.status, 403, `intento ${i + 1}`);
+    }
+    assert.equal(ultimo.status, 429);
+    assert.match(ultimo.body.message, /muchas veces/);
+    // Otro usuario no queda afectado.
+    const distinto = await pedir("PUT", "/api/users/password", { currentPassword: "mala", newPassword: "Nueva12345!" }, "000000000000000000000098");
+    assert.equal(distinto.status, 403);
+  });
+});
+
+test("GET /users/:id/wine-stats: el promedio dice de cuántos vinos sale (bodega), aparte de las reseñas publicadas", async () => {
+  const WineReview = require("../src/models/wineReview.model");
+  const origStats = Wine.getUserStats;
+  const origCount = WineReview.countDocuments;
+  const origWineCount = Wine.countDocuments;
+  Wine.countDocuments = () => Promise.resolve(0);
+  Wine.getUserStats = async () => ({ avgRating: 3.83, ratedCount: 6, totals: { total: 6 } });
+  WineReview.countDocuments = () => Promise.resolve(2);
+  try {
+    const r = await pedir("GET", `/api/users/${ID}/wine-stats`);
+    assert.equal(r.status, 200);
+    const stats = r.body.data || r.body;
+    assert.equal(stats.ratedInCellar, 6);
+    assert.equal(stats.ratedCount, 2);
+    assert.equal(stats.avgRating, 3.83);
+  } finally {
+    Wine.getUserStats = origStats;
+    WineReview.countDocuments = origCount;
+    Wine.countDocuments = origWineCount;
   }
 });

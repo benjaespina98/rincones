@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import Toast from "../components/Toast";
+import { agregarConTope } from "../utils/toastCola";
 
 const ToastContext = createContext(null);
 
@@ -12,7 +13,7 @@ export const ToastProvider = ({ children }) => {
     // una API que los navegadores mantienen sólo por compatibilidad.
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
-    setToasts((prev) => [...prev, { id, message, type, duration, action }]);
+    setToasts((prev) => agregarConTope(prev, { id, message, type, duration, action }));
 
     return id;
   }, []);
