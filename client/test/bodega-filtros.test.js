@@ -318,3 +318,39 @@ describe("filtros por bodega y puntaje, y fichas rápidas por dimensión", () =>
     expect(chipsRapidosDe(vinos, "bodega").map((c) => c.id)).toEqual(["Catena", "Colomé"]);
   });
 });
+
+describe("orden por defecto: lo más reciente primero", () => {
+  const dia = (d) => `2026-10-${String(d).padStart(2, "0")}T12:00:00.000Z`;
+
+  it("fechaReciente toma lo más nuevo entre cargarlo, reponer botellas y abrir una", async () => {
+    const { fechaReciente } = await import("../src/utils/bodegaFiltros");
+    const w = { createdAt: dia(1), lastConsumedAt: dia(10), lots: [{ addedAt: dia(5) }, { addedAt: dia(20) }] };
+    expect(fechaReciente(w)).toBe(new Date(dia(20)).getTime());
+    expect(fechaReciente({ createdAt: dia(3) })).toBe(new Date(dia(3)).getTime());
+    expect(fechaReciente({})).toBe(0);
+    expect(fechaReciente(null)).toBe(0);
+  });
+
+  it("por defecto ordena por esa fecha SIN poner primero lo que tiene stock", async () => {
+    const { ordenarVinos } = await import("../src/utils/bodegaFiltros");
+    const vinos = [
+      { _id: "viejo-con-stock", name: "A", quantity: 3, createdAt: dia(1) },
+      { _id: "reciente-sin-stock", name: "B", quantity: 0, lastConsumedAt: dia(25) },
+      { _id: "medio-con-stock", name: "C", quantity: 1, createdAt: dia(10) },
+    ];
+    expect(ordenarVinos(vinos, { sortBy: "recent" }).map((w) => w._id)).toEqual([
+      "reciente-sin-stock",
+      "medio-con-stock",
+      "viejo-con-stock",
+    ]);
+  });
+
+  it("al elegir otro orden, el stock vuelve a ir primero", async () => {
+    const { ordenarVinos } = await import("../src/utils/bodegaFiltros");
+    const vinos = [
+      { _id: "sin-stock-mejor", name: "A", quantity: 0, rating: 5 },
+      { _id: "con-stock", name: "B", quantity: 2, rating: 3 },
+    ];
+    expect(ordenarVinos(vinos, { sortBy: "rating" }).map((w) => w._id)).toEqual(["con-stock", "sin-stock-mejor"]);
+  });
+});

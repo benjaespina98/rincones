@@ -129,6 +129,23 @@ const getImagesFor = async (wines = []) => {
 };
 
 /**
+ * Qué vinos de una lista tienen foto en el pool compartido, SIN traer las fotos (son data URL y
+ * pesan). Devuelve el conjunto de claves (`poolKey`) que sí tienen. Sirve para saber, entre
+ * cientos de candidatos, cuáles lucirían con foto, y recién después pedir la imagen de los pocos
+ * elegidos con `getImagesFor`. Nunca lanza.
+ */
+const keysConFoto = async (wines = []) => {
+  const keys = [...new Set(wines.map((w) => wineKey(w.name, w.winery, w.varietal)).filter(Boolean))];
+  if (keys.length === 0) return new Set();
+  try {
+    const docs = await WineImage.find({ key: { $in: keys } }).select("key").lean();
+    return new Set(docs.map((d) => d.key));
+  } catch {
+    return new Set();
+  }
+};
+
+/**
  * Enriquece una lista de resultados de búsqueda: a los que no tienen imagen les
  * pega la del pool si existe. Una sola consulta para toda la lista.
  */
@@ -205,4 +222,4 @@ const adminSet = async ({ name, winery, varietal, image, userId }) => {
   return { id: doc._id, key, qualityScore: set.qualityScore ?? null };
 };
 
-module.exports = { contribute, adminSet, getImage, getImagesFor, enrichWithImages, wineKey };
+module.exports = { contribute, adminSet, getImage, getImagesFor, keysConFoto, enrichWithImages, wineKey };

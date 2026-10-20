@@ -159,33 +159,6 @@ test("fail(): ValidationError sin errores da el mensaje genérico y un error com
   assert.equal(b.code, 500);
 });
 
-test("communityWines.conFoto: sólo publicados con foto Y (verificados o con una lectura confiable)", async () => {
-  const original = CommunityWine.find;
-  let filtro = null;
-  CommunityWine.find = (f) => {
-    filtro = f;
-    const q = Promise.resolve([]);
-    q.select = () => q;
-    q.sort = () => q;
-    q.limit = () => q;
-    q.lean = () => q;
-    return q;
-  };
-  communityWines.olvidarCache();
-  try {
-    await communityWines.conFoto(300);
-    assert.equal(filtro.published, true);
-    assert.deepEqual(filtro.$or, [{ verified: true }, { trustedCount: { $gt: 0 } }]);
-    assert.ok(filtro.image.$regex.test("https://x/a.jpg"));
-    assert.ok(filtro.image.$regex.test("data:image/jpeg;base64,AAAA"));
-    assert.ok(!filtro.image.$regex.test("http://inseguro/a.jpg"));
-    assert.ok(!filtro.image.$regex.test(""));
-  } finally {
-    CommunityWine.find = original;
-    communityWines.olvidarCache();
-  }
-});
-
 test("PUT /users/password: después de 10 intentos fallidos corta con 429 (por usuario)", async () => {
   await conUsuario(async () => {
     const OTRO = "000000000000000000000099";

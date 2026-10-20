@@ -23,9 +23,10 @@ describe("Escanear es un lugar de la barra, con nombre", () => {
 
 describe("el panel de la fila nombra sus acciones", () => {
   const jsx = leer("src/components/WineRowPanel.jsx");
-  test("Favorito y Eliminar tienen texto visible", () => {
-    expect(jsx).toMatch(/Favorito\s*\n\s*<\/button>/);
-    expect(jsx).toMatch(/Eliminar\s*\n\s*<\/button>/);
+  test("Favorito y Eliminar son sólo ícono pero tienen nombre accesible y tooltip", () => {
+    expect(jsx).toMatch(/aria-label="Favorito"/);
+    expect(jsx).toMatch(/aria-label="Eliminar"/);
+    expect(jsx).toMatch(/title="Eliminar"/);
   });
   test("no repite el tipo, que ya está en la etiqueta de la fila", () => {
     expect(jsx).not.toMatch(/\["Tipo"/);

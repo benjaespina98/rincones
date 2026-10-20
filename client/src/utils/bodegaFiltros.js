@@ -116,6 +116,24 @@ export const opcionesDe = (wines = []) => ({
     .map(String),
 });
 
+const tiempoDe = (valor) => {
+  const t = new Date(valor || 0).getTime();
+  return Number.isFinite(t) ? t : 0;
+};
+
+/**
+ * Cuándo pasó algo por última vez con este vino: el momento más nuevo entre que lo cargaste, que
+ * sumaste botellas (la fecha de cada lote) y que abriste una. Es lo que "recientes" quiere decir:
+ * en "Ya tomados" manda lo que tomaste hace poco, en "En stock" lo que cargaste o repusiste hace
+ * poco. Sin fechas, 0 (queda al final).
+ */
+export const fechaReciente = (wine) =>
+  Math.max(
+    tiempoDe(wine?.createdAt),
+    tiempoDe(wine?.lastConsumedAt),
+    ...(Array.isArray(wine?.lots) ? wine.lots.map((l) => tiempoDe(l?.addedAt)) : [])
+  );
+
 /** El comparador de cada orden. Separado para poder testearlo suelto. */
 export const comparadorDe = (sortBy) => (a, b) => {
   if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
@@ -125,28 +143,33 @@ export const comparadorDe = (sortBy) => (a, b) => {
   // falta, y las dos cosas no pueden verse igual en la lista.
   if (sortBy === "price") return (b.purchase?.price || 0) - (a.purchase?.price || 0);
   if (sortBy === "name") return wineDisplayName(a).localeCompare(wineDisplayName(b), "es");
-  return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  return fechaReciente(b) - fechaReciente(a);
 };
 
 /**
- * Ordena la lista, con dos reglas que mandan sobre el orden elegido.
+ * Ordena la lista.
  *
- * ── EL STOCK VA PRIMERO ─────────────────────────────────────────────────────
- * Mi Bodega responde "¿qué tengo para tomar?". En las vistas que mezclan, lo
- * que ya se terminó quedaba intercalado entre lo que sí hay, así que con 300
- * vinos había que ir salteando botellas vacías para encontrar una llena. Lo
- * vacío no desaparece —sigue siendo parte de la colección— pero deja de ser
- * protagonista.
+ * ── POR DEFECTO, LO MÁS RECIENTE PRIMERO ────────────────────────────────────
+ * Sin haber elegido nada ("recientes") el orden es PURO: lo último que pasó con cada vino
+ * (cargarlo, reponer botellas, abrir una) va arriba, sin reglas encima. Es lo que se espera de
+ * "En stock", "Ya tomados" y "Favoritos": ver arriba lo que acabás de tocar. Los filtros se aplican
+ * después, cuando la persona los ajusta.
  *
- * ── Y EL GRUPO ANTES QUE TODO ───────────────────────────────────────────────
- * Con agrupación activa hay que ordenar primero por grupo: si no, los vinos de
- * cada grupo quedan intercalados y el corte salta en cada cambio. Con 92 vinos
- * aparecían 35 encabezados repitiendo "Tinto / Blanco / Tinto".
+ * ── SI ELIGE OTRO ORDEN ─────────────────────────────────────────────────────
+ * Entonces sí rigen dos reglas que mandan sobre el orden elegido:
+ *
+ *   · EL STOCK VA PRIMERO. Mi Bodega responde "¿qué tengo para tomar?": lo ya terminado no
+ *     desaparece pero deja de ser protagonista.
+ *   · Y EL GRUPO ANTES QUE TODO. Con agrupación activa hay que ordenar primero por grupo, o los
+ *     vinos de cada grupo quedan intercalados y el corte salta en cada cambio.
  */
 export const ordenarVinos = (wines = [], { sortBy = "recent", groupOf = null } = {}) => {
   const porOrden = comparadorDe(sortBy);
 
+  // Por defecto ("recientes") el orden es PURO: lo último primero, sin reglas encima. El "stock
+  // primero" sólo acompaña a un orden que la persona eligió a propósito.
   const conStockPrimero = (a, b) => {
+    if (sortBy === "recent" || !sortBy) return porOrden(a, b);
     const sa = Number(a.quantity) > 0 ? 0 : 1;
     const sb = Number(b.quantity) > 0 ? 0 : 1;
     if (sa !== sb) return sa - sb;
