@@ -147,19 +147,21 @@ export const comparadorDe = (sortBy) => (a, b) => {
 };
 
 /**
- * Ordena la lista, con dos reglas que mandan sobre el orden elegido.
+ * Ordena la lista.
  *
- * ── EL STOCK VA PRIMERO ─────────────────────────────────────────────────────
- * Mi Bodega responde "¿qué tengo para tomar?". En las vistas que mezclan, lo
- * que ya se terminó quedaba intercalado entre lo que sí hay, así que con 300
- * vinos había que ir salteando botellas vacías para encontrar una llena. Lo
- * vacío no desaparece —sigue siendo parte de la colección— pero deja de ser
- * protagonista.
+ * ── POR DEFECTO, LO MÁS RECIENTE PRIMERO ────────────────────────────────────
+ * Sin haber elegido nada ("recientes") el orden es PURO: lo último que pasó con cada vino
+ * (cargarlo, reponer botellas, abrir una) va arriba, sin reglas encima. Es lo que se espera de
+ * "En stock", "Ya tomados" y "Favoritos": ver arriba lo que acabás de tocar. Los filtros se aplican
+ * después, cuando la persona los ajusta.
  *
- * ── Y EL GRUPO ANTES QUE TODO ───────────────────────────────────────────────
- * Con agrupación activa hay que ordenar primero por grupo: si no, los vinos de
- * cada grupo quedan intercalados y el corte salta en cada cambio. Con 92 vinos
- * aparecían 35 encabezados repitiendo "Tinto / Blanco / Tinto".
+ * ── SI ELIGE OTRO ORDEN ─────────────────────────────────────────────────────
+ * Entonces sí rigen dos reglas que mandan sobre el orden elegido:
+ *
+ *   · EL STOCK VA PRIMERO. Mi Bodega responde "¿qué tengo para tomar?": lo ya terminado no
+ *     desaparece pero deja de ser protagonista.
+ *   · Y EL GRUPO ANTES QUE TODO. Con agrupación activa hay que ordenar primero por grupo, o los
+ *     vinos de cada grupo quedan intercalados y el corte salta en cada cambio.
  */
 export const ordenarVinos = (wines = [], { sortBy = "recent", groupOf = null } = {}) => {
   const porOrden = comparadorDe(sortBy);

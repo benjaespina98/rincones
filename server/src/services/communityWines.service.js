@@ -343,11 +343,17 @@ const search = async (query, limit = 12) => {
 const CACHE_MS = 10 * 60 * 1000;
 let cacheParaRecomendar = { hasta: 0, limit: 0, lista: [] };
 
-const paraRecomendar = async (limit = 1500) => {
+let enVuelo = null;
+
+const paraRecomendar = async (limit = 800) => {
   const ahora = Date.now();
   if (cacheParaRecomendar.hasta > ahora && cacheParaRecomendar.limit >= limit) {
     return cacheParaRecomendar.lista.slice(0, limit);
   }
+  // Un solo pedido a la base a la vez: en un arranque en frío con varias personas entrando juntas,
+  // todas esperan al mismo aggregate en vez de lanzar uno cada una.
+  if (enVuelo) return enVuelo.then((lista) => lista.slice(0, limit));
+  enVuelo = (async () => {
   try {
     const docs = await CommunityWine.aggregate([
       { $match: { published: true } },
@@ -364,8 +370,10 @@ const paraRecomendar = async (limit = 1500) => {
           count: 1,
           verified: 1,
           trustedCount: 1,
+          // Los primeros caracteres alcanzan para saber si hay una foto válida (https o data:image),
+          // y funciona en cualquier versión de MongoDB (a diferencia de $regexMatch, que pide 4.2+).
           tieneFoto: {
-            $regexMatch: { input: { $ifNull: ["$image", ""] }, regex: "^(https://|data:image/)" },
+            $in: [{ $substrCP: [{ $ifNull: ["$image", ""] }, 0, 8] }, ["https://", "data:ima"]],
           },
         },
       },
@@ -388,9 +396,16 @@ const paraRecomendar = async (limit = 1500) => {
     }));
     cacheParaRecomendar = { hasta: ahora + CACHE_MS, limit, lista };
     return lista;
-  } catch {
+  } catch (error) {
+    // No se cachea (se reintenta), pero tampoco se calla: sin esto, un fallo de la consulta dejaba a
+    // Descubrí recomendando sólo el catálogo curado sin que nada lo dijera.
+    console.warn("[recomendaciones] no se pudo leer el catálogo comunitario:", error?.message || error);
     return [];
+  } finally {
+    enVuelo = null;
   }
+  })();
+  return enVuelo;
 };
 
 /** Las fotos de unos pocos vinos comunitarios, por id (`com-<key>`). Sólo las que son válidas. */

@@ -298,7 +298,10 @@ const pairing = async (req, res, next) => {
 const DESTACADOS = 12;
 
 // Cuánto puede mover el desempate diario a un vino de lugar (ver `rankFeatured`).
-const JITTER_DIARIO = 2;
+// Máximo 1: menos que lo que pesa la región (1,5) y que lo que suman la foto y la buena identificación
+// juntas (1,25) con lo que pesa la uva (3), para que la rotación mueva a los parecidos y nunca ponga
+// delante a un vino sin ninguna afinidad.
+const JITTER_DIARIO = 1;
 
 // Un entero estable por persona, para que dos personas con el mismo gusto no reciban el mismo set.
 const semillaDePersona = (id) => {
@@ -340,7 +343,7 @@ const featured = async (req, res, next) => {
      * comunitario, con o sin foto), menos lo que esta persona ya tiene. Se rankea por gusto, y la
      * foto y la buena identificación SUMAN puntos pero no filtran:
      *
-     *   · foto (+1): la tarjeta grande luce mucho más con la botella real. Pero un vino que todavía
+     *   · foto (+0,75): la tarjeta grande luce mucho más con la botella real. Pero un vino que todavía
      *     no tiene foto puede ser la mejor recomendación, y entra igual.
      *   · bien identificado (+0,5 / +0,25): un vino confirmado por dos personas, o leído con
      *     confianza, sale antes que uno dudoso del mismo gusto.
@@ -354,19 +357,21 @@ const featured = async (req, res, next) => {
      * la persona). Dentro del día el set es estable.
      */
     const curado = catalogService.getCatalogPool();
-    const propios = new Set(wines.map((w) => poolKey(w.name, w.winery, w.varietal)));
-    const vistos = new Set(curado.map((w) => poolKey(w.name, w.winery, w.varietal)));
-    const comunitarios = (await communityWines.paraRecomendar(1500)).filter((w) => {
-      const k = poolKey(w.name, w.winery, w.varietal);
+    // `poolKey` devuelve null con un nombre demasiado corto: esas entradas no entran a los conjuntos (si no,
+    // un null descartaría a todos los demás que tampoco tienen clave).
+    const claveOk = (w) => poolKey(w.name, w.winery, w.varietal) || null;
+    const propios = new Set(wines.map(claveOk).filter(Boolean));
+    const vistos = new Set(curado.map(claveOk).filter(Boolean));
+    const comunitarios = (await communityWines.paraRecomendar(800)).filter((w) => {
+      const k = claveOk(w);
+      if (!k) return true;
       if (vistos.has(k)) return false;
       vistos.add(k);
       return true;
     });
     // Lo que ya tenés no se recomienda, aunque lo tengas escrito de otra forma (misma clave de
     // identidad que usa todo el catálogo).
-    const universo = [...curado, ...comunitarios].filter(
-      (w) => !propios.has(poolKey(w.name, w.winery, w.varietal))
-    );
+    const universo = [...curado, ...comunitarios].filter((w) => !propios.has(claveOk(w)));
 
     const clavesConFoto = await wineImages.keysConFoto(universo);
     const tieneFoto = (w) =>
@@ -376,7 +381,7 @@ const featured = async (req, res, next) => {
     const elegidos = recommendations.rankFeatured(universo, perfil, {
       count: DESTACADOS,
       seed: semillaDelDia() + semillaDePersona(req.user.id),
-      extra: (w) => (tieneFoto(w) ? 1 : 0) + calidad(w),
+      extra: (w) => (tieneFoto(w) ? 0.75 : 0) + calidad(w),
       jitter: JITTER_DIARIO,
     });
 

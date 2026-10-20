@@ -260,13 +260,13 @@ test("communityWines.paraRecomendar: todo lo publicado (sin exigir verificación
   };
   communityWines.olvidarCache();
   try {
-    const lista = await communityWines.paraRecomendar(1500);
-    await communityWines.paraRecomendar(1500);
+    const lista = await communityWines.paraRecomendar(800);
+    await communityWines.paraRecomendar(800);
     assert.equal(llamadas, 1, "cacheado");
     assert.deepEqual(pipeline[0], { $match: { published: true } }, "no exige verified ni foto");
     const proyeccion = pipeline.find((e) => e.$project).$project;
     assert.ok(!("image" in proyeccion), "no trae la imagen");
-    assert.ok(proyeccion.tieneFoto.$regexMatch, "sabe si tiene foto");
+    assert.ok(proyeccion.tieneFoto.$in, "sabe si tiene foto (por los primeros caracteres)");
     assert.deepEqual(
       lista.map((w) => [w.id, w.fotoDiferida, w.confiable, w.source]),
       [
@@ -302,4 +302,65 @@ test("wineImages.keysConFoto: sólo pide las claves (no las fotos) y tolera que 
   } finally {
     WineImage.find = original;
   }
+});
+
+test("communityWines.paraRecomendar: si la consulta falla devuelve [] y NO lo cachea (se reintenta); varias a la vez comparten un solo pedido", async () => {
+  const original = CommunityWine.aggregate;
+  const avisos = [];
+  const warn = console.warn;
+  console.warn = (...a) => avisos.push(a.join(" "));
+  let llamadas = 0;
+  CommunityWine.aggregate = async () => {
+    llamadas += 1;
+    throw new Error("cluster viejo");
+  };
+  communityWines.olvidarCache();
+  try {
+    assert.deepEqual(await communityWines.paraRecomendar(800), []);
+    assert.ok(avisos.some((a) => a.includes("cluster viejo")), "queda avisado en el log");
+    await communityWines.paraRecomendar(800);
+    assert.equal(llamadas, 2, "no se cachea el fallo");
+
+    CommunityWine.aggregate = async () => {
+      llamadas += 1;
+      await new Promise((r) => setTimeout(r, 20));
+      return [{ key: "z", name: "Z", winery: "B", count: 1, verified: false, trustedCount: 0, tieneFoto: false }];
+    };
+    llamadas = 0;
+    communityWines.olvidarCache();
+    const [a, b, c] = await Promise.all([communityWines.paraRecomendar(800), communityWines.paraRecomendar(800), communityWines.paraRecomendar(800)]);
+    assert.equal(llamadas, 1, "un solo pedido a la base");
+    assert.equal(a.length + b.length + c.length, 3);
+  } finally {
+    console.warn = warn;
+    CommunityWine.aggregate = original;
+    communityWines.olvidarCache();
+  }
+});
+
+test("featured: la rotación diaria nunca pone un vino sin afinidad delante de uno de su uva favorita", async () => {
+  const universo = [
+    vino("favorito", { varietal: "Malbec", region: "Mendoza", type: "red", winery: "B-fav" }),
+    ...Array.from({ length: 60 }, (_, i) => vino(`ajeno${i}`, { varietal: "Riesling", region: "Neuquén", type: "white", winery: `BA${i}`, source: "comunidad-verificada", confiable: true, fotoDiferida: true })),
+  ];
+  const propios = Array.from({ length: 4 }, (_, i) => ({ name: `Mi malbec ${i}`, winery: `Otra ${i}`, varietal: "Malbec", region: "Mendoza", type: "red", rating: 5 }));
+  for (let dia = 0; dia < 12; dia += 1) {
+    const { body } = await pedirFeatured({ curado: universo, propios, ahora: Date.UTC(2026, 9, 1 + dia, 12), preferencias: { favoriteVarietals: ["malbec"] } });
+    assert.equal(body.data[0].id, "favorito", `día ${dia + 1}`);
+  }
+});
+
+test("featured: un nombre sin clave de identidad (muy corto) no descarta a los demás", async () => {
+  const { body } = await pedirFeatured({
+    curado: [vino("a"), vino("b")],
+    comunitarios: [comunitario("corto1", { name: "X", winery: "" }), comunitario("corto2", { name: "Y", winery: "" })],
+    propios: [{ name: "Z", winery: "", varietal: "" }],
+  });
+  assert.ok(body.data.length >= 4, `devolvió ${body.data.length}`);
+});
+
+test("rankFeatured: con un pool de una sola uva el cupo se afloja y el set se completa igual", () => {
+  const perfil = recommendations.buildTasteProfile({ wines: [], preferences: {} });
+  const pool = Array.from({ length: 30 }, (_, i) => vino(`u${i}`, { winery: `B${i}` }));
+  assert.equal(recommendations.rankFeatured(pool, perfil, { count: 12, seed: 3 }).length, 12);
 });

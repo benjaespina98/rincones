@@ -1588,7 +1588,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           destructiva vive separada del resto y pide confirmación; las otras tres
           son reversibles con el mismo botón que las aplicó. */}
       {modoSeleccion && (
-        <div className="bodega-barra" role="toolbar" aria-label="Acciones sobre lo seleccionado">
+        <div className="bodega-barra" role="group" aria-label="Acciones sobre lo seleccionado">
           {[
             { id: "tasted", icono: "check", rotulo: "Ya lo tomé", onClick: () => aplicarEnLote("tasted") },
             { id: "favorite", icono: "heart", rotulo: "Favorito", onClick: () => aplicarEnLote("favorite") },

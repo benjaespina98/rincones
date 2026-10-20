@@ -1724,8 +1724,7 @@
 }
 
 .bodega-seleccion__texto {
-  position: relative;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 10px;
   border: 0;
   background: none;
@@ -1733,12 +1732,6 @@
   font-size: var(--text-meta);
   font-weight: 600;
   cursor: pointer;
-}
-
-.bodega-seleccion__texto::after {
-  content: "";
-  position: absolute;
-  inset: -4px 0;
 }
 
 .bodega-seleccion__texto--fuerte {
