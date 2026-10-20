@@ -102,7 +102,7 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
   return (
     <Portal>
       <div className="profile-editor" role="dialog" aria-modal="true" aria-label="Editar perfil">
-        <form className="profile-editor__panel" onSubmit={handleSubmit}>
+        <form className="profile-editor__panel" onSubmit={handleSubmit} noValidate>
           <header className="profile-editor__bar">
             <button
               type="button"

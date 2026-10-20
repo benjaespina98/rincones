@@ -12,6 +12,7 @@ const wineReviews = require("../services/wineReviews.service");
 const { deleteAccount } = require("../services/accountDeletion.service");
 const { exportAccount } = require("../services/accountExport.service");
 const { acotarLista } = require("../utils/acotarLista");
+const { passwordLimiter } = require("../middleware/aiLimiter");
 
 
 // GET /api/users/profile - Obtener perfil del usuario actual
@@ -179,7 +180,7 @@ router.get("/me/export", authenticate, async (req, res) => {
 // DELETE /api/users/me - Baja de cuenta con borrado real de los datos.
 // Pide el email escrito a mano (y la contraseña, si la cuenta tiene) para que
 // no se pueda disparar por un toque de más ni con una sesión olvidada abierta.
-router.delete("/me", authenticate, async (req, res) => {
+router.delete("/me", authenticate, passwordLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("+passwordHash email");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
@@ -211,7 +212,7 @@ router.delete("/me", authenticate, async (req, res) => {
 });
 
 // PUT /api/users/password - Cambiar contraseña
-router.put("/password", authenticate, async (req, res) => {
+router.put("/password", authenticate, passwordLimiter, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
@@ -332,6 +333,10 @@ router.get("/:id/wine-stats", authenticate, async (req, res) => {
      * esperando adentro: se pisa acá con el conteo real de lo que esa pantalla
      * va a mostrar.
      */
+    // El promedio (`avgRating`) sale de los puntajes de la bodega; este número es cuántos vinos lo
+    // forman. Se guarda aparte porque `ratedCount` se pisa justo abajo con otra cuenta (las reseñas
+    // publicadas), y el perfil terminaba diciendo "promedio de 2 vinos" sobre un promedio de 6.
+    stats.ratedInCellar = stats.ratedCount;
     stats.ratedCount = await wineReviews.countByUser(targetUserId);
 
     /**

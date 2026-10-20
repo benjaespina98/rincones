@@ -374,8 +374,8 @@ export default function ProfilePage() {
           {!statsLoading &&
             (wineStats?.avgRating > 0 ? (
               <div className="stat-card__hint">
-                {wineStats.ratedCount > 0
-                  ? `promedio de ${wineStats.ratedCount} ${wineStats.ratedCount === 1 ? "vino" : "vinos"}`
+                {(wineStats.ratedInCellar ?? wineStats.ratedCount) > 0
+                  ? `promedio de ${wineStats.ratedInCellar ?? wineStats.ratedCount} ${(wineStats.ratedInCellar ?? wineStats.ratedCount) === 1 ? "vino" : "vinos"}`
                   : "promedio de lo que puntuaste"}
               </div>
             ) : (
