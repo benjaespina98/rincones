@@ -1966,3 +1966,65 @@
 .bodega-tipos__chip.is-active .bodega-tipos__n {
   color: inherit;
 }
+
+/* El puntaje en la línea de la bodega ("Catena Zapata · ★ 4,0"): mismo tamaño que el texto que lo
+   rodea, con la estrella en dorado, que es el único uso del dorado en la fila. */
+.wine-row__rating-inline {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.wine-row__rating-inline .icon {
+  color: var(--gold-soft);
+  vertical-align: -1px;
+}
+
+/* Con qué se filtran las fichas de abajo: Tipo · Uva · Región · Bodega. Texto chico con subrayado
+   en la activa: se lee como un selector de pestañas y no como otra fila de fichas. */
+.bodega-dim {
+  display: flex;
+  gap: 18px;
+  /* El padding vertical da lugar al ::after de 44 de los tabs: con overflow-x el contenedor recorta
+     lo que sale, y sin esto el área de toque real era de 32. El margen negativo lo compensa. */
+  margin: -6px 0 -4px;
+  padding: 6px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bodega-dim::-webkit-scrollbar {
+  display: none;
+}
+
+.bodega-dim__tab {
+  position: relative;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.bodega-dim__tab::after {
+  content: "";
+  position: absolute;
+  inset: -6px -6px;
+}
+
+.bodega-dim__tab.is-active {
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent-soft);
+}
+
+/* Mantener apretado una fila entra en la selección: sin esto, iOS muestra el menú de "copiar" y
+   selecciona el texto del nombre al mismo tiempo. */
+.wine-row__main {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

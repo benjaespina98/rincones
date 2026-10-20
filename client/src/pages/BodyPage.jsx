@@ -2,6 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import OpenBottleSheet from "../components/OpenBottleSheet";
+import AddStockSheet from "../components/AddStockSheet";
+import BulkEditSheet from "../components/BulkEditSheet";
 import Icon from "../components/Icon";
 import BodegaFilters from "../components/BodegaFilters";
 import Segmented from "../components/Segmented";
@@ -26,6 +28,7 @@ import {
   ordenarVinos,
   resultadosDe,
   tiposRapidosDe,
+  chipsRapidosDe,
 } from "../utils/bodegaFiltros";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
@@ -87,10 +90,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
     error,
     addWine,
     deleteWine,
+    updateWine,
     toggleFavorite,
     updateWineTasted,
     openBottle,
     undoOpenBottle,
+    adjustStock,
     bulkAction,
     recargar,
   } = useWineCollection();
@@ -165,6 +170,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [varietalFilter, setVarietalFilter] = useState(guardados.varietalFilter || "all");
   const [regionFilter, setRegionFilter] = useState(guardados.regionFilter || "all");
   const [vintageFilter, setVintageFilter] = useState(guardados.vintageFilter || "all");
+  const [wineryFilter, setWineryFilter] = useState(guardados.wineryFilter || "all");
+  const [puntajeMin, setPuntajeMin] = useState(["3", "4", "5"].includes(guardados.puntajeMin) ? guardados.puntajeMin : "all");
+  // Qué dimensión muestran las fichas rápidas de arriba (Tipo, Uva, Región o Bodega).
+  const [dimRapida, setDimRapida] = useState(["tipo", "uva", "region", "bodega"].includes(guardados.dimRapida) ? guardados.dimRapida : "tipo");
   /**
    * Selección múltiple.
    *
@@ -182,6 +191,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   // El vino cuya hoja de "abrí una botella" está abierta, o null.
   const [abriendo, setAbriendo] = useState(null);
+  // El vino al que se le están sumando botellas (hoja "¿Cuántas botellas sumás?").
+  const [sumando, setSumando] = useState(null);
+  // Sumar botellas o editar a varios a la vez, desde la selección.
+  const [sumandoLote, setSumandoLote] = useState(false);
+  const [editandoLote, setEditandoLote] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -223,6 +237,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
           varietalFilter,
           regionFilter,
           vintageFilter,
+          wineryFilter,
+          puntajeMin,
+          dimRapida,
         })
       );
     } catch {
@@ -236,6 +253,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
     varietalFilter,
     regionFilter,
     vintageFilter,
+    wineryFilter,
+    puntajeMin,
+    dimRapida,
   ]);
   /**
    * La agrupación ya no es un control: agrupa sola por tipo cuando la lista deja
@@ -321,6 +341,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const varietalOptions = opciones.varietales;
   const regionOptions = opciones.regiones;
   const vintageOptions = opciones.cosechas;
+  const wineryOptions = opciones.bodegas;
 
   /**
    * Un filtro guardado que ya no existe se descarta solo.
@@ -336,14 +357,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (varietalFilter !== "all" && !varietalOptions.includes(varietalFilter)) setVarietalFilter("all");
     if (regionFilter !== "all" && !regionOptions.includes(regionFilter)) setRegionFilter("all");
     if (vintageFilter !== "all" && !vintageOptions.includes(vintageFilter)) setVintageFilter("all");
+    if (wineryFilter !== "all" && !wineryOptions.includes(wineryFilter)) setWineryFilter("all");
   }, [
     wines.length,
     varietalOptions,
     regionOptions,
     vintageOptions,
+    wineryOptions,
     varietalFilter,
     regionFilter,
     vintageFilter,
+    wineryFilter,
   ]);
 
   /**
@@ -361,8 +385,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
         varietal: varietalFilter,
         region: regionFilter,
         vintage: vintageFilter,
+        winery: wineryFilter,
+        puntajeMin,
       }),
-    [terms, tipoFilter, varietalFilter, regionFilter, vintageFilter]
+    [terms, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]
   );
 
   /**
@@ -423,6 +449,30 @@ export default function BodyPage({ initialFilter = "instock" }) {
     () => tiposRapidosDe(wines.filter(enLaVista), TIPOS),
     [wines, enLaVista]
   );
+
+  /**
+   * Las fichas rápidas por la dimensión elegida (Uva, Región o Bodega), con cuántos hay de cada una
+   * EN ESTA VISTA. Usan los mismos filtros que el panel, así que ficha y panel siempre dicen lo mismo.
+   */
+  const activoDeLaDimension = { uva: varietalFilter, region: regionFilter, bodega: wineryFilter }[dimRapida] || "all";
+  const chipsDeDimension = useMemo(
+    () => (dimRapida === "tipo" ? [] : chipsRapidosDe(wines.filter(enLaVista), dimRapida, { activo: activoDeLaDimension })),
+    [wines, enLaVista, dimRapida, activoDeLaDimension]
+  );
+  const dimensionesConDatos = useMemo(() => {
+    const vistos = wines.filter(enLaVista);
+    return [
+      tiposRapidos.length > 0 && "tipo",
+      chipsRapidosDe(vistos, "uva").length > 0 && "uva",
+      chipsRapidosDe(vistos, "region").length > 0 && "region",
+      chipsRapidosDe(vistos, "bodega").length > 0 && "bodega",
+    ].filter(Boolean);
+  }, [wines, enLaVista, tiposRapidos]);
+  const setActivoDeLaDimension = (valor) => {
+    if (dimRapida === "uva") setVarietalFilter(valor);
+    else if (dimRapida === "region") setRegionFilter(valor);
+    else if (dimRapida === "bodega") setWineryFilter(valor);
+  };
 
   /**
    * Agrupación: el eje con el que se corta la lista.
@@ -514,6 +564,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     varietalFilter,
     regionFilter,
     vintageFilter,
+    wineryFilter,
+    puntajeMin,
     sortBy,
     effectiveGroupBy,
   ]);
@@ -582,12 +634,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
     if (varietalFilter !== "all") fichas.push({ id: "uva", label: varietalFilter, quitar: () => setVarietalFilter("all") });
     if (regionFilter !== "all") fichas.push({ id: "region", label: regionFilter, quitar: () => setRegionFilter("all") });
+    if (wineryFilter !== "all") fichas.push({ id: "bodega", label: wineryFilter, quitar: () => setWineryFilter("all") });
+    if (puntajeMin !== "all") {
+      fichas.push({
+        id: "puntaje",
+        label: puntajeMin === "5" ? "5 estrellas" : `${puntajeMin} o más estrellas`,
+        quitar: () => setPuntajeMin("all"),
+      });
+    }
     // "2019" solo no se entiende entre las demás fichas (¿precio? ¿cantidad?).
     if (vintageFilter !== "all") {
       fichas.push({ id: "cosecha", label: `Cosecha ${vintageFilter}`, quitar: () => setVintageFilter("all") });
     }
     return fichas;
-  }, [probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter]);
+  }, [probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]);
 
   /**
    * Qué decir cuando no hay nada que mostrar.
@@ -663,6 +723,17 @@ export default function BodyPage({ initialFilter = "instock" }) {
     });
   }, []);
 
+  // Mantener apretado una fila entra en el modo selección con ese vino ya elegido.
+  const entrarEnSeleccion = useCallback((id) => {
+    setModoSeleccion(true);
+    setSeleccion(new Set([id]));
+    try {
+      navigator.vibrate?.(12);
+    } catch {
+      // Sin vibración: la selección se ve igual.
+    }
+  }, []);
+
   const salirDeSeleccion = () => {
     setModoSeleccion(false);
     setSeleccion(new Set());
@@ -709,6 +780,56 @@ export default function BodyPage({ initialFilter = "instock" }) {
     }
   };
 
+  // Una misma operación sobre cada vino elegido, de a uno (el servidor no tiene un endpoint de lote
+  // para esto). Devuelve cuántos salieron bien, para decir la verdad si alguno falló.
+  const aplicarAcadaUno = async (operacion) => {
+    const ids = [...seleccion];
+    if (ids.length === 0 || enLote) return 0;
+    setEnLote(true);
+    const fallidos = [];
+    for (const id of ids) {
+      try {
+        await operacion(id);
+      } catch {
+        // Sigue con los demás; el resumen dice cuántos fueron.
+        fallidos.push(id);
+      }
+    }
+    setEnLote(false);
+    return { ok: ids.length - fallidos.length, fallidos };
+  };
+
+  // Tras una operación en lote: si salió todo bien se sale de la selección; si falló alguno, quedan
+  // elegidos SÓLO los que fallaron, para reintentar sin repetir los que ya salieron (sumar no es
+  // idempotente: volver a mandar un vino que ya se sumó lo sumaría dos veces).
+  const cerrarLote = ({ fallidos }) => {
+    if (fallidos.length === 0) salirDeSeleccion();
+    else setSeleccion(new Set(fallidos));
+  };
+
+  const sumarStockEnLote = async (cantidad) => {
+    const n = Math.max(1, Math.min(999, Number(cantidad) || 1));
+    setSumandoLote(false);
+    const total = seleccion.size;
+    const resultado = await aplicarAcadaUno((id) => adjustStock(id, n));
+    const { ok } = resultado;
+    trackEvent("stock_added_lote", { vinos: ok, cantidad: n });
+    if (ok === total) showSuccess(`${n === 1 ? "1 botella sumada" : `${n} botellas sumadas`} a ${ok === 1 ? "1 vino" : `${ok} vinos`}`);
+    else showError(`Se sumó en ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
+    cerrarLote(resultado);
+  };
+
+  const editarEnLote = async (cambios) => {
+    setEditandoLote(false);
+    const total = seleccion.size;
+    const resultado = await aplicarAcadaUno((id) => updateWine(id, cambios));
+    const { ok } = resultado;
+    trackEvent("edicion_lote", { vinos: ok, campos: Object.keys(cambios).length });
+    if (ok === total) showSuccess(ok === 1 ? "1 vino actualizado" : `${ok} vinos actualizados`);
+    else showError(`Se actualizaron ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
+    cerrarLote(resultado);
+  };
+
   const clearAllFilters = () => {
     setSoloListos(false);
     setProbado(null);
@@ -716,6 +837,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setVarietalFilter("all");
     setRegionFilter("all");
     setVintageFilter("all");
+    setWineryFilter("all");
+    setPuntajeMin("all");
   };
 
   const withPendingAction = useCallback(async (id, action) => {
@@ -819,6 +942,34 @@ export default function BodyPage({ initialFilter = "instock" }) {
    *                   entrada estaba en otra pantalla, más abajo, sin conexión
    *                   con el momento en que uno acaba de servir la copa.
    */
+  /**
+   * Sumar botellas a un vino que ya está en la bodega (por ejemplo, uno que ya tomaste y volviste a
+   * comprar). Conserva todo su historial; sólo cambia el stock. Con "Deshacer".
+   */
+  const handleAddStock = (wine, cantidad = 1) => {
+    const n = Math.max(1, Math.min(999, Number(cantidad) || 1));
+    withPendingAction(wine._id, async () => {
+      await adjustStock(wine._id, n);
+      trackEvent("stock_added", { cantidad: n, eraSinStock: Number(wine.quantity) <= 0 });
+      const toastId = addToast(
+        `${n === 1 ? "1 botella sumada" : `${n} botellas sumadas`} · ${wineDisplayName(wine)}`,
+        "success",
+        8000,
+        {
+          label: "Deshacer",
+          onClick: async () => {
+            removeToast(toastId);
+            try {
+              await adjustStock(wine._id, -n);
+            } catch {
+              showError("No se pudo deshacer");
+            }
+          },
+        }
+      );
+    });
+  };
+
   const handleOpenBottle = (wine, cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
@@ -1089,28 +1240,75 @@ export default function BodyPage({ initialFilter = "instock" }) {
           una tarjeta de números grandes que se llevaba media pantalla. Va DESPUÉS de las
           fichas de filtro a propósito: describe el resultado del segmentado y de los filtros,
           así que se lee como consecuencia de lo de arriba y no como un encabezado suelto. */}
-      {!loading && !error && tiposRapidos.length > 0 && (
-        <div className="bodega-tipos" role="group" aria-label="Filtrar por tipo de vino">
-          <button
-            type="button"
-            className={`bodega-tipos__chip ${tipoFilter === "all" ? "is-active" : ""}`}
-            aria-pressed={tipoFilter === "all"}
-            onClick={() => setTipoFilter("all")}
-          >
-            Todos
-          </button>
-          {tiposRapidos.map(({ id, n }) => (
-            <button
-              key={id}
-              type="button"
-              className={`bodega-tipos__chip ${tipoFilter === id ? "is-active" : ""}`}
-              aria-pressed={tipoFilter === id}
-              onClick={() => setTipoFilter(tipoFilter === id ? "all" : id)}
-            >
-              {TIPOS_PLURAL[id]} <span className="bodega-tipos__n">{n}</span>
-            </button>
-          ))}
-        </div>
+      {!loading && !error && dimensionesConDatos.length > 0 && (
+        <>
+          {/* Con qué se filtra: Tipo, Uva, Región o Bodega. Una sola fila de fichas que cambia con la
+              dimensión elegida, en vez de cuatro filas apiladas. */}
+          {dimensionesConDatos.length > 1 && (
+            <div className="bodega-dim" role="tablist" aria-label="Filtrar por">
+              {dimensionesConDatos.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  role="tab"
+                  aria-selected={dimRapida === d}
+                  className={`bodega-dim__tab ${dimRapida === d ? "is-active" : ""}`}
+                  onClick={() => setDimRapida(d)}
+                >
+                  {{ tipo: "Tipo", uva: "Uva", region: "Región", bodega: "Bodega" }[d]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(dimRapida === "tipo" || !dimensionesConDatos.includes(dimRapida)) && tiposRapidos.length > 0 ? (
+            <div className="bodega-tipos" role="group" aria-label="Filtrar por tipo de vino">
+              <button
+                type="button"
+                className={`bodega-tipos__chip ${tipoFilter === "all" ? "is-active" : ""}`}
+                aria-pressed={tipoFilter === "all"}
+                onClick={() => setTipoFilter("all")}
+              >
+                Todos
+              </button>
+              {tiposRapidos.map(({ id, n }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`bodega-tipos__chip ${tipoFilter === id ? "is-active" : ""}`}
+                  aria-pressed={tipoFilter === id}
+                  onClick={() => setTipoFilter(tipoFilter === id ? "all" : id)}
+                >
+                  {TIPOS_PLURAL[id]} <span className="bodega-tipos__n">{n}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            chipsDeDimension.length > 0 && (
+              <div className="bodega-tipos" role="group" aria-label={`Filtrar por ${dimRapida === "uva" ? "uva" : dimRapida === "region" ? "región" : "bodega"}`}>
+                <button
+                  type="button"
+                  className={`bodega-tipos__chip ${activoDeLaDimension === "all" ? "is-active" : ""}`}
+                  aria-pressed={activoDeLaDimension === "all"}
+                  onClick={() => setActivoDeLaDimension("all")}
+                >
+                  Todas
+                </button>
+                {chipsDeDimension.map(({ id, n }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`bodega-tipos__chip ${activoDeLaDimension === id ? "is-active" : ""}`}
+                    aria-pressed={activoDeLaDimension === id}
+                    onClick={() => setActivoDeLaDimension(activoDeLaDimension === id ? "all" : id)}
+                  >
+                    {id} <span className="bodega-tipos__n">{n}</span>
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+        </>
       )}
 
       {!loading && !error && (
@@ -1218,6 +1416,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
                 onToggleFavorite={handleToggleFavorite}
                 onExpandir={setExpandedId}
                 onAbrirBotella={setAbriendo}
+                onSumarStock={setSumando}
+                onMantener={entrarEnSeleccion}
                 onEliminar={setShowDeleteConfirm}
               />
               )}
@@ -1329,6 +1529,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
         vintageFilter={vintageFilter}
         setVintageFilter={setVintageFilter}
         vintageOptions={vintageOptions}
+        wineryFilter={wineryFilter}
+        setWineryFilter={setWineryFilter}
+        wineryOptions={wineryOptions}
+        puntajeMin={puntajeMin}
+        setPuntajeMin={setPuntajeMin}
         hayFiltros={filtrosActivos.length > 0}
         onLimpiar={clearAllFilters}
       />
@@ -1383,6 +1588,22 @@ export default function BodyPage({ initialFilter = "instock" }) {
             </button>
             <button
               type="button"
+              className="bodega-barra__accion"
+              disabled={seleccion.size === 0 || enLote}
+              onClick={() => setSumandoLote(true)}
+            >
+              <Icon name="plus" size={15} /> Sumar
+            </button>
+            <button
+              type="button"
+              className="bodega-barra__accion"
+              disabled={seleccion.size === 0 || enLote}
+              onClick={() => setEditandoLote(true)}
+            >
+              <Icon name="pencil" size={15} /> Editar
+            </button>
+            <button
+              type="button"
               className="bodega-barra__accion bodega-barra__accion--peligro"
               disabled={seleccion.size === 0 || enLote}
               onClick={() => setConfirmarLote(true)}
@@ -1423,6 +1644,39 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onConfirm={() => handleDeleteWine(showDeleteConfirm)}
         onCancel={() => setShowDeleteConfirm(null)}
       />
+
+      {sumandoLote && (
+        <AddStockSheet
+          // Con un solo vino elegido se ve ese vino (y su stock real); con varios, "a cada uno de los N".
+          wine={(seleccion.size === 1 && wines.find((w) => w._id === [...seleccion][0])) || { name: "Varios vinos", quantity: 0 }}
+          lote={seleccion.size}
+          saving={enLote}
+          onCancel={() => setSumandoLote(false)}
+          onConfirm={sumarStockEnLote}
+        />
+      )}
+
+      {editandoLote && (
+        <BulkEditSheet
+          cantidad={seleccion.size}
+          saving={enLote}
+          onCancel={() => setEditandoLote(false)}
+          onConfirm={editarEnLote}
+        />
+      )}
+
+      {sumando && (
+        <AddStockSheet
+          wine={sumando}
+          saving={pendingActionId === sumando._id}
+          onCancel={() => setSumando(null)}
+          onConfirm={(cantidad) => {
+            const wine = sumando;
+            setSumando(null);
+            handleAddStock(wine, cantidad);
+          }}
+        />
+      )}
 
       {abriendo && (
         <OpenBottleSheet

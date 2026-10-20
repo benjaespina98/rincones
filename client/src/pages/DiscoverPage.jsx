@@ -16,6 +16,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
+import { maridajeCorto } from "../data/maridajeCorto";
 import { elegirOtroDistinto, conFotoPrimero, topDeEntrada, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
@@ -238,6 +239,41 @@ export default function DiscoverPage() {
   }, [spotlightId]);
   // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
   const motivo = whyThisWine(spotlight, stats);
+  const maridaje = maridajeCorto(spotlight);
+
+  /**
+   * La tarjeta aparece ENTERA o no aparece: mientras la foto no cargó se muestra el esqueleto
+   * completo, y recién cuando la imagen está lista entra todo junto con un fade. Antes llegaban
+   * primero el texto y los chips y la foto después, y la tarjeta "se armaba" frente a la persona.
+   *
+   * La foto se precarga con un `Image` aparte; si falla o tarda más de 2,5 s se muestra igual (con la
+   * botella genérica), para que un esqueleto nunca quede eterno. Además se precarga la SIGUIENTE
+   * recomendación, así "Ver otro" cambia sin espera.
+   */
+  const [fotosListas, setFotosListas] = useState(() => new Set());
+  const imagenDelSpotlight = spotlight?.image || "";
+  const imagenDeLaSiguiente = featured.length > 1 ? featured[(spotlightIdx + 1) % featured.length]?.image || "" : "";
+  useEffect(() => {
+    if (!spotlightId || !imagenDelSpotlight) return undefined;
+    const marcar = () =>
+      setFotosListas((prev) => (prev.has(spotlightId) ? prev : new Set(prev).add(spotlightId)));
+    const img = new Image();
+    img.onload = marcar;
+    img.onerror = marcar;
+    img.src = imagenDelSpotlight;
+    const t = setTimeout(marcar, 2500);
+    return () => {
+      clearTimeout(t);
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [spotlightId, imagenDelSpotlight]);
+  useEffect(() => {
+    if (!imagenDeLaSiguiente) return;
+    const pre = new Image();
+    pre.src = imagenDeLaSiguiente;
+  }, [imagenDeLaSiguiente]);
+  const spotlightListo = !spotlight || !imagenDelSpotlight || fotosListas.has(spotlightId);
 
   /*
    * Acá estaba `railWines`, la fila "Más para descubrir".
@@ -563,7 +599,7 @@ export default function DiscoverPage() {
           medio de una pantalla donde todo lo demás ya está pintado se lee como
           "acá falló algo", no como "esto viene en camino". Con la silueta de la
           botella y los renglones del texto, la espera se entiende sola. */}
-      {!buscando && loading && (
+      {!buscando && (loading || (!loadFailed && spotlight && !spotlightListo)) && (
         <div className="spotlight spotlight--skeleton" role="status" aria-label="Cargando la recomendación">
           <div className="spotlight__open">
             <div className="spotlight__art skeleton" />
@@ -628,8 +664,8 @@ export default function DiscoverPage() {
           tokens `--type-*` en index.css). Hasta acá, la primera pantalla era
           la única de la app donde el hilo del tipo no llegaba — un blanco, un
           espumante y un oporto se veían los tres violetas. */}
-      {!buscando && !loading && spotlight && (
-        <section className="spotlight" data-wine-type={spotlight.type} key={spotlight.id} {...propsDeRotacion}>
+      {!buscando && !loading && spotlight && spotlightListo && (
+        <section className="spotlight spotlight--entra" data-wine-type={spotlight.type} key={spotlight.id} {...propsDeRotacion}>
           <button
             type="button"
             className="spotlight__open"
@@ -656,10 +692,7 @@ export default function DiscoverPage() {
                   utils/momentCopy.js), no de un modelo: es instantáneo, gratis
                   y siempre verificable. Si no hay nada verificable que decir,
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
-              <span className="spotlight__eyebrow">
-                <Icon name="sparkle" size={12} />
-                {motivo || "Para vos"}
-              </span>
+              <span className="spotlight__eyebrow">{motivo || "Para vos"}</span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
                 {metaDelVino(spotlight)}
@@ -669,6 +702,7 @@ export default function DiscoverPage() {
                 type={spotlight.type}
                 varietal={spotlight.varietal}
               />
+              {maridaje && <p className="spotlight__pairing">Va con {maridaje.charAt(0).toLowerCase() + maridaje.slice(1)}</p>}
             </div>
           </button>
           <div className="spotlight__actions">
@@ -681,7 +715,7 @@ export default function DiscoverPage() {
               {addedIds.has(spotlight.id) ? (
                 <><Icon name="check" size={16} /> Guardado</>
               ) : (
-                <><Icon name="heart" size={16} /> Guardar</>
+                <><Icon name="heart" size={16} /> Quiero probarlo</>
               )}
             </button>
             {/* Se esconde si no hay a dónde ir: ofrecer otra botella cuando no

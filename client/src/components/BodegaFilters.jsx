@@ -39,7 +39,7 @@ const ORDENES = [
   { value: "price", label: "Precio" },
 ];
 
-const NOMBRE_FACETA = { uva: "Uva", region: "región", cosecha: "cosecha" };
+const NOMBRE_FACETA = { uva: "Uva", region: "región", cosecha: "cosecha", bodega: "bodega", puntaje: "puntaje" };
 
 /**
  * El rótulo de la sección, armado con las facetas que se están mostrando:
@@ -83,6 +83,11 @@ export default function BodegaFilters({
   vintageFilter,
   setVintageFilter,
   vintageOptions,
+  wineryFilter = "all",
+  setWineryFilter,
+  wineryOptions = [],
+  puntajeMin = "all",
+  setPuntajeMin,
   hayFiltros,
   onLimpiar,
 }) {
@@ -91,6 +96,8 @@ export default function BodegaFilters({
     varietalOptions.length > 1 && "uva",
     regionOptions.length > 1 && "region",
     vintageOptions.length > 1 && "cosecha",
+    wineryOptions.length > 1 && "bodega",
+    "puntaje",
   ].filter(Boolean);
 
   return (
@@ -197,6 +204,30 @@ export default function BodegaFilters({
                 options={[
                   { value: "all", label: "Todas las regiones" },
                   ...regionOptions.map((r) => ({ value: r, label: r })),
+                ]}
+              />
+            )}
+            {facetas.includes("bodega") && (
+              <Dropdown
+                ariaLabel="Filtrar por bodega"
+                value={wineryFilter}
+                onChange={setWineryFilter}
+                options={[
+                  { value: "all", label: "Todas las bodegas" },
+                  ...wineryOptions.map((b) => ({ value: b, label: b })),
+                ]}
+              />
+            )}
+            {facetas.includes("puntaje") && (
+              <Dropdown
+                ariaLabel="Filtrar por puntaje mínimo"
+                value={puntajeMin}
+                onChange={setPuntajeMin}
+                options={[
+                  { value: "all", label: "Cualquier puntaje" },
+                  { value: "5", label: "5 estrellas" },
+                  { value: "4", label: "4 o más" },
+                  { value: "3", label: "3 o más" },
                 ]}
               />
             )}

@@ -3,6 +3,7 @@ import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
 import StarRating from "./StarRating";
 import WineRowPanel from "./WineRowPanel";
+import { useLongPress } from "../hooks/useLongPress";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { getCellarStatus } from "../utils/cellarStatus";
 import { normalizeSearchText } from "../utils/text";
@@ -53,6 +54,8 @@ function WineRow({
   onToggleFavorite,
   onExpandir,
   onAbrirBotella,
+  onSumarStock,
+  onMantener,
   onEliminar,
 }) {
   // La vitrina muestra más de cada vino porque son pocos y son los que
@@ -67,6 +70,8 @@ function WineRow({
   // "En stock" normal esto no cambia nada, porque ahí todo lo que
   // llega ya tiene stock por construcción (`pasaVista`).
   const esVitrina = vista === "instock" && Number(wine.quantity) > 0;
+  // Mantener apretado: entra en el modo selección con este vino elegido (igual que "Seleccionar").
+  const mantener = useLongPress(() => onMantener?.(wine._id), { habilitado: Boolean(onMantener) && !modoSeleccion });
   /**
    * ¿Esta fila se puede desplegar? La vitrina siempre puede (es su
    * modo natural). El archivo de "Probados" y "Favoritos" también,
@@ -236,7 +241,10 @@ function WineRow({
         <button
           type="button"
           className="wine-row__main"
+          {...mantener.handlers}
           onClick={() => {
+            // Mantener apretado entra en la selección: el toque que viene al soltar no abre la ficha.
+            if (mantener.fueLarga()) return;
             // Con las acciones a la vista, el primer toque las guarda. Si no,
             // el gesto para asomarlas te deja a un toque de irte de la
             // pantalla sin querer, que es el error más caro de esta lista.
@@ -323,7 +331,19 @@ function WineRow({
                 {uvaYAño && <span className="wine-row__varietal">{uvaYAño}</span>}
               </span>
             )}
-            {bodega && <span className="wine-row__winery">{bodega}</span>}
+            {/* El puntaje va con la bodega, en la línea de abajo, y no en la columna de la derecha:
+                ahí se apilaba contra la cantidad y se superponían. Con la vitrina se ve en estrellas. */}
+            {(bodega || (!esVitrina && wine.rating > 0)) && (
+              <span className="wine-row__winery">
+                {bodega}
+                {!esVitrina && wine.rating > 0 && (
+                  <span className="wine-row__rating-inline" aria-label={`${wine.rating} de 5`}>
+                    {bodega ? " · " : ""}
+                    <Icon name="star" filled size={11} /> {wine.rating.toFixed(1).replace(".", ",")}
+                  </span>
+                )}
+              </span>
+            )}
 
             {/* Dónde está la botella en tu casa. Debajo de la uva y no
                 al lado: "Rosado · Malbec · 2024 📍 Cava 1, Estante 3"
@@ -374,11 +394,6 @@ function WineRow({
             </span>
             {/* Numérico en vez de cinco estrellas: dice lo mismo en un
                 cuarto del ancho. */}
-            {!esVitrina && wine.rating > 0 && (
-              <span className="wine-row__rating" aria-label={`${wine.rating} de 5`}>
-                <Icon name="star" filled size={11} /> {wine.rating.toFixed(1)}
-              </span>
-            )}
             {/* Un solo chevrón por card: tocar la card abre la ficha, así que no hace falta
                 un ">" al lado de la cantidad. El "⌄" de abajo es el único, y sólo despliega
                 las acciones rápidas. */}
@@ -514,6 +529,7 @@ function WineRow({
           nuncaFueTuyo={nuncaFueTuyo}
           enCava={enCava}
           onAbrirBotella={onAbrirBotella}
+          onSumarStock={onSumarStock}
           onToggleTasted={onToggleTasted}
           onToggleFavorite={onToggleFavorite}
           onEliminar={onEliminar}
