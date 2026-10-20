@@ -524,3 +524,15 @@ iPhone real (la barra, el empuje de 2px en modo standalone), cámara real, calid
 - Preferencias de gusto: tope de 40 caracteres por ítem.
 - "2019/20": no era un hueco real. El modelo guarda la cosecha como número y el lector (`normalizeVintage`) ya se queda con el primer año; un "NV" o un rango no puede llegar a guardarse.
 - Siguen abiertos: `server/scripts/medirLector.js` sin ejecutar (faltan fotos reales); iPhone real, cámara real y calidad de lectura sin verificar.
+
+### Descubrí y Mi Bodega: tarjeta entera, sumar stock, selección y filtros (2026-10-20)
+Decisiones, con su porqué:
+- **La tarjeta de recomendación aparece entera o no aparece:** esqueleto completo hasta que la foto carga (tope de 2,5 s, precarga de la siguiente). Antes llegaba el texto y la foto después. Sin ícono en el motivo, con una línea de maridaje por uva (guía general, a revisar por alguien que sepa) y "Quiero probarlo".
+- **Recomendar con foto primero, nunca vacío:** el universo suma el catálogo comunitario con foto (sólo verificados o con una lectura confiable) y las fotos del pool; se rankea primero entre los que tienen foto y se completa con los demás. La foto de los comunitarios se trae sólo de los 8 elegidos (son data URL y pesan).
+- **Sumar stock:** "Sumar botellas" (o "Tengo stock de nuevo") en el panel del vino, con hoja de cantidad, total resultante y Deshacer. Conserva el historial: sólo vuelven a haber botellas.
+- **Selección:** mantener apretado una fila entra en el modo selección con ese vino elegido. La barra suma Sumar y Editar (tipo, región, guardado en), los dos con **Deshacer** (la edición guarda lo que cada vino tenía antes y lo devuelve vino por vino). Si algo falla a medias quedan elegidos sólo los que faltan, porque sumar no es idempotente.
+- **Filtros:** fichas rápidas por Tipo, Uva, Región o Bodega con cantidades; en el panel, bodega y puntaje mínimo. El puntaje va en la línea de la bodega (no se superpone con la cantidad).
+- **Deshacer tras eliminar** ahora también re-vincula los momentos del diario al vino restaurado (`restauraDe`, sólo los de esa persona).
+- **La región del lote** se elige de una lista (las que ya usás y las conocidas) para que no se escriba distinto en cada vino.
+
+Sigue sin verificar: iPhone real (la pulsación larga y el callout de iOS, que se suprimió por CSS), cámara real y correos reales. Playwright sigue sin instalar: agrega una dependencia y la descarga de navegadores, y queda a decisión de quien mantiene el proyecto.
