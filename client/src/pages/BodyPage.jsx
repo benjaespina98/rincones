@@ -1335,7 +1335,27 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
       {!loading && !error && (
         <div className="bodega-seleccion-entrada">
-          <BodegaResumen wines={filteredWines} />
+          {modoSeleccion ? (
+            // Mientras elegís, la misma línea que resumía la bodega cuenta lo elegido: nada se agrega a
+            // la pantalla, sólo cambia lo que dice esta fila (como en Fotos de iOS o Gmail).
+            <>
+              <strong className="bodega-seleccion__n" aria-live="polite">
+                {seleccion.size === 0
+                  ? "Elegí vinos"
+                  : `${seleccion.size} ${seleccion.size === 1 ? "elegido" : "elegidos"}`}
+              </strong>
+              <span className="bodega-seleccion__acciones">
+                <button type="button" className="bodega-seleccion__texto" onClick={alternarTodos} aria-pressed={todosElegidos}>
+                  {todosElegidos ? "Ninguno" : "Todos"}
+                </button>
+                <button type="button" className="bodega-seleccion__texto bodega-seleccion__texto--fuerte" onClick={salirDeSeleccion}>
+                  Listo
+                </button>
+              </span>
+            </>
+          ) : (
+            <BodegaResumen wines={filteredWines} />
+          )}
           {!modoSeleccion && sortedWines.length >= 3 && (
             <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>
               <Icon name="check" size={14} /> Seleccionar
@@ -1566,73 +1586,26 @@ export default function BodyPage({ initialFilter = "instock" }) {
           destructiva vive separada del resto y pide confirmación; las otras tres
           son reversibles con el mismo botón que las aplicó. */}
       {modoSeleccion && (
-        <div className="bodega-barra" role="region" aria-label="Acciones sobre lo seleccionado">
-          <div className="bodega-barra__head">
+        <div className="bodega-barra" role="toolbar" aria-label="Acciones sobre lo seleccionado">
+          {[
+            { id: "tasted", icono: "check", rotulo: "Ya lo tomé", onClick: () => aplicarEnLote("tasted") },
+            { id: "favorite", icono: "heart", rotulo: "Favorito", onClick: () => aplicarEnLote("favorite") },
+            { id: "sumar", icono: "plus", rotulo: "Sumar botellas", onClick: () => setSumandoLote(true) },
+            { id: "editar", icono: "pencil", rotulo: "Editar", onClick: () => setEditandoLote(true) },
+            { id: "eliminar", icono: "trash", rotulo: "Eliminar", peligro: true, onClick: () => setConfirmarLote(true) },
+          ].map(({ id, icono, rotulo, onClick, peligro }) => (
             <button
+              key={id}
               type="button"
-              className="bodega-barra__todos"
-              onClick={alternarTodos}
-              aria-pressed={todosElegidos}
-            >
-              <span className={`wine-row__tick ${todosElegidos ? "is-on" : ""}`} aria-hidden="true">
-                {todosElegidos && <Icon name="check" size={15} />}
-              </span>
-              {todosElegidos ? "Ninguno" : "Todos"}
-            </button>
-
-            <strong className="bodega-barra__n" aria-live="polite">
-              {seleccion.size === 0
-                ? "Elegí vinos"
-                : `${seleccion.size} ${seleccion.size === 1 ? "elegido" : "elegidos"}`}
-            </strong>
-
-            <button type="button" className="bodega-barra__salir" onClick={salirDeSeleccion}>
-              Listo
-            </button>
-          </div>
-
-          <div className="bodega-barra__acciones">
-            <button
-              type="button"
-              className="bodega-barra__accion"
+              className={`bodega-barra__accion ${peligro ? "bodega-barra__accion--peligro" : ""}`}
               disabled={seleccion.size === 0 || enLote}
-              onClick={() => aplicarEnLote("tasted")}
+              onClick={onClick}
+              aria-label={rotulo}
+              title={rotulo}
             >
-              <Icon name="check" size={15} /> Ya lo tomé
+              <Icon name={icono} size={20} />
             </button>
-            <button
-              type="button"
-              className="bodega-barra__accion"
-              disabled={seleccion.size === 0 || enLote}
-              onClick={() => aplicarEnLote("favorite")}
-            >
-              <Icon name="heart" size={15} /> Favorito
-            </button>
-            <button
-              type="button"
-              className="bodega-barra__accion"
-              disabled={seleccion.size === 0 || enLote}
-              onClick={() => setSumandoLote(true)}
-            >
-              <Icon name="plus" size={15} /> Sumar
-            </button>
-            <button
-              type="button"
-              className="bodega-barra__accion"
-              disabled={seleccion.size === 0 || enLote}
-              onClick={() => setEditandoLote(true)}
-            >
-              <Icon name="pencil" size={15} /> Editar
-            </button>
-            <button
-              type="button"
-              className="bodega-barra__accion bodega-barra__accion--peligro"
-              disabled={seleccion.size === 0 || enLote}
-              onClick={() => setConfirmarLote(true)}
-            >
-              <Icon name="trash" size={15} /> Eliminar
-            </button>
-          </div>
+          ))}
         </div>
       )}
 

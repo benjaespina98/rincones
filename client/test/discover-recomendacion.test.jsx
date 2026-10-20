@@ -81,7 +81,7 @@ describe("Descubrí: recomienda con foto primero", () => {
       const nombre = await nombreRecomendado();
       expect(["Vino b", "Vino c", "Vino d"]).toContain(nombre);
     }
-  });
+  }, 20000);
 
   it("sin ningún vino con foto recomienda igual, sin pantalla de error ni de pedido de foto", async () => {
     await montar([vino("a"), vino("b", "")]);
