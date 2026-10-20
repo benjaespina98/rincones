@@ -418,9 +418,20 @@ test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () =>
   const pool = [vino("tan", { varietal: "Tannat", region: "Salta", type: "red", winery: "BT" }), vino("mal", { varietal: "Malbec", region: "Mendoza", type: "red", winery: "BM" })];
   const r = recommendations.rankFeatured(pool, perfil, { count: 2, seed: 1 });
   assert.equal(r[0].id, "mal");
+  // Y no entra al set aunque sobre lugar: una uva que no le gustó no se recomienda.
+  assert.ok(!r.some((w) => w.id === "tan"));
+  assert.deepEqual(recommendations.explicarRecomendacion(pool[0], perfil).razones, []);
   // Si puntuó alto alguna vez esa uva, ya no se evita.
   const mixto = perfilDe([...bodega, { name: "T3", winery: "Z3", varietal: "Tannat", rating: 5 }]);
   assert.ok(!mixto.evitados.has("tannat"));
+});
+
+test("la coincidencia nunca llega a 100 ni baja de 0", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const igual = recommendations.explicarRecomendacion(vino("i"), perfil);
+  assert.ok(igual.coincidencia <= 99);
+  const lejos = recommendations.explicarRecomendacion(vino("l", { varietal: "Riesling", region: "Alsacia", type: "white" }), perfil);
+  assert.ok(lejos.coincidencia === null || lejos.coincidencia >= 0);
 });
 
 test("el peso de lo que tomás depende de cuánto lo tomás", () => {

@@ -463,8 +463,8 @@ function WineRow({
           title={wine.tasted ? "Ya lo probé" : "Todavía no lo probaste: tocá cuando lo hayas probado, sea tuyo o no"}
           aria-label={
             wine.tasted
-              ? `Marcar ${wineDisplayName(wine)} como sin tomar`
-              : `Marcar ${wineDisplayName(wine)} como ya tomado`
+              ? `Marcar ${wineDisplayName(wine)} como sin probar`
+              : `Marcar ${wineDisplayName(wine)} como ya probado`
           }
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />

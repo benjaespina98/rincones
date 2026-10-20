@@ -1018,8 +1018,12 @@
 
 .spotlight__match-barra {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: inherit;
   background: var(--accent-soft);
-  transition: width 500ms var(--ease-out);
+  /* Se anima sólo transform: el ancho real sale de --pct. */
+  transform-origin: left;
+  transform: scaleX(calc(var(--pct) / 100));
+  transition: transform 500ms var(--ease-out);
 }

@@ -244,7 +244,8 @@ const TOPE_POR_GAMA = 3;
  */
 const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jitter = 0 } = {}) => {
   const candidatos = (catalogo || [])
-    .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)))
+    // Una uva que puntuó siempre bajo no se recomienda: mejor un set más corto que ofrecerle lo que no le gustó.
+    .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)) && !perfil.evitados?.has(norm(wine.varietal)))
     .map((wine) => {
       const e = typeof extra === "function" ? Number(extra(wine)) || 0 : 0;
       const ruido = desempate(wine, seed);
@@ -349,6 +350,8 @@ const explicarRecomendacion = (wine, perfil) => {
   const uva = norm(wine.varietal);
   const region = norm(wine.region);
   const tipo = norm(wine.type);
+
+  if (perfil.evitados?.has(uva)) return { modo: "descubrimiento", coincidencia: null, razones: [] };
 
   const hayBase = perfil.tieneHistorial || perfil.elegidos.varietals.size > 0 || perfil.elegidos.types.size > 0;
   const maximo =

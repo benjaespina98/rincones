@@ -326,15 +326,15 @@ const featured = async (req, res, next) => {
      * catálogo sin personalizar: una recomendación genérica es mucho mejor que
      * una pantalla vacía.
      */
-    const [wines, user] = await Promise.all([
+    const [wines, user, guardados] = await Promise.all([
       Wine.find({ userId: req.user.id })
         .select("name winery varietal region type rating")
         .lean()
         .catch(() => []),
       User.findById(req.user.id).select("preferences").lean().catch(() => null),
+      // Lo que ya guardó para probar tampoco se recomienda: ya lo tiene en la mira.
+      WineWish.find({ userId: req.user.id }).select("name winery varietal").lean().catch(() => []),
     ]);
-    // Lo que ya guardó para probar tampoco se recomienda: ya lo tiene en la mira.
-    const guardados = await WineWish.find({ userId: req.user.id }).select("name winery varietal").lean().catch(() => []);
 
     const perfil = recommendations.buildTasteProfile({
       wines,

@@ -724,7 +724,7 @@ export default function DiscoverPage() {
               <span className="spotlight__match-rotulo">Coincide con tu gusto</span>
               <span className="spotlight__match-pct">{coincidencia}%</span>
               <span className="spotlight__match-pista" aria-hidden="true">
-                <span className="spotlight__match-barra" style={{ width: `${coincidencia}%` }} />
+                <span className="spotlight__match-barra" style={{ "--pct": coincidencia }} />
               </span>
             </div>
           )}
