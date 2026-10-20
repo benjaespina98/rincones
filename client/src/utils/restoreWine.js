@@ -7,6 +7,8 @@
  * los lotes) a partir de esta evidencia.
  */
 export const payloadParaRestaurar = (wine) => ({
+  // De qué vino se restaura: el servidor re-vincula a este nuevo los momentos del diario que tenía.
+  restauraDe: wine._id,
   name: wine.name,
   winery: wine.winery,
   vintage: wine.vintage,

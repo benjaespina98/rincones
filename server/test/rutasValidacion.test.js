@@ -294,3 +294,63 @@ test("DELETE /users/me: después de 10 contraseñas incorrectas corta con 429", 
     assert.equal(ultimo.status, 429);
   });
 });
+
+test("createWine con restauraDe re-vincula los momentos del diario del vino borrado (sólo los de esa persona)", async () => {
+  const winesService = require("../src/services/wines.service");
+  const WineMoment = require("../src/models/wineMoment.model");
+  const wineImages = require("../src/services/wineImages.service");
+  const descripcion = require("../src/services/wineDescription.service");
+  const ChangeLog = require("../src/models/changeLog.model");
+  const orig = {
+    find: Wine.find,
+    save: Wine.prototype.save,
+    upd: WineMoment.updateMany,
+    img: wineImages.getImage,
+    com: communityWines.contribute,
+    desc: descripcion.ensureDescription,
+    uf: User.findById,
+    log: ChangeLog.create,
+  };
+  const llamadas = [];
+  Wine.find = () => {
+    const q = Promise.resolve([]);
+    q.select = () => q;
+    return q;
+  };
+  Wine.prototype.save = async function () {
+    await this.validate();
+    return this;
+  };
+  WineMoment.updateMany = async (filtro, cambio) => llamadas.push({ filtro, cambio });
+  wineImages.getImage = async () => "";
+  communityWines.contribute = async () => {};
+  descripcion.ensureDescription = async () => {};
+  ChangeLog.create = async () => ({});
+  User.findById = () => {
+    const q = Promise.resolve({ _id: ID, stats: {}, save: async () => {} });
+    q.select = () => q;
+    return q;
+  };
+  try {
+    const viejo = "000000000000000000000abc";
+    const { wine } = await winesService.createWine(ID, { name: "QA Restaurado", winery: "QA B", quantity: 1, restauraDe: viejo });
+    assert.equal(llamadas.length, 1);
+    assert.equal(String(llamadas[0].filtro.userId), ID);
+    assert.equal(String(llamadas[0].filtro.wineId), viejo);
+    assert.equal(String(llamadas[0].cambio.$set.wineId), String(wine._id));
+
+    // Un id inválido, o ninguno, no toca nada.
+    await winesService.createWine(ID, { name: "QA Otro", winery: "QA B", quantity: 1, restauraDe: "no-es-un-id" });
+    await winesService.createWine(ID, { name: "QA Otro 2", winery: "QA B", quantity: 1 });
+    assert.equal(llamadas.length, 1);
+  } finally {
+    Wine.find = orig.find;
+    Wine.prototype.save = orig.save;
+    WineMoment.updateMany = orig.upd;
+    wineImages.getImage = orig.img;
+    communityWines.contribute = orig.com;
+    descripcion.ensureDescription = orig.desc;
+    User.findById = orig.uf;
+    ChangeLog.create = orig.log;
+  }
+});

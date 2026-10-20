@@ -141,3 +141,34 @@ describe("useLongPress (mantener apretado)", () => {
     expect(onLong).not.toHaveBeenCalled();
   });
 });
+
+describe("deshacer una edición en lote", () => {
+  it("guarda lo que cada vino tenía antes, sólo de los campos que se tocan", async () => {
+    const { instantaneaPrevia } = await import("../src/utils/deshacerLote");
+    const vinos = [
+      { _id: "1", type: "red", region: "Salta", cellar: { location: "Cava 1" } },
+      { _id: "2", type: "white", region: "", cellar: {} },
+      { _id: "3", type: "red", region: "Mendoza" },
+    ];
+    const foto = instantaneaPrevia(vinos, ["1", "2"], { region: "Valle de Uco", cellarLocation: "Heladera" });
+    expect(foto).toEqual({
+      1: { region: "Salta", cellarLocation: "Cava 1" },
+      2: { region: "", cellarLocation: "" },
+    });
+    expect(foto).not.toHaveProperty("3");
+  });
+
+  it("cada vino recupera lo SUYO (no un valor común) y el tipo vacío cae a unknown", async () => {
+    const { instantaneaPrevia } = await import("../src/utils/deshacerLote");
+    const foto = instantaneaPrevia([{ _id: "1", type: "red" }, { _id: "2" }], ["1", "2"], { type: "white" });
+    expect(foto[1].type).toBe("red");
+    expect(foto[2].type).toBe("unknown");
+  });
+
+  it("tolera ids que ya no existen y entradas que no son listas", async () => {
+    const { instantaneaPrevia } = await import("../src/utils/deshacerLote");
+    expect(instantaneaPrevia([{ _id: "1", type: "red" }], ["9"], { type: "white" })).toEqual({});
+    expect(instantaneaPrevia(null, ["1"], { type: "white" })).toEqual({});
+    expect(instantaneaPrevia([], null, null)).toEqual({});
+  });
+});

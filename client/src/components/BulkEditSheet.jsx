@@ -16,7 +16,7 @@ import "./BulkEditSheet.css";
  *
  * Devuelve sólo los campos que la persona completó, con los nombres que espera el servidor.
  */
-export default function BulkEditSheet({ cantidad, saving = false, onConfirm, onCancel }) {
+export default function BulkEditSheet({ cantidad, regiones = [], saving = false, onConfirm, onCancel }) {
   const [type, setType] = useState("keep");
   const [region, setRegion] = useState("");
   const [cellarLocation, setCellarLocation] = useState("");
@@ -66,11 +66,20 @@ export default function BulkEditSheet({ cantidad, saving = false, onConfirm, onC
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="Por ejemplo, Valle de Uco"
+              list="bulk-edit-regiones"
               maxLength={120}
               disabled={saving}
               autoComplete="off"
             />
           </label>
+
+          {/* Las regiones que ya usás y las conocidas: elegir una evita escribirla distinto en cada vino
+              ("Valle de Uco", "Uco") y que después no filtren juntas. */}
+          <datalist id="bulk-edit-regiones">
+            {regiones.map((r) => (
+              <option key={r} value={r} />
+            ))}
+          </datalist>
 
           <label className="bulk-edit__campo">
             <span>Guardado en</span>
