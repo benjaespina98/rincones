@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import GoogleAuthButton from "../components/GoogleAuthButton";
+import { destinoTrasLogin } from "../utils/destinoTrasLogin";
 import "./Auth.css";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,8 @@ const LoginPage = () => {
       // la app le habla de vos a todo el mundo: la mitad de los usuarios leían
       // un saludo que no era para ellos. Esto saluda igual de bien sin suponer.
       showSuccess("Sesión iniciada");
-      navigate("/");
+      // Vuelve a la pantalla que quería abrir (si venía de un enlace), no siempre al inicio.
+      navigate(destinoTrasLogin(location.state?.from));
     } catch (err) {
       const msg = err.response?.data?.message || "No se pudo iniciar sesión. Revisá tus datos.";
       setError(msg);

@@ -90,4 +90,27 @@ const aiDailyLimiter = rateLimit({
   },
 });
 
-module.exports = { aiLimiter, aiDailyLimiter, sommelierDailyLimiter };
+/**
+ * Tope de intentos para lo que pide la contraseña con la sesión ya abierta: cambiarla y dar de
+ * baja la cuenta.
+ *
+ * El login ya tiene su límite; estos dos aceptan la contraseña igual y, con un token robado,
+ * permitían probar contraseñas sin freno. Va por USUARIO (la ruta exige sesión) y cuenta sólo los
+ * intentos que FALLAN (`skipSuccessfulRequests`): 10 equivocaciones cada 15 minutos es mucho para
+ * una persona que se confunde y nada para un bucle.
+ */
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      message: "Probaste muchas veces con una contraseña que no es. Esperá unos minutos y volvé a intentar.",
+    });
+  },
+});
+
+module.exports = { aiLimiter, aiDailyLimiter, sommelierDailyLimiter, passwordLimiter };

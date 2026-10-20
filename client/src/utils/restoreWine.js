@@ -28,6 +28,8 @@ export const payloadParaRestaurar = (wine) => ({
   currency: wine.purchase?.currency,
   store: wine.purchase?.store,
   lastConsumedAt: wine.lastConsumedAt,
+  // La fecha de alta original ("en cava desde…").
+  createdAt: wine.createdAt,
   consumptionCount: wine.consumptionCount,
   identification: wine.identification
     ? {

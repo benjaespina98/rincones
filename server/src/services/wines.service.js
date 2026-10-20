@@ -400,8 +400,14 @@ async function createWine(userId, payload) {
     type: tipoValido(type),
   });
 
+  // "Deshacer" tras eliminar vuelve a crear el vino con la fecha de alta que tenía (la ficha dice
+  // "en cava desde…"). Sólo se acepta una fecha válida y que no sea del futuro.
+  const altaOriginal = payload.createdAt ? new Date(payload.createdAt) : null;
+  const createdAt = altaOriginal && !Number.isNaN(altaOriginal.getTime()) && altaOriginal <= new Date() ? altaOriginal : undefined;
+
   const wine = new Wine({
     userId,
+    ...(createdAt ? { createdAt } : {}),
     name: String(name || "").trim(),
     winery: winery?.trim() || "",
     line: line?.trim() || "",

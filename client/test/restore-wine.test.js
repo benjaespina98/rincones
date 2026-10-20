@@ -16,6 +16,7 @@ const VINO = {
   image: "https://x/a.jpg",
   notes: "rico",
   consumptionCount: 2,
+  createdAt: "2026-10-01T10:00:00.000Z",
   lastConsumedAt: "2026-10-01T00:00:00.000Z",
   cellar: { location: "Cava 2", shelf: "Estante 3", drinkFrom: 2024, drinkUntil: 2030 },
   purchase: { price: 15000, currency: "ARS", store: "Vinoteca" },
@@ -33,6 +34,7 @@ describe("payloadParaRestaurar (Deshacer tras eliminar)", () => {
     expect(p.price).toBe(15000);
     expect(p.store).toBe("Vinoteca");
     expect(p.consumptionCount).toBe(2);
+    expect(p.createdAt).toBe("2026-10-01T10:00:00.000Z");
     expect(p.identification).toEqual({
       source: "scan",
       confidence: { winery: 95 },
