@@ -17,13 +17,12 @@ import "./OpenBottleSheet.css";
 const ATAJOS = [1, 3, 6, 12];
 const MAX = 999;
 
-export default function AddStockSheet({ wine, lote = 1, saving = false, onConfirm, onCancel }) {
+export default function AddStockSheet({ wine, saving = false, onConfirm, onCancel }) {
   const [cantidad, setCantidad] = useState(1);
   const confirmRef = useRef(null);
 
   const stock = Math.max(0, Number(wine?.quantity) || 0);
   const quedaran = stock + cantidad;
-  const variosVinos = lote > 1;
 
   const panelRef = useSheet(onCancel, { enabled: Boolean(wine) });
 
@@ -48,7 +47,7 @@ export default function AddStockSheet({ wine, lote = 1, saving = false, onConfir
           <h2 className="open-sheet__title" id="add-stock-title">
             ¿Cuántas botellas sumás?
           </h2>
-          <p className="open-sheet__wine">{variosVinos ? `A cada uno de los ${lote} vinos elegidos` : wineDisplayName(wine)}</p>
+          <p className="open-sheet__wine">{wineDisplayName(wine)}</p>
 
           <div className="open-sheet__picker">
             <button
@@ -94,21 +93,13 @@ export default function AddStockSheet({ wine, lote = 1, saving = false, onConfir
               <Icon name="bottle" size={14} />
               <span>
                 Se {cantidad === 1 ? "suma" : "suman"} a tu stock ·{" "}
-                <strong>
-                  {variosVinos
-                    ? `${cantidad * lote} botellas en total`
-                    : quedaran === 1
-                      ? "vas a tener 1"
-                      : `vas a tener ${quedaran}`}
-                </strong>
+                <strong>{quedaran === 1 ? "vas a tener 1" : `vas a tener ${quedaran}`}</strong>
               </span>
             </li>
             <li>
               <Icon name="check" size={14} />
               <span>
-                {variosVinos
-                  ? "Cada vino conserva su historial, su puntaje y sus notas"
-                  : wine.tasted
+                {wine.tasted
                   ? "Sigue figurando como ya tomado, con todo su historial"
                   : "Conserva su puntaje y sus notas"}
               </span>
