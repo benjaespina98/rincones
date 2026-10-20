@@ -223,3 +223,74 @@ test("GET /users/:id/wine-stats: el promedio dice de cuántos vinos sale (bodega
     Wine.countDocuments = origWineCount;
   }
 });
+
+test("createWine: respeta una fecha de alta pasada (Deshacer), ignora la futura o inválida y arma el lote con ella", async () => {
+  const winesService = require("../src/services/wines.service");
+  const wineImages = require("../src/services/wineImages.service");
+  const descripcion = require("../src/services/wineDescription.service");
+  const origFind = Wine.find;
+  const origSave = Wine.prototype.save;
+  const origImg = wineImages.getImage;
+  const origCom = communityWines.contribute;
+  const origDesc = descripcion.ensureDescription;
+  const origUserFindOne = User.findOne;
+  const origUserFindById = User.findById;
+  const vacia = () => {
+    const q = Promise.resolve({ _id: ID, stats: {}, save: async () => {}, changeLog: [] });
+    q.select = () => q;
+    q.lean = () => q;
+    return q;
+  };
+  const ChangeLog = require("../src/models/changeLog.model");
+  const origLogCreate = ChangeLog.create;
+  ChangeLog.create = async () => ({});
+  User.findOne = vacia;
+  User.findById = vacia;
+  wineImages.getImage = async () => "";
+  communityWines.contribute = async () => {};
+  descripcion.ensureDescription = async () => {};
+  Wine.find = () => {
+    const q = Promise.resolve([]);
+    q.select = () => q;
+    return q;
+  };
+  Wine.prototype.save = async function () {
+    await this.validate();
+    return this;
+  };
+  const crear = (createdAt) => winesService.createWine(ID, { name: "QA Fecha", winery: "QA B", quantity: 2, ...(createdAt ? { createdAt } : {}) });
+  try {
+    const pasado = await crear("2026-10-01T10:00:00.000Z");
+    assert.equal(pasado.wine.createdAt.toISOString(), "2026-10-01T10:00:00.000Z");
+    assert.equal(new Date(pasado.wine.lots[0].addedAt).toISOString(), "2026-10-01T10:00:00.000Z");
+
+    const antes = Date.now();
+    for (const malo of ["2099-01-01T00:00:00.000Z", "basura"]) {
+      const w = (await crear(malo)).wine;
+      assert.ok(w.createdAt.getTime() >= antes - 5000, `se ignoró ${malo}`);
+    }
+    const sin = (await crear()).wine;
+    assert.ok(sin.createdAt.getTime() >= antes - 5000);
+  } finally {
+    Wine.find = origFind;
+    Wine.prototype.save = origSave;
+    ChangeLog.create = origLogCreate;
+    User.findOne = origUserFindOne;
+    User.findById = origUserFindById;
+    wineImages.getImage = origImg;
+    communityWines.contribute = origCom;
+    descripcion.ensureDescription = origDesc;
+  }
+});
+
+test("DELETE /users/me: después de 10 contraseñas incorrectas corta con 429", async () => {
+  await conUsuario(async () => {
+    const OTRO = "000000000000000000000077";
+    let ultimo = null;
+    for (let i = 0; i < 11; i += 1) {
+      ultimo = await pedir("DELETE", "/api/users/me", { confirmEmail: "qa@example.com", password: "mala" }, OTRO);
+      if (i < 10) assert.equal(ultimo.status, 403, `intento ${i + 1}`);
+    }
+    assert.equal(ultimo.status, 429);
+  });
+});
