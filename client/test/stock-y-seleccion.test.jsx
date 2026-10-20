@@ -105,6 +105,29 @@ describe("useLongPress (mantener apretado)", () => {
     expect(onLong).not.toHaveBeenCalled();
   });
 
+  it("una pulsación larga sin click posterior no se traga el próximo toque (no queda pegada)", () => {
+    const onLong = vi.fn();
+    const { result } = renderHook(() => useLongPress(onLong, { ms: 400 }));
+    act(() => result.current.handlers.onPointerDown(ev()));
+    act(() => vi.advanceTimersByTime(500));
+    expect(onLong).toHaveBeenCalledTimes(1);
+    // El click nunca llegó (pointercancel). El siguiente toque, corto, empieza limpio.
+    act(() => result.current.handlers.onPointerCancel());
+    act(() => result.current.handlers.onPointerDown(ev()));
+    act(() => result.current.handlers.onPointerUp());
+    expect(result.current.fueLarga()).toBe(false);
+  });
+
+  it("el menú contextual sólo se suprime durante una pulsación larga", () => {
+    const { result } = renderHook(() => useLongPress(vi.fn(), { ms: 400 }));
+    const evento = { preventDefault: vi.fn() };
+    result.current.handlers.onContextMenu(evento);
+    expect(evento.preventDefault).not.toHaveBeenCalled();
+    act(() => result.current.handlers.onPointerDown(ev()));
+    result.current.handlers.onContextMenu(evento);
+    expect(evento.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
   it("deshabilitado no dispara, y el botón derecho del mouse tampoco", () => {
     const onLong = vi.fn();
     const { result } = renderHook(() => useLongPress(onLong, { ms: 400, habilitado: false }));

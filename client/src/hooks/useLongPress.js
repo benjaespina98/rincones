@@ -31,10 +31,13 @@ export function useLongPress(onLongPress, { ms = 450, tolerancia = 10, habilitad
 
   const alBajar = useCallback(
     (e) => {
+      // Cada toque empieza limpio: si el anterior fue largo pero el `click` nunca llegó (Android cancela
+      // el gesto al aparecer el menú; iOS, al empezar un scroll), la marca no puede quedar pegada y
+      // tragarse el primer toque de la selección.
+      larga.current = false;
       if (!habilitado) return;
       // Sólo el botón principal del mouse; el toque no trae `button` distinto de 0.
       if (e.button !== undefined && e.button !== 0) return;
-      larga.current = false;
       origen.current = { x: e.clientX, y: e.clientY };
       cancelar();
       origen.current = { x: e.clientX, y: e.clientY };

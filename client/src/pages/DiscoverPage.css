@@ -192,14 +192,14 @@
 }
 
 /* Placeholder del vino del día mientras carga.
-   Reserva el alto exacto de la tarjeta armada —botella (156) + padding (20×2) +
-   acciones (40) + gaps (14×2)— así la home no salta cuando llegan los datos. Y
+   Reserva el alto de la tarjeta armada —botella (176) + padding (20×2) + acciones (40) + gaps
+   (14×2), con margen para el texto de dos renglones— así la home casi no salta cuando llegan los datos. Y
    dibuja SU FORMA: la silueta de la botella y los renglones del texto. Antes era
    un rectángulo vacío del alto correcto, que resolvía el salto pero se leía como
    un error, no como una espera. Las piezas usan la clase `.skeleton` compartida
    (LoadingSkeleton.css) para que el brillo sea el mismo de toda la app. */
 .spotlight--skeleton {
-  min-height: 264px;
+  min-height: 284px;
   animation: none;
   background: var(--elevated);
   border-color: var(--line);

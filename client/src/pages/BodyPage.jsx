@@ -171,9 +171,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [regionFilter, setRegionFilter] = useState(guardados.regionFilter || "all");
   const [vintageFilter, setVintageFilter] = useState(guardados.vintageFilter || "all");
   const [wineryFilter, setWineryFilter] = useState(guardados.wineryFilter || "all");
-  const [puntajeMin, setPuntajeMin] = useState(guardados.puntajeMin || "all");
+  const [puntajeMin, setPuntajeMin] = useState(["3", "4", "5"].includes(guardados.puntajeMin) ? guardados.puntajeMin : "all");
   // Qué dimensión muestran las fichas rápidas de arriba (Tipo, Uva, Región o Bodega).
-  const [dimRapida, setDimRapida] = useState(guardados.dimRapida || "tipo");
+  const [dimRapida, setDimRapida] = useState(["tipo", "uva", "region", "bodega"].includes(guardados.dimRapida) ? guardados.dimRapida : "tipo");
   /**
    * Selección múltiple.
    *
@@ -786,38 +786,48 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const ids = [...seleccion];
     if (ids.length === 0 || enLote) return 0;
     setEnLote(true);
-    let ok = 0;
+    const fallidos = [];
     for (const id of ids) {
       try {
         await operacion(id);
-        ok += 1;
       } catch {
         // Sigue con los demás; el resumen dice cuántos fueron.
+        fallidos.push(id);
       }
     }
     setEnLote(false);
-    return ok;
+    return { ok: ids.length - fallidos.length, fallidos };
+  };
+
+  // Tras una operación en lote: si salió todo bien se sale de la selección; si falló alguno, quedan
+  // elegidos SÓLO los que fallaron, para reintentar sin repetir los que ya salieron (sumar no es
+  // idempotente: volver a mandar un vino que ya se sumó lo sumaría dos veces).
+  const cerrarLote = ({ fallidos }) => {
+    if (fallidos.length === 0) salirDeSeleccion();
+    else setSeleccion(new Set(fallidos));
   };
 
   const sumarStockEnLote = async (cantidad) => {
     const n = Math.max(1, Math.min(999, Number(cantidad) || 1));
     setSumandoLote(false);
     const total = seleccion.size;
-    const ok = await aplicarAcadaUno((id) => adjustStock(id, n));
+    const resultado = await aplicarAcadaUno((id) => adjustStock(id, n));
+    const { ok } = resultado;
     trackEvent("stock_added_lote", { vinos: ok, cantidad: n });
     if (ok === total) showSuccess(`${n === 1 ? "1 botella sumada" : `${n} botellas sumadas`} a ${ok === 1 ? "1 vino" : `${ok} vinos`}`);
-    else showError(`Se sumó en ${ok} de ${total} vinos. Probá de nuevo con el resto.`);
-    if (ok > 0) salirDeSeleccion();
+    else showError(`Se sumó en ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
+    cerrarLote(resultado);
   };
 
   const editarEnLote = async (cambios) => {
     setEditandoLote(false);
     const total = seleccion.size;
-    const ok = await aplicarAcadaUno((id) => updateWine(id, cambios));
+    const resultado = await aplicarAcadaUno((id) => updateWine(id, cambios));
+    const { ok } = resultado;
     trackEvent("edicion_lote", { vinos: ok, campos: Object.keys(cambios).length });
     if (ok === total) showSuccess(ok === 1 ? "1 vino actualizado" : `${ok} vinos actualizados`);
-    else showError(`Se actualizaron ${ok} de ${total} vinos. Probá de nuevo con el resto.`);
-    if (ok > 0) salirDeSeleccion();
+    else showError(`Se actualizaron ${ok} de ${total} vinos. Quedaron elegidos los que faltan: probá de nuevo.`);
+    cerrarLote(resultado);
   };
 
   const clearAllFilters = () => {
