@@ -330,35 +330,46 @@ const search = async (query, limit = 12) => {
 };
 
 /**
- * Los vinos publicados por la comunidad que YA tienen foto, con la forma del catálogo, para que
- * Descubrí los pueda recomendar. Sin la imagen: las fotos son data URL y pesan, así que se rankea
- * con los datos livianos (`fotoDiferida: true` marca que la foto existe) y después se piden
+ * TODO lo que la comunidad publicó (lo que cargaron todas las personas), con la forma del catálogo,
+ * para que Descubrí lo pueda recomendar. Sin la imagen: las fotos son data URL y pesan, así que se
+ * rankea con datos livianos (`fotoDiferida: true` marca que la foto existe) y después se piden
  * `imagenesDe` sólo para los pocos elegidos.
  *
- * El catálogo curado es chico y casi sin fotos; lo que la gente fue cargando (con su foto) es lo
- * que hace que haya con qué recomendar con foto, y crece solo con el uso. Primero los verificados
- * por dos personas distintas y los más cargados. Cacheado en memoria unos minutos: es igual para
- * todos. Nunca lanza.
+ * Entran los publicados con o sin foto, verificados o no: la recomendación es de TODO lo cargado, y
+ * la calidad no filtra sino que PESA (`confiable`: dos personas lo confirmaron o una lectura fue
+ * confiable) para que lo bien identificado salga antes que lo dudoso. Los más cargados y los
+ * verificados primero. Cacheado en memoria unos minutos: es igual para todos. Nunca lanza.
  */
 const CACHE_MS = 10 * 60 * 1000;
-let cacheConFoto = { hasta: 0, limit: 0, lista: [] };
+let cacheParaRecomendar = { hasta: 0, limit: 0, lista: [] };
 
-const conFoto = async (limit = 300) => {
+const paraRecomendar = async (limit = 1500) => {
   const ahora = Date.now();
-  if (cacheConFoto.hasta > ahora && cacheConFoto.limit >= limit) return cacheConFoto.lista.slice(0, limit);
+  if (cacheParaRecomendar.hasta > ahora && cacheParaRecomendar.limit >= limit) {
+    return cacheParaRecomendar.lista.slice(0, limit);
+  }
   try {
-    const docs = await CommunityWine.find({
-      published: true,
-      // Para RECOMENDAR (no para buscar) se pide algo más que existir: que dos personas lo hayan
-      // confirmado o que al menos una lectura haya sido confiable. Una lectura floja aparece en la
-      // búsqueda, abajo, pero no se le sugiere a nadie.
-      $or: [{ verified: true }, { trustedCount: { $gt: 0 } }],
-      image: { $regex: /^(https:\/\/|data:image\/)/ },
-    })
-      .select("-image -contributors")
-      .sort({ verified: -1, count: -1 })
-      .limit(limit)
-      .lean();
+    const docs = await CommunityWine.aggregate([
+      { $match: { published: true } },
+      { $sort: { verified: -1, count: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          key: 1,
+          name: 1,
+          winery: 1,
+          region: 1,
+          varietal: 1,
+          type: 1,
+          count: 1,
+          verified: 1,
+          trustedCount: 1,
+          tieneFoto: {
+            $regexMatch: { input: { $ifNull: ["$image", ""] }, regex: "^(https://|data:image/)" },
+          },
+        },
+      },
+    ]);
     const lista = docs.map((d) => ({
       id: `com-${d.key}`,
       name: d.name,
@@ -367,14 +378,15 @@ const conFoto = async (limit = 300) => {
       varietal: d.varietal || "",
       type: d.type || "unknown",
       image: "",
-      fotoDiferida: true,
+      fotoDiferida: d.tieneFoto === true,
+      confiable: d.verified === true || (d.trustedCount || 0) > 0,
       vintage: "",
       rating: 0,
       barcode: "",
       source: d.verified ? "comunidad-verificada" : "comunidad",
       score: d.count || 1,
     }));
-    cacheConFoto = { hasta: ahora + CACHE_MS, limit, lista };
+    cacheParaRecomendar = { hasta: ahora + CACHE_MS, limit, lista };
     return lista;
   } catch {
     return [];
@@ -395,11 +407,11 @@ const imagenesDe = async (ids = []) => {
 
 /** Para los tests: olvida lo cacheado. */
 const olvidarCache = () => {
-  cacheConFoto = { hasta: 0, limit: 0, lista: [] };
+  cacheParaRecomendar = { hasta: 0, limit: 0, lista: [] };
 };
 
 module.exports = {
-  conFoto,
+  paraRecomendar,
   imagenesDe,
   olvidarCache,
   contribute,

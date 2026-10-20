@@ -203,21 +203,33 @@ const TOPE_POR_GAMA = 3;
  * —es lo que más hay en el catálogo y lo que más toma todo el mundo—, y una home
  * con cuatro Malbec no se lee como ocho recomendaciones sino como una repetida.
  */
-const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
+/**
+ * `extra(wine)` suma o resta puntos por algo que NO es gusto (que tenga foto, que esté bien
+ * identificado): empuja, no filtra. `jitter` es cuánto puede mover el desempate diario a un vino
+ * de lugar: con 0 sólo desempata los empatados (la home de siempre); con más, vinos que puntúan
+ * parecido rotan de un día al otro y la home deja de ser "los mismos de siempre" cuando el pool es
+ * grande. Sigue siendo estable dentro del día.
+ */
+const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jitter = 0 } = {}) => {
   const candidatos = (catalogo || [])
     .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)))
-    .map((wine) => ({
-      wine,
-      afinidad: puntajeDeAfinidad(wine, perfil),
-      descubrimiento: puntajeDeDescubrimiento(wine, perfil),
-      ruido: desempate(wine, seed),
-    }));
+    .map((wine) => {
+      const e = typeof extra === "function" ? Number(extra(wine)) || 0 : 0;
+      const ruido = desempate(wine, seed);
+      return {
+        wine,
+        afinidad: puntajeDeAfinidad(wine, perfil) + e,
+        descubrimiento: puntajeDeDescubrimiento(wine, perfil) + e,
+        ruido,
+        movimiento: ruido * jitter,
+      };
+    });
 
   const porAfinidad = [...candidatos].sort(
-    (a, b) => b.afinidad - a.afinidad || b.ruido - a.ruido
+    (a, b) => b.afinidad + b.movimiento - (a.afinidad + a.movimiento) || b.ruido - a.ruido
   );
   const porDescubrimiento = [...candidatos].sort(
-    (a, b) => b.descubrimiento - a.descubrimiento || b.ruido - a.ruido
+    (a, b) => b.descubrimiento + b.movimiento - (a.descubrimiento + a.movimiento) || b.ruido - a.ruido
   );
 
   const elegidos = [];
@@ -225,6 +237,10 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
   const uvas = new Map();
   const gamas = new Map();
   const yaElegido = new Set();
+  // El cupo por uva escala con el tamaño del set (con doce, tres de cada una) y se afloja de a uno
+  // si no alcanza para completarlo: un set más corto porque el pool tiene poca variedad es peor
+  // que uno con una uva repetida una vez más.
+  let topePorUva = Math.max(TOPE_POR_UVA, Math.ceil(count / 4));
 
   const tomarDe = (lista, respetarGama = true) => {
     for (const candidato of lista) {
@@ -235,7 +251,7 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
       if (bodega && bodegas.has(bodega)) continue;
 
       const uva = norm(candidato.wine.varietal);
-      if (uva && (uvas.get(uva) || 0) >= TOPE_POR_UVA) continue;
+      if (uva && (uvas.get(uva) || 0) >= topePorUva) continue;
 
       const gama = gamaDe(candidato.wine);
       if (respetarGama && (gamas.get(gama) || 0) >= TOPE_POR_GAMA) continue;
@@ -267,7 +283,12 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0 } = {}) => {
     // misma bodega arruinan el set mucho más que cuatro botellas del mismo
     // rango de precio—.
     if (!listas.some((lista) => tomarDe(lista, true))) {
-      if (!listas.some((lista) => tomarDe(lista, false))) break;
+      if (!listas.some((lista) => tomarDe(lista, false))) {
+        // Nada admisible con este cupo de uva: se afloja de a uno (el de bodega sigue firme).
+        if (topePorUva >= count) break;
+        topePorUva += 1;
+        continue;
+      }
     }
     turnoDeAfinidad = !turnoDeAfinidad;
   }
