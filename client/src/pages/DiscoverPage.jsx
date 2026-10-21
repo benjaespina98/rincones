@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useWineStats } from "../hooks/useWineStats";
 import { useWishlist } from "../hooks/useWishlist";
+import { useAddToCellar } from "../hooks/useAddToCellar";
+import AddToCellarSheet from "../components/AddToCellarSheet";
 import { useToast } from "../context/ToastContext";
 import { getFeaturedWines, searchWines } from "../services/wineSearchApi";
 import StarRating from "../components/StarRating";
@@ -76,6 +78,18 @@ export default function DiscoverPage() {
   // usuario tenga que tocar el texto del buscador.
   const [retryToken, setRetryToken] = useState(0);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  // Los que agregaste a tu bodega desde esta búsqueda (id del resultado -> botellas), para que la tarjeta
+  // pase a decir "En tu bodega" sin volver a buscar.
+  const [agregados, setAgregados] = useState({});
+  const agregar = useAddToCellar({
+    alAgregar: (wine, { quantity, deshecho }) =>
+      setAgregados((prev) => {
+        const next = { ...prev };
+        if (deshecho) delete next[wine.id];
+        else next[wine.id] = { bottles: quantity };
+        return next;
+      }),
+  });
   // La recomendación en foco. El set ya viene rankeado (la mejor primero) y sólo con foto;
   // "Ver otro" recorre el resto.
   // El vino que se ve, por id (no por posición): si se descarta uno, la posición se corre sola.
@@ -431,6 +445,8 @@ export default function DiscoverPage() {
         </div>
       </header>
 
+      <AddToCellarSheet wine={agregar.vino} saving={agregar.guardando} onConfirm={agregar.confirmar} onCancel={agregar.cerrar} />
+
       {buscando && (
         <section className="wine-search">
           {searchLoading && <LoadingSkeleton type="list" count={3} />}
@@ -551,28 +567,40 @@ export default function DiscoverPage() {
                       ya probado, el dato es que lo tomaste y sigue en tu
                       historial. Recién si no es tuyo aparece la lista de deseos. */}
                   <div className="wine-result-card__actions">
-                    {r.owned ? (
+                    {r.owned || agregados[r.id] ? (
                       <span className="wine-result-card__owned">
                         <Icon name="check" size={15} />
-                        {r.owned.bottles > 0
-                          ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
-                          : r.owned.tasted
-                            ? "Ya lo tomaste"
-                            : "Ya está en tu bodega"}
+                        {agregados[r.id]
+                          ? agregados[r.id].bottles > 0
+                            ? `Agregado · ${agregados[r.id].bottles} ${agregados[r.id].bottles === 1 ? "botella" : "botellas"}`
+                            : "Anotado como tomado"
+                          : r.owned.bottles > 0
+                            ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
+                            : r.owned.tasted
+                              ? "Ya lo tomaste"
+                              : "Ya está en tu bodega"}
                       </span>
                     ) : (
-                      <button
-                        type="button"
-                        className={`wine-result-card__want ${addedIds.has(r.id) ? "is-wished" : ""}`}
-                        onClick={() => handleWant(r, "search")}
-                        disabled={addingId === r.id || addedIds.has(r.id)}
-                      >
-                        {addedIds.has(r.id) ? (
-                          <><Icon name="check" size={16} /> Guardado</>
-                        ) : (
-                          <><Icon name="heart" size={16} /> Guardar</>
-                        )}
-                      </button>
+                      <>
+                        {/* La acción principal es la que más se hace con un resultado: tenerlo. Sin cámara:
+                            una sola pregunta (cuántas botellas) y listo. Guardar para probar queda al lado. */}
+                        <button type="button" className="wine-result-card__add" onClick={() => agregar.abrir(r)}>
+                          <Icon name="plus" size={16} /> Agregar
+                        </button>
+                        <button
+                          type="button"
+                          className={`wine-result-card__want ${addedIds.has(r.id) ? "is-wished" : ""}`}
+                          onClick={() => handleWant(r, "search")}
+                          disabled={addingId === r.id || addedIds.has(r.id)}
+                          aria-label={addedIds.has(r.id) ? "Guardado para probar" : "Guardar para probar"}
+                        >
+                          {addedIds.has(r.id) ? (
+                            <><Icon name="check" size={16} /> Guardado</>
+                          ) : (
+                            <><Icon name="heart" size={16} /> Guardar</>
+                          )}
+                        </button>
+                      </>
                     )}
                   </div>
                 </li>
