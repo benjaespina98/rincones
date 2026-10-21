@@ -1061,3 +1061,9 @@
     filter: brightness(1.08);
   }
 }
+
+/* Las dos acciones apiladas necesitan aire arriba y abajo: sin esto tocaban los bordes de la tarjeta (en un
+   teléfono la tarjeta mide lo que mide la foto, un poco menos que las dos acciones juntas). */
+.wine-result-card__actions {
+  padding: 8px 10px 8px 4px;
+}
