@@ -328,7 +328,7 @@ const featured = async (req, res, next) => {
      */
     const [wines, user, guardados] = await Promise.all([
       Wine.find({ userId: req.user.id })
-        .select("name winery varietal region type rating")
+        .select("name winery varietal region type rating quantity tasted")
         .lean()
         .catch(() => []),
       User.findById(req.user.id).select("preferences").lean().catch(() => null),

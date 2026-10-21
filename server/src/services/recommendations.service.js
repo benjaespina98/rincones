@@ -78,6 +78,12 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
   // visible que puede cometer la home.
   const notas = new Map();
   const yaLoTiene = new Set();
+  // Por uva: cuántos YA TOMÓ y cuántos tiene en stock. Es lo que permite decir la verdad en la tarjeta:
+  // "tenés tres Malbec" no es lo mismo que haber tomado dos y tener uno.
+  const tomadosPorUva = new Map();
+  const enStockPorUva = new Map();
+  const tomadosPorRegion = new Map();
+  const tomadosPorTipo = new Map();
 
   const sumar = (mapa, valor) => {
     const k = norm(valor);
@@ -88,6 +94,12 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
   for (const wine of wines) {
     yaLoTiene.add(clave(wine));
     sumar(varietals, wine.varietal);
+    if (wine.tasted === true) {
+      sumar(tomadosPorUva, wine.varietal);
+      sumar(tomadosPorRegion, wine.region);
+      sumar(tomadosPorTipo, wine.type);
+    }
+    if (Number(wine.quantity) > 0) sumar(enStockPorUva, wine.varietal);
     sumar(regions, wine.region);
     sumar(types, wine.type);
     if (Number(wine.rating) >= PUNTUACION_ALTA && norm(wine.varietal)) {
@@ -108,6 +120,10 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
     regions,
     types,
     puntuadosAlto,
+    tomadosPorUva,
+    enStockPorUva,
+    tomadosPorRegion,
+    tomadosPorTipo,
     evitados,
     total: wines.length,
     yaLoTiene,
@@ -365,28 +381,35 @@ const explicarRecomendacion = (wine, perfil) => {
   const coincidencia =
     hayBase && maximo > 0 ? Math.max(0, Math.min(99, Math.round((100 * bruto) / maximo))) : null;
 
+  // Razones en voz de persona, cortas y verdaderas. La tarjeta muestra la primera, así que el
+  // orden es el de lo más convincente a lo más general.
   const razones = [];
   const cuantas = perfil.varietals.get(uva);
-  const enBodega = (n) => (n === 1 ? "1 en tu bodega" : `${n} en tu bodega`);
-  if (cuantas) razones.push(`Tomás ${wine.varietal} (${enBodega(cuantas)})`);
-  if (perfil.elegidos.varietals.has(uva)) razones.push(`Elegiste ${wine.varietal} entre tus gustos`);
-  if (perfil.puntuadosAlto.has(uva) && cuantas) razones.push(`Puntuaste alto el ${wine.varietal}`);
-  if (perfil.regions.has(region)) razones.push(`Repetís ${wine.region}`);
-  if (perfil.types.has(tipo) && razones.length < 3 && TIPO_PLURAL[tipo]) {
-    razones.push(`Sos de ${TIPO_PLURAL[tipo]} (${perfil.types.get(tipo)})`);
+  const tomados = perfil.tomadosPorUva?.get(uva) || 0;
+  const enStock = perfil.enStockPorUva?.get(uva) || 0;
+  if (perfil.puntuadosAlto.has(uva) && cuantas) razones.push(`Le pusiste buena nota al ${wine.varietal}`);
+  if (perfil.elegidos.varietals.has(uva)) razones.push(`Dijiste que te gusta el ${wine.varietal}`);
+  if (tomados > 0) {
+    razones.push(tomados === 1 ? `Ya probaste un vino de ${wine.varietal}` : `Ya probaste ${tomados} vinos de ${wine.varietal}`);
+  } else if (enStock > 0 || cuantas) {
+    razones.push(`Tenés ${wine.varietal} en tu bodega`);
+  }
+  // Región y tipo sólo se afirman con lo que TOMÓ, no con lo que tiene guardado: "tomás mucho tinto" con un
+  // único tinto sin abrir sería mentira.
+  if ((perfil.tomadosPorRegion?.get(region) || 0) >= 2) {
+    razones.push(`Es de ${wine.region}, como varios que tomaste`);
+  }
+  if ((perfil.tomadosPorTipo?.get(tipo) || 0) >= 3 && razones.length < 3 && TIPO_PLURAL[tipo]) {
+    razones.push(`Tomás mucho ${TIPO_PLURAL[tipo].replace(/s$/, "")}`);
   }
 
   const esDescubrimiento = razones.length === 0 || (bruto < 2 && puntajeDeDescubrimiento(wine, perfil) > 0);
   if (esDescubrimiento) {
-    const puente = [];
-    if (uva && !perfil.varietals.has(uva)) puente.push(`Uva nueva para vos`);
-    if (perfil.types.has(tipo) && TIPO_PLURAL[tipo]) puente.push(`del color que tomás (${TIPO_PLURAL[tipo]})`);
-    else if (perfil.regions.has(region)) puente.push(`de ${wine.region}, que ya conocés`);
-    return {
-      modo: "descubrimiento",
-      coincidencia: null,
-      razones: puente.length ? [puente.join(", ")] : [],
-    };
+    let puente = "";
+    if (uva && !perfil.varietals.has(uva)) puente = "Una uva nueva para vos";
+    else if (perfil.tomadosPorRegion?.get(region)) puente = `De ${wine.region}, que ya probaste`;
+    else if (perfil.tomadosPorTipo?.get(tipo) && TIPO_PLURAL[tipo]) puente = "Un estilo que ya probaste";
+    return { modo: "descubrimiento", coincidencia: null, razones: puente ? [puente] : [] };
   }
 
   return { modo: "afinidad", coincidencia, razones: razones.slice(0, 3) };

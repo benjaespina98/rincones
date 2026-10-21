@@ -146,6 +146,9 @@
      el aire que separa una tarjeta de la superficie donde vive. */
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  /* El ancla de la capa de acciones que se descubre al deslizar (.wine-row__swipe es absoluta): sin esto
+     se medía contra la pantalla entera y, al deslizar, aparecía una franja de punta a punta. */
+  position: relative;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   /* `backwards` y no `both`: con `both` la animación deja fijo su `transform` final y el
      `scale` de :active de abajo nunca se aplicaría. El final es igual al estado base. */
@@ -1972,7 +1975,22 @@
 .bodega-dim__tab::after {
   content: "";
   position: absolute;
-  inset: -6px -6px;
+  inset: -6px 0;
+}
+
+.wine-row__stepper-n::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.wine-row__stepper-n:active:not(:disabled) {
+  background: rgb(var(--paper-rgb) / 0.12);
+}
+
+.wine-row__stepper-n:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .bodega-dim__tab.is-active {
@@ -2055,12 +2073,12 @@
 .wine-row__qty.tiene-stepper {
   /* Reserva el ancho del stepper (queda debajo, invisible) para que el nombre no lo pise. */
   visibility: hidden;
-  min-width: 92px;
+  min-width: 104px;
 }
 
 /* Sin stock el stepper es sólo el "+": reserva menos. */
 .wine-row__qty.tiene-stepper.is-empty {
-  min-width: 52px;
+  min-width: 40px;
 }
 
 .wine-row__stepper {
@@ -2070,20 +2088,35 @@
   z-index: 1;
   display: inline-flex;
   align-items: center;
-  height: 28px;
+  height: 32px;
   border-radius: var(--radius-full);
-  background: rgb(var(--paper-rgb) / 0.08);
+  background: rgb(var(--paper-rgb) / 0.1);
 }
+
 
 .wines-list--archivo .wine-row__stepper {
   top: 50%;
   transform: translateY(-50%);
 }
 
+/* En el archivo el chevron de "más acciones" va en la misma línea, a la derecha: el stepper se corre a su izquierda
+   en vez de dibujarse encima (el "+" se veía como un garabato). 12 de margen + 36 del chevron + 10 de aire (para que no se pisen las áreas de toque). */
+.wines-list--archivo .wine-row__head:has(.wine-row__disclosure) .wine-row__stepper {
+  right: 58px;
+}
+
+/* El número es un botón: tocarlo abre la hoja para sumar varias de una (una caja, un pack). */
+/* Área de toque propia (vertical 44) y sin pisar a los vecinos: los botones de al lado ya no se estiran a lo ancho. */
 .wine-row__stepper-n {
-  min-width: 18px;
+  position: relative;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   text-align: center;
-  font-size: var(--text-meta);
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -2093,13 +2126,13 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -2107,7 +2140,7 @@
 .wine-row__stepper-btn::after {
   content: "";
   position: absolute;
-  inset: -8px -9px;
+  inset: -6px -6px;
 }
 
 .wine-row__stepper-btn:active:not(:disabled) {
