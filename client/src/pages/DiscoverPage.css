@@ -1020,3 +1020,44 @@
   transform: scaleX(calc(var(--pct) / 100));
   transition: transform 500ms var(--ease-out);
 }
+
+/* ══ Agregar a la bodega desde la búsqueda ══════════════════════════════════
+   Dos acciones apiladas a la derecha de cada resultado: "Agregar" (principal, violeta) y "Guardar"
+   (secundaria, con borde). El violeta es de la acción que más se hace, no de las dos. */
+.wine-result-card__actions {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wine-result-card__actions .wine-result-card__add,
+.wine-result-card__actions .wine-result-card__want {
+  width: 100%;
+  padding: 0 10px;
+}
+
+.wine-result-card__add {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgb(var(--accent-light-rgb) / 0.3);
+  border-radius: var(--radius-control);
+  background: var(--accent-fill);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.wine-result-card__add:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wine-result-card__add:hover {
+    filter: brightness(1.08);
+  }
+}

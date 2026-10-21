@@ -37,6 +37,9 @@ const { buildStockStages, reconcileLots, availableFromLots } = require("../utils
  * evidencia, no conclusión. Un payload armado a mano no puede autodeclararse
  * confiable y entrar al catálogo público.
  */
+/** `identification.matchedFrom` de un alta que salió de elegir un resultado de la búsqueda. */
+const ORIGEN_BUSQUEDA = "busqueda-catalogo";
+
 const evaluarIdentificacion = (payload, valores) => {
   const ident = payload?.identification || {};
   const confidence = ident.confidence && typeof ident.confidence === "object" ? ident.confidence : {};
@@ -61,8 +64,14 @@ const evaluarIdentificacion = (payload, valores) => {
     issues,
   });
 
+  // Un vino elegido de la búsqueda (catálogo o comunidad) y agregado con un toque no lo leyó ni lo escribió
+  // nadie: no puede salir "trusted", porque eso lo publicaría al catálogo comunitario como carga humana y,
+  // con una segunda cuenta, lo dejaría "verificado" sin que nadie mire una etiqueta.
+  const deLaBusqueda = String(ident.matchedFrom || "") === ORIGEN_BUSQUEDA;
+  const veredictoFinal = deLaBusqueda && verdict === "trusted" ? "unverified" : verdict;
+
   return {
-    verdict,
+    verdict: veredictoFinal,
     issues,
     source,
     editedFields,
@@ -499,7 +508,8 @@ async function createWine(userId, payload) {
   // dudosa no toca el catálogo, y lo del medio queda anotado esperando que otra
   // persona llegue a lo mismo por su cuenta. El vino entra a TU bodega en los
   // tres casos — lo que se demora es hacerlo público, no tenerlo.
-  if (!isCuratedWine(savedWine)) {
+  // Lo que vino de la búsqueda ya ES el catálogo (o salió de él): no se vuelve a aportar.
+  if (!isCuratedWine(savedWine) && identificacion.matchedFrom !== ORIGEN_BUSQUEDA) {
     await communityWines.contribute(
       {
         name: savedWine.name,
