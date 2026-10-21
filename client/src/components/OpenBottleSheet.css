@@ -174,3 +174,26 @@
     color: var(--text);
   }
 }
+
+/* Una salida secundaria dentro de la hoja ("lo tomé afuera"): texto, sin caja. Sin esto el navegador la
+   dibuja como un botón blanco nativo. */
+.open-sheet__alt {
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--accent-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.open-sheet__alt:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

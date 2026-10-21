@@ -384,9 +384,9 @@ test("explicarRecomendacion: el porcentaje y las razones salen de la bodega de l
   const igual = recommendations.explicarRecomendacion(vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }), perfil);
   assert.equal(igual.modo, "afinidad");
   assert.ok(igual.coincidencia >= 90, `coincide en todo lo que sabemos: ${igual.coincidencia}%`);
-  assert.ok(igual.razones.some((r) => /Ya le agarraste el gusto al Malbec/.test(r)));
-  assert.ok(igual.razones.some((r) => /te gustó el Malbec/.test(r)));
-  assert.ok(igual.razones.some((r) => /De Mendoza/.test(r)));
+  assert.ok(igual.razones.some((r) => /Como tomaste Malbec, te recomiendo este vino/.test(r)));
+  assert.ok(igual.razones.some((r) => /Como te gusta el Malbec, te recomiendo este vino/.test(r)));
+  assert.ok(igual.razones.some((r) => /Como tomaste varios vinos de Mendoza/.test(r)));
   assert.ok(igual.razones.length <= 3);
 
   const parecido = recommendations.explicarRecomendacion(vino("b", { varietal: "Malbec", region: "Salta", type: "red" }), perfil);
@@ -405,7 +405,7 @@ test("explicarRecomendacion: un descubrimiento se dice como tal y sin porcentaje
   const nuevo = recommendations.explicarRecomendacion(vino("n", { varietal: "Tannat", region: "Uruguay", type: "red" }), perfil);
   assert.equal(nuevo.modo, "descubrimiento");
   assert.equal(nuevo.coincidencia, null);
-  assert.match(nuevo.razones[0], /Una uva nueva para animarte/);
+  assert.match(nuevo.razones[0], /Para que pruebes una uva nueva/);
 });
 
 test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () => {
@@ -431,10 +431,10 @@ test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () =>
 test("las razones cuentan lo que es verdad: lo tomado y lo que hay en stock", () => {
   const sinTomar = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: false, quantity: 2 }]);
   const r = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), sinTomar);
-  assert.ok(!r.razones.some((t) => /Ya probaste|agarraste el gusto/.test(t)));
+  assert.ok(!r.razones.some((t) => /Como tomaste Syrah/.test(t)));
   const tomado = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: true, quantity: 0 }]);
   const t = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), tomado);
-  assert.ok(t.razones.some((x) => /Ya probaste el Syrah/.test(x)));
+  assert.ok(t.razones.some((x) => /Como tomaste Syrah/.test(x)));
   assert.ok(!t.razones.some((x) => /que tenés/.test(x)));
 });
 

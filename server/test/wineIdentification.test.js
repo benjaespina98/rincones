@@ -160,6 +160,27 @@ test("un vino elegido de la búsqueda no sale confiable ni se aporta al catálog
   }
 });
 
+test("en Mi Bodega manda TU foto; la del pool sólo completa cuando no escaneaste ninguna", async () => {
+  const spy = spyCatalogo();
+  const db = stubEntorno();
+  const getImage = wineImages.getImage;
+  wineImages.getImage = async () => "https://res.cloudinary.com/x/image/upload/pool.jpg";
+  try {
+    const propia = "https://res.cloudinary.com/x/image/upload/mia.jpg";
+    const conMiFoto = await winesService.createWine(USER_ID, { ...LECTURA_BUENA, image: propia });
+    assert.equal(conMiFoto.wine.image, propia, "la foto que escaneé es la que veo");
+    assert.notEqual(conMiFoto.wine.imageSource, "community");
+
+    const sinFoto = await winesService.createWine(USER_ID, { ...LECTURA_BUENA, name: "Otro Refugio", line: "Otro Refugio" });
+    assert.match(sinFoto.wine.image, /pool.jpg$/, "sin foto propia se completa con la mejor pública");
+    assert.equal(sinFoto.wine.imageSource, "community");
+  } finally {
+    wineImages.getImage = getImage;
+    spy.restore();
+    db.restore();
+  }
+});
+
 test("una lectura floja entra a la bodega pero NO como confiable", async () => {
   const spy = spyCatalogo();
   const db = stubEntorno();
