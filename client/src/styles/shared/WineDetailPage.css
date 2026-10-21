@@ -1337,3 +1337,9 @@
   position: absolute;
   inset: -7px;
 }
+
+/* En la fila de acciones de la ficha de catálogo, "Quiero probarlo" es secundaria y comparte el ancho con el corazón. */
+.catalog-cta-row .catalog-have-btn {
+  flex: 1;
+  margin-top: 0;
+}

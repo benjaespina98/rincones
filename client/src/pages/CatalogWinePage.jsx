@@ -9,6 +9,8 @@ import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
+import { useAddToCellar } from "../hooks/useAddToCellar";
+import AddToCellarSheet from "../components/AddToCellarSheet";
 import { describeWine, getWinePrice, mercadoLibreUrl } from "../services/wineSearchApi";
 import { shareWine } from "../utils/share";
 // El CSS de esta ficha (compartido con WineDetailPage) se importa una sola vez,
@@ -33,6 +35,12 @@ export default function CatalogWinePage() {
   const [priceLoading, setPriceLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  // Agregado a la bodega desde esta ficha (botellas), o null.
+  const [enBodega, setEnBodega] = useState(null);
+  const agregar = useAddToCellar({
+    source: "ficha-catalogo",
+    alAgregar: (_w, { quantity, deshecho }) => setEnBodega(deshecho ? null : { bottles: quantity }),
+  });
 
   const wineName = wine?.name;
   const wineWinery = wine?.winery;
@@ -199,21 +207,34 @@ export default function CatalogWinePage() {
           </a>
         </div>
 
-        {/* CTA: guardar en la lista (Guardados). No entra a la bodega: eso es
-            solo stock real y se suma escaneando la botella. */}
+        {/* CTA principal: tenerlo. Agregar a la bodega es una pregunta (cuántas botellas) y listo, sin
+            cámara. Guardarlo para probar queda como secundaria. */}
+        <button
+          type="button"
+          className={`catalog-add-cta ${enBodega ? "is-added" : ""}`}
+          onClick={() => agregar.abrir(wine)}
+          disabled={Boolean(enBodega)}
+        >
+          {enBodega ? (
+            <><Icon name="check" size={18} /> {enBodega.bottles > 0 ? "Agregado a tu bodega" : "Anotado como ya tomado"}</>
+          ) : (
+            <><Icon name="plus" size={18} /> Agregar a mi bodega</>
+          )}
+        </button>
+
         <div className="catalog-cta-row">
           <button
             type="button"
-            className={`catalog-add-cta ${added ? "is-added" : ""}`}
+            className="catalog-have-btn"
             onClick={() => handleWant(false)}
             disabled={adding || added}
           >
             {added ? (
-              <><Icon name="check" size={18} /> Guardado</>
+              <><Icon name="check" size={16} /> Guardado</>
             ) : adding ? (
               "Guardando…"
             ) : (
-              <><Icon name="heart" size={18} /> Quiero probar</>
+              <><Icon name="heart" size={16} /> Quiero probarlo</>
             )}
           </button>
           <button
@@ -229,8 +250,10 @@ export default function CatalogWinePage() {
         </div>
 
         <button type="button" className="catalog-have-btn" onClick={() => navigate("/agregar")}>
-          <Icon name="camera" size={16} /> Ya lo tengo: escaneálo para tu bodega
+          <Icon name="camera" size={16} /> Prefiero escanear la etiqueta
         </button>
+
+        <AddToCellarSheet wine={agregar.vino} saving={agregar.guardando} onConfirm={agregar.confirmar} onCancel={agregar.cerrar} />
       </div>
     </div>
   );

@@ -143,6 +143,23 @@ test("una lectura confiable llega al catálogo público como confiable", async (
   }
 });
 
+test("un vino elegido de la búsqueda no sale confiable ni se aporta al catálogo comunitario", async () => {
+  const spy = spyCatalogo();
+  const db = stubEntorno();
+  try {
+    const { wine } = await winesService.createWine(USER_ID, {
+      ...LECTURA_BUENA,
+      identification: { source: "manual", confidence: {}, editedFields: [], matchedFrom: "busqueda-catalogo" },
+    });
+    assert.ok(wine.name, "el vino igual entra a tu bodega");
+    assert.notEqual(wine.identification.verdict, "trusted");
+    assert.equal(spy.llamadas.contribute.length, 0, "lo que vino del catálogo no se vuelve a aportar");
+  } finally {
+    spy.restore();
+    db.restore();
+  }
+});
+
 test("una lectura floja entra a la bodega pero NO como confiable", async () => {
   const spy = spyCatalogo();
   const db = stubEntorno();
