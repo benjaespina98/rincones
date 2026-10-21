@@ -375,6 +375,8 @@ test("rankFeatured: con un pool de una sola uva el cupo se afloja y el set se co
 const perfilDe = (wines, preferences = {}) => recommendations.buildTasteProfile({ wines, preferences });
 const bodegaMalbec = Array.from({ length: 6 }, (_, i) => ({
   name: `M${i}`, winery: `W${i}`, varietal: "Malbec", region: "Mendoza", type: "red", rating: i < 3 ? 5 : 0,
+  // dos ya tomados y uno en stock: la tarjeta tiene que decir eso y no "seis en tu bodega"
+  tasted: i < 2, quantity: i === 5 ? 1 : 0,
 }));
 
 test("explicarRecomendacion: el porcentaje y las razones salen de la bodega de la persona", () => {
@@ -382,9 +384,9 @@ test("explicarRecomendacion: el porcentaje y las razones salen de la bodega de l
   const igual = recommendations.explicarRecomendacion(vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }), perfil);
   assert.equal(igual.modo, "afinidad");
   assert.ok(igual.coincidencia >= 90, `coincide en todo lo que sabemos: ${igual.coincidencia}%`);
-  assert.ok(igual.razones.some((r) => /Tomás Malbec \(6 en tu bodega\)/.test(r)));
-  assert.ok(igual.razones.some((r) => /Puntuaste alto el Malbec/.test(r)));
-  assert.ok(igual.razones.some((r) => /Repetís Mendoza/.test(r)));
+  assert.ok(igual.razones.some((r) => /Ya probaste 2 vinos de Malbec/.test(r)));
+  assert.ok(igual.razones.some((r) => /buena nota al Malbec/.test(r)));
+  assert.ok(igual.razones.some((r) => /Es de Mendoza/.test(r)));
   assert.ok(igual.razones.length <= 3);
 
   const parecido = recommendations.explicarRecomendacion(vino("b", { varietal: "Malbec", region: "Salta", type: "red" }), perfil);
@@ -403,7 +405,7 @@ test("explicarRecomendacion: un descubrimiento se dice como tal y sin porcentaje
   const nuevo = recommendations.explicarRecomendacion(vino("n", { varietal: "Tannat", region: "Uruguay", type: "red" }), perfil);
   assert.equal(nuevo.modo, "descubrimiento");
   assert.equal(nuevo.coincidencia, null);
-  assert.match(nuevo.razones[0], /Uva nueva para vos, del color que tomás \(tintos\)/);
+  assert.match(nuevo.razones[0], /Una uva nueva para vos/);
 });
 
 test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () => {
@@ -424,6 +426,16 @@ test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () =>
   // Si puntuó alto alguna vez esa uva, ya no se evita.
   const mixto = perfilDe([...bodega, { name: "T3", winery: "Z3", varietal: "Tannat", rating: 5 }]);
   assert.ok(!mixto.evitados.has("tannat"));
+});
+
+test("las razones cuentan lo que es verdad: lo tomado y lo que hay en stock", () => {
+  const sinTomar = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: false, quantity: 2 }]);
+  const r = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), sinTomar);
+  assert.ok(!r.razones.some((t) => /Ya probaste/.test(t)));
+  const tomado = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: true, quantity: 0 }]);
+  const t = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), tomado);
+  assert.ok(t.razones.some((x) => /Ya probaste un vino de Syrah/.test(x)));
+  assert.ok(!t.razones.some((x) => /en tu bodega/.test(x)));
 });
 
 test("la coincidencia nunca llega a 100 ni baja de 0", () => {

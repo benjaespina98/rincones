@@ -150,7 +150,9 @@ describe("Descubrí: la tarjeta aparece entera", () => {
     await montar([vino("b", FOTO("b"))]);
     await nombreRecomendado();
     expect(document.querySelector(".spotlight__eyebrow .icon")).toBeNull();
-    expect(screen.getByText(/^Va con carnes rojas a la parrilla/i)).toBeInTheDocument();
+    // Una sola razón y nada más: sin la línea de maridaje ni razones de relleno.
+    expect(document.querySelector(".spotlight__pairing")).toBeNull();
+    expect(document.querySelector(".spotlight__razones")).toBeNull();
     expect(screen.getByRole("button", { name: /quiero probarlo/i })).toBeInTheDocument();
   });
 });
@@ -158,11 +160,11 @@ describe("Descubrí: la tarjeta aparece entera", () => {
 describe("Descubrí: el porqué de la recomendación", () => {
   const conMotivo = (motivo) => ({ ...vino("a"), motivo });
 
-  it("muestra la primera razón arriba, el resto debajo y el medidor de coincidencia", async () => {
+  it("muestra sólo la primera razón arriba y el medidor de coincidencia", async () => {
     await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)", "Repetís Mendoza"] })]);
     await nombreRecomendado();
     expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Tomás Malbec (3 en tu bodega)");
-    expect(document.querySelector(".spotlight__razones").textContent).toBe("Repetís Mendoza");
+    expect(document.querySelector(".spotlight__razones")).toBeNull();
     expect(screen.getByRole("img", { name: /coincide un 92 por ciento/i })).toBeInTheDocument();
   });
 

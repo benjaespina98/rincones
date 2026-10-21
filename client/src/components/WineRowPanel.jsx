@@ -12,25 +12,21 @@ import Icon from "./Icon";
  *   · una línea de texto apagado con lo que sirve para reconocer la botella ("Malbec · 2019 ·
  *     Valle de Uco · Cava 1"), y
  *   · una sola fila de acciones: la principal con texto y las demás sólo con ícono (con su nombre
- *     para el lector de pantalla y el tooltip).
+ *     para el lector de pantalla y el tooltip): favorito, eliminar y, en Probados, volver a "sin probar".
  *
- * La principal es la que más se hace con ese vino: abrir una botella si hay stock, sumar si no hay.
- * Si hay stock, sumar queda como ícono al lado.
+ * El stock NO se toca acá: vive en el stepper de la fila ("−" es "tomé una botella", "+" suma una). Antes el
+ * panel repetía lo mismo con "Abrí una botella" y otro "+", y había tres puertas para lo mismo.
  */
 export default function WineRowPanel({
   wine,
-  vista,
+  conToggleProbado = false,
   isPending,
   nuncaFueTuyo,
   enCava,
-  onAbrirBotella,
-  onSumarStock,
   onToggleTasted,
   onToggleFavorite,
   onEliminar,
 }) {
-  const conStock = Number(wine.quantity) > 0;
-
   const datos = [
     wine.varietal,
     wine.vintage,
@@ -47,59 +43,19 @@ export default function WineRowPanel({
       {linea && <p className="wine-row__resumen">{linea}</p>}
 
       <div className="wine-row__acciones wine-row__acciones--compacta">
-        {/* La principal. Con stock: abrir una botella (abre la hoja donde se elige cuántas y se leen
-            las consecuencias). Sin stock no hay nada que abrir: la acción es volver a tener. */}
-        {conStock ? (
-          <button
-            className="wine-action-btn wine-action-btn--open"
-            onClick={() => onAbrirBotella(wine)}
-            type="button"
-            disabled={isPending}
-          >
-            <Icon name="bottle" size={16} />
-            Abrí una botella
-          </button>
-        ) : (
-          onSumarStock && (
-            <button
-              className="wine-action-btn wine-action-btn--open"
-              onClick={() => onSumarStock(wine)}
-              type="button"
-              disabled={isPending}
-            >
-              <Icon name="plus" size={16} />
-              Tengo stock de nuevo
-            </button>
-          )
-        )}
-
-        {/* Las demás, sólo con ícono: el nombre vive en aria-label y title. */}
-        {conStock && onSumarStock && (
-          <button
-            type="button"
-            className="wine-row__icon-btn wine-row__icon-btn--solo"
-            onClick={() => onSumarStock(wine)}
-            disabled={isPending}
-            aria-label="Sumar botellas"
-            title="Sumar botellas"
-          >
-            <Icon name="plus" size={18} />
-          </button>
-        )}
-
         {/* En "Probados" el chip de la cabecera se esconde (una columna entera repitiendo "Probado" no
             informa), así que acá hace falta esta salida, o desmarcar un vino probado por error no
             tendría cómo deshacerse. Nombra la acción, no el estado. */}
-        {vista === "probados" && (
+        {conToggleProbado && (
           <button
             type="button"
             className="wine-row__icon-btn wine-row__icon-btn--solo"
             onClick={() => onToggleTasted(wine)}
             disabled={isPending}
-            aria-label="Marcar como sin tomar"
-            title="Marcar como sin tomar"
+            aria-label={wine.tasted ? "Marcar como sin probar" : "Marcar como ya probado"}
+            title={wine.tasted ? "Marcar como sin probar" : "Marcar como ya probado"}
           >
-            <Icon name="refresh" size={18} />
+            <Icon name={wine.tasted ? "refresh" : "check"} size={18} />
           </button>
         )}
 

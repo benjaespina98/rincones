@@ -981,13 +981,6 @@
    Un medidor chico de cuánto coincide el vino con el gusto de la persona (como el "match" de las
    apps de vino) y las razones concretas debajo del nombre. Todo en tonos apagados: la foto y el
    nombre siguen siendo lo primero que se ve. */
-.spotlight__razones {
-  margin: 2px 0 0;
-  font-size: var(--text-meta);
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
 .spotlight__match {
   display: grid;
   grid-template-columns: 1fr auto;

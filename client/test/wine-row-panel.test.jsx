@@ -12,7 +12,6 @@ const VINO = { _id: "v1", name: "Malbec", quantity: 3, favorite: false, varietal
 
 const montar = (wine = VINO, props = {}) => {
   const h = {
-    onAbrirBotella: vi.fn(),
     onToggleTasted: vi.fn(),
     onToggleFavorite: vi.fn(),
     onEliminar: vi.fn(),
@@ -44,7 +43,6 @@ describe("WineRowPanel", () => {
         isPending={false}
         nuncaFueTuyo={false}
         enCava=""
-        onAbrirBotella={vi.fn()}
         onToggleTasted={vi.fn()}
         onToggleFavorite={onToggleFavorite}
         onEliminar={vi.fn()}
@@ -53,10 +51,10 @@ describe("WineRowPanel", () => {
     expect(screen.getByRole("button", { name: "Favorito" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("con stock ofrece abrir una botella además de Favorito y Eliminar", () => {
+  it("con o sin stock quedan sólo Favorito y Eliminar: el stock vive en el stepper de la fila", () => {
     montar();
-    expect(screen.getAllByRole("button")).toHaveLength(3);
-    expect(screen.getByText(/Abrí una botella/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.queryByText(/Abrí una botella/)).toBeNull();
   });
 
   it("sin stock quedan sólo Favorito y Eliminar (son sólo ícono, con su nombre accesible)", () => {
@@ -73,15 +71,15 @@ describe("WineRowPanel", () => {
     expect(container.querySelectorAll(".wine-row__acciones").length).toBe(1);
   });
 
-  it("con stock, abrir es lo principal y sumar queda como ícono; sin stock, sumar es lo principal", () => {
-    const onSumarStock = vi.fn();
-    const conStock = montar({ ...VINO, quantity: 2 }, { onSumarStock });
-    expect(screen.getByRole("button", { name: /abrí una botella/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sumar botellas" }));
-    expect(onSumarStock).toHaveBeenCalledTimes(1);
-    conStock.unmount();
-    montar({ ...VINO, quantity: 0 }, { onSumarStock });
-    expect(screen.getByRole("button", { name: /tengo stock de nuevo/i })).toBeInTheDocument();
+  it("no repite lo del stepper: ni \"Abrí una botella\", ni \"Sumar botellas\", ni \"Tengo stock de nuevo\"", () => {
+    montar({ ...VINO, quantity: 2 });
+    expect(screen.queryByRole("button", { name: /abrí una botella|sumar botellas|tengo stock/i })).toBeNull();
+  });
+
+  it("con conToggleProbado ofrece marcar/desmarcar probado (cuando el chip no está en la fila)", () => {
+    const { onToggleTasted } = montar({ ...VINO, tasted: true }, { conToggleProbado: true });
+    fireEvent.click(screen.getByRole("button", { name: "Marcar como sin probar" }));
+    expect(onToggleTasted).toHaveBeenCalledTimes(1);
   });
 
   it("no repite el tipo del vino (ya está en la etiqueta de la fila)", () => {
