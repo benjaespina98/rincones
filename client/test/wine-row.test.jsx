@@ -133,10 +133,10 @@ describe("lo que la fila muestra según la vista", () => {
 
   it("el panel sólo existe cuando la fila está abierta", () => {
     const { rerender } = render(<WineRow {...base} />);
-    expect(screen.queryByText(/Abrí una botella/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Favorito" })).toBeNull();
 
     rerender(<WineRow {...base} expanded />);
-    expect(screen.getByText(/Abrí una botella/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Favorito" })).toBeTruthy();
   });
 
   it("en grilla no se despliega: ahí el corazón es el que se puede tocar", () => {

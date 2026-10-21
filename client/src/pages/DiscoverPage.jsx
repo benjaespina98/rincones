@@ -16,12 +16,10 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { maridajeCorto } from "../data/maridajeCorto";
 import { elegirOtroDistinto, conFotoPrimero, topDeEntrada, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
-import useRotacionAutomatica from "../hooks/useRotacionAutomatica";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -239,7 +237,6 @@ export default function DiscoverPage() {
   }, [spotlightId]);
   // Por qué te toca este vino: una etiqueta corta o nada. Ver whyThisWine.
   const motivo = whyThisWine(spotlight, stats);
-  const maridaje = maridajeCorto(spotlight);
   // El porqué que calculó el servidor con la bodega de esta persona: razones concretas y, si hay base
   // para decirlo, un porcentaje de coincidencia. Si no vino (set viejo en caché), queda el motivo de siempre.
   const porque = spotlight?.motivo || null;
@@ -311,23 +308,8 @@ export default function DiscoverPage() {
     setSpotlightElegido(featured[proximo].id);
   };
 
-  /**
-   * La recomendación se renueva sola, de vez en cuando, como las sugerencias de los chats de IA.
-   *
-   * Cada ~9 s (con azar) pasa a otra del set, con el mismo salto que "Ver otro" (la más
-   * distinta, no un sorteo) y la misma entrada suave de cuando se vuelve a montar. Se frena
-   * mientras la tocás o la mirás de cerca, con la pestaña oculta, con "reducir movimiento",
-   * mientras buscás y mientras se está guardando ese vino: que la tarjeta cambie justo debajo
-   * del dedo, a mitad de un "Guardar", es lo peor que puede hacer. Ver useRotacionAutomatica.
-   */
-  const propsDeRotacion = useRotacionAutomatica({
-    activo: !buscando && !loading && !loadFailed && featured.length > 1,
-    alRotar: () => {
-      if (addingId === spotlight?.id) return;
-      const proximo = elegirOtroDistinto(featured, spotlightIdx);
-      if (proximo !== null) setSpotlightElegido(featured[proximo].id);
-    },
-  });
+  // La recomendación NO se renueva sola: cambiaba a los pocos segundos, mientras la leías, y la puerta de entrada
+  // tiene que sentirse firme. Cambia cuando pedís "Ver otro".
 
   // "Quiero probar": guarda el vino en Guardados (no en la bodega). La bodega
   // es solo stock real y entra por escaneo o carga a mano, desde Agregar.
@@ -672,7 +654,7 @@ export default function DiscoverPage() {
           la única de la app donde el hilo del tipo no llegaba — un blanco, un
           espumante y un oporto se veían los tres violetas. */}
       {!buscando && !loading && spotlight && spotlightListo && (
-        <section className="spotlight spotlight--entra" data-wine-type={spotlight.type} key={spotlight.id} {...propsDeRotacion}>
+        <section className="spotlight spotlight--entra" data-wine-type={spotlight.type} key={spotlight.id}>
           <button
             type="button"
             className="spotlight__open"
@@ -711,8 +693,6 @@ export default function DiscoverPage() {
                 type={spotlight.type}
                 varietal={spotlight.varietal}
               />
-              {razones.length > 1 && <p className="spotlight__razones">{razones.slice(1).join(" · ")}</p>}
-              {maridaje && <p className="spotlight__pairing">Va con {maridaje.charAt(0).toLowerCase() + maridaje.slice(1)}</p>}
             </div>
           </button>
           {coincidencia !== null && (

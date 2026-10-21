@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
-import OpenBottleSheet from "../components/OpenBottleSheet";
 import AddStockSheet from "../components/AddStockSheet";
 import Icon from "../components/Icon";
 import BodegaFilters from "../components/BodegaFilters";
@@ -187,8 +186,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [enLote, setEnLote] = useState(false);
   const [confirmarLote, setConfirmarLote] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  // El vino cuya hoja de "abrí una botella" está abierta, o null.
-  const [abriendo, setAbriendo] = useState(null);
   // El vino al que se le están sumando botellas (hoja "¿Cuántas botellas sumás?").
   const [sumando, setSumando] = useState(null);
   const [pendingActionId, setPendingActionId] = useState(null);
@@ -871,15 +868,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
   );
 
   /**
-   * Abrir botellas: descuenta las que elijas y deja el vino como probado.
+   * Abrir botellas (el "−" de la fila, de a una): descuenta y deja el vino como probado.
    *
    * Es la acción de la fila porque es lo que uno hace de verdad con un vino que
    * tiene en casa. "Probado" es un hecho aparte del stock y por eso conviven sin
    * pisarse: podés haberlo tomado y que igual te queden dos botellas, y podés
    * reponerlo sin dejar de haberlo tomado.
    *
-   * La cantidad y las tres consecuencias se eligen y se leen antes, en
-   * `OpenBottleSheet`. Acá queda lo que pasa DESPUÉS, que son las dos salidas
+   * Abrir varias de una se hace desde la ficha (`OpenBottleSheet`). Acá queda lo que pasa DESPUÉS, que son las dos salidas
    * que la acción tiene que ofrecer:
    *
    *   Deshacer      — cuesta botellas de tu cava y se dispara con un toque.
@@ -1391,7 +1387,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
                 onToggleTasted={handleToggleTasted}
                 onToggleFavorite={handleToggleFavorite}
                 onExpandir={setExpandedId}
-                onAbrirBotella={setAbriendo}
                 onSumarStock={setSumando}
                 onSumarUna={sumarUna}
                 onAbrirUna={abrirUna}
@@ -1577,19 +1572,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
             const wine = sumando;
             setSumando(null);
             handleAddStock(wine, cantidad);
-          }}
-        />
-      )}
-
-      {abriendo && (
-        <OpenBottleSheet
-          wine={abriendo}
-          saving={pendingActionId === abriendo._id}
-          onCancel={() => setAbriendo(null)}
-          onConfirm={(cantidad) => {
-            const wine = abriendo;
-            setAbriendo(null);
-            handleOpenBottle(wine, cantidad);
           }}
         />
       )}

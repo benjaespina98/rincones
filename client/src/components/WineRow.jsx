@@ -53,7 +53,6 @@ function WineRow({
   onToggleTasted,
   onToggleFavorite,
   onExpandir,
-  onAbrirBotella,
   onSumarStock,
   onSumarUna,
   onAbrirUna,
@@ -75,8 +74,11 @@ function WineRow({
   // El stepper (− ×1 +) junto a la cantidad: sumar o abrir una botella sin desplegar la fila. No en
   // grilla (no hay lugar) ni mientras se elige. Un vino que tomaste afuera SÍ lo muestra, sólo con el "+":
   // sumarle una botella es exactamente lo que pasa cuando después lo comprás.
-  // Sólo en En stock y Ya tomados: en Favoritos el chip de probado ocupa ese lugar de la fila.
-  const conStepper = Boolean(onSumarUna) && !esGrilla && !modoSeleccion && (vista === "instock" || vista === "probados");
+  // En todas las vistas de lista: es el único lugar donde se toca el stock de la fila.
+  const conStepper = Boolean(onSumarUna) && !esGrilla && !modoSeleccion;
+  // El chip "Ya lo probé" sólo va en la vitrina (En stock). En las filas de una línea (Ya tomados, Favoritos)
+  // compartiría el lugar con el stepper, y marcar/desmarcar probado se hace desde el panel.
+  const chipEnFila = vista !== "probados" && (esVitrina || esGrilla || !conStepper);
   // Mantener apretado: entra en el modo selección con este vino elegido (igual que "Seleccionar").
   const mantener = useLongPress(() => onMantener?.(wine._id), { habilitado: Boolean(onMantener) && !modoSeleccion });
   /**
@@ -408,7 +410,7 @@ function WineRow({
         </button>
 
         {conStepper && (
-          <span className="wine-row__stepper" role="group" aria-label={`Botellas de ${wineDisplayName(wine)}`}>
+          <span className={`wine-row__stepper ${Number(wine.quantity) > 0 ? "" : "wine-row__stepper--solo"}`} role="group" aria-label={`Botellas de ${wineDisplayName(wine)}`}>
             {Number(wine.quantity) > 0 && (
               <button
                 type="button"
@@ -418,12 +420,22 @@ function WineRow({
                 aria-label="Tomé una botella"
                 title="Tomé una botella"
               >
-                <Icon name="minus" size={14} />
+                <Icon name="minus" size={16} />
               </button>
             )}
-            <span className="wine-row__stepper-n" aria-live="polite">
-              {Number(wine.quantity) > 0 ? wine.quantity : "0"}
-            </span>
+            {Number(wine.quantity) > 0 && (
+              <button
+                type="button"
+                className="wine-row__stepper-n"
+                onClick={() => onSumarStock?.(wine)}
+                disabled={isPending || !onSumarStock}
+                aria-live="polite"
+                aria-label={`${wine.quantity} botellas: tocá para sumar varias`}
+                title="Sumar varias botellas"
+              >
+                {wine.quantity}
+              </button>
+            )}
             <button
               type="button"
               className="wine-row__stepper-btn"
@@ -432,7 +444,7 @@ function WineRow({
               aria-label="Sumar una botella"
               title="Sumar una botella"
             >
-              <Icon name="plus" size={14} />
+              <Icon name="plus" size={16} />
             </button>
           </span>
         )}
@@ -447,7 +459,7 @@ function WineRow({
             y desmarcar se hace desplegando la fila —ver el botón
             "Sin probar" en `wine-row__acciones`, que existe
             específicamente para esta vista—. */}
-        {vista !== "probados" && (
+        {chipEnFila && (
         <button
           type="button"
           className={`toggle-chip wine-row__tasted ${wine.tasted ? "is-on" : ""}`}
@@ -562,11 +574,10 @@ function WineRow({
         <WineRowPanel
           wine={wine}
           vista={vista}
+          conToggleProbado={!chipEnFila}
           isPending={isPending}
           nuncaFueTuyo={nuncaFueTuyo}
           enCava={enCava}
-          onAbrirBotella={onAbrirBotella}
-          onSumarStock={onSumarStock}
           onToggleTasted={onToggleTasted}
           onToggleFavorite={onToggleFavorite}
           onEliminar={onEliminar}

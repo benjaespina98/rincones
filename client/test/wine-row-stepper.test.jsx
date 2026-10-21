@@ -28,7 +28,6 @@ const montar = (extra = {}, wine = VINO) => {
     onToggleTasted: vi.fn(),
     onToggleFavorite: vi.fn(),
     onExpandir: vi.fn(),
-    onAbrirBotella: vi.fn(),
     onEliminar: vi.fn(),
     ...h,
     ...extra,
@@ -51,6 +50,24 @@ describe("WineRow: stepper junto a la cantidad", () => {
     montar({}, { ...VINO, quantity: 0 });
     expect(screen.getByRole("button", { name: "Sumar una botella" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tomé una botella" })).toBeNull();
+  });
+
+  it("sin stock no muestra un 0: queda el \"+\" solo", () => {
+    const { container } = montar({}, { ...VINO, quantity: 0 });
+    expect(container.querySelector(".wine-row__stepper-n")).toBeNull();
+    expect(container.querySelector(".wine-row__stepper--solo")).not.toBeNull();
+  });
+
+  it("tocar el número abre la hoja para sumar varias", () => {
+    const onSumarStock = vi.fn();
+    montar({ onSumarStock });
+    fireEvent.click(screen.getByRole("button", { name: /tocá para sumar varias/i }));
+    expect(onSumarStock).toHaveBeenCalledWith(VINO);
+  });
+
+  it.each(["instock", "probados", "favoritos"])("está en la vista %s (el stock se maneja sólo acá)", (vista) => {
+    montar({ vista });
+    expect(screen.getByRole("button", { name: "Sumar una botella" })).toBeInTheDocument();
   });
 
   it("no aparece en grilla, mientras se selecciona, ni sin el handler", () => {
