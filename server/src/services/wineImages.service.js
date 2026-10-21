@@ -9,7 +9,7 @@ const wineImageQuality = require("./wineImageQuality.service");
 // margen, dos fotos parecidas puntuadas por separado (y Gemini no es
 // determinista al 100%) podrían turnarse en el lugar con cada carga. Con
 // margen, sólo una foto CLARAMENTE mejor gana.
-const REPLACE_MARGIN = 15;
+const REPLACE_MARGIN = 8;
 
 // Clave del vino: nombre + uva + bodega. Los tres, para no mezclar homónimos ni
 // dos uvas de la misma línea ("Saint Felicien Malbec" no es "Saint Felicien

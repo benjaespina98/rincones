@@ -139,7 +139,7 @@ test("una foto de otra persona con puntaje apenas mejor (dentro del margen) NO d
   const db = fakeDb();
   const key = wineImages.wineKey(vino.name, vino.winery, vino.varietal);
   db.filas.set(key, { image: fotoA, contributedBy: String(dueño), qualityScore: 60 });
-  const restoreScore = conScore({ isWinePhoto: true, quality: 70 }); // +10, margen es 15
+  const restoreScore = conScore({ isWinePhoto: true, quality: 65 }); // +5, margen es 8
   try {
     await wineImages.contribute({ ...vino, image: fotoB, userId: otra });
     const fila = db.filas.get(key);
