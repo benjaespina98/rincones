@@ -867,60 +867,6 @@
   }
 }
 
-/* ── LA FOTO ─────────────────────────────────────────────────────────────────
-   El botón de la cámara, adentro de la cápsula y a la izquierda, del mismo tamaño que el
-   de enviar (40px). Sin relleno: es secundario, el protagonista es el campo. */
-.somm__foto {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-
-.somm__foto:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .somm__foto:hover:not(:disabled) {
-    color: var(--text);
-    background: rgb(var(--paper-rgb) / 0.08);
-  }
-}
-
-.somm__foto:focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: -2px;
-}
-
-/* La foto que mandaste, en tu burbuja: la miniatura arriba y el texto abajo, si lo hay. */
-.somm__vos--foto {
-  display: grid;
-  gap: 6px;
-  padding: 6px;
-}
-
-.somm__vos-foto {
-  display: block;
-  width: 100%;
-  max-width: 180px;
-  max-height: 140px;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
-}
-
-.somm__vos--foto > span {
-  padding: 2px 8px 4px;
-}
-
 /* ── LA RESPUESTA ESCRIBIÉNDOSE ──────────────────────────────────────────────
    Un cursor al final del texto mientras llegan los pedazos. Parpadea con opacidad (nada
    que fuerce layout) y prefers-reduced-motion lo deja fijo desde index.css. */
@@ -958,4 +904,12 @@
   font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Con el teclado abierto la barra de pestañas se esconde (ver useKeyboardInset): el campo baja al borde. */
+@media (max-width: 767px) {
+  html[data-teclado="abierto"] .somm__pie {
+    bottom: 0;
+    padding-bottom: 10px;
+  }
 }

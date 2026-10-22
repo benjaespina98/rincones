@@ -53,13 +53,20 @@ const esHoraDeVino = () => ["mediodia", "tarde", "noche"].includes(dayPart());
 
 /** El saludo del encabezado. "Todavía despierto" a las 3 AM era un chiste que
     la app no tiene por qué hacer: a esa hora también es de noche. */
-export const greeting = () => {
-  switch (dayPart()) {
-    case "mañana": return "Buen día";
-    case "mediodia":
-    case "tarde": return "Buenas tardes";
-    default: return "Buenas noches";
-  }
+/* El saludo cambia de un día al otro (y de una franja a otra) pero NO durante el día: la misma persona no ve
+   "Hola" y "Buenas tardes" alternarse entre dos visitas. Con uno solo, la pantalla de entrada se leía como una
+   plantilla que se repite. Todos llevan después ", Nombre". */
+const SALUDOS = {
+  mañana: ["Buen día", "Hola", "Qué bueno verte"],
+  tarde: ["Buenas tardes", "Hola", "Qué bueno verte"],
+  noche: ["Buenas noches", "Hola", "Qué bueno verte por acá"],
+};
+
+export const greeting = (ahora = new Date()) => {
+  const franja = dayPart() === "mañana" ? "mañana" : dayPart() === "noche" || dayPart() === "madrugada" ? "noche" : "tarde";
+  const dia = Math.floor(ahora.getTime() / 86400000);
+  const opciones = SALUDOS[franja];
+  return opciones[(dia + franja.length) % opciones.length];
 };
 
 /**

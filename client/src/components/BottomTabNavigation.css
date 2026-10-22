@@ -386,3 +386,13 @@
   background: var(--gold);
   border: 2px solid var(--bg);
 }
+
+/* ══ Con el teclado abierto no hay barra ═════════════════════════════════════
+   Ver useKeyboardInset: mientras un campo de texto tiene el foco, la barra de abajo (sólo en el teléfono)
+   se esconde para que el teclado no la cargue encima, y lo que estaba pegado a ella (el campo del Sommelier)
+   baja hasta el borde. */
+@media (max-width: 767px) {
+  html[data-teclado="abierto"] .bottom-tabs-container {
+    display: none;
+  }
+}
