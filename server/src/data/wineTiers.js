@@ -106,6 +106,13 @@ const LINEAS_ALTAS = [
   "altura máxima",
 ];
 
+/**
+ * Bodegas cuyo vino "de la casa" ya es de un escalón por encima del de góndola: no son el tope de su
+ * propia bodega (eso lo dicen las líneas de arriba) pero tampoco son de todos los días. Sirven para entender
+ * qué rango toma alguien que se mueve por ahí: Piattelli, Luigi Bosca o DV Catena no son lo mismo que Portillo.
+ */
+const BODEGAS_DE_GAMA_MEDIA_ALTA = ["luigi bosca", "piattelli", "dv catena", "zuccardi", "cheval", "salentein reserve", "achaval ferrer", "terrazas reserva"];
+
 const contieneAlguna = (texto, lista) => lista.some((clave) => texto.includes(clave));
 
 /**
@@ -124,4 +131,18 @@ const gamaDe = (wine) => {
   return MEDIA;
 };
 
-module.exports = { gamaDe, ACCESIBLE, MEDIA, ALTA };
+/**
+ * La gama como número, para poder PROMEDIAR lo que alguien toma: accesible 1, media 2, media-alta 2,5, alta 3.
+ *
+ * Primero manda la línea (Luigi Bosca tiene "La Linda", que es de entrada, y tiene Luigi Bosca a secas, que no);
+ * después la bodega; lo desconocido es 2, el default correcto del catálogo argentino.
+ */
+const puntosDeGama = (wine) => {
+  const gama = gamaDe(wine);
+  if (gama === ALTA) return 3;
+  if (gama === ACCESIBLE) return 1;
+  const texto = fold(`${wine?.winery || ""} ${wine?.line || ""} ${wine?.name || ""}`);
+  return contieneAlguna(texto, BODEGAS_DE_GAMA_MEDIA_ALTA) ? 2.5 : 2;
+};
+
+module.exports = { gamaDe, puntosDeGama, ACCESIBLE, MEDIA, ALTA };

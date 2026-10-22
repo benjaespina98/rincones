@@ -247,22 +247,18 @@ describe("renovar de a una (otraComida / otraPregunta)", () => {
     const { preguntas } = atajosDeArranque({ hayStock: true, probados: 2, listos: [{ varietal: "Malbec" }], azar: generador(3) });
     const fijas = preguntas.filter((p) => p.fijo).map((p) => p.label);
     expect(fijas).toContain("¿Qué abro hoy?");
-    expect(fijas).toContain("Foto de un menú");
     // Hasta dos personales: el resto de la fila tiene que poder moverse.
-    expect(fijas.filter((l) => l !== "Foto de un menú").length).toBeLessThanOrEqual(2);
+    expect(fijas.length).toBeLessThanOrEqual(2);
     // Las de relleno (comparaciones, generales) sí rotan.
     expect(preguntas.some((p) => !p.fijo)).toBe(true);
   });
 });
 
-describe("el chip de la foto", () => {
-  it("siempre está, sea cual sea la bodega: es una función, no una pregunta", () => {
+describe("sin chip de foto", () => {
+  it("el Sommelier sólo recibe texto: ninguna fila ofrece mandar una foto", () => {
     for (const args of [{}, { hayStock: true, probados: 3, listos: [{ varietal: "Malbec" }] }]) {
       const { preguntas } = atajosDeArranque({ azar: generador(5), ...args });
-      const foto = preguntas.find((p) => p.accion === "foto");
-      expect(foto).toBeTruthy();
-      expect(foto.label).toBe("Foto de un menú");
-      expect(foto.fijo).toBe(true);
+      expect(preguntas.some((p) => p.accion === "foto" || /foto/i.test(p.label))).toBe(false);
     }
   });
 
