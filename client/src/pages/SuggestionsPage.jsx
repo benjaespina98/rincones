@@ -11,7 +11,6 @@ import {
   mensajeDeError,
   traerConversacion,
   enviarFeedback,
-  preguntarConFoto,
 } from "../services/sommelierApi";
 import { resolveFood } from "../data/foodSynonyms";
 import { wineKey } from "../utils/text";
@@ -31,7 +30,6 @@ import {
   otraPregunta,
 } from "../utils/atajosDeArranque";
 import FilaDeAtajos from "../components/FilaDeAtajos";
-import { resizeImage } from "../utils/image";
 import { preguntarEnVivo, SinStreaming } from "../services/sommelierStream";
 import { usePlaceholderRotativo } from "../hooks/usePlaceholderRotativo";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
@@ -118,11 +116,10 @@ import "./SuggestionsPage.css";
    propósito: el campo es de un renglón y un texto de ayuda que no entra se corta. */
 const FRASES_DEL_CAMPO = [
   "Preguntame lo que quieras",
-  "Qué vas a comer hoy",
+  "Contame qué vas a comer hoy",
   "Preguntame qué abrir hoy",
   "Contame qué cocinás hoy",
-  "Malbec o Cabernet, ¿cuál?",
-  "Mandá la foto de un menú",
+  "Malbec o Cabernet, ¿cuál va mejor?",
 ];
 
 let contador = 0;
@@ -254,12 +251,9 @@ export default function SuggestionsPage() {
 
   const finRef = useRef(null);
   const raizRef = useRef(null);
-  // La foto: el selector de archivos (oculto) y la última que se mandó, para reintentar.
-  const fotoRef = useRef(null);
   // Cancela la respuesta en vivo si la persona se va de la pantalla: se corta la llamada a
   // Gemini en vez de seguir pagando una respuesta que nadie va a leer.
   const cancelarRef = useRef(null);
-  const ultimaFotoRef = useRef(null);
   const pieRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -388,9 +382,7 @@ export default function SuggestionsPage() {
   const preguntar = useCallback(
     async (pregunta, opciones = {}) => {
       const limpia = pregunta.trim();
-      /* Con foto el texto es opcional: la imagen es la pregunta. */
-      const foto = opciones.foto || null;
-      if ((limpia.length < 3 && !foto) || pensando) return;
+      if (limpia.length < 3 || pensando) return;
 
       /* "Otra opción": en vez de agregar un turno, REEMPLAZA la última respuesta en su
          lugar. La pregunta no se repite en pantalla y el modelo recibe la respuesta
@@ -421,9 +413,7 @@ export default function SuggestionsPage() {
           {
             id: nuevoId(),
             role: "user",
-            text: limpia.length >= 3 ? limpia : "",
-            // Sólo la miniatura (~6 KB): la foto grande no se guarda en la sesión.
-            ...(foto ? { esFoto: true, foto: foto.miniatura } : {}),
+            text: limpia,
           },
         ]);
       }
@@ -439,8 +429,7 @@ export default function SuggestionsPage() {
        * tardaba lo que tardan las dos cosas sumadas. Lanzadas juntas tarda lo
        * que tarda la más lenta, que es siempre el modelo.
        */
-      // Una foto no tiene un plato escrito que reconocer: no hay búsqueda de catálogo.
-      const comida = foto ? null : resolveFood(limpia);
+      const comida = resolveFood(limpia);
       const pDescubrir = comida ? buscarParaDescubrir(comida.food).catch(() => []) : null;
       /**
        * El recomendador de siempre, como red.
@@ -493,20 +482,13 @@ export default function SuggestionsPage() {
       };
 
       try {
-        if (foto) ultimaFotoRef.current = foto;
-        const data = foto
-          ? await preguntarConFoto(foto.blob, {
-              question: limpia.length >= 3 ? limpia : "",
-              history: previos,
-              conversationId: conversacionId,
+        const data = regenerar
+          ? await preguntarAlSommelier(limpia, previos, conversacionId, {
+              regenerar: true,
+              evitar: regenerar.evitar,
+              reemplazaMensajeId: regenerar.reemplazaMensajeId,
             })
-          : regenerar
-            ? await preguntarAlSommelier(limpia, previos, conversacionId, {
-                regenerar: true,
-                evitar: regenerar.evitar,
-                reemplazaMensajeId: regenerar.reemplazaMensajeId,
-              })
-            : await consultarEnVivo();
+          : await consultarEnVivo();
         if (!data) throw new Error("sin respuesta");
         /* La primera pregunta crea la conversación del lado del server y su id
            vuelve acá, para que la siguiente se agregue a la misma en vez de
@@ -557,7 +539,7 @@ export default function SuggestionsPage() {
         // mientras cargan unas tarjetas de abajo sería cobrarle a la persona el
         // tiempo de algo que ni siquiera está mirando.
         setPensando(false);
-        trackEvent("sommelier_ask", { conVinos: (data.wines || []).length > 0, foto: Boolean(foto) });
+        trackEvent("sommelier_ask", { conVinos: (data.wines || []).length > 0 });
 
         if (comida && !data.offTopic) {
           const [catalogo, respaldo] = await Promise.all([pDescubrir, pBodega]);
@@ -613,9 +595,7 @@ export default function SuggestionsPage() {
             role: "guia",
             text: mensajeDeError(error),
             error: true,
-            retry: esLimite || foto ? undefined : limpia,
-            // La foto no se escribe de nuevo: se reintenta la última (guardada en un ref).
-            retryFoto: !esLimite && foto ? { texto: limpia } : undefined,
+            retry: esLimite ? undefined : limpia,
           },
         ]);
       } finally {
@@ -728,13 +708,6 @@ export default function SuggestionsPage() {
     return null;
   }, [mensajes]);
 
-  // ¿La pregunta de esta respuesta fue una foto? Entonces no hay "otra opción": la imagen
-  // no se guarda y no se puede volver a mandar.
-  const preguntaEsFoto = (idRespuesta) => {
-    const i = mensajes.findIndex((x) => x.id === idRespuesta);
-    return i > 0 && Boolean(mensajes[i - 1]?.esFoto);
-  };
-
   // La última respuesta de la guía (no un error): la única a la que se le pide "otra opción".
   const idUltimaRespuesta = [...mensajes].reverse().find((m) => m.role !== "user" && !m.error)?.id;
 
@@ -753,45 +726,6 @@ export default function SuggestionsPage() {
     setTexto("");
     setHistorialAbierto(false);
     inputRef.current?.focus();
-  };
-
-  /**
-   * La foto de un menú, un plato o una botella.
-   *
-   * Se reduce a ~1280px antes de subirla (una foto de teléfono pesa 4–8 MB y el servidor
-   * la descarta apenas la procesa) y se genera una miniatura para mostrarla en la charla.
-   * Si el navegador no puede decodificarla (un HEIC en Chrome), se manda tal cual si no
-   * es enorme: el servidor acepta HEIC. Lo que la persona escribió en el campo viaja
-   * como texto de la foto.
-   */
-  const abrirSelectorDeFoto = () => {
-    if (pensando) return;
-    trackEvent("sommelier_foto_abrir");
-    fotoRef.current?.click();
-  };
-
-  const alElegirFoto = async (e) => {
-    const archivo = e.target.files?.[0];
-    // Se vacía el selector: elegir la MISMA foto dos veces seguidas tiene que disparar el cambio.
-    e.target.value = "";
-    if (!archivo) return;
-    if (!archivo.type.startsWith("image/")) {
-      showError("Eso no parece una foto. Probá con otra.");
-      return;
-    }
-    try {
-      const [grande, chica] = await Promise.all([
-        resizeImage(archivo, 1280, 0.82),
-        resizeImage(archivo, 160, 0.6),
-      ]);
-      preguntar(texto, { foto: { blob: grande.blob, miniatura: chica.dataUrl } });
-    } catch {
-      if (archivo.size <= 5.5 * 1024 * 1024) {
-        preguntar(texto, { foto: { blob: archivo, miniatura: "" } });
-      } else {
-        showError("No pudimos leer esa foto. Probá con otra.");
-      }
-    }
   };
 
   /**
@@ -989,9 +923,8 @@ export default function SuggestionsPage() {
                     <Chip
                       className={`somm__chip somm__chip--entra${saliendo ? " atajo--sale" : ""}`}
                       style={{ "--i": entra + atajos.comidas.length }}
-                      onClick={() => (p.accion === "foto" ? abrirSelectorDeFoto() : preguntar(p.pregunta))}
+                      onClick={() => preguntar(p.pregunta)}
                     >
-                      {p.accion === "foto" && <Icon name="camera" size={14} />}
                       {p.label}
                     </Chip>
                   )}
@@ -1003,16 +936,9 @@ export default function SuggestionsPage() {
 
         {mensajes.map((m) =>
           m.role === "user" ? (
-            m.esFoto ? (
-              <div key={m.id} className="somm__vos somm__vos--foto">
-                {m.foto && <img className="somm__vos-foto" src={m.foto} alt="La foto que mandaste" />}
-                <span>{m.text || "Foto de un menú o plato"}</span>
-              </div>
-            ) : (
-              <p key={m.id} className="somm__vos">
-                {m.text}
-              </p>
-            )
+            <p key={m.id} className="somm__vos">
+              {m.text}
+            </p>
           ) : (
             <div
               key={m.id}
@@ -1044,7 +970,7 @@ export default function SuggestionsPage() {
               {!m.error && !m.escribiendo && (
                 <RespuestaAcciones
                   mensaje={m}
-                  esUltima={m.id === idUltimaRespuesta && !preguntaEsFoto(m.id)}
+                  esUltima={m.id === idUltimaRespuesta}
                   ocupado={pensando}
                   onPulgar={darPulgar}
                   onOtra={otraOpcion}
@@ -1054,14 +980,13 @@ export default function SuggestionsPage() {
               {/* Sólo en la burbuja de error, y sólo si hay algo para
                   reintentar: vuelve a mandar la MISMA pregunta, no reabre el
                   campo para que la escribas de nuevo. */}
-              {m.error && (m.retry || (m.retryFoto && ultimaFotoRef.current)) && (
+              {m.error && m.retry && (
                 <button
                   type="button"
                   className="somm__reintentar"
                   onClick={() => {
                     trackEvent("sommelier_retry");
-                    if (m.retryFoto) preguntar(m.retryFoto.texto, { foto: ultimaFotoRef.current });
-                    else preguntar(m.retry);
+                    preguntar(m.retry);
                   }}
                   disabled={pensando}
                 >
@@ -1084,7 +1009,7 @@ export default function SuggestionsPage() {
                   {recetaLoadingId === m.id ? (
                     <>
                       <span className="somm__spin" aria-hidden="true" />
-                      Pensando qué le va…
+                      Pensando qué plato le va…
                     </>
                   ) : (
                     <>
@@ -1228,7 +1153,7 @@ export default function SuggestionsPage() {
         {pensando && !mensajes.some((m) => m.escribiendo) && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
-            {pensandoLargo ? "Sigue pensando, ya casi…" : "Buscando la mejor respuesta…"}
+            {pensandoLargo ? "Ya casi, estoy afinando mi recomendación…" : "Dejame pensar qué te recomiendo…"}
           </p>
         )}
 
@@ -1285,24 +1210,7 @@ export default function SuggestionsPage() {
             Enter en el teclado lo hace vía `onKeyDown` — sin necesitar un
             submit de formulario para ninguno de los dos caminos. */}
         <div className="somm__campo">
-          {/* La cámara, adentro de la cápsula y a la izquierda, como en los chats de IA. El
-              selector es nativo y oculto: en el teléfono ofrece la cámara o la galería. */}
-          <button
-            type="button"
-            className="somm__foto"
-            onClick={abrirSelectorDeFoto}
-            disabled={pensando}
-            aria-label="Mandar una foto de un menú o de un plato"
-          >
-            <Icon name="camera" size={20} />
-          </button>
-          <input
-            ref={fotoRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={alElegirFoto}
-          />
+          {/* Sin cámara ni adjuntos: el Sommelier sólo recibe texto. Una imagen por consulta se comía los tokens. */}
           {/* `<textarea>` y no `<input>`: una pregunta de más de un renglón
               se escribía scrolleando horizontalmente, invisible mientras se
               tipea (ver el efecto de auto-alto más arriba). `rows={1}` es

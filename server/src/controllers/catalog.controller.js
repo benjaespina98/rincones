@@ -328,7 +328,7 @@ const featured = async (req, res, next) => {
      */
     const [wines, user, guardados] = await Promise.all([
       Wine.find({ userId: req.user.id })
-        .select("name winery varietal region type rating quantity tasted")
+        .select("name winery line varietal region type rating quantity tasted")
         .lean()
         .catch(() => []),
       User.findById(req.user.id).select("preferences").lean().catch(() => null),
@@ -394,7 +394,7 @@ const featured = async (req, res, next) => {
     const sinFoto = elegidos.filter((w) => !deLaComunidad.get(w.id) && !esImagenAceptada(w.image));
     const delPool = sinFoto.length ? await wineImages.getImagesFor(sinFoto) : new Map();
     const conImagen = elegidos.map(({ fotoDiferida, confiable, ...w }) => {
-      const motivo = recommendations.explicarRecomendacion(w, perfil);
+      const motivo = recommendations.explicarRecomendacion(w, perfil, { semilla: semillaDelDia() + semillaDePersona(req.user.id) });
       const propia = deLaComunidad.get(w.id) || (esImagenAceptada(w.image) ? w.image : "");
       const image = propia || delPool.get(poolKey(w.name, w.winery, w.varietal)) || "";
       return { ...w, image: esImagenAceptada(image) ? image : "", motivo };

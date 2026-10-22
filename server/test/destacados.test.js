@@ -384,9 +384,9 @@ test("explicarRecomendacion: el porcentaje y las razones salen de la bodega de l
   const igual = recommendations.explicarRecomendacion(vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }), perfil);
   assert.equal(igual.modo, "afinidad");
   assert.ok(igual.coincidencia >= 90, `coincide en todo lo que sabemos: ${igual.coincidencia}%`);
-  assert.ok(igual.razones.some((r) => /Como tomaste Malbec, te recomiendo este vino/.test(r)));
-  assert.ok(igual.razones.some((r) => /Como te gusta el Malbec, te recomiendo este vino/.test(r)));
-  assert.ok(igual.razones.some((r) => /Como tomaste varios vinos de Mendoza/.test(r)));
+  assert.ok(igual.razones.some((r) => /(Como tomaste|Ya probaste|ya pasó por tu copa|Tomaste) .*Malbec|Malbec.*(ya pasó|este viene bien)/.test(r)));
+  assert.ok(igual.razones.some((r) => /(te gusta el Malbec|Malbec es de tus favoritos|disfrutás el Malbec)/.test(r)));
+  assert.ok(igual.razones.some((r) => /Mendoza/.test(r)));
   assert.ok(igual.razones.length <= 3);
 
   const parecido = recommendations.explicarRecomendacion(vino("b", { varietal: "Malbec", region: "Salta", type: "red" }), perfil);
@@ -431,11 +431,11 @@ test("lo que puntuó siempre bajo resta: esa uva baja y deja de competir", () =>
 test("las razones cuentan lo que es verdad: lo tomado y lo que hay en stock", () => {
   const sinTomar = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: false, quantity: 2 }]);
   const r = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), sinTomar);
-  assert.ok(!r.razones.some((t) => /Como tomaste Syrah/.test(t)));
+  assert.ok(!r.razones.some((t) => /tomaste Syrah|probaste Syrah|Syrah ya pasó/.test(t)));
   const tomado = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: true, quantity: 0 }]);
   const t = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), tomado);
-  assert.ok(t.razones.some((x) => /Como tomaste Syrah/.test(x)));
-  assert.ok(!t.razones.some((x) => /que tenés/.test(x)));
+  assert.ok(t.razones.some((x) => /tomaste Syrah|probaste Syrah|Syrah ya pasó/.test(x)));
+  assert.ok(!t.razones.some((x) => /tenés/.test(x)));
 });
 
 test("la coincidencia nunca llega a 100 ni baja de 0", () => {
@@ -466,4 +466,77 @@ test("featured: lo que ya guardó para probar no se recomienda, y cada recomenda
   assert.deepEqual(body.data.map((w) => w.id), ["otro"]);
   assert.ok(body.data[0].motivo && ["afinidad", "descubrimiento"].includes(body.data[0].motivo.modo));
   assert.ok(Array.isArray(body.data[0].motivo.razones));
+});
+
+// ── las líneas importan: gama, productores y frases ────────────────────────────────────────────
+
+const quienTomaPremium = () =>
+  perfilDe([
+    { name: "Reserva", winery: "Piattelli", line: "Reserva", varietal: "Malbec", region: "Mendoza", type: "red", tasted: true, quantity: 1 },
+    { name: "Luigi Bosca", winery: "Luigi Bosca", line: "Luigi Bosca", varietal: "Malbec", region: "Mendoza", type: "red", tasted: true, quantity: 0 },
+    { name: "DV Catena", winery: "Catena Zapata", line: "DV Catena", varietal: "Cabernet Sauvignon", region: "Mendoza", type: "red", tasted: true, quantity: 1 },
+  ]);
+
+test("quien toma Piattelli, Luigi Bosca y DV Catena no recibe un Portillo: son líneas distintas", () => {
+  const perfil = quienTomaPremium();
+  assert.ok(perfil.gamaHabitual >= 2.2, `su escalón: ${perfil.gamaHabitual}`);
+  const pool = [
+    vino("portillo", { name: "Portillo", winery: "Salentein", line: "Portillo", varietal: "Malbec" }),
+    vino("trumpeter", { name: "Trumpeter", winery: "Rutini", line: "Trumpeter", varietal: "Malbec" }),
+    vino("lb", { name: "Luigi Bosca Reserva", winery: "Luigi Bosca", line: "Reserva", varietal: "Malbec" }),
+    vino("sf", { name: "Zuccardi Serie A", winery: "Zuccardi", line: "Serie A", varietal: "Malbec" }),
+  ];
+  const ids = recommendations.rankFeatured(pool, perfil, { count: 4, seed: 3 }).map((w) => w.id);
+  assert.ok(!ids.includes("portillo"), "un Portillo no es de su escalón");
+  assert.ok(!ids.includes("trumpeter"), "un Trumpeter tampoco");
+  assert.ok(ids.includes("lb") && ids.includes("sf"));
+});
+
+test("quien toma vinos de entrada sigue recibiendo vinos de entrada (y los de arriba)", () => {
+  const perfil = perfilDe([
+    { name: "Trumpeter", winery: "Rutini", line: "Trumpeter", varietal: "Malbec", type: "red", tasted: true, quantity: 1 },
+    { name: "Nicasia", winery: "Catena Zapata", line: "Nicasia", varietal: "Malbec", type: "red", tasted: true, quantity: 1 },
+    { name: "Alamos", winery: "Catena Zapata", line: "Alamos", varietal: "Cabernet Sauvignon", type: "red", tasted: true, quantity: 1 },
+  ]);
+  assert.ok(perfil.gamaHabitual < 2.2);
+  const pool = [vino("portillo", { name: "Portillo", winery: "Salentein", line: "Portillo", varietal: "Malbec" })];
+  assert.deepEqual(recommendations.rankFeatured(pool, perfil, { count: 1 }).map((w) => w.id), ["portillo"]);
+});
+
+test("con menos de tres vinos no se deduce ningún escalón", () => {
+  const perfil = perfilDe(quienTomaPremium() && [{ name: "Reserva", winery: "Piattelli", varietal: "Malbec", type: "red" }]);
+  assert.equal(perfil.gamaHabitual, null);
+});
+
+test("un productor que ya toma pesa más que uno desconocido, a igual uva y región", () => {
+  const perfil = quienTomaPremium();
+  const suyo = vino("suyo", { name: "Reserva", winery: "Luigi Bosca", line: "Reserva", varietal: "Syrah", region: "Mendoza" });
+  const ajeno = vino("ajeno", { name: "Reserva", winery: "Bodega Cualquiera", line: "Reserva", varietal: "Syrah", region: "Mendoza" });
+  const [primero] = recommendations.rankFeatured([ajeno, suyo], perfil, { count: 1, seed: 1 });
+  assert.equal(primero.id, "suyo");
+  const razon = recommendations.explicarRecomendacion(suyo, perfil, { semilla: 1 }).razones.join(" | ");
+  assert.match(razon, /Luigi Bosca/);
+  assert.ok(!recommendations.explicarRecomendacion(ajeno, perfil, { semilla: 1 }).razones.join(" ").includes("Bodega Cualquiera"));
+});
+
+test("las frases varían entre vinos y entre días, pero para un vino y un día son siempre la misma", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const frases = new Set();
+  for (let i = 0; i < 24; i += 1) {
+    const w = vino(`v${i}`, { name: `Línea ${i}`, winery: `Productor ${i}`, varietal: "Malbec", region: "Mendoza", type: "red" });
+    const r = recommendations.explicarRecomendacion(w, perfil, { semilla: 100 });
+    frases.add(r.razones[0].replace(/Malbec|Mendoza/g, "X"));
+    assert.deepEqual(recommendations.explicarRecomendacion(w, perfil, { semilla: 100 }).razones, r.razones, "estable en el día");
+  }
+  assert.ok(frases.size >= 3, `hay variedad: ${frases.size} formas distintas`);
+  const w = vino("v1", { name: "Línea 1", winery: "Productor 1", varietal: "Malbec", region: "Mendoza", type: "red" });
+  const dias = new Set(Array.from({ length: 12 }, (_, d) => recommendations.explicarRecomendacion(w, perfil, { semilla: d }).razones[0]));
+  assert.ok(dias.size >= 2, "cambia de un día al otro");
+});
+
+test("las razones no dicen que lo tenés en casa si en su bodega está agotado y nunca lo tomó", () => {
+  const perfil = perfilDe([{ name: "a", winery: "x", varietal: "Syrah", region: "Salta", type: "red", tasted: false, quantity: 0 }]);
+  const r = recommendations.explicarRecomendacion(vino("s", { varietal: "Syrah", region: "Salta", type: "red" }), perfil);
+  assert.ok(!r.razones.some((t) => /en casa|que tenés|tenés Syrah/.test(t)), r.razones.join(" | "));
+  assert.ok(!r.razones.some((t) => /favoritos/.test(t)), "'favoritos' es el corazón, no el puntaje");
 });

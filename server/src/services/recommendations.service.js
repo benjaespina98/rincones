@@ -31,7 +31,7 @@
  * estaba en tu cocina.
  */
 
-const { gamaDe } = require("../data/wineTiers");
+const { gamaDe, puntosDeGama, ACCESIBLE } = require("../data/wineTiers");
 
 const norm = (valor) => String(valor || "").trim().toLowerCase();
 
@@ -53,7 +53,13 @@ const PESOS = {
   tipoQueTomas: 1,
   tipoElegido: 1,
   varietalQueEvitas: 3, // se RESTA: puntuó esa uva siempre bajo
+  bodegaQueTomas: 2, // sus productores: lo que ya sabe que le gusta
+  lineaQueTomas: 1.5, // la misma línea de una bodega que ya tomó (otra uva, mismo estilo)
+  gamaPorDebajo: 2.5, // se RESTA por cada punto de gama por debajo de lo que toma
 };
+
+/** Desde qué gama media (1 a 3) se considera que alguien toma por encima de lo de góndola. */
+const GAMA_QUE_EXCLUYE_ACCESIBLES = 2.2;
 
 /** Una puntuación alta: de 4 para arriba es "esto me gustó de verdad". */
 const PUNTUACION_ALTA = 4;
@@ -84,6 +90,11 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
   const enStockPorUva = new Map();
   const tomadosPorRegion = new Map();
   const tomadosPorTipo = new Map();
+  // Qué productores y qué líneas toma (lo que posee o probó), y en qué escalón se mueve.
+  const bodegas = new Map();
+  const tomadosPorBodega = new Map();
+  const lineas = new Map();
+  let sumaGama = 0;
 
   const sumar = (mapa, valor) => {
     const k = norm(valor);
@@ -94,6 +105,10 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
   for (const wine of wines) {
     yaLoTiene.add(clave(wine));
     sumar(varietals, wine.varietal);
+    sumar(bodegas, wine.winery);
+    if (norm(wine.winery) && norm(wine.line || wine.name)) sumar(lineas, `${norm(wine.winery)}|${norm(wine.line || wine.name)}`);
+    sumaGama += puntosDeGama(wine);
+    if (wine.tasted === true) sumar(tomadosPorBodega, wine.winery);
     if (wine.tasted === true) {
       sumar(tomadosPorUva, wine.varietal);
       sumar(tomadosPorRegion, wine.region);
@@ -124,6 +139,11 @@ const buildTasteProfile = ({ wines = [], preferences = {} } = {}) => {
     enStockPorUva,
     tomadosPorRegion,
     tomadosPorTipo,
+    bodegas,
+    tomadosPorBodega,
+    lineas,
+    // El escalón en el que se mueve (promedio de 1 a 3): sólo con base mínima, que con dos botellas no es un patrón.
+    gamaHabitual: wines.length >= 3 ? sumaGama / wines.length : null,
     evitados,
     total: wines.length,
     yaLoTiene,
@@ -172,6 +192,17 @@ const puntajeDeAfinidad = (wine, perfil) => {
   if (perfil.elegidos.types.has(tipo)) puntaje += PESOS.tipoElegido;
   // Lo que no le gustó resta: el vino de esa uva baja y deja de competir por los primeros lugares.
   if (perfil.evitados?.has(uva)) puntaje -= PESOS.varietalQueEvitas;
+
+  // Sus productores y sus líneas: si toma Luigi Bosca, otro Luigi Bosca es más suyo que un Malbec cualquiera.
+  const bodega = norm(wine.winery);
+  puntaje += peso(perfil.bodegas || new Map(), bodega, PESOS.bodegaQueTomas, perfil.total);
+  const linea = norm(wine.line || wine.name);
+  if (bodega && linea) puntaje += peso(perfil.lineas || new Map(), `${bodega}|${linea}`, PESOS.lineaQueTomas, perfil.total);
+
+  // Las líneas son distintas: quien toma Piattelli, Luigi Bosca o DV Catena no es público de un Portillo. Cuanto más
+  // por debajo de su escalón, más resta (hacia arriba no: subir es aspiracional, bajar es humo).
+  const porDebajo = (perfil.gamaHabitual ?? 0) - puntosDeGama(wine);
+  if (perfil.gamaHabitual != null && porDebajo >= 0.75) puntaje -= PESOS.gamaPorDebajo * porDebajo;
 
   return puntaje;
 };
@@ -262,6 +293,8 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jit
   const candidatos = (catalogo || [])
     // Una uva que puntuó siempre bajo no se recomienda: mejor un set más corto que ofrecerle lo que no le gustó.
     .filter((wine) => wine && !perfil.yaLoTiene.has(clave(wine)) && !perfil.evitados?.has(norm(wine.varietal)))
+    // Quien toma por encima de lo de góndola no recibe vinos de entrada: no es una recomendación, es humo.
+    .filter((wine) => !(perfil.gamaHabitual >= GAMA_QUE_EXCLUYE_ACCESIBLES && gamaDe(wine) === ACCESIBLE))
     .map((wine) => {
       const e = typeof extra === "function" ? Number(extra(wine)) || 0 : 0;
       const ruido = desempate(wine, seed);
@@ -345,6 +378,24 @@ const rankFeatured = (catalogo, perfil, { count = 8, seed = 0, extra = null, jit
   return elegidos;
 };
 
+/**
+ * Una de varias formas de decir lo mismo, estable para ese vino ese día.
+ *
+ * Con una sola frase por razón la home se leía como un loop ("te recomiendo este vino", "te recomiendo este vino"...).
+ * La elección sale de la semilla del día y del vino, no del azar: dos visitas el mismo día no se contradicen, y las
+ * tarjetas vecinas no suenan iguales. Todas las variantes afirman exactamente el mismo dato.
+ */
+const variante = (opciones, wine, semilla, sal = "") => {
+  const texto = `${sal}${wine?.winery || ""}${wine?.name || wine?.line || ""}`;
+  let h = Number(semilla) | 0;
+  for (let i = 0; i < texto.length; i += 1) h = (h * 31 + texto.charCodeAt(i)) | 0;
+  // Un último revoltijo de bits: sin él, dos vinos que sólo difieren en un carácter caían casi siempre en la misma frase.
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h ^= h >>> 16;
+  return opciones[(h >>> 0) % opciones.length];
+};
+
 const TIPO_PLURAL = { red: "tintos", white: "blancos", "rosé": "rosados", sparkling: "espumantes", fortified: "fortificados" };
 
 /**
@@ -362,7 +413,7 @@ const TIPO_PLURAL = { red: "tintos", white: "blancos", "rosé": "rosados", spark
  * Devuelve `{ modo, coincidencia, razones }`: modo "afinidad" (se parece a lo que tomás) o
  * "descubrimiento" (nuevo, pero por un lado que conocés).
  */
-const explicarRecomendacion = (wine, perfil) => {
+const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
   const uva = norm(wine.varietal);
   const region = norm(wine.region);
   const tipo = norm(wine.type);
@@ -377,38 +428,135 @@ const explicarRecomendacion = (wine, perfil) => {
     (perfil.regions.size ? PESOS.regionQueTomas : 0) +
     (perfil.types.size ? PESOS.tipoQueTomas : 0) +
     (perfil.elegidos.types.size ? PESOS.tipoElegido : 0);
+  // (El productor y la línea suman al puntaje pero no al máximo: son un plus que no todo vino parecido puede tener.)
   const bruto = puntajeDeAfinidad(wine, perfil);
   const coincidencia =
     hayBase && maximo > 0 ? Math.max(0, Math.min(99, Math.round((100 * bruto) / maximo))) : null;
 
   // Razones en voz de persona, cortas y verdaderas. La tarjeta muestra la primera, así que el
-  // orden es el de lo más convincente a lo más general.
+  // orden es el de lo más convincente a lo más general. Cada una tiene varias formas de decirse (ver `variante`).
   const razones = [];
+  const U = wine.varietal;
   const cuantas = perfil.varietals.get(uva);
   const tomados = perfil.tomadosPorUva?.get(uva) || 0;
   const enStock = perfil.enStockPorUva?.get(uva) || 0;
-  if (perfil.puntuadosAlto.has(uva) && cuantas) razones.push(`Como te gusta el ${wine.varietal}, te recomiendo este vino`);
-  if (perfil.elegidos.varietals.has(uva)) razones.push(`Como elegiste el ${wine.varietal}, te recomiendo este vino`);
+  const di = (opciones, sal) => variante(opciones, wine, semilla, sal);
+
+  if (perfil.puntuadosAlto.has(uva) && cuantas) {
+    razones.push(
+      di(
+        [
+          `Como te gusta el ${U}, te recomiendo este vino`,
+          `El ${U} te gustó mucho: este puede ser otro acierto`,
+          `Sé que disfrutás el ${U}, así que te sugiero este vino`,
+          `Por lo que te gusta el ${U}, mirá este vino`,
+        ],
+        "alto"
+      )
+    );
+  }
+  // Su productor: si toma Luigi Bosca o Piattelli, uno de ellos pesa más que un Malbec cualquiera.
+  if ((perfil.tomadosPorBodega?.get(norm(wine.winery)) || 0) >= 1 && wine.winery) {
+    razones.push(
+      di(
+        [
+          `Como ya tomaste ${wine.winery}, te recomiendo este vino`,
+          `Ya conocés ${wine.winery}: te propongo este vino`,
+          `Tomaste ${wine.winery} antes, por eso te sugiero este vino`,
+        ],
+        "bodega"
+      )
+    );
+  }
+  if (perfil.elegidos.varietals.has(uva)) {
+    razones.push(
+      di(
+        [
+          `Como elegiste el ${U}, te recomiendo este vino`,
+          `Dijiste que te gusta el ${U}: te propongo este vino`,
+          `Pediste ${U} entre tus gustos, así que va este`,
+        ],
+        "elegido"
+      )
+    );
+  }
   if (tomados > 0) {
-    razones.push(`Como tomaste ${wine.varietal}, te recomiendo este vino`);
-  } else if (enStock > 0 || cuantas) {
-    razones.push(`Como tenés ${wine.varietal} en tu bodega, te recomiendo este vino`);
+    razones.push(
+      di(
+        [
+          `Como tomaste ${U}, te recomiendo este vino`,
+          `Ya probaste ${U}: te sugiero seguir por acá`,
+          `El ${U} ya pasó por tu copa, por eso te propongo este vino`,
+          `Tomaste ${U} y este viene bien para seguir`,
+        ],
+        "tomado"
+      )
+    );
+  } else if (enStock > 0) {
+    razones.push(
+      di(
+        [
+          `Como tenés ${U} en tu bodega, te recomiendo este vino`,
+          `Ya tenés ${U} en casa: este va muy bien con tu bodega`,
+          `Para acompañar el ${U} que tenés, te sugiero este vino`,
+        ],
+        "stock"
+      )
+    );
+  } else if (cuantas) {
+    // Está en su bodega pero sin botellas y sin haberlo tomado: no se afirma que lo tiene en casa.
+    razones.push(
+      di([`Como el ${U} ya forma parte de tu bodega, te recomiendo este vino`, `El ${U} ya está en tu lista: te sugiero este vino`], "lista")
+    );
   }
   // Región y tipo sólo se afirman con lo que TOMÓ, no con lo que tiene guardado: "tomás mucho tinto" con un
   // único tinto sin abrir sería mentira.
   if ((perfil.tomadosPorRegion?.get(region) || 0) >= 2) {
-    razones.push(`Como tomaste varios vinos de ${wine.region}, te recomiendo este vino`);
+    razones.push(
+      di(
+        [
+          `Como tomaste varios vinos de ${wine.region}, te recomiendo este vino`,
+          `${wine.region} aparece seguido en lo que tomás: te propongo este vino`,
+          `Se nota que te gusta ${wine.region}: va este`,
+        ],
+        "region"
+      )
+    );
   }
   if ((perfil.tomadosPorTipo?.get(tipo) || 0) >= 3 && razones.length < 3 && TIPO_PLURAL[tipo]) {
-    razones.push(`Como tomás mucho ${TIPO_PLURAL[tipo].replace(/s$/, "")}, te recomiendo este vino`);
+    const t = TIPO_PLURAL[tipo].replace(/s$/, "");
+    razones.push(
+      di(
+        [
+          `Como tomás mucho ${t}, te recomiendo este vino`,
+          `Sos de tomar ${t} seguido: te sugiero este vino`,
+          `El ${t} es lo tuyo de siempre: probá este`,
+        ],
+        "tipo"
+      )
+    );
   }
 
   const esDescubrimiento = razones.length === 0 || (bruto < 2 && puntajeDeDescubrimiento(wine, perfil) > 0);
   if (esDescubrimiento) {
     let puente = "";
-    if (uva && !perfil.varietals.has(uva)) puente = "Para que pruebes una uva nueva, te recomiendo este vino";
-    else if (perfil.tomadosPorRegion?.get(region)) puente = `Como ya conocés ${wine.region}, te recomiendo este vino`;
-    else if (perfil.tomadosPorTipo?.get(tipo) && TIPO_PLURAL[tipo]) puente = "Como ya conocés este estilo, te recomiendo este vino";
+    if (uva && !perfil.varietals.has(uva)) {
+      puente = di(
+        [
+          "Para que pruebes una uva nueva, te recomiendo este vino",
+          "Una uva nueva para vos: te propongo este vino",
+          "Para salir de lo de siempre, una uva nueva: te sugiero este vino",
+        ],
+        "nueva"
+      );
+    } else if (perfil.tomadosPorRegion?.get(region)) {
+      puente = di(
+        [`Como ya conocés ${wine.region}, te recomiendo este vino`, `${wine.region} ya es terreno conocido: te propongo este vino`],
+        "regionc"
+      );
+    } else if (perfil.tomadosPorTipo?.get(tipo) && TIPO_PLURAL[tipo]) {
+      puente = di(["Como ya conocés este estilo, te recomiendo este vino", "Un estilo que ya conocés: te sugiero este vino"], "estilo");
+    }
     return { modo: "descubrimiento", coincidencia: null, razones: puente ? [puente] : [] };
   }
 

@@ -7,6 +7,7 @@ const SommelierAnswer = require("../src/models/sommelierAnswer.model");
 const sommelier = require("../src/services/sommelier.service");
 const historial = require("../src/services/sommelierHistory.service");
 const { askStream, FUERA_DE_TEMA } = require("../src/controllers/sommelier.controller");
+const { FUERA_DE_TEMA_FRASES } = require("../src/services/sommelierRespaldo");
 
 /**
  * La respuesta escribiéndose (SSE).
@@ -163,7 +164,10 @@ test("lo que decide el portero sale como UN solo evento `final`, sin llamar al m
   assert.equal(llamado, null);
   const ev = eventos(res);
   assert.deepEqual(ev.map((e) => e.nombre), ["final"]);
-  assert.deepEqual(ev[0].datos.data, FUERA_DE_TEMA);
+  // Amable y con por dónde seguir: una de las frases de siempre, no un callejón sin salida.
+  assert.equal(ev[0].datos.data.offTopic, true);
+  assert.ok(FUERA_DE_TEMA_FRASES.includes(ev[0].datos.data.answer) || ev[0].datos.data.answer === FUERA_DE_TEMA.answer);
+  assert.ok(ev[0].datos.data.followups.length > 0);
 });
 
 test("una pregunta demasiado corta es un 400 en JSON normal, no un evento", async () => {
@@ -176,27 +180,30 @@ test("una pregunta demasiado corta es un 400 en JSON normal, no un evento", asyn
   assert.ok(res.cuerpoJson.message);
 });
 
-test("si el modelo no devuelve nada ANTES de escribir, es un 503 en JSON normal", async () => {
+test("si el modelo no devuelve nada ANTES de escribir, igual hay respuesta: un `final` de respaldo", async () => {
   const restaurar = entorno({ enVivo: async () => null });
   const res = crearRes();
   await askStream(pedido(), res, () => {});
   restaurar();
-  assert.equal(res.statusCode, 503);
-  assert.equal(res.escrito, "");
+  const ev = eventos(res);
+  assert.deepEqual(ev.map((e) => e.nombre), ["final"]);
+  assert.equal(ev[0].datos.respaldo, true);
+  assert.ok(String(ev[0].datos.data.answer).length > 20, "nunca queda sin nada para decir");
 });
 
-test("si el modelo falla ANTES de escribir, es un 503 en JSON normal y el error se registra", async () => {
+test("si el modelo falla ANTES de escribir, también hay respuesta de respaldo (y el error se registra)", async () => {
   const restaurar = entorno({ enVivo: async () => { throw new Error("saturado"); } });
   const silencio = parchar(console, "error", () => {});
   const res = crearRes();
   await askStream(pedido(), res, () => {});
   silencio();
   restaurar();
-  assert.equal(res.statusCode, 503);
-  assert.equal(res.escrito, "");
+  const ev = eventos(res);
+  assert.deepEqual(ev.map((e) => e.nombre), ["final"]);
+  assert.equal(ev[0].datos.respaldo, true);
 });
 
-test("si el modelo falla DESPUÉS de haber escrito, sale un evento `error` y se cierra: no queda colgado", async () => {
+test("si el modelo falla DESPUÉS de haber escrito, se cierra con un `final` de respaldo: no queda colgado", async () => {
   const restaurar = entorno({
     enVivo: async ({ onTexto }) => {
       onTexto("Con un asa");
@@ -210,9 +217,8 @@ test("si el modelo falla DESPUÉS de haber escrito, sale un evento `error` y se 
   restaurar();
 
   const ev = eventos(res);
-  assert.deepEqual(ev.map((e) => e.nombre), ["texto", "error"]);
-  assert.equal(ev[1].datos.status, 503);
-  assert.ok(ev[1].datos.message);
+  assert.deepEqual(ev.map((e) => e.nombre), ["texto", "final"]);
+  assert.equal(ev[1].datos.respaldo, true);
   assert.equal(res.terminada, true);
 });
 
@@ -246,4 +252,23 @@ test("pasa al modelo la misma pregunta, historial y contexto que `ask`", async (
   assert.equal(args.history.length, 2);
   assert.equal(typeof args.onTexto, "function");
   assert.ok(args.signal);
+});
+
+test("con «otra opción», si el modelo no responde NO se pisa la respuesta anterior: sale el 503 de siempre", async () => {
+  const restaurar = entorno({ enVivo: async () => null });
+  const res = crearRes();
+  await askStream(pedido({ regenerar: true, evitar: "Un Malbec.", reemplazaMensajeId: "m1" }), res, () => {});
+  restaurar();
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.escrito, "");
+});
+
+test("un fuera de tema del modelo sin texto se contesta como fuera de tema, no con una sugerencia de la bodega", async () => {
+  const restaurar = entorno({ enVivo: async () => ({ answer: "", offTopic: true, picks: [], followups: [] }) });
+  const res = crearRes();
+  await askStream(pedido(), res, () => {});
+  restaurar();
+  const ev = eventos(res);
+  assert.equal(ev[ev.length - 1].datos.data.offTopic, true);
+  assert.notEqual(ev[ev.length - 1].datos.respaldo, true);
 });

@@ -1,23 +1,10 @@
 const { Router } = require("express");
-const multer = require("multer");
 const { authenticate } = require("../middleware/auth.middleware");
 const { aiLimiter, sommelierDailyLimiter } = require("../middleware/aiLimiter");
 const sommelierController = require("../controllers/sommelier.controller");
 const historyController = require("../controllers/sommelierHistory.controller");
 
 const router = Router();
-
-// La foto del Sommelier: en memoria (no se guarda en disco ni en ningún servicio) y con
-// un tope de 6 MB. El cliente la reduce a ~1280px antes de subirla; el tope es la red.
-// Sólo imágenes: ver también `esImagenReal` en el controlador, que mira los bytes.
-const subirFoto = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 6 * 1024 * 1024, files: 1 },
-  fileFilter: (req, file, cb) => {
-    if (/^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(file.mimetype)) return cb(null, true);
-    cb(new Error("El archivo tiene que ser una imagen"));
-  },
-});
 
 /**
  * POST /api/sommelier/ask — la guía de vino.
@@ -56,16 +43,13 @@ router.post(
 );
 
 /**
- * POST /api/sommelier/photo — la foto de una carta, un plato o una botella.
- * Los mismos dos límites y el mismo orden que `ask`: una foto cuenta como una consulta.
+ * POST /api/sommelier/photo — YA NO SE ACEPTAN FOTOS.
+ *
+ * Cada imagen se cobraba como una consulta de visión y se comía los tokens. El Sommelier sólo recibe texto. La ruta
+ * queda para contestar claro (410) a quien tenga una versión vieja de la app abierta, sin leer el archivo ni llamar al modelo.
  */
-router.post(
-  "/photo",
-  authenticate,
-  sommelierDailyLimiter,
-  aiLimiter,
-  subirFoto.single("file"),
-  sommelierController.askPhoto
+router.post("/photo", authenticate, (req, res) =>
+  res.status(410).json({ message: "El Sommelier ya no mira fotos. Contale en palabras qué vas a comer o qué querés tomar." })
 );
 
 /**

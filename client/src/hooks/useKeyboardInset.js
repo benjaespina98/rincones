@@ -27,10 +27,22 @@ import { useEffect, useRef } from "react";
  * para esto: no mueve nada a la vista, pero le avisa al motor de layout que
  * tiene que revisar dónde va cada `fixed`.
  *
+ * ── LA BARRA SE ESCONDE MIENTRAS SE ESCRIBE ────────────────────────────────
+ * Con el teclado abierto la barra de pestañas quedaba flotando encima de él, comiéndose media pantalla
+ * justo cuando hay que ver lo que se escribe. Mientras un campo de texto tiene el foco se marca
+ * `<html data-teclado="abierto">` y el CSS esconde la barra (ver BottomTabNavigation.css). Se usa el foco
+ * y no sólo el tamaño del viewport porque es lo que dispara el teclado en todos los navegadores, y el tamaño
+ * llega tarde (o no llega) en el modo "agregada a la pantalla de inicio" de iOS.
+ *
  * Se monta una única vez, en `AppLayout` (el envoltorio de toda la app): la
  * barra de navegación vive ahí, y corrige cualquier pantalla con un teclado
  * abierto — no sólo el Sommelier.
  */
+const CAMPO_DE_TEXTO =
+  'textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="file"]):not([type="range"]):not([type="color"]), [contenteditable=""], [contenteditable="true"]';
+
+const esCampoDeTexto = (el) => Boolean(el?.matches?.(CAMPO_DE_TEXTO));
+
 export const useKeyboardInset = () => {
   // Cuánto tenía que medir la ventana SIN teclado, para comparar contra eso y
   // no contra un umbral fijo — la altura real varía según el modelo de
@@ -64,5 +76,32 @@ export const useKeyboardInset = () => {
 
     vv.addEventListener("resize", alAmbiar);
     return () => vv.removeEventListener("resize", alAmbiar);
+  }, []);
+
+  // Barra escondida mientras se escribe: ver el comentario de arriba.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const raiz = document.documentElement;
+    let espera;
+    const abrir = (e) => {
+      if (!esCampoDeTexto(e.target)) return;
+      clearTimeout(espera);
+      raiz.dataset.teclado = "abierto";
+    };
+    const cerrar = () => {
+      clearTimeout(espera);
+      // El foco pasa de un campo a otro sin que el teclado se cierre: se mira dónde quedó.
+      espera = setTimeout(() => {
+        if (!esCampoDeTexto(document.activeElement)) delete raiz.dataset.teclado;
+      }, 120);
+    };
+    document.addEventListener("focusin", abrir);
+    document.addEventListener("focusout", cerrar);
+    return () => {
+      clearTimeout(espera);
+      document.removeEventListener("focusin", abrir);
+      document.removeEventListener("focusout", cerrar);
+      delete raiz.dataset.teclado;
+    };
   }, []);
 };

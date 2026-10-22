@@ -14,6 +14,7 @@ const {
 const { fold } = require("../data/argentineWines");
 const { limpiarDato } = require("../utils/promptSeguro");
 const { validarImagen } = require("../utils/imagenCabecera");
+const { respuestaDeRespaldo, fueraDeTemaPara } = require("../services/sommelierRespaldo");
 const { captureException } = require("../config/sentry");
 const { recordError } = require("../services/errorLog.service");
 
@@ -262,7 +263,7 @@ const armarRespuesta = async ({
   reemplazaMensajeId = "",
 }) => {
   if (resultado.offTopic) {
-    return { data: { ...FUERA_DE_TEMA, answer: resultado.answer }, cached: false };
+    return { data: { ...FUERA_DE_TEMA, answer: resultado.answer || fueraDeTemaPara(question).answer }, cached: false };
   }
 
   const data = {
@@ -338,7 +339,7 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
      * latencia, ni una consulta a la base. Ver data/sommelierDomain.js.
      */
     if (!esDelDominio(question, history.length > 0)) {
-      return enviar(200, { data: FUERA_DE_TEMA, cached: false });
+      return enviar(200, { data: fueraDeTemaPara(question), cached: false });
     }
 
     /**
@@ -465,14 +466,31 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
       console.error("[sommelier]", error?.message || error);
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
-      return enviar(503, {
-        message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
-      });
+      resultado = null;
     }
 
-    if (!resultado) {
-      return enviar(503, {
-        message: "No pude pensar la respuesta ahora. Probá de nuevo en un minuto.",
+    /**
+     * SIEMPRE HAY ALGO PARA RESPONDER. Si el modelo falló, no contestó o devolvió un texto vacío, no se le muestra un
+     * "error" a quien sólo preguntó algo de vino: se contesta con lo que se puede sin él (algo de su bodega o una
+     * uva que casi nunca falla). Eso no se guarda en la caché de genéricas, o se serviría a todos como si fuera lo real.
+     */
+    // Con "otra opción" NO: la respuesta anterior, que era buena, no se pisa con una genérica. Ahí falla como siempre (503) y queda
+    // lo que ya estaba. Y un fuera de tema legítimo sin texto se contesta como fuera de tema (ver `armarRespuesta`).
+    if (!resultado && regenerar) {
+      return enviar(503, { message: "No pude pensar otra opción ahora. Probá de nuevo en un ratito." });
+    }
+    if (!resultado || (!resultado.offTopic && !String(resultado.answer || "").trim())) {
+      return enviar(200, {
+        ...(await armarRespuesta({
+          req,
+          resultado: respuestaDeRespaldo({ question, wines }),
+          wines,
+          wishes,
+          question,
+          cacheKey: null,
+          reemplazaMensajeId,
+        })),
+        respaldo: true,
       });
     }
 
