@@ -93,7 +93,7 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
   const value = String(image || "").trim();
   if (!value) return "";
   // Si ya es una URL de Cloudinary, no la volvemos a subir.
-  if (/res\.cloudinary\.com/.test(value)) return value;
+  if (/^https:\/\/res\.cloudinary\.com\//i.test(value)) return value;
   if (!ensureConfigured()) return value;
 
   try {

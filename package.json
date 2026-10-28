@@ -9,7 +9,7 @@
     "build": "npm run build -w client"
   },
   "keywords": [],
-  "author": "",
+  "author": "200ok.dev",
   "license": "ISC",
   "private": true,
   "workspaces": [

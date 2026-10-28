@@ -12,6 +12,7 @@ const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
 const { conFotoPrimero } = require("../utils/destacados");
+const { limpiarDato } = require("../utils/promptSeguro");
 const { esImagenAceptada } = require("../utils/imagenAceptada");
 const communityWines = require("../services/communityWines.service");
 const WineRecipe = require("../models/wineRecipe.model");
@@ -110,7 +111,7 @@ const conLoQueYaTenes = async (userId, results) => {
 // GET /api/catalog/search?q=...
 const search = async (req, res, next) => {
   try {
-    const q = String(req.query.q || "").trim();
+    const q = String(req.query.q || "").trim().slice(0, 100);
     if (q.length < 2) {
       return res.status(200).json({ data: [], degraded: false });
     }
@@ -154,16 +155,27 @@ const search = async (req, res, next) => {
 // y la que usan todas las claves compartidas: dos definiciones de cómo se
 // normaliza un nombre es la forma más segura de que un día dejen de coincidir.
 
+// Lo que entra al prompt y a una caché que ven TODOS los usuarios. Largo acotado y
+// sin caracteres de control; type y region (que no están en la clave de caché)
+// sólo pasan si parecen un dato de vino, así nadie siembra texto libre en la
+// ficha de un vino popular.
+const textoCorto = (v, max = 120) => limpiarDato(v, max);
+const SOLO_DATO = /^[\p{L}\p{N} .,'()\/-]{0,60}$/u;
+const datoDeVino = (v) => {
+  const t = textoCorto(v, 60);
+  return SOLO_DATO.test(t) ? t : "";
+};
+
 // POST /api/catalog/describe { name, winery, varietal, type, region, vintage }
 // Devuelve la ficha (estilo Vivino) del vino, generada por Gemini y cacheada.
 const describe = async (req, res, next) => {
   try {
-    const name = String(req.body.name || "").trim();
+    const name = textoCorto(req.body.name);
     if (!name) {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
-    const winery = String(req.body.winery || "").trim();
-    const varietal = String(req.body.varietal || "").trim();
+    const winery = textoCorto(req.body.winery);
+    const varietal = textoCorto(req.body.varietal);
     // La misma clave que usa el alta del vino (wineDescription.service): si acá
     // se armara distinto, el vino que ya tiene ficha volvería a generarla.
     const key = describeKey(name, winery, varietal);
@@ -180,9 +192,9 @@ const describe = async (req, res, next) => {
       name,
       winery,
       varietal,
-      type: String(req.body.type || "").trim(),
-      region: String(req.body.region || "").trim(),
-      vintage: req.body.vintage,
+      type: datoDeVino(req.body.type),
+      region: datoDeVino(req.body.region),
+      vintage: /^\d{4}$/.test(String(req.body.vintage ?? "").trim()) ? String(req.body.vintage).trim() : undefined,
     });
 
     if (!info) {
@@ -206,12 +218,12 @@ const describe = async (req, res, next) => {
 // Misma mecánica que /describe: caché compartida primero, IA sólo si hace falta.
 const recipe = async (req, res, next) => {
   try {
-    const name = String(req.body.name || "").trim();
+    const name = textoCorto(req.body.name);
     if (!name) {
       return res.status(400).json({ message: "Falta el nombre del vino" });
     }
 
-    const winery = String(req.body.winery || "").trim();
+    const winery = textoCorto(req.body.winery);
     // Un plan desconocido cae en "cena": es el más neutro de los cuatro y evita
     // que un valor viejo del cliente rompa la clave de caché.
     const plan = Object.keys(PLANS).includes(req.body.plan) ? req.body.plan : "cena";
@@ -219,7 +231,8 @@ const recipe = async (req, res, next) => {
     // reseñas: sin ella, un "Rutini Malbec" y un "Rutini Cabernet" compartían
     // receta, y el mismo vino se cacheaba dos veces según viniera de tu bodega
     // ("Rutini") o del catálogo ("Rutini Malbec").
-    const key = `${poolKey(name, winery, String(req.body.varietal || "").trim())}|${plan}`;
+    const varietalReceta = textoCorto(req.body.varietal);
+    const key = `${poolKey(name, winery, varietalReceta)}|${plan}`;
 
     try {
       const cached = await WineRecipe.findOne({ key }).lean();
@@ -232,9 +245,9 @@ const recipe = async (req, res, next) => {
       {
         name,
         winery,
-        varietal: String(req.body.varietal || "").trim(),
-        type: String(req.body.type || "").trim(),
-        region: String(req.body.region || "").trim(),
+        varietal: varietalReceta,
+        type: datoDeVino(req.body.type),
+        region: datoDeVino(req.body.region),
       },
       plan
     );
@@ -518,9 +531,9 @@ const publishReview = async (req, res, next) => {
     // El autor se muestra con nombre de pila + avatar. Nunca apellido ni mail.
     let author = { name: "", avatar: "" };
     try {
-      const u = await User.findById(req.user.id).select("firstName avatar email").lean();
+      const u = await User.findById(req.user.id).select("firstName avatar").lean();
       author = {
-        name: (u?.firstName || "").trim() || (u?.email || "").split("@")[0] || "Alguien",
+        name: (u?.firstName || "").trim() || "Alguien",
         avatar: u?.avatar || "",
       };
     } catch {

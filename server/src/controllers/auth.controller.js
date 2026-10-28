@@ -87,7 +87,9 @@ const issueEmailVerificationToken = (user) => {
 const sendVerificationEmail = async (user, token) => {
   const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
   const verifyUrl = `${frontendURL}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`;
-  const isDev = process.env.NODE_ENV !== "production";
+  // Sólo en desarrollo explícito: con "!== production" un entorno desplegado sin
+  // NODE_ENV devolvería links de reset en la respuesta (toma de cuenta).
+  const isDev = process.env.NODE_ENV === "development";
 
   if (mailService.isMailConfigured()) {
     try {
@@ -99,7 +101,7 @@ const sendVerificationEmail = async (user, token) => {
     }
   }
 
-  console.info("Verification email URL:", verifyUrl);
+  if (isDev) console.info("Verification email URL:", verifyUrl);
   return { sent: false, verifyUrl: isDev ? verifyUrl : undefined };
 };
 
@@ -118,7 +120,9 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    // Una cuenta sólo-Google no tiene contraseña: comparar contra undefined
+    // lanzaba y devolvía un 500 distinto del 401 (enumeración de cuentas).
+    const isValid = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
 
     if (!isValid) {
       return res.status(401).json({ message: "Credenciales inválidas" });
@@ -332,7 +336,9 @@ const forgotPassword = async (req, res, next) => {
 
     const genericMessage =
       "Si el email existe, recibirás instrucciones para restablecer la contraseña";
-    const isDev = process.env.NODE_ENV !== "production";
+    // Sólo en desarrollo explícito: con "!== production" un entorno desplegado sin
+  // NODE_ENV devolvería links de reset en la respuesta (toma de cuenta).
+  const isDev = process.env.NODE_ENV === "development";
 
     // Si el SMTP está configurado, enviamos el email. Un fallo de envío no debe
     // devolver 500 ni revelar si el email existe: registramos y respondemos genérico.
@@ -352,7 +358,7 @@ const forgotPassword = async (req, res, next) => {
     }
 
     // Sin SMTP configurado: registramos la URL. En desarrollo la devolvemos para probar.
-    console.info("Password reset URL:", resetUrl);
+    if (isDev) console.info("Password reset URL:", resetUrl);
     if (isDev) {
       return res.status(200).json({ message: "Instrucciones registradas (dev)", resetUrl });
     }
@@ -364,7 +370,8 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, email, newPassword } = req.body;
+    const { token, newPassword } = req.body;
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
 
     if (!token || !email || !newPassword) {
       return res.status(400).json({ message: "Token, email y nueva contraseña son obligatorios" });
@@ -376,7 +383,7 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ message: passwordValidation.message });
     }
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(String(token)).digest("hex");
 
     const user = await User.findOne({ email, passwordResetToken: hashedToken }).select("+passwordResetToken +passwordResetExpires +passwordHash");
 
@@ -540,7 +547,8 @@ const googleAuth = async (req, res, next) => {
      * con Google. La guarda decía "vinculá esta cuenta la primera vez" y en los
      * hechos corría siempre.
      */
-    let user = await User.findOne({ $or: [{ googleId }, { email }] }).select("+googleId");
+    let revocarSesiones = false;
+    let user = await User.findOne({ $or: [{ googleId }, { email }] }).select("+googleId +passwordHash");
 
     if (!user) {
       user = await User.create({
@@ -558,6 +566,14 @@ const googleAuth = async (req, res, next) => {
       // que es de quien dice ser.
       let dirty = false;
       if (!user.googleId) { user.googleId = googleId; dirty = true; }
+      // Pre-hijacking: si alguien registró este email con contraseña propia sin
+      // verificarlo, esa contraseña y sus sesiones no pueden sobrevivir a que el
+      // verdadero dueño entre con Google.
+      if (!user.emailVerified && user.passwordHash !== undefined) {
+        user.passwordHash = undefined;
+        dirty = true;
+        revocarSesiones = true;
+      }
       if (!user.emailVerified) { user.emailVerified = true; dirty = true; }
       // Se sincroniza en CADA login, no sólo la primera vez: si cambiás la
       // foto en Google, la próxima vez que entrés acá se actualiza sola, en
@@ -569,6 +585,7 @@ const googleAuth = async (req, res, next) => {
         dirty = true;
       }
       if (dirty) await user.save();
+      if (revocarSesiones) await sessions.revokeAllForUser(user._id);
     }
 
     const token = await startSession(res, user, req);
