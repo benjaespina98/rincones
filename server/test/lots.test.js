@@ -307,3 +307,22 @@ test("cada operación de stock termina recalculando quantity desde lo que queda"
 
   assert.throws(() => buildStockStages("inventado", { $literal: 1 }), /desconocida/);
 });
+
+test("tomar, reponer y descontar no borra el historial del lote tomado", () => {
+  // Una botella, abierta (queda en 0 y agotada).
+  let lotes = normalizeLots([{ addedAt: new Date("2024-01-01"), quantity: 1, remaining: 1 }]);
+  lotes = consumeFromLots(lotes, 1);
+  assert.equal(availableFromLots(lotes), 0);
+
+  // Se repone una: lote nuevo, el agotado se conserva.
+  lotes = appendLot(lotes, 1);
+  assert.equal(lotes.length, 2);
+  assert.equal(availableFromLots(lotes), 1);
+
+  // Se descuenta esa unidad: siguen los dos lotes, ambos agotados.
+  lotes = consumeFromLots(lotes, 1);
+  assert.equal(lotes.length, 2, "no se pierde ninguna instancia");
+  assert.equal(availableFromLots(lotes), 0);
+  assert.ok(lotes[0].depletedAt, "el lote tomado conserva su marca");
+  assert.equal(lotes[0].quantity, 1);
+});
