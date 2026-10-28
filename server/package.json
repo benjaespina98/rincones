@@ -20,7 +20,7 @@
     "import:images": "node scripts/importWineImages.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "200ok.dev",
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "^10.70.0",

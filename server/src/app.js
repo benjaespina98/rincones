@@ -59,6 +59,9 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true, // no contar requests exitosos
   standardHeaders: true,
   legacyHeaders: false,
+  // IP + email: detrás del rewrite de Vercel la IP puede ser la misma para todos,
+  // y un límite sólo por IP dejaría sin login a todo el mundo por 5 fallos ajenos.
+  keyGenerator: (req) => `${req.ip}|${String(req.body?.email || "").trim().toLowerCase().slice(0, 254)}`,
 });
 
 // Rate limiter específico para forgot-password (proteger abuso)
@@ -68,6 +71,9 @@ const forgotLimiter = rateLimit({
   message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
   standardHeaders: true,
   legacyHeaders: false,
+  // IP + email: detrás del rewrite de Vercel la IP puede ser la misma para todos,
+  // y un límite sólo por IP dejaría sin login a todo el mundo por 5 fallos ajenos.
+  keyGenerator: (req) => `${req.ip}|${String(req.body?.email || "").trim().toLowerCase().slice(0, 254)}`,
 });
 
 // Exportar los datos propios: ver dónde se monta, más abajo, para el porqué.
@@ -131,6 +137,9 @@ app.options(/.*/, cors(corsOptions));
 app.use(limiter);
 
 app.use(cookieParser()); // Parsear cookies
+// Las rutas de cuenta no necesitan más que unos bytes: el tope grande es sólo
+// para las fotos, y acá se aplica antes de autenticar.
+app.use("/api/auth", express.json({ limit: "50kb" }));
 app.use(express.json({ limit: "12mb" }));
 
 app.get("/", (req, res) => {

@@ -7,6 +7,7 @@ const WineReview = require("../models/wineReview.model");
 const WineWish = require("../models/wineWish.model");
 const WineMoment = require("../models/wineMoment.model");
 const catalogService = require("../services/catalog.service");
+const accountDeletion = require("../services/accountDeletion.service");
 const wineImages = require("../services/wineImages.service");
 const imageStorage = require("../services/imageStorage.service");
 const { CATALOG, fold } = require("../data/argentineWines");
@@ -440,6 +441,7 @@ const deleteUser = async (req, res, next) => {
       if (!noSoportaTransacciones) throw txError;
       await cascade(null);
     }
+    await accountDeletion.purgeUserLeftovers(user._id);
 
     await logAdminAction({
       entityType: "user",
@@ -503,6 +505,7 @@ const bulkDeleteUsers = async (req, res, next) => {
           WineReview.deleteMany({ userId: user._id }),
         ]);
         await User.deleteOne({ _id: user._id });
+        await accountDeletion.purgeUserLeftovers(user._id);
 
         await logAdminAction({
           entityType: "user",

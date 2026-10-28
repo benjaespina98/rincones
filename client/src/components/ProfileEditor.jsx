@@ -185,7 +185,7 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
                     value={form.firstName}
                     maxLength={NAME_MAX}
                     onChange={(e) => setField("firstName", e.target.value)}
-                    placeholder="Benjamín"
+                    placeholder="Tu nombre"
                   />
                 </label>
                 <label className="profile-editor__field">
@@ -195,7 +195,7 @@ export default function ProfileEditor({ initialData, email, saving, onCancel, on
                     value={form.lastName}
                     maxLength={NAME_MAX}
                     onChange={(e) => setField("lastName", e.target.value)}
-                    placeholder="Espina"
+                    placeholder="Tu apellido"
                   />
                 </label>
               </div>

@@ -3,7 +3,8 @@ const Wine = require("../models/wine.model");
 const WineWish = require("../models/wineWish.model");
 const WineMoment = require("../models/wineMoment.model");
 const WineReview = require("../models/wineReview.model");
-const WinePrice = require("../models/winePrice.model");
+const winePrices = require("./winePrices.service");
+const WineImage = require("../models/wineImage.model");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
 const RefreshToken = require("../models/refreshToken.model");
 const SommelierConversation = require("../models/sommelierConversation.model");
@@ -36,7 +37,8 @@ const deleteAccount = async (userId) => {
     WineWish.deleteMany({ userId }),
     WineMoment.deleteMany({ userId }),
     WineReview.deleteMany({ userId }),
-    WinePrice.deleteMany({ user: userId }),
+    winePrices.retractAllFromUser(userId),
+    WineImage.updateMany({ contributedBy: userId }, { $unset: { contributedBy: 1 } }),
     AnalyticsEvent.deleteMany({ userId }),
     /* Las charlas con la guía. Es de lo más personal que guarda la app —con qué
        come, con quién, qué puede pagar— y el archivo tiene una retención de 180
@@ -48,4 +50,19 @@ const deleteAccount = async (userId) => {
   return { ok: true };
 };
 
-module.exports = { deleteAccount };
+/**
+ * Lo que un borrado no puede dejar atrás aunque la cuenta no la pida el
+ * dueño (panel de admin): sesiones, charlas con la guía, analytics, precios y
+ * la atribución de fotos. Se usa después del borrado de vinos/reseñas/deseos.
+ */
+const purgeUserLeftovers = async (userId) => {
+  await Promise.all([
+    RefreshToken.deleteMany({ userId }),
+    AnalyticsEvent.deleteMany({ userId }),
+    SommelierConversation.deleteMany({ userId }),
+    winePrices.retractAllFromUser(userId),
+    WineImage.updateMany({ contributedBy: userId }, { $unset: { contributedBy: 1 } }),
+  ]);
+};
+
+module.exports = { deleteAccount, purgeUserLeftovers };

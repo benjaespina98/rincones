@@ -105,13 +105,13 @@ const conNombresActuales = async (docs = []) => {
 
   try {
     const User = require("../models/user.model");
-    const users = await User.find({ _id: { $in: ids } }).select("firstName avatar email").lean();
+    const users = await User.find({ _id: { $in: ids } }).select("firstName avatar").lean();
     const byId = new Map(users.map((u) => [String(u._id), u]));
 
     for (const d of docs) {
       const u = byId.get(String(d.userId));
       if (!u) continue;
-      const actual = (u.firstName || "").trim() || (u.email || "").split("@")[0];
+      const actual = (u.firstName || "").trim() || "Alguien";
       if (actual) d.authorName = actual;
       d.authorAvatar = u.avatar || d.authorAvatar || "";
     }
@@ -168,7 +168,10 @@ const listReviews = async (name, winery, userId, limit = 20, varietal = "") => {
 
     const uid = String(userId || "");
     const mine = docs.find((d) => String(d.userId) === uid) || null;
-    const reviews = docs.filter((d) => String(d.userId) !== uid);
+    // A las reseñas ajenas no se les entrega el userId: no es de nadie más.
+    const reviews = docs
+      .filter((d) => String(d.userId) !== uid)
+      .map(({ userId: _ajeno, ...publica }) => publica);
 
     return { summary, mine, reviews };
   } catch {

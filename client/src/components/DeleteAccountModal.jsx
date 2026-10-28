@@ -19,7 +19,7 @@ import { useSheet } from "../hooks/useSheet";
  * El email se pide escrito a mano para que no se dispare por un toque de más.
  * Se muestra entero arriba del campo y NO como placeholder: el placeholder
  * desaparece al escribir y se corta en pantallas angostas, que era justo lo que
- * pasaba (se leía "benjaes"). La contraseña sólo existe en las cuentas creadas
+ * pasaba (se leía un fragmento del email). La contraseña sólo existe en las cuentas creadas
  * con email; quien entró con Google la deja vacía, y el cliente no tiene cómo
  * saber cuál es el caso, así que se dice en la etiqueta.
  *
