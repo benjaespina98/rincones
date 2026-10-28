@@ -11,6 +11,7 @@ import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../u
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nombreDeFila } from "../utils/viewTransition";
 import { useSwipeAcciones } from "../hooks/useSwipeAcciones";
+import { resumenTomado, pistaDeStock } from "../utils/tomados";
 
 /**
  * Una fila de Mi Bodega.
@@ -382,6 +383,19 @@ function WineRow({
               </span>
             )}
 
+            {/* ── LO QUE PASÓ CON ESTE VINO, EN PALABRAS ────────────────────
+                «Tomado 2 veces · hoy» y, en "Ya tomados", qué hace cada botón
+                con el stock que hay. Sin esto, tomar un vino, sumar una botella
+                y abrirla dejaba la fila igual que antes: el historial avanzaba
+                y la pantalla no lo decía. Son dos datos independientes (cuántas
+                veces lo tomaste, cuántas botellas quedan) y se dicen aparte. */}
+            {!esGrilla && wine.tasted && (
+              <span className="wine-row__tomado">{resumenTomado(wine)}</span>
+            )}
+            {!esGrilla && conStepper && vista === "probados" && (
+              <span className="wine-row__pista">{pistaDeStock(wine)}</span>
+            )}
+
             {/* El puntaje con estrellas y no como número: en la vitrina
                 hay lugar, y cinco estrellas se comparan de un vistazo
                 entre vinos vecinos, que es justo lo que uno hace acá.
@@ -418,7 +432,7 @@ function WineRow({
                 onClick={() => onAbrirUna?.(wine)}
                 disabled={isPending}
                 aria-label="Tomé una botella"
-                title="Tomé una botella"
+                title="Abrir una botella: baja el stock y cuenta como tomada"
               >
                 <Icon name="minus" size={16} />
               </button>
@@ -442,7 +456,7 @@ function WineRow({
               onClick={() => onSumarUna(wine)}
               disabled={isPending}
               aria-label="Sumar una botella"
-              title="Sumar una botella"
+              title="Sumar una botella al stock: el vino no deja de estar entre los tomados"
             >
               <Icon name="plus" size={16} />
             </button>

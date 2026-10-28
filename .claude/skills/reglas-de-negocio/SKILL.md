@@ -17,6 +17,8 @@ description: Qué significa cada estado de un vino en Rincones (stock, probado, 
 - `status` está **deprecado**. No leerlo, no contar por él, no escribirlo en código nuevo.
 - Vocabulario de UI: "Ya tomados" (probados). Copy en rioplatense, de vos.
 
+- **Tomar de nuevo**: abrir una botella (el − de la fila, Abrir en la ficha) suma una a `consumptionCount` y actualiza `lastConsumedAt`; el − pelado de `adjustStock` NO lo hace. La fila muestra "Tomado N veces · hace X" (`utils/tomados.js`) y en Ya tomados dice qué hace cada botón. Sacar un vino de Ya tomados con `consumptionCount ≥ 1` pide confirmación.
+
 ## Lotes
 
 Un lote = una compra. Definido en `server/src/models/wine.model.js`:

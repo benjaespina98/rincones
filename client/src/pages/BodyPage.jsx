@@ -840,7 +840,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * desaparece en el mismo gesto: sin la salida en el aviso habría que cambiar de
    * vista y buscar el vino para arreglar un toque equivocado.
    */
-  const handleToggleTasted = useCallback(
+  const aplicarToggleTasted = useCallback(
     (wine) =>
       withPendingAction(wine._id, async () => {
         const desmarcando = wine.tasted === true;
@@ -851,7 +851,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           return;
         }
 
-        const toastId = addToast("Marcado como sin tomar", "success", 8000, {
+        const toastId = addToast("Lo sacaste de Ya tomados", "success", 8000, {
           label: "Deshacer",
           onClick: async () => {
             removeToast(toastId);
@@ -865,6 +865,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
         });
       }),
     [withPendingAction, updateWineTasted, showSuccess, showError, addToast, removeToast]
+  );
+
+  /**
+   * Sacar un vino de "Ya tomados" tiene que ser un gesto deliberado cuando ya lo
+   * abriste de verdad. Era un toque en un chip de la fila: con un dedo de más el
+   * vino desaparecía de la pestaña, justo lo que NO debe pasar al sumarle o
+   * restarle botellas. Marcarlo como tomado sigue siendo inmediato.
+   */
+  const [confirmarSacarTomado, setConfirmarSacarTomado] = useState(null);
+  const handleToggleTasted = useCallback(
+    (wine) => {
+      if (wine.tasted === true && Number(wine.consumptionCount) >= 1) {
+        setConfirmarSacarTomado(wine);
+        return undefined;
+      }
+      return aplicarToggleTasted(wine);
+    },
+    [aplicarToggleTasted]
   );
 
   /**
@@ -894,8 +912,11 @@ export default function BodyPage({ initialFilter = "instock" }) {
     withPendingAction(wine._id, async () => {
       await adjustStock(wine._id, n);
       trackEvent("stock_added", { cantidad: n, eraSinStock: Number(wine.quantity) <= 0 });
+      // Si ya lo habías tomado, el aviso aclara que SIGUE entre los tomados: sumar
+      // stock es otra cosa que tomar, y no se tocan entre sí.
+      const sumadas = n === 1 ? "1 botella sumada al stock" : `${n} botellas sumadas al stock`;
       const toastId = addToast(
-        `${n === 1 ? "1 botella sumada" : `${n} botellas sumadas`} · ${wineDisplayName(wine)}`,
+        `${sumadas} · ${wineDisplayName(wine)}${wine.tasted ? " sigue entre los ya tomados" : ""}`,
         "success",
         8000,
         {
@@ -929,16 +950,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
     const quedan = Math.max(0, Number(wine.quantity) - n);
 
     withPendingAction(wine._id, async () => {
-      await openBottle(wine._id, n);
+      const actualizado = await openBottle(wine._id, n);
+      const veces = Number(actualizado?.consumptionCount) || 0;
       // Abrir una botella es el uso real de la bodega: es lo que distingue una
       // colección que se vive de una lista que se cargó una vez y quedó ahí.
       trackEvent("bottle_opened", { emptied: quedan === 0, cantidad: n });
 
       const abiertas = n === 1 ? "Botella abierta" : `${n} botellas abiertas`;
+      // Cada apertura suma una vez a «Tomado N veces»: el aviso lo dice para que
+      // se vea que este vino cuenta como tomado de nuevo.
+      const tomado = veces >= 2 ? ` · lo tomaste ${veces} veces` : "";
       const mensaje =
         quedan === 0
-          ? `Se terminó tu ${wineDisplayName(wine)}`
-          : `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
+          ? `Se terminó tu ${wineDisplayName(wine)}${tomado}`
+          : `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}${tomado}`;
 
       const toastId = addToast(mensaje, "success", 9000, {
         label: "Contá el momento",
@@ -1547,6 +1572,20 @@ export default function BodyPage({ initialFilter = "instock" }) {
         isDangerous
         onConfirm={() => aplicarEnLote("delete")}
         onCancel={() => setConfirmarLote(false)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmarSacarTomado !== null}
+        title="¿Sacarlo de Ya tomados?"
+        message={`Lo abriste ${Number(confirmarSacarTomado?.consumptionCount) === 1 ? "1 vez" : `${Number(confirmarSacarTomado?.consumptionCount)} veces`}. Si lo sacás, deja de figurar entre los tomados; las botellas de tu bodega no cambian. Podés deshacerlo por unos segundos.`}
+        confirmText="Sacarlo"
+        cancelText="Dejarlo"
+        onConfirm={() => {
+          const vino = confirmarSacarTomado;
+          setConfirmarSacarTomado(null);
+          if (vino) aplicarToggleTasted(vino);
+        }}
+        onCancel={() => setConfirmarSacarTomado(null)}
       />
 
       <ConfirmModal
