@@ -1,6 +1,7 @@
 import { leerCosecha } from "../utils/vintage";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { payloadParaRestaurar } from "../utils/restoreWine";
+import { mensajeAbrir, resumenTomado } from "../utils/tomados";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
@@ -365,11 +366,12 @@ export default function WineDetailPage() {
       const updated = await openBottle(id, n);
       setWine(updated);
 
-      const abiertas = n === 1 ? "Botella abierta" : `${n} botellas abiertas`;
-      const mensaje =
-        quedan === 0
-          ? `Se terminó tu ${wineDisplayName(wine)}`
-          : `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}`;
+      const mensaje = mensajeAbrir({
+        cantidad: n,
+        quedan,
+        veces: Number(updated?.consumptionCount) || 0,
+        nombre: wineDisplayName(wine),
+      });
 
       const toastId = addToast(mensaje, "success", 9000, {
         label: "Contá el momento",
@@ -707,8 +709,13 @@ export default function WineDetailPage() {
                   Sumar a mi bodega
                 </button>
               ) : (
-                <div className="wine-qty-controls wine-qty-controls--quiet" role="group" aria-label="Corregir tu stock">
-                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleAdjustQuantity(-1)} aria-label="Quitar una botella del stock, sin marcarla como tomada">
+                <div className="wine-qty-controls wine-qty-controls--quiet" role="group" aria-label="Botellas de este vino">
+                  {/* El − es el MISMO que el de la fila de Mi Bodega: abre una botella y
+                      cuenta como tomada. Antes acá sólo corregía el número, y la misma
+                      tecla hacía cosas distintas según la pantalla («a veces no
+                      funciona»). Quitar una SIN tomarla sigue existiendo, pero como
+                      acción aparte y con nombre (abajo). */}
+                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleOpenBottle(1)} aria-label="Tomé una botella: baja el stock y cuenta como tomada" title="Tomé una botella: baja el stock y cuenta como tomada">
                     <Icon name="minus" size={14} />
                   </button>
                   {/* Ver BodyPage: el `key` va en el span interno para que la
@@ -716,12 +723,28 @@ export default function WineDetailPage() {
                   <span className="wine-qty" aria-live="polite">
                     <span key={wine.quantity} className="wine-qty__n">{wine.quantity}</span>
                   </span>
-                  <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock">
+                  <button type="button" className="qty-btn" disabled={pending} onClick={() => handleAdjustQuantity(1)} aria-label="Sumar una botella al stock" title="Sumar al stock: sigue entre los tomados">
                     <Icon name="plus" size={14} />
                   </button>
                 </div>
               )}
             </div>
+
+            {!noEsTuyo && (
+              <div className="wine-detail-stock-notes">
+                {wine.tasted && <span className="wine-detail-tomado">{resumenTomado(wine)}</span>}
+                {Number(wine.quantity) > 0 && (
+                  <button
+                    type="button"
+                    className="wine-qty-correct"
+                    disabled={pending}
+                    onClick={() => handleAdjustQuantity(-1)}
+                  >
+                    Quitar una sin tomarla (la regalé o me equivoqué)
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* ── QUÉ ES ESTE VINO, ANTES QUE QUÉ HACER CON ÉL ────────────────
                 Pegado a la identidad y a las acciones, arriba de todo lo demás.

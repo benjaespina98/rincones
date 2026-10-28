@@ -1015,6 +1015,9 @@ async function getAllMoments(userId, { limit = 100 } = {}) {
   });
 }
 
+// Dos tomas a menos de 12 horas son la misma ocasión (la cena, no dos veces).
+const MISMA_OCASION_MS = 12 * 60 * 60 * 1000;
+
 async function addMoment(userId, id, body) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
@@ -1053,8 +1056,19 @@ async function addMoment(userId, id, body) {
   });
 
   const wasTasted = wine.tasted;
-  wine.consumptionCount = Number(wine.consumptionCount || 0) + 1;
-  wine.lastConsumedAt = moment.consumedAt;
+  // Un momento cuenta una toma NUEVA sólo si no es de la misma ocasión que la
+  // última. Abrir una botella ya suma una toma; si además la persona cuenta el
+  // momento de esa misma copa, no es otra vez que lo tomó: antes la fila pasaba a
+  // decir «Tomado 2 veces» tras una sola botella abierta.
+  const ultima = wine.lastConsumedAt ? new Date(wine.lastConsumedAt).getTime() : null;
+  const esLaMismaOcasion =
+    wasTasted === true &&
+    ultima !== null &&
+    Math.abs(new Date(moment.consumedAt).getTime() - ultima) < MISMA_OCASION_MS;
+  if (!esLaMismaOcasion) wine.consumptionCount = Number(wine.consumptionCount || 0) + 1;
+  if (ultima === null || new Date(moment.consumedAt).getTime() > ultima) {
+    wine.lastConsumedAt = moment.consumedAt;
+  }
   wine.tasted = true;
   wine.status = toWineStatus({ tasted: true, quantity: wine.quantity, status: wine.status });
   await wine.save();

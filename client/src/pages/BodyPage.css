@@ -1486,6 +1486,23 @@
 
 .wine-row__location .icon { flex-shrink: 0; }
 
+/* Lo que pasó con el vino («Tomado 2 veces · hoy») y qué hace cada botón del
+   stepper. Dos renglones chicos, en el color de texto secundario: informan sin
+   competir con el nombre. */
+.wine-row__tomado,
+.wine-row__pista {
+  justify-self: start;
+  margin-top: 3px;
+  font-size: var(--text-2xs);
+  line-height: 1.3;
+  color: var(--text-subtle);
+}
+
+.wine-row__tomado {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
 .wine-row__peak {
   /* `justify-self` y no `align-self`: la columna de info es un grid, y sin esto
      el texto se estiraba a lo ancho de toda la fila —hasta meterse debajo del
