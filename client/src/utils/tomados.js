@@ -26,7 +26,8 @@ export const haceCuanto = (valor, ahora = new Date()) => {
   if (dias < 30) return `hace ${dias} días`;
   const meses = Math.floor(dias / 30);
   if (meses < 12) return `hace ${meses} ${meses === 1 ? "mes" : "meses"}`;
-  const años = Math.floor(dias / 365);
+  // A los 360 días ya no son «11 meses», pero todavía no son 365: sin el piso daba «hace 0 años».
+  const años = Math.max(1, Math.floor(dias / 365));
   return `hace ${años} ${años === 1 ? "año" : "años"}`;
 };
 
@@ -48,7 +49,34 @@ export const resumenTomado = (wine, ahora = new Date()) => {
 /** Qué hace cada botón de la fila, según el stock que hay. */
 export const pistaDeStock = (wine) => {
   const q = Number(wine?.quantity) || 0;
-  if (q <= 0) return "Sin botellas · con + sumás una al stock";
+  if (q <= 0) return "Sin botellas · tocá + para sumar una al stock";
   const botellas = q === 1 ? "1 botella" : `${q} botellas`;
-  return `${botellas} en tu bodega · con − abrís una`;
+  return `${botellas} en tu bodega · tocá − para abrir una`;
+};
+
+/**
+ * ¿Sacar este vino de «Ya tomados» pide confirmación? Sí cuando lo abriste de
+ * verdad (hay al menos una apertura registrada). Uno marcado a mano, sin
+ * aperturas, se desmarca directo: no hay historial que perder.
+ */
+export const requiereConfirmarSacar = (wine) => wine?.tasted === true && vecesTomado(wine) >= 1;
+
+export const mensajeConfirmarSacar = (wine) => {
+  const n = vecesTomado(wine);
+  const veces = n === 1 ? "1 vez" : `${n} veces`;
+  return `Lo abriste ${veces}. Si lo sacás, deja de figurar entre los tomados; las botellas de tu bodega no cambian. Podés deshacerlo por unos segundos.`;
+};
+
+/** Aviso al sumar stock. Si ya estaba tomado, aclara que SIGUE entre los tomados. */
+export const mensajeSumar = (wine, cantidad, nombre) => {
+  const sumadas = cantidad === 1 ? "1 botella sumada al stock" : `${cantidad} botellas sumadas al stock`;
+  return `${sumadas} · ${nombre}${wine?.tasted ? " · sigue entre los ya tomados" : ""}`;
+};
+
+/** Aviso al abrir botellas. Cada apertura cuenta una vez más: desde la segunda se dice. */
+export const mensajeAbrir = ({ cantidad, quedan, veces, nombre }) => {
+  const abiertas = cantidad === 1 ? "Botella abierta" : `${cantidad} botellas abiertas`;
+  const tomado = veces >= 2 ? ` · lo tomaste ${veces} veces` : "";
+  if (quedan === 0) return `Se terminó tu ${nombre}${tomado}`;
+  return `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}${tomado}`;
 };

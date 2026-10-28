@@ -456,7 +456,7 @@ function WineRow({
               onClick={() => onSumarUna(wine)}
               disabled={isPending}
               aria-label="Sumar una botella"
-              title="Sumar una botella al stock: el vino no deja de estar entre los tomados"
+              title="Sumar al stock: sigue entre los tomados"
             >
               <Icon name="plus" size={16} />
             </button>
