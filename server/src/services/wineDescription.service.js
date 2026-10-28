@@ -7,6 +7,7 @@
 
 const Wine = require("../models/wine.model");
 const WineInfo = require("../models/wineInfo.model");
+const { limpiarDato } = require("../utils/promptSeguro");
 const { poolKey } = require("../data/wineIdentity");
 const { describeWine } = require("./wineAi.service");
 const { isGeminiConfigured } = require("./gemini.service");
@@ -58,7 +59,7 @@ const { isGeminiConfigured } = require("./gemini.service");
 const DESCRIBE_VERSION = "v3";
 
 const describeKey = (name, winery, varietal = "") =>
-  `${DESCRIBE_VERSION}:${poolKey(name, winery, varietal)}`;
+  `${DESCRIBE_VERSION}:${poolKey(limpiarDato(name, 120), limpiarDato(winery, 120), limpiarDato(varietal, 120))}`;
 
 /**
  * Genera (o reusa) la ficha del vino y la guarda en el documento.

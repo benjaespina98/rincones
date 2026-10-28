@@ -441,7 +441,7 @@ const deleteUser = async (req, res, next) => {
       if (!noSoportaTransacciones) throw txError;
       await cascade(null);
     }
-    await accountDeletion.purgeUserLeftovers(user._id);
+    await accountDeletion.purgeUserLeftovers(user._id).catch((e) => console.error("Limpieza posterior a la baja:", e.message));
 
     await logAdminAction({
       entityType: "user",
@@ -505,7 +505,7 @@ const bulkDeleteUsers = async (req, res, next) => {
           WineReview.deleteMany({ userId: user._id }),
         ]);
         await User.deleteOne({ _id: user._id });
-        await accountDeletion.purgeUserLeftovers(user._id);
+        await accountDeletion.purgeUserLeftovers(user._id).catch((e) => console.error("Limpieza posterior a la baja:", e.message));
 
         await logAdminAction({
           entityType: "user",
