@@ -7,6 +7,7 @@ const WineWish = require("../src/models/wineWish.model");
 const WineMoment = require("../src/models/wineMoment.model");
 const WineReview = require("../src/models/wineReview.model");
 const ChangeLog = require("../src/models/changeLog.model");
+const accountDeletion = require("../src/services/accountDeletion.service");
 const adminController = require("../src/controllers/admin.controller");
 
 const responder = () => {
@@ -47,6 +48,7 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
     momentDeleteMany: WineMoment.deleteMany,
     reviewDeleteMany: WineReview.deleteMany,
     changeLogCreate: ChangeLog.create,
+    purge: accountDeletion.purgeUserLeftovers,
   };
 
   const targetUser = { _id: "u2", email: "borrar@rincones.app", role: "user" };
@@ -58,6 +60,8 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
   WineMoment.deleteMany = async () => ({ deletedCount: 0 });
   WineReview.deleteMany = async () => ({ deletedCount: 0 });
   ChangeLog.create = async () => ({});
+  // La limpieza de restos (sesiones, charlas, precios) tiene su propio test; acá se aísla.
+  accountDeletion.purgeUserLeftovers = async () => {};
 
   // El mensaje EXACTO visto en producción.
   mongoose.startSession = async () => ({
@@ -86,6 +90,7 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
     WineMoment.deleteMany = original.momentDeleteMany;
     WineReview.deleteMany = original.reviewDeleteMany;
     ChangeLog.create = original.changeLogCreate;
+    accountDeletion.purgeUserLeftovers = original.purge;
   }
 });
 

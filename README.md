@@ -485,6 +485,5 @@ default al dominio de Vercel de hoy.
 
 ## Autor
 
-**Benjamín Espina** — proyecto personal full-stack.
+**200ok.dev** — proyecto full-stack.
 
-[GitHub](https://github.com/benjaespina98)

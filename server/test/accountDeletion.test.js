@@ -9,6 +9,8 @@ const WinePrice = require("../src/models/winePrice.model");
 const AnalyticsEvent = require("../src/models/analyticsEvent.model");
 const RefreshToken = require("../src/models/refreshToken.model");
 const SommelierConversation = require("../src/models/sommelierConversation.model");
+const WineImage = require("../src/models/wineImage.model");
+const winePrices = require("../src/services/winePrices.service");
 const { deleteAccount } = require("../src/services/accountDeletion.service");
 
 const stubModels = (role, admins) => {
@@ -23,7 +25,7 @@ const stubModels = (role, admins) => {
   stub(User, "deleteOne", async (f) => calls.push(["User", f]));
   for (const [label, model] of [
     ["Wine", Wine], ["WineWish", WineWish], ["WineMoment", WineMoment],
-    ["WineReview", WineReview], ["WinePrice", WinePrice],
+    ["WineReview", WineReview],
     ["AnalyticsEvent", AnalyticsEvent], ["RefreshToken", RefreshToken],
     // Las charlas con la guia. Si manana se agrega otra coleccion al borrado y
     // no a esta lista, este test explota con un CastError — que es como se
@@ -32,6 +34,9 @@ const stubModels = (role, admins) => {
   ]) {
     stub(model, "deleteMany", async (f) => calls.push([label, f]));
   }
+  // El precio vive dentro de `samples[].user`: se retira con el servicio, no con un deleteMany.
+  stub(winePrices, "retractAllFromUser", async (id) => calls.push(["WinePrice", id]));
+  stub(WineImage, "updateMany", async (f) => calls.push(["WineImage", f]));
   const restore = () => originals.forEach(([m, n, f]) => { m[n] = f; });
   return { calls, restore };
 };
@@ -52,6 +57,7 @@ test("la baja borra los datos del usuario y la cuenta queda para lo último", as
         "SommelierConversation",
         "User",
         "Wine",
+        "WineImage",
         "WineMoment",
         "WinePrice",
         "WineReview",
@@ -59,7 +65,8 @@ test("la baja borra los datos del usuario y la cuenta queda para lo último", as
       ]
     );
     assert.equal(calls.at(-1)[0], "User");
-    assert.deepEqual(calls.find((c) => c[0] === "WinePrice")[1], { user: "u1" });
+    assert.equal(calls.find((c) => c[0] === "WinePrice")[1], "u1");
+    assert.deepEqual(calls.find((c) => c[0] === "WineImage")[1], { contributedBy: "u1" });
   } finally {
     restore();
   }

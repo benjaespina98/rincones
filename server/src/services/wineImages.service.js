@@ -50,6 +50,10 @@ const contribute = async ({ name, winery, varietal, image, userId }) => {
   try {
     const key = wineKey(name, winery, varietal);
     if (!key || !looksLikeImage(image)) return;
+    // Al pool compartido (lo ve todo el mundo) sólo entra una foto ya re-alojada
+    // en Cloudinary o una subida directa: una URL de un tercero serviría de
+    // pixel de rastreo a cada usuario que abra el vino.
+    if (!/^(data:image\/|https:\/\/res\.cloudinary\.com\/)/i.test(String(image).trim())) return;
 
     const limpia = image.trim();
     const score = await wineImageQuality.scorePhoto(limpia);

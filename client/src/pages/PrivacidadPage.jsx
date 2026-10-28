@@ -37,7 +37,7 @@ export default function PrivacidadPage() {
 
       <h2>Quién es responsable</h2>
       <p>
-        <strong>Benjamín Espina</strong>, con domicilio en{" "}
+        <strong>200ok.dev</strong>, con domicilio en{" "}
         <strong>Córdoba, Argentina</strong>. Para cualquier consulta sobre tus datos escribinos
         a <strong>rincones.wines@gmail.com</strong>.
       </p>

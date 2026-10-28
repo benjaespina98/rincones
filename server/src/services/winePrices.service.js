@@ -133,4 +133,23 @@ const getPrice = async (name, winery, varietal, excludeUserId = "") => {
   }
 };
 
-module.exports = { contribute, retract, getPrice, wineKey, recalcular };
+/**
+ * Saca a una persona de TODOS los precios del pool (baja de cuenta). Antes se
+ * borraba con `{ user }` de primer nivel, un campo que no existe: el userId
+ * vive dentro de `samples`, así que no se borraba nada.
+ */
+const retractAllFromUser = async (userId) => {
+  if (!userId) return;
+  const docs = await WinePrice.find({ "samples.user": userId });
+  for (const doc of docs) {
+    doc.samples = doc.samples.filter((s) => String(s.user) !== String(userId));
+    if (doc.samples.length === 0) {
+      await WinePrice.deleteOne({ _id: doc._id });
+      continue;
+    }
+    recalcular(doc);
+    await doc.save();
+  }
+};
+
+module.exports = { contribute, retract, retractAllFromUser, getPrice, wineKey, recalcular };

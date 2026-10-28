@@ -1,7 +1,7 @@
 // Cómo se muestra la persona en la app.
 //
 // Antes cada pantalla hacía `user.email.split("@")[0]`, así que el saludo de la
-// home decía "Buenas noches, benjaespina98" aunque el usuario ya tuviera el
+// home decía "Buenas noches, usuario123" aunque el usuario ya tuviera el
 // nombre cargado en su perfil. El mail es el último recurso, no el default.
 
 /** Nombre para saludar y para el header. Prefiere el nombre real. */

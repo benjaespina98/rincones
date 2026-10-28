@@ -4,7 +4,7 @@
 // bajaste el rol, borraste la cuenta, o simplemente no te acordás cuál era),
 // desde el panel no hay forma de arreglarlo. Esto sí.
 //
-//   npm run role -- benjaespina98@gmail.com admin
+//   npm run role -- tu@email.com admin
 //   npm run role -- alguien@mail.com user
 //   npm run role -- --list
 

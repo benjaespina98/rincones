@@ -5,6 +5,7 @@ const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const { calculateAge, validateBirthDate } = require("../utils/age");
 const { fail } = require("../utils/apiError");
+const { esImagenAceptada } = require("../utils/imagenAceptada");
 const winesService = require("../services/wines.service");
 const { validatePasswordStrength } = require("../utils/password");
 const sessions = require("../services/session.service");
@@ -83,6 +84,26 @@ router.put("/profile", authenticate, async (req, res) => {
         return res.status(400).json({ success: false, error: birthValidation.message });
       }
       user.birthDate = birthValidation.date;
+    }
+
+    // Tipos: un valor que no sea texto tiraba 500 al llamar a .trim(), y la foto
+    // de perfil viajaba en cada /me sin forma ni tope.
+    for (const [valor, etiqueta] of [
+      [firstName, "El nombre"], [lastName, "El apellido"], [city, "La ciudad"],
+      [country, "El país"], [bio, "La bio"], [avatar, "El avatar"], [avatarPhoto, "La foto"],
+      [theme, "El tema"], [language, "El idioma"],
+    ]) {
+      if (valor !== undefined && typeof valor !== "string") {
+        return res.status(400).json({ success: false, error: etiqueta + " no es válido" });
+      }
+    }
+    if (typeof avatar === "string" && avatar.length > 16) {
+      return res.status(400).json({ success: false, error: "El avatar no es válido" });
+    }
+    if (typeof avatarPhoto === "string" && avatarPhoto.trim() !== "") {
+      if (avatarPhoto.length > 2000000 || !esImagenAceptada(avatarPhoto)) {
+        return res.status(400).json({ success: false, error: "La foto no es válida" });
+      }
     }
 
     // Largos: la pantalla ya los limita, pero la API se puede llamar sin la pantalla.

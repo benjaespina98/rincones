@@ -120,7 +120,7 @@ export default function TerminosPage() {
       <p>
         Estos términos se rigen por las leyes de{" "}
         <strong>Argentina</strong>, y cualquier conflicto se resuelve ante
-        sus tribunales. El responsable es <strong>Benjamín Espina</strong>, y
+        sus tribunales. El responsable es <strong>200ok.dev</strong>, y
         el contacto es <strong>rincones.wines@gmail.com</strong>.
       </p>
     </LegalPage>
