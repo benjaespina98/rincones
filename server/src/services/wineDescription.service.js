@@ -86,9 +86,6 @@ const ensureDescription = async (wine) => {
       name: wine.name,
       winery: wine.winery,
       varietal: wine.varietal,
-      type: wine.type,
-      region: wine.region,
-      vintage: wine.vintage,
     });
     if (!info) return null;
     try {

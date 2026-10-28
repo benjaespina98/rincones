@@ -156,16 +156,10 @@ const search = async (req, res, next) => {
 // normaliza un nombre es la forma más segura de que un día dejen de coincidir.
 
 // Lo que entra al prompt y a una caché que ven TODOS los usuarios. Largo acotado y
-// sin caracteres de control; type y region (que no están en la clave de caché)
-// sólo pasan si parecen un dato de vino, así nadie siembra texto libre en la
-// ficha de un vino popular.
+// sin caracteres de control. Type, region y vintage NO viajan al prompt de lo
+// que se cachea: no están en la clave y servirían para sembrar texto en la ficha
+// que ven todos.
 const textoCorto = (v, max = 120) => limpiarDato(v, max);
-const SOLO_DATO = /^[\p{L}\p{N} .,'()\/-]{0,60}$/u;
-const datoDeVino = (v) => {
-  const t = textoCorto(v, 60);
-  return SOLO_DATO.test(t) ? t : "";
-};
-
 // POST /api/catalog/describe { name, winery, varietal, type, region, vintage }
 // Devuelve la ficha (estilo Vivino) del vino, generada por Gemini y cacheada.
 const describe = async (req, res, next) => {
@@ -192,9 +186,6 @@ const describe = async (req, res, next) => {
       name,
       winery,
       varietal,
-      type: datoDeVino(req.body.type),
-      region: datoDeVino(req.body.region),
-      vintage: /^\d{4}$/.test(String(req.body.vintage ?? "").trim()) ? String(req.body.vintage).trim() : undefined,
     });
 
     if (!info) {
@@ -246,8 +237,6 @@ const recipe = async (req, res, next) => {
         name,
         winery,
         varietal: varietalReceta,
-        type: datoDeVino(req.body.type),
-        region: datoDeVino(req.body.region),
       },
       plan
     );

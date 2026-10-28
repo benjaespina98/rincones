@@ -178,3 +178,35 @@ test("Google no hereda la contraseña ni las sesiones de quien registró el emai
     if (entorno.jwt === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = entorno.jwt;
   }
 });
+
+test("textoSeguro descarta lo que el modelo devuelve con links, mails, markdown o marcas", () => {
+  const { textoSeguro } = require("../src/utils/promptSeguro");
+  assert.equal(textoSeguro("Un Malbec fresco, con frutos rojos."), "Un Malbec fresco, con frutos rojos.");
+  for (const malo of [
+    "Visitá https://atacante.example para más",
+    "entrá a www.atacante.example",
+    "escribime a alguien@atacante.example",
+    "[click aquí](https://x.example)",
+    "<script>alert(1)</script>",
+  ]) {
+    assert.equal(textoSeguro(malo), "", malo);
+  }
+  assert.equal(textoSeguro("a".repeat(501), 500), "", "se pasa del largo");
+  assert.equal(textoSeguro(undefined), "");
+});
+
+test("el gate de fotos falla cerrado: sin isWinePhoto explícito en true, no es foto de vino", async () => {
+  const gemini = require("../src/services/gemini.service");
+  const quality = require("../src/services/wineImageQuality.service");
+  const restores = [
+    stub(gemini, "isGeminiConfigured", () => true),
+    stub(gemini, "generateJson", async () => ({ quality: 100 })),
+  ];
+  try {
+    const r = await quality.scorePhoto("data:image/png;base64,AAAA");
+    // Sin el campo, antes se asumía "es un vino" y el puntaje 100 inyectado pisaba la foto pública.
+    assert.ok(r === null || r.isWinePhoto === false);
+  } finally {
+    restores.forEach((x) => x());
+  }
+});

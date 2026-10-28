@@ -10,7 +10,7 @@
 
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
 const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
-const { limpiarDato, bloqueDeDatos } = require("../utils/promptSeguro");
+const { limpiarDato, bloqueDeDatos, textoSeguro } = require("../utils/promptSeguro");
 
 const TIMEOUT_MS = 9000;
 const BUDGET_MS = 14000;
@@ -343,13 +343,13 @@ const buildDescribePrompt = (wine) => {
     wine.region && `Región: ${limpiarDato(wine.region, 60)}`,
     wine.type && wine.type !== "unknown" && `Tipo: ${limpiarDato(wine.type, 30)}`,
     wine.vintage && `Añada: ${limpiarDato(wine.vintage, 60)}`,
-  ].filter(Boolean).join("\n");
+  ].filter(Boolean);
 
   return `Alguien que sabe mucho de vino le está contando a un amigo cómo es esta
 botella. No es una contraetiqueta ni una nota de cata: es una charla, con la
 precisión de quien sabe y el tono de quien no necesita demostrarlo.
 
-${parts}
+${bloqueDeDatos(parts)}
 
 CÓMO HABLAR (vale para todos los campos):
 - Sin guiones largos ni guiones medios: separá las ideas con punto, coma o dos puntos.
@@ -458,17 +458,20 @@ const describeWine = async (wine) => {
     sinPensamiento: true,
   });
 
-  const clean = (s) => String(s || "").trim();
+  const clean = (s, max = 200) => textoSeguro(s, max);
   const list = (arr, max) =>
     Array.isArray(arr)
-      ? arr.map((x) => clean(x)).filter(Boolean).slice(0, max)
+      ? arr.map((x) => clean(x, 80)).filter(Boolean).slice(0, max)
       : [];
 
   const alcohol = Number(parsed?.alcohol);
 
+  // Sin resumen válido no hay ficha: devolver null evita cachear algo inservible.
+  if (!clean(parsed?.summary, 900)) return null;
+
   return {
-    summary: clean(parsed?.summary),
-    body: clean(parsed?.body),
+    summary: clean(parsed?.summary, 900),
+    body: clean(parsed?.body, 500),
     profile: list(parsed?.profile, 3),
     structure: clampStructure(parsed?.structure),
     similarTo: list(parsed?.similarTo, 3),
@@ -477,12 +480,12 @@ const describeWine = async (wine) => {
     aromas: list(parsed?.aromas, 4),
     foodPairing: list(parsed?.foodPairing, 4),
     alcohol: Number.isFinite(alcohol) && alcohol > 0 && alcohol < 25 ? alcohol : null,
-    serve: clean(parsed?.serve),
+    serve: clean(parsed?.serve, 200),
     known: parsed?.known !== false,
     // Una oración, no un párrafo: si el modelo se entusiasma y manda tres, se
     // descarta entero en vez de recortarlo al medio.
     funFact: (() => {
-      const f = clean(parsed?.funFact);
+      const f = clean(parsed?.funFact, 320);
       return f.length >= 20 && f.length <= 320 ? f : "";
     })(),
   };
@@ -584,13 +587,13 @@ const suggestRecipe = async (wine, plan) => {
     sinPensamiento: true,
   });
 
-  const clean = (s) => String(s || "").trim();
-  const list = (arr, max) =>
-    Array.isArray(arr) ? arr.map((x) => clean(x)).filter(Boolean).slice(0, max) : [];
+  const clean = (s, max = 120) => textoSeguro(s, max);
+  const list = (arr, max, largo) =>
+    Array.isArray(arr) ? arr.map((x) => clean(x, largo)).filter(Boolean).slice(0, max) : [];
 
-  const dish = clean(parsed?.dish);
-  const ingredients = list(parsed?.ingredients, 9);
-  const steps = list(parsed?.steps, 6);
+  const dish = clean(parsed?.dish, 120);
+  const ingredients = list(parsed?.ingredients, 9, 80);
+  const steps = list(parsed?.steps, 6, 240);
   // Una receta sin plato, sin ingredientes o sin pasos no es una receta: es peor
   // que no mostrar nada, porque promete algo que no está.
   if (!dish || ingredients.length === 0 || steps.length === 0) return null;
@@ -599,8 +602,8 @@ const suggestRecipe = async (wine, plan) => {
 
   return {
     dish,
-    why: clean(parsed?.why),
-    time: clean(parsed?.time),
+    why: clean(parsed?.why, 300),
+    time: clean(parsed?.time, 40),
     servings: Number.isFinite(servings) && servings > 0 && servings <= 20 ? servings : null,
     ingredients,
     steps,
