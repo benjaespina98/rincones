@@ -13,6 +13,7 @@ const { canonicalVarietal, checkCoherence } = require("../data/wineValidation");
 const { expandAbbreviation } = require("../data/grapes");
 const { esGenerico } = require("../data/wineMatching");
 const { fold } = require("../data/argentineWines");
+const { limpiarDato } = require("../utils/promptSeguro");
 
 const TIMEOUT_MS = 12000;
 // Tope total de la llamada. El cliente aborta a los 30s: el server tiene que
@@ -255,12 +256,12 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
 
   const values = descartarLetraSuelta(
     ubicarNombrePropio({
-      winery: String(parsed.winery || "").trim(),
-      line: String(parsed.line || "").trim(),
-      name: String(parsed.name || "").trim(),
+      winery: limpiarDato(parsed.winery, 80),
+      line: limpiarDato(parsed.line, 80),
+      name: limpiarDato(parsed.name, 80),
       varietal: uva.value,
       vintage: normalizeVintage(parsed.vintage),
-      region: String(parsed.region || "").trim(),
+      region: limpiarDato(parsed.region, 80),
       type: normalizarTipo(parsed.type),
     })
   );

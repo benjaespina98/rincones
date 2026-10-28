@@ -61,7 +61,8 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
   WineReview.deleteMany = async () => ({ deletedCount: 0 });
   ChangeLog.create = async () => ({});
   // La limpieza de restos (sesiones, charlas, precios) tiene su propio test; acá se aísla.
-  accountDeletion.purgeUserLeftovers = async () => {};
+  const purgados = [];
+  accountDeletion.purgeUserLeftovers = async (id) => { purgados.push(id); };
 
   // El mensaje EXACTO visto en producción.
   mongoose.startSession = async () => ({
@@ -80,6 +81,7 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
 
     assert.equal(res.statusCode, 200, "no puede terminar en 500: el fallback tiene que funcionar");
     assert.match(res.body.message, /eliminada/i);
+    assert.deepEqual(purgados, ["u2"], "el borrado de admin tiene que limpiar los restos del usuario");
   } finally {
     User.findById = original.findById;
     User.countDocuments = original.countDocuments;

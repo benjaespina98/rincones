@@ -31,6 +31,9 @@ Un PR con cuerpo multilínea se arma en PowerShell con here-string `@'...'@` (en
   y el client con `preview_start` (`.claude/launch.json`).
 - Sin backend se pueden revisar sólo `/styleguide`, `/login`, `/register`.
 
+## Links de reset y verificación en local
+El server sólo devuelve `resetUrl`/`verifyUrl` en la respuesta (y los imprime en consola) con `NODE_ENV=development`; antes bastaba con que no fuera `production`, lo que en un entorno desplegado sin `NODE_ENV` entregaba links de reset a cualquiera. En local sin SMTP, poné `NODE_ENV=development` en `server/.env`.
+
 ## Usuario de prueba
 `server/.env.qa-usuario` (`QA_EMAIL`, `QA_PASSWORD`). Leerlo del archivo; **no pegar las credenciales en el chat ni en commits**. Contra la base `test`, nunca `rincones`.
 
