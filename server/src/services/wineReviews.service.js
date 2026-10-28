@@ -111,8 +111,10 @@ const conNombresActuales = async (docs = []) => {
     for (const d of docs) {
       const u = byId.get(String(d.userId));
       if (!u) continue;
-      const actual = (u.firstName || "").trim() || "Alguien";
-      if (actual) d.authorName = actual;
+      // Sin nombre de pila vigente se conserva el que se guardó con la reseña; el
+      // "Alguien" es sólo para cuando no hay ninguno (nunca el prefijo del mail).
+      const actual = (u.firstName || "").trim() || (d.authorName || "").trim() || "Alguien";
+      d.authorName = actual;
       d.authorAvatar = u.avatar || d.authorAvatar || "";
     }
   } catch {

@@ -330,3 +330,27 @@ test("createWine con restauraDe re-vincula los momentos del diario del vino borr
     ChangeLog.create = orig.log;
   }
 });
+
+test("PUT /users/profile: valores que no son texto o una foto inválida devuelven 400, no 500", async () => {
+  await conUsuario(async () => {
+    for (const cuerpo of [
+      { firstName: { $ne: 1 } },
+      { bio: 123 },
+      { theme: ["x"] },
+      { avatar: "x".repeat(17) },
+      { avatarPhoto: "javascript:alert(1)" },
+      { avatarPhoto: "http://atacante.example/x.png" },
+      { avatarPhoto: `data:image/png;base64,${"A".repeat(2000001)}` },
+    ]) {
+      const r = await pedir("PUT", "/api/users/profile", cuerpo);
+      assert.equal(r.status, 400, JSON.stringify(cuerpo).slice(0, 60));
+    }
+    const sacarFoto = await pedir("PUT", "/api/users/profile", { avatarPhoto: "" });
+    assert.equal(sacarFoto.status, 200, "quitar la foto sigue siendo válido");
+  });
+});
+
+test("las rutas de cuenta rechazan cuerpos de más de 50 kB antes de autenticar", async () => {
+  const grande = await pedir("POST", "/api/auth/login", { email: "a@b.co", password: "x".repeat(60000) });
+  assert.equal(grande.status, 413);
+});

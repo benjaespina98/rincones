@@ -53,7 +53,7 @@ test("reset de contraseña ignora un email que no es texto (inyección de operad
       () => {}
     );
     assert.equal(res.statusCode, 400);
-    assert.equal(typeof filtro?.email === "string" || filtro === null, true);
+    assert.equal(filtro, null, "con un email que no es texto ni siquiera se consulta la base");
   } finally {
     restore();
   }
@@ -64,13 +64,16 @@ test("las reseñas ajenas no llevan userId ni el prefijo del email", async () =>
     { userId: "u2", rating: 5, authorName: "", createdAt: new Date() },
     { userId: "u1", rating: 4, authorName: "Yo", createdAt: new Date() },
   ];
+  let camposPedidos = null;
   const restores = [
     stub(WineReview, "find", () => ({ sort: () => ({ limit: () => ({ lean: async () => docs.map((d) => ({ ...d })) }) }) })),
     stub(WineReview, "aggregate", async () => [{ _id: 5, n: 1 }, { _id: 4, n: 1 }]),
-    stub(User, "find", (q) => {
-      // Si alguien volviera a pedir el email para armar el nombre, este test lo ve.
-      return { select: (campos) => { assert.ok(!/email/.test(campos), "no se debe leer el email"); return { lean: async () => [{ _id: "u2", firstName: "", avatar: "" }] }; } };
-    }),
+    stub(User, "find", () => ({
+      select: (campos) => {
+        camposPedidos = campos;
+        return { lean: async () => [{ _id: "u2", firstName: "", avatar: "" }] };
+      },
+    })),
   ];
   try {
     const { reviews, mine } = await wineReviews.listReviews("Malbec", "Bodega", "u1");
@@ -78,6 +81,8 @@ test("las reseñas ajenas no llevan userId ni el prefijo del email", async () =>
     assert.equal(reviews.length, 1);
     assert.equal("userId" in reviews[0], false);
     assert.equal(reviews[0].authorName, "Alguien");
+    // Afuera del stub: un assert adentro lo podría tragar el try/catch del servicio.
+    assert.ok(camposPedidos && !/email/.test(camposPedidos), "no se debe leer el email");
   } finally {
     restores.forEach((r) => r());
   }
@@ -197,16 +202,20 @@ test("textoSeguro descarta lo que el modelo devuelve con links, mails, markdown 
 
 test("el gate de fotos falla cerrado: sin isWinePhoto explícito en true, no es foto de vino", async () => {
   const gemini = require("../src/services/gemini.service");
-  const quality = require("../src/services/wineImageQuality.service");
+  // El servicio importa generateJson destructurado: hay que recargarlo con el stub ya puesto.
+  const ruta = require.resolve("../src/services/wineImageQuality.service");
+  delete require.cache[ruta];
   const restores = [
     stub(gemini, "isGeminiConfigured", () => true),
     stub(gemini, "generateJson", async () => ({ quality: 100 })),
   ];
   try {
+    const quality = require("../src/services/wineImageQuality.service");
     const r = await quality.scorePhoto("data:image/png;base64,AAAA");
     // Sin el campo, antes se asumía "es un vino" y el puntaje 100 inyectado pisaba la foto pública.
-    assert.ok(r === null || r.isWinePhoto === false);
+    assert.deepEqual(r, { isWinePhoto: false, quality: 0 });
   } finally {
     restores.forEach((x) => x());
+    delete require.cache[ruta];
   }
 });

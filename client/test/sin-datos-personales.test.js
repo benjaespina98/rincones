@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
 // La identidad pública del producto es 200ok.dev. Este guard falla si el nombre
@@ -18,6 +18,8 @@ const archivos = (dir) =>
 
 describe("identidad pública", () => {
   it("el cliente no menciona el nombre ni el usuario personal", () => {
+    // Se corre desde client/ (npm test -w client). Si no, que falle fuerte y no pase vacío.
+    expect(existsSync(join(RAIZ, "src")), `no encuentro src/ en ${RAIZ}`).toBe(true);
     const candidatos = [...archivos(join(RAIZ, "src")), ...archivos(join(RAIZ, "public")), join(RAIZ, "index.html")];
     const infractores = candidatos.filter((ruta) => PERSONAL.test(readFileSync(ruta, "utf8")));
     expect(infractores).toEqual([]);

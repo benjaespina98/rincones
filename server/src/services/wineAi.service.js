@@ -11,6 +11,7 @@
 const { generateJson, isGeminiConfigured } = require("./gemini.service");
 const { FIELD_CONVENTION, composeDisplayName } = require("../data/wineIdentity");
 const { limpiarDato, bloqueDeDatos, textoSeguro } = require("../utils/promptSeguro");
+const { normalizarTipo } = require("./vision.service");
 
 const TIMEOUT_MS = 9000;
 const BUDGET_MS = 14000;
@@ -105,10 +106,10 @@ const searchWinesWithAi = async (query) => {
 
   return wines
     .map((w) => {
-      const winery = String(w.winery || "").trim();
-      const line = String(w.line || "").trim();
-      const properName = String(w.name || "").trim();
-      const varietal = String(w.varietal || "").trim();
+      const winery = limpiarDato(w.winery, 80);
+      const line = limpiarDato(w.line, 80);
+      const properName = limpiarDato(w.name, 80);
+      const varietal = limpiarDato(w.varietal, 80);
       // El nombre visible se compone igual que en el catálogo curado, así los
       // resultados de las dos fuentes se pueden deduplicar entre sí.
       const name = composeDisplayName({ name: properName, line, varietal, winery });
@@ -119,10 +120,10 @@ const searchWinesWithAi = async (query) => {
         line,
         properName,
         winery,
-        region: String(w.region || "").trim(),
+        region: limpiarDato(w.region, 80),
         varietal,
-        vintage: String(w.vintage || "").trim(),
-        type: String(w.type || "unknown").trim() || "unknown",
+        vintage: limpiarDato(w.vintage, 10),
+        type: normalizarTipo(w.type),
         image: "",
         rating: 0,
         barcode: "",
@@ -247,7 +248,7 @@ const verifyWineWithAi = async (lectura = {}) => {
 
   if (parsed?.exists !== true) return null;
 
-  const clean = (s) => String(s || "").trim();
+  const clean = (s) => limpiarDato(s, 80);
   const line = clean(parsed.line);
   const properName = clean(parsed.name);
   // Un "existe" sin nombre no verifica nada: es un sí vacío.
@@ -267,7 +268,7 @@ const verifyWineWithAi = async (lectura = {}) => {
     winery: clean(parsed.winery),
     region: clean(parsed.region),
     varietal: clean(parsed.varietal),
-    type: clean(parsed.type) || "unknown",
+    type: normalizarTipo(parsed.type),
     image: "",
     vintage: "",
     rating: 0,
@@ -467,11 +468,11 @@ const describeWine = async (wine) => {
   const alcohol = Number(parsed?.alcohol);
 
   // Sin resumen válido no hay ficha: devolver null evita cachear algo inservible.
-  if (!clean(parsed?.summary, 900)) return null;
+  if (!clean(parsed?.summary, 1500)) return null;
 
   return {
-    summary: clean(parsed?.summary, 900),
-    body: clean(parsed?.body, 500),
+    summary: clean(parsed?.summary, 1500),
+    body: clean(parsed?.body, 800),
     profile: list(parsed?.profile, 3),
     structure: clampStructure(parsed?.structure),
     similarTo: list(parsed?.similarTo, 3),

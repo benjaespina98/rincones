@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const { claveIpEmail } = require("./utils/rateKey");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 
@@ -59,9 +60,7 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true, // no contar requests exitosos
   standardHeaders: true,
   legacyHeaders: false,
-  // IP + email: detrás del rewrite de Vercel la IP puede ser la misma para todos,
-  // y un límite sólo por IP dejaría sin login a todo el mundo por 5 fallos ajenos.
-  keyGenerator: (req) => `${req.ip}|${String(req.body?.email || "").trim().toLowerCase().slice(0, 254)}`,
+  keyGenerator: claveIpEmail,
 });
 
 // Rate limiter específico para forgot-password (proteger abuso)
@@ -71,9 +70,25 @@ const forgotLimiter = rateLimit({
   message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
   standardHeaders: true,
   legacyHeaders: false,
-  // IP + email: detrás del rewrite de Vercel la IP puede ser la misma para todos,
-  // y un límite sólo por IP dejaría sin login a todo el mundo por 5 fallos ajenos.
-  keyGenerator: (req) => `${req.ip}|${String(req.body?.email || "").trim().toLowerCase().slice(0, 254)}`,
+  keyGenerator: claveIpEmail,
+});
+
+// El segundo freno: sólo por IP y más laxo. Con IP+email solos, una IP podría probar
+// 5 contraseñas contra cada cuenta de una lista; esto acota el barrido total.
+const loginIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: "Demasiados intentos de login, intenta en 15 minutos",
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const forgotIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Exportar los datos propios: ver dónde se monta, más abajo, para el porqué.
@@ -157,9 +172,9 @@ app.get("/api/health", (req, res) => {
   res.status(dbUp ? 200 : 503).json({ status: dbUp ? "ok" : "degraded", db: dbUp ? "up" : "down" });
 });
 
-app.use("/api/auth/login", loginLimiter);
+app.use("/api/auth/login", loginIpLimiter, loginLimiter);
 app.use("/api/auth/google", googleAuthLimiter);
-app.use("/api/auth/forgot-password", forgotLimiter);
+app.use("/api/auth/forgot-password", forgotIpLimiter, forgotLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/auth/resend-verification", resendVerificationLimiter);
 /**

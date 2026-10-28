@@ -89,11 +89,26 @@ const optimized = (url) => {
  * optimizada. Si Cloudinary no está configurado o falla, devuelve la imagen
  * original (fallback), para no bloquear el alta del vino.
  */
+const cloudDelEntorno = () => {
+  const m = String(process.env.CLOUDINARY_URL || "").match(/@([^/?#]+)/);
+  return ((m && m[1]) || String(process.env.CLOUDINARY_CLOUD_NAME || "")).trim().toLowerCase();
+};
+
+/** ¿Es una URL de NUESTRO cloud? Un cloud ajeno de Cloudinary sigue siendo un tercero. */
+const esUrlPropia = (valor) => {
+  const v = String(valor || "").trim();
+  const base = "https://res.cloudinary.com/";
+  if (!v.toLowerCase().startsWith(base)) return false;
+  const cloud = cloudDelEntorno();
+  if (!cloud) return true;
+  return v.slice(base.length).toLowerCase().startsWith(cloud + "/");
+};
+
 const store = async (image, { folder = "rincones/wines" } = {}) => {
   const value = String(image || "").trim();
   if (!value) return "";
   // Si ya es una URL de Cloudinary, no la volvemos a subir.
-  if (/^https:\/\/res\.cloudinary\.com\//i.test(value)) return value;
+  if (esUrlPropia(value)) return value;
   if (!ensureConfigured()) return value;
 
   try {
@@ -115,6 +130,7 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
 
 module.exports = {
   store,
+  esUrlPropia,
   isConfigured,
   optimized,
   /**

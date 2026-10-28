@@ -4,6 +4,7 @@
 const WineImage = require("../models/wineImage.model");
 const { poolKey } = require("../data/wineIdentity");
 const wineImageQuality = require("./wineImageQuality.service");
+const imageStorage = require("./imageStorage.service");
 
 // Cuánto tiene que superar una foto nueva a la puesta para desplazarla. Sin
 // margen, dos fotos parecidas puntuadas por separado (y Gemini no es
@@ -53,7 +54,7 @@ const contribute = async ({ name, winery, varietal, image, userId }) => {
     // Al pool compartido (lo ve todo el mundo) sólo entra una foto ya re-alojada
     // en Cloudinary o una subida directa: una URL de un tercero serviría de
     // pixel de rastreo a cada usuario que abra el vino.
-    if (!/^(data:image\/|https:\/\/res\.cloudinary\.com\/)/i.test(String(image).trim())) return;
+    if (!/^data:image\//i.test(String(image).trim()) && !imageStorage.esUrlPropia(image)) return;
 
     const limpia = image.trim();
     const score = await wineImageQuality.scorePhoto(limpia);

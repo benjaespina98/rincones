@@ -564,6 +564,11 @@ const googleAuth = async (req, res, next) => {
       // Google por primera vez: se vincula en vez de crear un duplicado, y de
       // paso confirma el email si todavía no lo estaba — Google ya certificó
       // que es de quien dice ser.
+      // Una cuenta ya vinculada a otra identidad de Google (p. ej. un email de
+      // Workspace reasignado) no se hereda por coincidir el email.
+      if (user.googleId && user.googleId !== googleId) {
+        return res.status(409).json({ message: "Este email ya está vinculado a otra cuenta de Google" });
+      }
       let dirty = false;
       if (!user.googleId) { user.googleId = googleId; dirty = true; }
       // Pre-hijacking: si alguien registró este email con contraseña propia sin
