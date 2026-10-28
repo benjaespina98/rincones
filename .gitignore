@@ -156,3 +156,7 @@ client/.vite/
 
 # Screenshots sueltos que se cuelan en la raíz
 login.png
+
+# Playwright
+client/test-results/
+client/playwright-report/

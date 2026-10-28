@@ -452,7 +452,9 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
         history,
         wines,
         wishes,
-        preferences: user?.preferences || {},
+        // Una respuesta que se cachea para todos no puede salir del gusto de quien
+        // preguntó primero (se filtraba en primera persona: «como tomás Malbec…»).
+        preferences: cacheable ? {} : user?.preferences || {},
         evitar,
       });
     } catch (error) {
