@@ -201,6 +201,7 @@ export default function MomentsDiary({ probados = 0 }) {
                       type={m.wine?.type || "unknown"}
                       alt={m.wine?.name || "Vino"}
                       artSize={40}
+                      marca={m.wine?.winery || m.wine?.name}
                     />
                   </span>
 

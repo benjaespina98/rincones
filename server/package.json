@@ -18,7 +18,8 @@
     "migrate:precios": "node scripts/backfillWinePrices.js",
     "mail:test": "node scripts/testEmail.js",
     "backup:drill": "node scripts/backupRestoreDrill.js",
-    "import:images": "node scripts/importWineImages.js"
+    "import:images": "node scripts/importWineImages.js",
+    "fotos:preparar": "node scripts/prepararFotos.js"
   },
   "keywords": [],
   "author": "200ok.dev",
