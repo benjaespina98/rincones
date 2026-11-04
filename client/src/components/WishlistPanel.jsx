@@ -168,7 +168,7 @@ export default function WishlistPanel({
               onClick={() => openDetail(wish)}
             >
               <span className="wishlist-card__thumb">
-                <WinePhoto src={wish.image} type={wish.type} alt="" artSize={52} fit="contain" />
+                <WinePhoto src={wish.image} type={wish.type} alt="" artSize={52} fit="contain" marca={wish.winery || wish.name} />
               </span>
               <span className="wishlist-card__body">
                 <span className="wishlist-card__name">{wish.name}</span>

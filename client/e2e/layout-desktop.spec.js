@@ -15,6 +15,11 @@ const caja = (page, selector) =>
     return { left: b.left, top: b.top, width: b.width, height: b.height };
   });
 
+// Las filas entran con una animación escalonada (transform): medir antes de que termine da posiciones
+// distintas para tarjetas que en reposo están en la misma hilera.
+const esperarAnimaciones = (page) =>
+  page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))));
+
 const preparar = async (request, page) => {
   const u = await crearUsuarioListo(request, "lay");
   const ids = [];
@@ -42,6 +47,7 @@ test.describe("escritorio 1440", () => {
     await preparar(request, page);
     await page.goto("/bodega");
     await page.locator(".wine-row").first().waitFor();
+    await esperarAnimaciones(page);
     expect((await caja(page, ".segmented.bodega-vista")).width).toBeLessThanOrEqual(521);
     const filas = await page.locator(".wines-list .wine-row").evaluateAll((els) =>
       els.map((e) => { const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(b.height) }; })
@@ -98,8 +104,10 @@ test.describe("escritorio 1440, bordes", () => {
     await preparar(request, page);
     await page.goto("/bodega");
     await page.locator(".wines-list .wine-row").nth(1).waitFor();
+    await esperarAnimaciones(page);
     await page.locator(".wines-list .wine-row").first().locator(".wine-row__disclosure").click();
-    await page.waitForTimeout(600);
+    await esperarAnimaciones(page);
+    await page.waitForTimeout(300);
     const filas = await page.locator(".wines-list .wine-row").evaluateAll((els) =>
       els.map((e) => { const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(b.height) }; })
     );

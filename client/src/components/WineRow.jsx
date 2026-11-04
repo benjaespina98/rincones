@@ -282,6 +282,7 @@ function WineRow({
                 src={wine.image}
                 type={wine.type}
                 alt=""
+                marca={wine.winery || wine.name}
                 /* El dibujo de respaldo (WineArtwork) se pide en un
                    alto FIJO en píxeles, y el marco que lo contiene
                    mide distinto según el modo: 130px en grilla,
