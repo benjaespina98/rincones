@@ -1221,13 +1221,15 @@
     grid-template-columns: minmax(320px, 400px) 1fr;
     gap: 32px;
     align-items: start;
-    padding: 28px 4px;
+    padding: 28px var(--page-pad-x);
   }
 
   .wine-detail-hero {
     border-radius: var(--radius-2xl);
     position: sticky;
-    top: 92px;
+    /* Igual al aire de arriba de la página: con un valor mayor el póster se corría hacia
+       abajo en reposo y arrancaba por debajo de la columna de datos (era 92px). */
+    top: 28px;
   }
 
   .wine-detail-body {
