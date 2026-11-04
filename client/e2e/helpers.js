@@ -46,5 +46,7 @@ export async function entrar(page, u) {
   await page.locator("input#email").fill(u.email);
   await page.locator("input#password").fill(u.password);
   await page.locator("button.auth-submit").click();
+  // Esperar la salida de /login, no la red inactiva: un goto() inmediato cancelaría el login en vuelo.
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   await page.waitForLoadState("networkidle");
 }

@@ -958,6 +958,20 @@
     max-width: 1280px;
     margin: 0 auto;
   }
+
+  /* Tres pestañas no necesitan 1160px: a ese ancho cada una quedaba en 380px con un texto
+     de 60 en el medio. Acotado y a la izquierda, junto al buscador que las acompaña. */
+  .segmented.bodega-vista {
+    max-width: 520px;
+  }
+
+  /* Las tarjetas de una misma hilera miden lo mismo: con `start` cada una era tan alta
+     como su contenido y la grilla quedaba con el borde de abajo dentado. No se aplica mientras
+     hay una fila desplegada: estiraría a su vecina hasta la altura de la abierta y la dejaría
+     con un hueco vacío. */
+  .wines-list:not(:has(.wine-row.is-expanded)) {
+    align-items: stretch;
+  }
 }
 
 /* ── "Quiero probar" ──
@@ -1244,6 +1258,15 @@
 @media (min-width: 411px) and (max-width: 430px) {
   .wines-list--grid .wine-row__tasted-text {
     display: inline;
+  }
+}
+
+/* En pantallas anchas las filas respiran: a 340px de piso entraban tres tarjetas de
+   ~380px y el texto («Tomado 2 veces · hoy», la pista del stepper) se partía en tres
+   renglones. Con 400px de piso son dos de ~570 a 1440px y tres a 1920px. */
+@media (min-width: 1280px) {
+  .wines-list:not(.wines-list--grid) {
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   }
 }
 
@@ -1951,6 +1974,11 @@
 .wine-row__rating-inline {
   color: var(--text-secondary);
   white-space: nowrap;
+  /* La estrella y el número en la misma línea aunque el renglón se parta: en una tarjeta
+     angosta la estrella quedaba sola arriba y el «4,0» abajo. */
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .wine-row__rating-inline .icon {
