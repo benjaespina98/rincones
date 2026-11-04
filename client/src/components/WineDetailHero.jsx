@@ -43,6 +43,7 @@ export default function WineDetailHero({
       alt={nombre}
       artSize={220}
       fit="contain"
+      marca={wine.winery || wine.name}
       priority
       className={destacado ? "wine-photo--gold" : ""}
     />

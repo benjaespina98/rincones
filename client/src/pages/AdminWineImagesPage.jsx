@@ -154,6 +154,7 @@ const AdminWineImagesPage = () => {
             src={w.poolImage || w.catalogImage}
             type={w.type}
             artSize={40}
+            marca={w.winery || w.name}
             className="admin-wineimg__thumb"
           />
           <div className="admin-wineimg__info">

@@ -32,7 +32,7 @@
   /* El profundo entra como sombra interior barata: un degradado de verdad
      obligaría a un <linearGradient> con id único por instancia, y en una lista
      de sesenta botellas eso son sesenta defs repetidos en el DOM. */
-  filter: drop-shadow(0 6px 6px rgb(var(--type-rgb) / 0.5));
+  filter: hue-rotate(var(--tono, 0deg)) drop-shadow(0 6px 6px rgb(var(--type-rgb) / 0.5));
 }
 
 .wine-artwork__bozal rect {
@@ -47,6 +47,30 @@
 
 .wine-artwork__etiqueta {
   fill: rgb(var(--paper-rgb) / 0.88);
+}
+
+/* Cápsula del cuello: tres tonos del sistema, sólo decorativos. */
+.wine-artwork__capsula--1 {
+  fill: var(--type-deep);
+}
+
+.wine-artwork__capsula--2 {
+  fill: var(--gold-soft);
+  opacity: 0.9;
+}
+
+.wine-artwork__capsula--3 {
+  fill: var(--accent-light);
+  opacity: 0.85;
+}
+
+/* La inicial de la bodega en la etiqueta: papel con tinta oscura. Con `--type-deep` el contraste sobre
+   la etiqueta (casi blanca) era 2,9:1 en blanco, 3,8 en rosé y 3,3 en espumante: no pasaba AA.
+   Con el fondo de la app da más de 12:1 en los seis tipos. */
+.wine-artwork__inicial {
+  fill: var(--bg);
+  font-family: var(--font-family-sans);
+  font-weight: 800;
 }
 
 .wine-artwork__renglon {

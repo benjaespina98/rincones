@@ -115,7 +115,7 @@ export default function CellarReady({ enabled = true }) {
                 }}
               >
                 <span className="cellar-ready__art">
-                  <WinePhoto src={wine.image} type={wine.type} alt="" artSize={72} fit="contain" />
+                  <WinePhoto src={wine.image} type={wine.type} alt="" artSize={72} fit="contain" marca={wine.winery || wine.name} />
                 </span>
                 <span className="cellar-ready__body">
                   <span className="cellar-ready__name">{wineDisplayName(wine)}</span>

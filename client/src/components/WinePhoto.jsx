@@ -21,6 +21,9 @@ import "./WinePhoto.css";
  *               destacado de la home, las tarjetas del rail, la vitrina y el
  *               hero de la ficha.
  *
+ * `marca` (la bodega) se pasa al dibujo de respaldo para que dos vinos sin foto no se vean idénticos: ver
+ * utils/variacionDeBotella.js.
+ *
  * El default es "cover" porque es el comportamiento que ya tenían todos los
  * usos; los que presentan una botella lo piden explícitamente.
  */
@@ -39,6 +42,7 @@ function WinePhotoInner({
   className = "",
   priority = false,
   fit = "cover",
+  marca = "",
   onFail,
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -63,7 +67,7 @@ function WinePhotoInner({
   return (
     <div className={`wine-photo wine-photo--${ajuste} ${estado} ${className}`}>
       <div className="wine-photo__art">
-        <WineArtwork type={type} size={artSize} />
+        <WineArtwork type={type} size={artSize} marca={marca} />
       </div>
       {showImg && (
         <img

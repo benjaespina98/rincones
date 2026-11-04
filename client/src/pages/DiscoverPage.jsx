@@ -511,7 +511,7 @@ export default function DiscoverPage() {
                     }
                   >
                     <div className="wine-result-card__media">
-                      <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} fit="contain" />
+                      <WinePhoto src={r.image} type={r.type} alt={r.name} artSize={92} fit="contain" marca={r.winery || r.name} />
                     </div>
 
                     <div className="wine-result-card__body">
@@ -696,6 +696,7 @@ export default function DiscoverPage() {
                 alt={spotlight.name}
                 artSize={150}
                 fit="contain"
+                marca={spotlight.winery || spotlight.name}
                 priority
               />
             </div>

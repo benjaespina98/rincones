@@ -340,6 +340,15 @@ export default function StyleguidePage() {
             </div>
           ))}
         </div>
+        {/* Cada bodega recibe sus propios rasgos (tono, etiqueta, cápsula, inicial), siempre los mismos. */}
+        <div className="sg__botellas" style={{ marginTop: 12 }}>
+          {["Catena Zapata", "Trapiche", "Luigi Bosca", "Piattelli", "Bodega Norton", "Finca Flichman", "Rutini", "Zuccardi"].map((b) => (
+            <div key={b} className="sg__botella">
+              <WineArtwork type="red" size={92} marca={b} />
+              <span className="sg__nota-inline">{b}</span>
+            </div>
+          ))}
+        </div>
       </Seccion>
 
       <Seccion titulo="Ilustraciones de vacío" nota="Una por SITUACIÓN, no por pantalla: lo que las elige es lo que pasó.">
