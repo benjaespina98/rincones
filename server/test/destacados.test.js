@@ -540,3 +540,85 @@ test("las razones no dicen que lo tenés en casa si en su bodega está agotado y
   assert.ok(!r.razones.some((t) => /en casa|que tenés|tenés Syrah/.test(t)), r.razones.join(" | "));
   assert.ok(!r.razones.some((t) => /favoritos/.test(t)), "'favoritos' es el corazón, no el puntaje");
 });
+
+test("explicarRecomendacion: los motivos son cortos, neutros y salen de la misma bodega", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const igual = recommendations.explicarRecomendacion(vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }), perfil);
+  assert.ok(igual.motivos.length >= 1 && igual.motivos.length <= 3);
+  assert.ok(igual.motivos.some((m) => /Malbec/.test(m)), "dice la uva que ya tomó");
+  assert.ok(igual.motivos.some((m) => /Mendoza/.test(m)), "dice la región");
+  for (const m of igual.motivos) {
+    assert.ok(m.length <= 50, `corto: «${m}»`);
+    assert.ok(!/te recomiendo|te sugiero|te propongo/.test(m), `neutro, sin primera persona: «${m}»`);
+  }
+  // Mismo criterio que las razones largas: ni más ni menos motivos que razones.
+  assert.equal(igual.motivos.length, igual.razones.length);
+});
+
+test("explicarRecomendacion: un descubrimiento trae su motivo corto, y una uva evitada ninguno", () => {
+  const perfil = perfilDe(bodegaMalbec);
+  const nuevo = recommendations.explicarRecomendacion(vino("n", { varietal: "Tannat", region: "Uruguay", type: "red" }), perfil);
+  assert.deepEqual(nuevo.motivos, ["Una uva nueva para vos: Tannat"]);
+
+  const bodega = [
+    ...bodegaMalbec,
+    { name: "T1", winery: "Z1", varietal: "Tannat", region: "Salta", type: "red", rating: 1 },
+    { name: "T2", winery: "Z2", varietal: "Tannat", region: "Salta", type: "red", rating: 2 },
+  ];
+  const evitada = recommendations.explicarRecomendacion(vino("t", { varietal: "Tannat", region: "Salta", type: "red" }), perfilDe(bodega));
+  assert.deepEqual(evitada.motivos, []);
+});
+
+// Cada motivo corto tiene que decir LO MISMO que su razón larga y no afirmar nada que la bodega no respalde.
+const motivosDe = (bodega, wine = {}, preferences = {}) =>
+  recommendations.explicarRecomendacion(vino("x", { varietal: "Malbec", region: "Mendoza", type: "red", ...wine }), perfilDe(bodega, preferences)).motivos;
+
+const unaBotella = (extra) => ({ name: "A", winery: "WA", varietal: "Malbec", region: "Salta", type: "red", rating: 0, tasted: false, quantity: 0, ...extra });
+
+test("motivos: «Tomaste» sólo cuando lo tomó, y «Tenés en tu bodega» sólo cuando hay botellas", () => {
+  const tomado = motivosDe([unaBotella({ tasted: true })]);
+  assert.ok(tomado.includes("Tomaste Malbec"));
+  assert.ok(!tomado.some((m) => /Tenés/.test(m)));
+
+  const enStock = motivosDe([unaBotella({ quantity: 2 })]);
+  assert.ok(enStock.includes("Tenés Malbec en tu bodega"));
+  assert.ok(!enStock.some((m) => /Tomaste/.test(m)), "no tomó ninguno: no se dice que sí");
+});
+
+test("motivos: una uva guardada sin botellas y sin tomar queda «en tu lista», no «en tu bodega»", () => {
+  const m = motivosDe([unaBotella({ tasted: false, quantity: 0 })]);
+  assert.ok(m.includes("Malbec está en tu lista"));
+  assert.ok(!m.some((x) => /Tenés|Tomaste/.test(x)));
+});
+
+test("motivos: puntuar alto, tomar la bodega y elegir la uva en el onboarding salen cada uno con su motivo", () => {
+  assert.ok(motivosDe([unaBotella({ rating: 5 })]).includes("Puntuaste alto el Malbec"));
+  assert.ok(motivosDe([unaBotella({ tasted: true })], { winery: "WA" }).includes("Ya tomaste WA"));
+  assert.ok(motivosDe([], {}, { favoriteVarietals: ["Malbec"] }).includes("Malbec está entre tus gustos"));
+});
+
+test("motivos: región con dos tomados y tipo con tres, y los dos topes (máximo tres motivos)", () => {
+  const bodega = Array.from({ length: 4 }, (_, i) => unaBotella({ name: `T${i}`, winery: `W${i}`, region: "Mendoza", tasted: true, rating: 5 }));
+  const m = motivosDe(bodega, { region: "Mendoza" });
+  assert.ok(m.some((x) => /Mendoza aparece seguido/.test(x)));
+  assert.ok(m.length <= 3);
+  const tinto = motivosDe(Array.from({ length: 3 }, (_, i) => unaBotella({ name: `R${i}`, winery: `Q${i}`, varietal: "Syrah", region: "Salta", tasted: true })), { varietal: "Syrah", region: "Cuyo" });
+  assert.ok(tinto.includes("Tomás mucho tinto"), `con tres tintos tomados: ${tinto.join(" | ")}`);
+});
+
+test("motivos: nombres de región largos no rompen el orden ni se cortan", () => {
+  const bodega = Array.from({ length: 3 }, (_, i) => unaBotella({ name: `L${i}`, winery: `W${i}`, region: "Valle de Uco, Mendoza", tasted: true }));
+  const m = motivosDe(bodega, { region: "Valle de Uco, Mendoza" });
+  assert.ok(m.includes("Valle de Uco, Mendoza aparece seguido en lo que tomás"));
+});
+
+test("motivos: cada motivo sale en el mismo orden que su razón (mismo número y mismo tema)", () => {
+  const tema = (texto) => (/Puntuaste|gusta|Disfrutás|disfrutás|acierto/.test(texto) ? "alto" : /Tomaste|tomaste|probaste|copa/.test(texto) ? "tomado" : /Tenés|tenés/.test(texto) ? "stock" : "otro");
+  const e = recommendations.explicarRecomendacion(
+    vino("a", { varietal: "Malbec", region: "Mendoza", type: "red" }),
+    perfilDe(bodegaMalbec)
+  );
+  assert.equal(e.motivos.length, e.razones.length);
+  // La primera razón (la más convincente) y el primer motivo hablan de lo mismo.
+  assert.equal(tema(e.motivos[0]), tema(e.razones[0]));
+});

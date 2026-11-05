@@ -34,37 +34,89 @@ export const searchWines = async (query) => {
  * encadenarse detrás de una renovación de sesión. La tarjeta principal de la
  * home llegaba última por pedir algo que ya sabíamos.
  *
- * `sessionStorage` y no `localStorage`: es una optimización de la sesión de uso,
- * no un dato que valga la pena persistir entre días. La clave lleva la fecha, así
- * que a la medianoche deja de servir sola y no hay que invalidarla a mano.
+ * ── PERSISTE ENTRE ARRANQUES ────────────────────────────────────────────────
+ * Antes vivía en `sessionStorage`: servía mientras la pestaña seguía abierta, pero cada arranque en frío de
+ * la app (abrir la PWA, una pestaña nueva) la perdía y la tarjeta esperaba a la red de nuevo —varios
+ * segundos en el primer toque del día, con el resto de la pantalla ya pintado—. Como el set es estable
+ * todo el día, ahora va en `localStorage` y el segundo arranque lo pinta al instante.
+ *
+ * Sigue siendo seguro compartir el navegador: la clave lleva la persona (el set sale de SU bodega) y la
+ * fecha (a la medianoche deja de servir sola). Al cerrar sesión, al cargar un vino y al borrar los datos
+ * locales se tiran todas (ver `invalidarDestacados`), y las de días anteriores se limpian al guardar.
  */
 const FEATURED_KEY = "rincones_featured";
+
+/**
+ * Cuánto vale lo guardado. Los motivos de la tarjeta afirman hechos de tu bodega («Tomaste Malbec», «Tenés
+ * Malbec en tu bodega») y la bodega cambia: con la fecha sola un set podía quedar mintiendo hasta la
+ * medianoche. Seis horas más la invalidación al tocar la bodega o los deseos (ver wineApi y wishApi).
+ */
+const VIGENCIA_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Se guarda sin las fotos subidas desde el teléfono (`data:`): son cientos de KB cada una y el set trae doce.
+ * `localStorage` tiene ~5 MB por origen y se los comería a todos (el token, los filtros). La tarjeta no las
+ * usa; si hace falta una foto, la ficha del vino la trae.
+ */
+const liviano = (vinos) => vinos.map((w) => (typeof w?.image === "string" && w.image.startsWith("data:") ? { ...w, image: "" } : w));
 
 const hoyEnArgentina = () =>
   new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-export const getFeaturedWines = async () => {
-  const clave = `${FEATURED_KEY}_${hoyEnArgentina()}`;
-
+const guardar = (clave, valor) => {
   try {
-    const guardado = sessionStorage.getItem(clave);
-    if (guardado) {
-      const parsed = JSON.parse(guardado);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
+    localStorage.setItem(clave, valor);
   } catch {
-    // sessionStorage no disponible o JSON corrupto: se pide por red, como antes.
+    // Cuota llena o modo privado: el caché es una mejora, no un requisito.
   }
+};
+
+const leer = (clave) => {
+  try {
+    const guardado = localStorage.getItem(clave);
+    if (!guardado) return null;
+    const { t, set } = JSON.parse(guardado);
+    const vigente = Number.isFinite(t) && Date.now() - t < VIGENCIA_MS && Date.now() >= t;
+    return vigente && Array.isArray(set) && set.length > 0 ? set : null;
+  } catch {
+    // Sin storage o JSON corrupto: se pide por red, como antes.
+    return null;
+  }
+};
+
+/** Las claves de destacados que hay guardadas, de cualquier persona o día. */
+const clavesGuardadas = () => {
+  try {
+    return Object.keys(localStorage).filter((k) => k.startsWith(FEATURED_KEY));
+  } catch {
+    return [];
+  }
+};
+
+export const getFeaturedWines = async (userId = "") => {
+  // Sin saber de quién es el set no se lee ni se guarda nada: una clave común mezclaría a las personas.
+  const clave = userId ? `${FEATURED_KEY}_${userId}_${hoyEnArgentina()}` : "";
+
+  const guardado = clave ? leer(clave) : null;
+  if (guardado) return guardado;
 
   const { data } = await api.get("/catalog/featured");
   const results = Array.isArray(data?.data) ? data.data : [];
 
-  try {
-    // Sólo se guarda si hay algo: cachear una lista vacía dejaría la home sin
-    // recomendación hasta la medianoche por un fallo puntual del server.
-    if (results.length > 0) sessionStorage.setItem(clave, JSON.stringify(results));
-  } catch {
-    // Cuota llena o modo privado: el caché es una mejora, no un requisito.
+  // Sólo se guarda si hay algo: cachear una lista vacía dejaría la home sin recomendación hasta la
+  // medianoche por un fallo puntual del server.
+  if (clave && results.length > 0) {
+    // De paso se tira lo de días anteriores y de otras personas, que ya no sirve y sólo ocuparía lugar.
+    for (const k of clavesGuardadas()) {
+      if (k !== clave) {
+        try {
+          localStorage.removeItem(k);
+        } catch {
+          // Nada que hacer.
+        }
+      }
+    }
+    guardar(clave, JSON.stringify({ t: Date.now(), set: liviano(results) }));
   }
 
   return results;
@@ -76,14 +128,21 @@ export const getFeaturedWines = async () => {
  * Hace falta desde que el set depende de tu bodega: cargar un vino cambia lo que
  * corresponde recomendar —el que acabás de cargar deja de ser una sugerencia,
  * porque ya lo tenés—, y sin esto la home seguiría ofreciéndotelo hasta la
- * medianoche. Se llama al crear un vino, que es el único momento en que el
- * perfil cambia lo suficiente como para que se note.
+ * medianoche. Se llama al crear un vino, al cerrar sesión y al borrar los datos locales.
  */
 export const invalidarDestacados = () => {
+  for (const k of clavesGuardadas()) {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      // Sin storage no hay caché que tirar: no hay nada que hacer.
+    }
+  }
   try {
-    sessionStorage.removeItem(`${FEATURED_KEY}_${hoyEnArgentina()}`);
+    // El formato anterior (sessionStorage, sin persona): por si quedó alguno de una versión vieja.
+    for (const k of Object.keys(sessionStorage).filter((x) => x.startsWith(FEATURED_KEY))) sessionStorage.removeItem(k);
   } catch {
-    // Sin sessionStorage no hay caché que tirar: no hay nada que hacer.
+    // Nada que hacer.
   }
 };
 
