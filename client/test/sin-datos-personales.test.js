@@ -23,5 +23,6 @@ describe("identidad pública", () => {
     const candidatos = [...archivos(join(RAIZ, "src")), ...archivos(join(RAIZ, "public")), join(RAIZ, "index.html")];
     const infractores = candidatos.filter((ruta) => PERSONAL.test(readFileSync(ruta, "utf8")));
     expect(infractores).toEqual([]);
-  });
+    // Lee todos los archivos del cliente: con la suite entera corriendo en paralelo pasa los 5s por defecto.
+  }, 30000);
 });

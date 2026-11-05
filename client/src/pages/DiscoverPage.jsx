@@ -24,6 +24,7 @@ import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
 import Chip from "../components/Chip";
 import WinePhoto from "../components/WinePhoto";
+import WineArtwork from "../components/WineArtwork";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -51,6 +52,7 @@ const metaDelVino = ({ name = "", winery = "", region = "" }) => {
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const userId = user?.id || "";
   const { addWish } = useWishlist();
   const { stats } = useWineStats();
   const { showError, showSuccess } = useToast();
@@ -128,7 +130,7 @@ export default function DiscoverPage() {
     let active = true;
     setLoading(true);
     setLoadFailed(false);
-    getFeaturedWines()
+    getFeaturedWines(userId)
       .then((todos) => {
         if (!active) return;
         // Con foto primero (ver `conFotoPrimero`), sin sacar ninguno.
@@ -148,7 +150,7 @@ export default function DiscoverPage() {
     return () => {
       active = false;
     };
-  }, [ultimoAlEntrar]);
+  }, [ultimoAlEntrar, userId]);
 
   useEffect(() => loadFeatured(), [loadFeatured]);
 
@@ -254,44 +256,10 @@ export default function DiscoverPage() {
   // El porqué que calculó el servidor con la bodega de esta persona: razones concretas y, si hay base
   // para decirlo, un porcentaje de coincidencia. Si no vino (set viejo en caché), queda el motivo de siempre.
   const porque = spotlight?.motivo || null;
-  const razones = Array.isArray(porque?.razones) ? porque.razones : [];
-  // El medidor sólo cuando la coincidencia es convincente (50% o más): un 31% en la puerta de entrada de la
-  // app no suma. Las razones se muestran siempre.
-  const coincidencia = Number.isFinite(porque?.coincidencia) && porque.coincidencia >= 50 ? porque.coincidencia : null;
+  // Motivos cortos y verificables («Tomaste Malbec»). Un set viejo en caché (de antes de los motivos) no los
+  // trae: queda el motivo de siempre, que sale del momento y de las estadísticas.
+  const motivos = Array.isArray(porque?.motivos) && porque.motivos.length > 0 ? porque.motivos : motivo ? [motivo] : [];
 
-  /**
-   * La tarjeta aparece ENTERA o no aparece: mientras la foto no cargó se muestra el esqueleto
-   * completo, y recién cuando la imagen está lista entra todo junto con un fade. Antes llegaban
-   * primero el texto y los chips y la foto después, y la tarjeta "se armaba" frente a la persona.
-   *
-   * La foto se precarga con un `Image` aparte; si falla o tarda más de 2,5 s se muestra igual (con la
-   * botella genérica), para que un esqueleto nunca quede eterno. Además se precarga la SIGUIENTE
-   * recomendación, así "Ver otro" cambia sin espera.
-   */
-  const [fotosListas, setFotosListas] = useState(() => new Set());
-  const imagenDelSpotlight = spotlight?.image || "";
-  const imagenDeLaSiguiente = featured.length > 1 ? featured[(spotlightIdx + 1) % featured.length]?.image || "" : "";
-  useEffect(() => {
-    if (!spotlightId || !imagenDelSpotlight) return undefined;
-    const marcar = () =>
-      setFotosListas((prev) => (prev.has(spotlightId) ? prev : new Set(prev).add(spotlightId)));
-    const img = new Image();
-    img.onload = marcar;
-    img.onerror = marcar;
-    img.src = imagenDelSpotlight;
-    const t = setTimeout(marcar, 2500);
-    return () => {
-      clearTimeout(t);
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [spotlightId, imagenDelSpotlight]);
-  useEffect(() => {
-    if (!imagenDeLaSiguiente) return;
-    const pre = new Image();
-    pre.src = imagenDeLaSiguiente;
-  }, [imagenDeLaSiguiente]);
-  const spotlightListo = !spotlight || !imagenDelSpotlight || fotosListas.has(spotlightId);
 
   /*
    * Acá estaba `railWines`, la fila "Más para descubrir".
@@ -616,7 +584,7 @@ export default function DiscoverPage() {
           medio de una pantalla donde todo lo demás ya está pintado se lee como
           "acá falló algo", no como "esto viene en camino". Con la silueta de la
           botella y los renglones del texto, la espera se entiende sola. */}
-      {!buscando && (loading || (!loadFailed && spotlight && !spotlightListo)) && (
+      {!buscando && loading && (
         <div className="spotlight spotlight--skeleton" role="status" aria-label="Cargando la recomendación">
           <div className="spotlight__open">
             <div className="spotlight__art skeleton" />
@@ -681,7 +649,7 @@ export default function DiscoverPage() {
           tokens `--type-*` en index.css). Hasta acá, la primera pantalla era
           la única de la app donde el hilo del tipo no llegaba — un blanco, un
           espumante y un oporto se veían los tres violetas. */}
-      {!buscando && !loading && spotlight && spotlightListo && (
+      {!buscando && !loading && spotlight && (
         <section className="spotlight spotlight--entra" data-wine-type={spotlight.type} key={spotlight.id}>
           <button
             type="button"
@@ -690,15 +658,12 @@ export default function DiscoverPage() {
             aria-label={`Ver detalle de ${spotlight.name}`}
           >
             <div className="spotlight__art">
-              <WinePhoto
-                src={spotlight.image}
-                type={spotlight.type}
-                alt={spotlight.name}
-                artSize={150}
-                fit="contain"
-                marca={spotlight.winery || spotlight.name}
-                priority
-              />
+              {/* La tarjeta no espera ninguna foto: antes se mostraba el esqueleto hasta que la foto del vino cargaba
+                  (hasta 2,5 s DESPUÉS de que contestara la API) y esos dos tiempos se sumaban mientras el resto de
+                  Descubrí, que es local, ya estaba pintado. La botella es un dibujo que viene con el código (con
+                  rasgos propios por bodega). Tampoco se usa la foto de otra persona (una mano, una pared, la
+                  botella chica): la ficha del vino, donde sí corresponde, la sigue mostrando. */}
+              <WineArtwork type={spotlight.type} size={112} marca={spotlight.winery || spotlight.name} />
             </div>
             <div className="spotlight__body">
               {/* El rótulo dice qué es este bloque; el renglón de abajo, por qué
@@ -711,7 +676,7 @@ export default function DiscoverPage() {
                   y siempre verificable. Si no hay nada verificable que decir,
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
-                {razones[0] || motivo || (porque?.modo === "descubrimiento" ? "Para descubrir" : "Para vos")}
+                {porque?.modo === "descubrimiento" ? "Para descubrir" : "Para vos"}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
@@ -724,18 +689,12 @@ export default function DiscoverPage() {
               />
             </div>
           </button>
-          {coincidencia !== null && (
-            <div
-              className="spotlight__match"
-              role="img"
-              aria-label={`Coincide un ${coincidencia} por ciento con tu gusto`}
-            >
-              <span className="spotlight__match-rotulo">Coincide con tu gusto</span>
-              <span className="spotlight__match-pct">{coincidencia}%</span>
-              <span className="spotlight__match-pista" aria-hidden="true">
-                <span className="spotlight__match-barra" style={{ "--pct": coincidencia }} />
-              </span>
-            </div>
+          {motivos.length > 0 && (
+            <ul className="spotlight__motivos" aria-label="Por qué te lo sugerimos">
+              {motivos.map((m, i) => (
+                <li key={`${i}-${m}`} className="spotlight__motivo">{m}</li>
+              ))}
+            </ul>
           )}
           <div className="spotlight__actions">
             <button

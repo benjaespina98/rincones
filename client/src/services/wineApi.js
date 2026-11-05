@@ -31,16 +31,20 @@ export const createWine = async (payload) => {
 
 export const updateWine = async (id, payload) => {
   const { data } = await api.put(`/wines/${id}`, payload);
+  invalidarDestacados();
   return data.data;
 };
 
 export const deleteWine = async (id) => {
   const { data } = await api.delete(`/wines/${id}`);
+  invalidarDestacados();
   return data;
 };
 
 export const adjustWineStock = async (id, delta, extra = {}) => {
   const { data } = await api.patch(`/wines/${id}/stock`, { delta, ...extra });
+  // Sumar, abrir o deshacer cambia lo que tomaste y lo que tenés: los motivos de la tarjeta salen de ahí.
+  invalidarDestacados();
   return data.data;
 };
 
@@ -113,6 +117,7 @@ export const getAllMoments = async () => {
 
 export const addWineMoment = async (id, payload) => {
   const { data } = await api.post(`/wines/${id}/moments`, payload);
+  invalidarDestacados();
   return data.data;
 };
 
@@ -126,5 +131,6 @@ export const addWineMoment = async (id, payload) => {
  */
 export const bulkWines = async (ids, action) => {
   const { data } = await api.post("/wines/bulk", { ids, action });
+  invalidarDestacados();
   return data.data?.affected ?? 0;
 };

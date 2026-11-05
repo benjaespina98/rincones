@@ -6,20 +6,23 @@ import { MemoryRouter } from "react-router-dom";
  * La recomendación de Descubrí prioriza los vinos con foto, pero NUNCA queda vacía por no tener:
  * con foto primero y los demás después, como siempre. Sin ninguno con foto se recomienda igual.
  */
-const { featured, navigate } = vi.hoisted(() => ({ featured: { lista: [] }, navigate: vi.fn() }));
+const { featured, navigate } = vi.hoisted(() => ({ featured: { lista: [], llamadas: [] }, navigate: vi.fn() }));
 
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal()),
   useNavigate: () => navigate,
 }));
-vi.mock("../src/hooks/useAuth", () => ({ useAuth: () => ({ user: { name: "QA", email: "qa@x.com" } }) }));
+vi.mock("../src/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "u-qa", name: "QA", email: "qa@x.com" } }) }));
 vi.mock("../src/hooks/useWineStats", () => ({ useWineStats: () => ({ stats: { totals: { total: 5, stock: 0 } } }) }));
 vi.mock("../src/hooks/useWishlist", () => ({ useWishlist: () => ({ addWish: vi.fn() }) }));
 vi.mock("../src/context/ToastContext", () => ({
   useToast: () => ({ showError: vi.fn(), showSuccess: vi.fn(), addToast: vi.fn(), removeToast: vi.fn() }),
 }));
 vi.mock("../src/services/wineSearchApi", () => ({
-  getFeaturedWines: () => Promise.resolve(featured.lista),
+  getFeaturedWines: (...args) => {
+    featured.llamadas.push(args);
+    return Promise.resolve(featured.lista);
+  },
   searchWines: () => Promise.resolve([]),
 }));
 vi.mock("../src/services/promotionsApi", () => ({ getPromotions: () => Promise.resolve([]) }));
@@ -54,6 +57,7 @@ beforeEach(() => {
   imagenes.modo = "carga";
   vi.stubGlobal("Image", ImagenFalsa);
   navigate.mockReset();
+  featured.llamadas = [];
   sessionStorage.clear();
   localStorage.clear();
 });
@@ -120,69 +124,78 @@ describe("Descubrí: recomienda con foto primero", () => {
   });
 });
 
-describe("Descubrí: la tarjeta aparece entera", () => {
-  it("mientras la foto no cargó se ve el esqueleto y no el texto del vino", async () => {
+describe("Descubrí: la tarjeta no espera ninguna foto", () => {
+  it("aparece apenas llegan los datos aunque la foto del vino nunca cargue", async () => {
     imagenes.modo = "nunca";
     await montar([vino("b", FOTO("b")), vino("c", FOTO("c"))]);
-    expect(await screen.findByRole("status", { name: /cargando la recomendación/i })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).toBeNull();
+    const nombre = await nombreRecomendado();
+    expect(["Vino b", "Vino c"]).toContain(nombre);
+    expect(screen.queryByRole("status", { name: /cargando la recomendación/i })).toBeNull();
   });
 
-  it("cuando la foto carga aparece la tarjeta y el esqueleto se va", async () => {
-    await montar([vino("b", FOTO("b")), vino("c", FOTO("c"))]);
+  it("dibuja la botella del vino y no usa la foto de otra persona", async () => {
+    await montar([vino("b", FOTO("b"))]);
+    await nombreRecomendado();
+    const arte = document.querySelector(".spotlight__art");
+    expect(arte.querySelector("img")).toBeNull();
+    expect(arte.querySelector("svg")).not.toBeNull();
+  });
+
+  it("el esqueleto sólo está mientras llegan los datos", async () => {
+    await montar([vino("a")]);
+    expect(screen.getByRole("status", { name: /cargando la recomendación/i })).toBeInTheDocument();
     await nombreRecomendado();
     expect(screen.queryByRole("status", { name: /cargando la recomendación/i })).toBeNull();
   });
 
-  it("si la foto falla la tarjeta aparece igual (con la botella genérica)", async () => {
-    imagenes.modo = "error";
-    await montar([vino("b", FOTO("b"))]);
-    expect(await nombreRecomendado()).toBe("Vino b");
-  });
-
-  it("un vino sin foto no espera nada: aparece de una", async () => {
-    imagenes.modo = "nunca";
-    await montar([vino("a")]);
-    expect(await nombreRecomendado()).toBe("Vino a");
-  });
-
-  it("sin ícono delante del motivo, con la frase de maridaje y el botón 'Quiero probarlo'", async () => {
+  it("sin ícono delante del rótulo, sin maridaje y con el botón 'Quiero probarlo'", async () => {
     await montar([vino("b", FOTO("b"))]);
     await nombreRecomendado();
     expect(document.querySelector(".spotlight__eyebrow .icon")).toBeNull();
-    // Una sola razón y nada más: sin la línea de maridaje ni razones de relleno.
     expect(document.querySelector(".spotlight__pairing")).toBeNull();
-    expect(document.querySelector(".spotlight__razones")).toBeNull();
     expect(screen.getByRole("button", { name: /quiero probarlo/i })).toBeInTheDocument();
+  });
+});
+
+describe("Descubrí: el set de la tarjeta es de una persona", () => {
+  it("lo pide con el id de quien está usando la app, para que el caché no se mezcle entre personas", async () => {
+    await montar([vino("a")]);
+    await nombreRecomendado();
+    expect(featured.llamadas.length).toBeGreaterThanOrEqual(1);
+    expect(featured.llamadas.every((args) => args[0] === "u-qa")).toBe(true);
   });
 });
 
 describe("Descubrí: el porqué de la recomendación", () => {
   const conMotivo = (motivo) => ({ ...vino("a"), motivo });
 
-  it("muestra sólo la primera razón arriba y el medidor de coincidencia", async () => {
-    await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)", "Repetís Mendoza"] })]);
+  it("el rótulo dice para quién es y los motivos salen como chips, sin porcentaje", async () => {
+    await montar([
+      conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Como tomás Malbec, te recomiendo este vino"], motivos: ["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"] }),
+    ]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Tomás Malbec (3 en tu bodega)");
-    expect(document.querySelector(".spotlight__razones")).toBeNull();
-    expect(screen.getByRole("img", { name: /coincide un 92 por ciento/i })).toBeInTheDocument();
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para vos");
+    const chips = [...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent);
+    expect(chips).toEqual(["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"]);
+    expect(screen.getByRole("list", { name: /por qué te lo sugerimos/i })).toBeInTheDocument();
+    // El porcentaje no era una probabilidad: no se muestra aunque el server lo mande.
+    expect(document.querySelector(".spotlight__match")).toBeNull();
+    expect(screen.queryByText(/92/)).toBeNull();
+    expect(screen.queryByRole("img", { name: /coincide/i })).toBeNull();
   });
 
-  it("con una coincidencia baja (menos de 50) no se muestra el medidor", async () => {
-    await montar([conMotivo({ modo: "afinidad", coincidencia: 31, razones: ["Repetís Mendoza"] })]);
+  it("un descubrimiento se rotula como tal", async () => {
+    await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: [], motivos: ["Una uva nueva para vos: Tannat"] })]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__match")).toBeNull();
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para descubrir");
+    expect([...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent)).toEqual(["Una uva nueva para vos: Tannat"]);
   });
 
-  it("sin coincidencia no hay medidor, y sin motivo queda el texto de siempre", async () => {
-    await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: ["Uva nueva para vos"] })]);
+  it("un set viejo en caché (de antes de los motivos) no rompe y tampoco muestra el porcentaje", async () => {
+    await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)"] })]);
     await nombreRecomendado();
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para vos");
     expect(document.querySelector(".spotlight__match")).toBeNull();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Uva nueva para vos");
-    cleanup();
-    await montar([vino("a")]);
-    await nombreRecomendado();
-    expect(document.querySelector(".spotlight__match")).toBeNull();
-    expect(document.querySelector(".spotlight__eyebrow").textContent.length).toBeGreaterThan(0);
+    expect(screen.queryByText(/92/)).toBeNull();
   });
 });
