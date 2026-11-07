@@ -663,7 +663,18 @@ export default function DiscoverPage() {
                   Descubrí, que es local, ya estaba pintado. La botella es un dibujo que viene con el código (con
                   rasgos propios por bodega). Tampoco se usa la foto de otra persona (una mano, una pared, la
                   botella chica): la ficha del vino, donde sí corresponde, la sigue mostrando. */}
-              <WineArtwork type={spotlight.type} size={112} marca={spotlight.winery || spotlight.name} />
+              {spotlight.fotoConfiable === true && spotlight.image ? (
+                <WinePhoto
+                  src={spotlight.image}
+                  type={spotlight.type}
+                  alt=""
+                  artSize={112}
+                  fit="contain"
+                  marca={spotlight.winery || spotlight.name}
+                />
+              ) : (
+                <WineArtwork type={spotlight.type} size={112} marca={spotlight.winery || spotlight.name} />
+              )}
             </div>
             <div className="spotlight__body">
               {/* El rótulo dice qué es este bloque; el renglón de abajo, por qué

@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
 import { useToast } from "../context/ToastContext";
-import { createWine, deleteWine } from "../services/wineApi";
+import { createWine, deleteWine, updateWine } from "../services/wineApi";
 import { createWish, deleteWish } from "../services/wishApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
 // Esta pantalla escribe la lista de deseos sin pasar por `useWishlist` (no la
@@ -276,6 +276,9 @@ export default function ScanWinePage() {
       // bodega: tenerlo en las dos listas a la vez es decir dos cosas
       // contradictorias ("lo quiero probar" y "lo tengo").
       desdeGuardado: previo?._id || desdeGuardadoId || "",
+      // El corazón y las notas del deseo viajan con el vino: «Ya lo tengo» no puede borrarlos.
+      deseoFavorito: previo?.favorite === true,
+      deseoNotas: previo?.notes || "",
     });
 
   const handleConfirmReview = async (draft) => {
@@ -287,7 +290,7 @@ export default function ScanWinePage() {
     }
     try {
       setSaving(true);
-      await saveWine({
+      const creado = await saveWine({
         ...draft,
         image: review?.photo || "",
         // Qué fuente respaldó esta identidad. Sigue siendo evidencia y no
@@ -299,6 +302,12 @@ export default function ScanWinePage() {
       // borrado falla no se avisa: el alta —que es lo que se pidió— ya salió
       // bien, y un error sobre una lista que quedó de más sólo confundiría.
       if (review?.desdeGuardado) {
+        if (creado && (review.deseoFavorito || review.deseoNotas)) {
+          const cambios = {};
+          if (review.deseoFavorito && creado.favorite !== true) cambios.favorite = true;
+          if (review.deseoNotas && !String(creado.notes || "").trim()) cambios.notes = review.deseoNotas;
+          if (Object.keys(cambios).length > 0) await updateWine(creado._id, cambios).catch(() => {});
+        }
         await deleteWish(review.desdeGuardado).catch(() => {});
         limpiarCacheDeDeseos();
       }

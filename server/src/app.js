@@ -106,7 +106,9 @@ const exportLimiter = rateLimit({
 // suyo — generoso para una persona real, no para un loop.
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 20,
+  // 20 por IP y hora en producción. La suite E2E registra una cuenta por prueba desde una sola IP y supera ese
+  // tope: su servidor lo sube con REGISTER_RATE_LIMIT (nunca se define en producción).
+  max: Number.parseInt(process.env.REGISTER_RATE_LIMIT, 10) || 20,
   message: "Demasiadas cuentas creadas desde acá, intenta más tarde",
   standardHeaders: true,
   legacyHeaders: false,

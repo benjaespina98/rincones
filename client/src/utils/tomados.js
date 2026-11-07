@@ -67,6 +67,19 @@ export const mensajeConfirmarSacar = (wine) => {
   return `Lo abriste ${veces}. Si lo sacás, deja de figurar entre los tomados; las botellas de tu bodega no cambian. Podés deshacerlo por unos segundos.`;
 };
 
+/**
+ * Dónde queda un vino cuando se queda sin botellas. Nada se borra: pasa a la pestaña que le corresponde, y hay
+ * que decirlo, porque desde la pantalla un vino que sale de «En stock» y no aparece en ningún lado se confunde
+ * con uno eliminado.
+ */
+export const dondeQueda = (wine) => {
+  if (wine?.tasted === true) return "Ya tomados";
+  if (wine?.favorite === true) return "Favoritos";
+  return "Sin stock";
+};
+
+export const mensajeSinBotellas = (wine, nombre) => `Sin botellas: ${nombre} sigue guardado en «${dondeQueda(wine)}»`;
+
 /** Aviso al sumar stock. Si ya estaba tomado, aclara que SIGUE entre los tomados. */
 export const mensajeSumar = (wine, cantidad, nombre) => {
   const sumadas = cantidad === 1 ? "1 botella sumada al stock" : `${cantidad} botellas sumadas al stock`;
@@ -77,6 +90,6 @@ export const mensajeSumar = (wine, cantidad, nombre) => {
 export const mensajeAbrir = ({ cantidad, quedan, veces, nombre }) => {
   const abiertas = cantidad === 1 ? "Botella abierta" : `${cantidad} botellas abiertas`;
   const tomado = veces >= 2 ? ` · lo tomaste ${veces} veces` : "";
-  if (quedan === 0) return `Se terminó tu ${nombre}${tomado}`;
+  if (quedan === 0) return `Se terminó tu ${nombre}${tomado} · sigue en «Ya tomados»`;
   return `${abiertas} · te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}${tomado}`;
 };

@@ -72,3 +72,19 @@ describe("WineRow: lo que pasó con el vino", () => {
     expect(container.querySelector(".wine-row__tomado")).toBeNull();
   });
 });
+
+describe("WineRow en «Sin stock»: lo que no tenía lugar sigue siendo operable", () => {
+  const SIN_LUGAR = { ...TOMADO, tasted: false, consumptionCount: 0, lastConsumedAt: undefined, quantity: 0 };
+
+  it("la fila se puede desplegar (marcar como probado, favorito, eliminar) y dice qué hace el +", () => {
+    const { container } = render(<WineRow {...props} vista="sin-stock" wine={SIN_LUGAR} expanded />);
+    expect(container.querySelector(".wine-row__expand")).not.toBeNull();
+    expect(container.querySelector(".wine-row__pista").textContent).toBe("Sin botellas · tocá + para sumar una al stock");
+    expect(container.querySelector('[aria-label="Marcar como ya probado"]')).not.toBeNull();
+  });
+
+  it("en una vista que no es de archivo, un vino sin stock desplegado no abre el panel (como antes)", () => {
+    const { container } = render(<WineRow {...props} vista="otra" wine={SIN_LUGAR} expanded />);
+    expect(container.querySelector(".wine-row__expand")).toBeNull();
+  });
+});

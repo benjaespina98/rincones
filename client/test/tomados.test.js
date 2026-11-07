@@ -6,6 +6,8 @@ import {
   mensajeSumar,
   pistaDeStock,
   requiereConfirmarSacar,
+  dondeQueda,
+  mensajeSinBotellas,
   resumenTomado,
   vecesTomado,
 } from "../src/utils/tomados";
@@ -105,7 +107,23 @@ describe("mensajeAbrir", () => {
   });
 
   it("al agotarse dice que se terminó, y no rompe sin contador", () => {
-    expect(mensajeAbrir({ cantidad: 1, quedan: 0, veces: 2, nombre: "Malbec" })).toBe("Se terminó tu Malbec · lo tomaste 2 veces");
-    expect(mensajeAbrir({ cantidad: 2, quedan: 0, veces: 0, nombre: "Malbec" })).toBe("Se terminó tu Malbec");
+    expect(mensajeAbrir({ cantidad: 1, quedan: 0, veces: 2, nombre: "Malbec" })).toBe("Se terminó tu Malbec · lo tomaste 2 veces · sigue en «Ya tomados»");
+    expect(mensajeAbrir({ cantidad: 2, quedan: 0, veces: 0, nombre: "Malbec" })).toBe("Se terminó tu Malbec · sigue en «Ya tomados»");
+  });
+});
+
+describe("dónde queda un vino sin botellas", () => {
+  it.each([
+    [{ tasted: true, favorite: false }, "Ya tomados"],
+    [{ tasted: true, favorite: true }, "Ya tomados"],
+    [{ tasted: false, favorite: true }, "Favoritos"],
+    [{ tasted: false, favorite: false }, "Sin stock"],
+    [undefined, "Sin stock"],
+  ])("%j → %s", (wine, esperado) => {
+    expect(dondeQueda(wine)).toBe(esperado);
+  });
+
+  it("el aviso dice que sigue guardado y en qué pestaña", () => {
+    expect(mensajeSinBotellas({ tasted: false }, "Malbec")).toBe("Sin botellas: Malbec sigue guardado en «Sin stock»");
   });
 });

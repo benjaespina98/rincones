@@ -1,7 +1,8 @@
 import { leerCosecha } from "../utils/vintage";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { payloadParaRestaurar } from "../utils/restoreWine";
-import { mensajeAbrir, resumenTomado } from "../utils/tomados";
+import { mensajeAbrir, mensajeSinBotellas, resumenTomado } from "../utils/tomados";
+import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
@@ -340,7 +341,11 @@ export default function WineDetailPage() {
     setPending(true);
     try {
       const updated = await adjustWineStock(id, delta);
+      limpiarCacheDeBodega();
       setWine(updated);
+      if (delta < 0 && !(Number(updated?.quantity) > 0)) {
+        showSuccess(mensajeSinBotellas(updated, wineDisplayName(updated)));
+      }
     } catch {
       showError("No se pudo ajustar el stock");
     } finally {
@@ -364,6 +369,7 @@ export default function WineDetailPage() {
     setPending(true);
     try {
       const updated = await openBottle(id, n);
+      limpiarCacheDeBodega();
       setWine(updated);
 
       const mensaje = mensajeAbrir({
@@ -384,7 +390,9 @@ export default function WineDetailPage() {
           onClick: async () => {
             removeToast(toastId);
             try {
-              setWine(await undoOpenBottle(id, eraProbado, n));
+              const devuelto = await undoOpenBottle(id, eraProbado, n);
+              limpiarCacheDeBodega();
+              setWine(devuelto);
               showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
             } catch {
               showError("No se pudo deshacer");
@@ -444,14 +452,17 @@ export default function WineDetailPage() {
         // decisión: es "sacale la que tiene". El server distingue "" de que el
         // campo no venga.
         image: draft.image || "",
-        cellarLocation: draft.cellarLocation?.trim() || undefined,
-        cellarShelf: draft.cellarShelf?.trim() || undefined,
-        drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : undefined,
-        drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : undefined,
-        price: draft.price !== "" ? parseFloat(draft.price) : undefined,
-        store: draft.store?.trim() || undefined,
-        purchasedAt: draft.purchasedAt || undefined,
+        // Un campo vaciado viaja como "" y no como undefined: JSON.stringify omite el undefined, el servidor
+        // entendía «no tocar» y la ficha decía «Cambios guardados» con el valor viejo todavía puesto.
+        cellarLocation: draft.cellarLocation?.trim() || "",
+        cellarShelf: draft.cellarShelf?.trim() || "",
+        drinkFrom: draft.drinkFrom ? parseInt(draft.drinkFrom) : "",
+        drinkUntil: draft.drinkUntil ? parseInt(draft.drinkUntil) : "",
+        price: draft.price !== "" && draft.price !== undefined ? parseFloat(draft.price) : "",
+        store: draft.store?.trim() || "",
+        purchasedAt: draft.purchasedAt || "",
       });
+      limpiarCacheDeBodega();
       setWine(updated);
       setEditing(false);
       showSuccess("Cambios guardados");
@@ -468,6 +479,7 @@ export default function WineDetailPage() {
       const borrado = wine;
       let restaurando = false;
       await deleteWine(id);
+      limpiarCacheDeBodega();
       // Igual que al borrar desde la lista: unos segundos para arrepentirse.
       const toastId = addToast(
         `"${wineDisplayName(borrado)}" eliminado de ${nuncaEstuvoEnTuCava(borrado) ? "tus ya tomados" : "tu bodega"}`,
@@ -482,6 +494,7 @@ export default function WineDetailPage() {
             restaurando = true;
             try {
               await createWine(payloadParaRestaurar(borrado));
+              limpiarCacheDeBodega();
               showSuccess(`"${wineDisplayName(borrado)}" restaurado`);
             } catch {
               showError("No se pudo restaurar el vino");
