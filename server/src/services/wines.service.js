@@ -21,7 +21,7 @@ const { identityKey } = require("../data/wineIdentity");
 const TIPOS_DE_VINO = Wine.schema.path("type").enumValues;
 const tipoValido = (tipo, porDefecto = "unknown") => (TIPOS_DE_VINO.includes(tipo) ? tipo : porDefecto);
 const { canonicalVarietal, checkCoherence, identificationVerdict } = require("../data/wineValidation");
-const { buildStockStages, reconcileLots, availableFromLots } = require("../utils/lots");
+const { buildStockStages, reconcileLots, availableFromLots, lotesParaRestaurar } = require("../utils/lots");
 
 /**
  * Qué tan buena es esta identificación y qué se puede hacer con ella.
@@ -340,7 +340,11 @@ async function createWine(userId, payload) {
   // botellas y se conserva TODO el historial (rating, notas, momentos, la fecha
   // de ingreso a la cava). Vale igual para un vino que se había terminado: la
   // fila sigue ahí con quantity 0 y vuelve a stock sin perder lo vivido.
-  const yaLoTengo = await findSameWine(userId, { name, winery, line, varietal, vintage });
+  // Restaurar un vino borrado NO se funde con otro de la misma identidad: la fusión sólo suma botellas y se
+  // perdían el puntaje, las notas, los lotes, las fechas y el favorito del vino que se quería recuperar. Si ya
+  // había otro igual, el restaurado convive con él (no hay índice único) antes que perderse.
+  const esRestauracion = typeof payload.restauraDe === "string" && /^[0-9a-fA-F]{24}$/.test(payload.restauraDe);
+  const yaLoTengo = esRestauracion ? null : await findSameWine(userId, { name, winery, line, varietal, vintage });
   if (yaLoTengo) {
     /**
      * Cargar con CERO botellas un vino que ya tenías es "me tomé uno afuera".
@@ -369,6 +373,14 @@ async function createWine(userId, payload) {
         },
         { returnDocument: "after" }
       );
+      if (yaLoTengo.tasted !== true) {
+        // Pasó de «sin probar» a «probado»: el contador del perfil tiene que enterarse (los otros caminos lo hacen).
+        const persona = await User.findById(userId);
+        if (persona) {
+          persona.stats.tastedWines = (persona.stats.tastedWines || 0) + 1;
+          await persona.save();
+        }
+      }
       await reenlazarMomentos(userId, payload.restauraDe, full._id);
       return { wine: full, merged: true, added: 0 };
     }
@@ -380,11 +392,20 @@ async function createWine(userId, payload) {
     //
     // Todo en un solo update para que la suma la haga Mongo: cargar el mismo
     // vino dos veces seguidas desde el teléfono no puede perder botellas.
+    // Lo que se sabe de ESTA compra (precio, tienda) queda en su lote. Antes la fusión lo descartaba: cargar
+    // otra botella del mismo vino con su ticket guardaba la botella pero no cuánto costó ni dónde se compró.
+    const loteNuevo = {};
+    const precioDelLote = typeof price === "number" ? price : price !== undefined && price !== "" ? Number.parseFloat(price) : Number.NaN;
+    if (Number.isFinite(precioDelLote) && precioDelLote >= 0 && precioDelLote < 1e12) loteNuevo.price = { $literal: precioDelLote };
+    if (typeof store === "string" && store.trim()) loteNuevo.store = { $literal: store.trim().slice(0, 120) };
     const full = await Wine.findOneAndUpdate(
       { _id: yaLoTengo._id, userId },
-      [...buildStockStages("restock", { $literal: suman }), { $set: { restockedAt: "$$NOW" } }],
+      [...buildStockStages("restock", { $literal: suman }, { lote: loteNuevo }), { $set: { restockedAt: "$$NOW" } }],
       { returnDocument: "after", updatePipeline: true }
     );
+    if (Number.isFinite(precioDelLote) && precioDelLote > 0) {
+      await winePrices.contribute({ name, winery, varietal, price: precioDelLote, currency: currency || "ARS", userId });
+    }
     await reenlazarMomentos(userId, payload.restauraDe, full._id);
     return { wine: full, merged: true, added: suman };
   }
@@ -417,8 +438,17 @@ async function createWine(userId, payload) {
    * La fecha es la de la carga y no la de la copa, que no sabemos; es lo que hay,
    * y quien lo lea (la ficha) lo dice con esas palabras.
    */
-  const botellas = parseQuantity(quantity, 1);
-  const tomadoAfuera = botellas === 0;
+  /**
+   * Restaurar un vino borrado ("Deshacer") devuelve también su historial de lotes: de dónde salió cada botella
+   * y cuándo entró. Sin esto el vino volvía con UN lote nuevo con la fecha de hoy: un Malbec que tenías desde
+   * 2019 pasaba a figurar como recién llegado, y los lotes agotados (lo que ya te tomaste y de qué compra) se
+   * perdían. Sólo se acepta con `restauraDe` (un id de vino) y pasa por `normalizeLots`, que sanea cada campo:
+   * son datos de la propia persona, igual que la cantidad que ya puede editar.
+   */
+  const lotesRestaurados = lotesParaRestaurar(payload.restauraDe, payload.lots);
+  const botellas = lotesRestaurados.length > 0 ? availableFromLots(lotesRestaurados) : parseQuantity(quantity, 1);
+  // Un vino restaurado respeta lo que ya era (tasted, consumptionCount): nunca se lo reinventa como «tomado afuera».
+  const tomadoAfuera = !esRestauracion && botellas === 0;
   const probado = tasted === true || tomadoAfuera;
 
   const identificacion = evaluarIdentificacion(payload, {
@@ -460,6 +490,7 @@ async function createWine(userId, payload) {
     // botellas no hay lote: no entró nada a la cava, y eso es lo que después
     // permite distinguir un vino que nunca fue tuyo de uno que se te terminó.
     quantity: botellas,
+    ...(lotesRestaurados.length > 0 ? { lots: lotesRestaurados } : {}),
     status: toWineStatus({ tasted: probado, quantity: botellas, status }),
     lastConsumedAt: lastConsumedAt
       ? new Date(lastConsumedAt)
@@ -641,6 +672,7 @@ async function updateWine(userId, id, payload) {
   if (price !== undefined) wine.purchase = { ...wine.purchase, price: price !== "" ? parseFloat(price) : undefined };
   if (currency !== undefined) wine.purchase = { ...wine.purchase, currency };
   if (store !== undefined) wine.purchase = { ...wine.purchase, store: store?.trim() || undefined };
+  if (purchasedAt !== undefined) wine.purchase = { ...wine.purchase, purchasedAt: purchasedAt ? new Date(purchasedAt) : undefined };
   /**
    * La foto, ahora también al editar.
    *
@@ -882,7 +914,7 @@ async function updateWine(userId, id, payload) {
  * de consumos baja y `tasted` vuelve a como estaba —`wasTasted` dice a qué, para
  * no borrar un "probado" que ya era cierto antes de abrir esta botella—.
  */
-async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, wasTasted }) {
+async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted }) {
   // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
   // vino cargado antes de que existieran y recalcula status, que es justo lo
   // que hacía la versión anterior ante una entrada inválida.
@@ -901,7 +933,8 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
     if (Number.isFinite(movimiento) && movimiento !== 0) {
       // Deshacer devuelve la botella a su lote; reponer abre uno nuevo. Es la
       // diferencia entre "me equivoqué" y "compré más", y se nota en la ficha.
-      const op = movimiento > 0 ? (undoOpen === true ? "return" : "restock") : "consume";
+      // «Deshacer» de un «+» saca del ÚLTIMO lote (el recién agregado); un «−» común descuenta FIFO.
+      const op = movimiento > 0 ? (undoOpen === true ? "return" : "restock") : undoRestock === true ? "unrestock" : "consume";
       stages = buildStockStages(op, { $literal: Math.abs(movimiento) });
     }
   }

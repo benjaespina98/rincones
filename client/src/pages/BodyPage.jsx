@@ -29,10 +29,10 @@ import {
   chipsRapidosDe,
 } from "../utils/bodegaFiltros";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
-import { normalizarVista, pasaVista, VISTA_DESEOS } from "../utils/cellarViews";
+import { normalizarVista, pasaVista, VISTA_DESEOS, VISTA_SIN_STOCK } from "../utils/cellarViews";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { payloadParaRestaurar } from "../utils/restoreWine";
-import { requiereConfirmarSacar, mensajeConfirmarSacar, mensajeSumar, mensajeAbrir } from "../utils/tomados";
+import { requiereConfirmarSacar, mensajeConfirmarSacar, mensajeSumar, mensajeAbrir, dondeQueda } from "../utils/tomados";
 import { trackEvent } from "../services/analyticsApi";
 import { tapHaptic } from "../utils/haptics";
 import { conTransicion } from "../utils/viewTransition";
@@ -62,7 +62,7 @@ const TIPOS_PLURAL = { red: "Tintos", white: "Blancos", rosé: "Rosados", sparkl
  *  un id técnico. Vive acá y no en el segmentado de más abajo porque este
  *  uso es al revés: ahí se arma la lista de opciones, acá se busca UNA por
  *  su id. */
-const VISTA_LABEL = { instock: "En stock", probados: "Ya tomados", [VISTA_DESEOS]: "Favoritos" };
+const VISTA_LABEL = { instock: "En stock", probados: "Ya tomados", [VISTA_DESEOS]: "Favoritos", [VISTA_SIN_STOCK]: "Sin stock" };
 
 // Los filtros sobreviven a la sesión, igual que lista/grilla. Una sola clave con
 // todo adentro: son una configuración, no ocho preferencias sueltas.
@@ -604,6 +604,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
       // (la wishlist) se suma aparte, en el número del segmentado, porque
       // vive en otra colección y no pasa por `pasaFiltros`/`pasaBusqueda`.
       favoritos: base.filter((w) => pasaVista(VISTA_DESEOS, w)).length,
+      sinStock: base.filter((w) => pasaVista(VISTA_SIN_STOCK, w)).length,
+      // Sin filtros ni búsqueda: decide si la pestaña «Sin stock» existe. Con el conteo filtrado aparecía y
+      // desaparecía mientras se escribía en el buscador, y las pestañas se reacomodaban bajo el dedo.
+      sinStockTotal: wines.filter((w) => pasaVista(VISTA_SIN_STOCK, w)).length,
     };
   }, [wines, pasaFiltros, pasaBusqueda]);
 
@@ -670,6 +674,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
         illustration: "copa",
         title: "Todavía no abriste ninguna botella",
         hint: "Los vinos que tomes van a aparecer acá.",
+        actionLabel: "Ver lo que tenés",
+        onAction: () => setVista("instock"),
+      };
+    }
+    if (vista === VISTA_SIN_STOCK) {
+      return {
+        illustration: "cava",
+        title: "No hay vinos sin stock",
+        hint: "Acá van los vinos sin botellas que todavía no probaste. No se pierde nada: siguen guardados.",
         actionLabel: "Ver lo que tenés",
         onAction: () => setVista("instock"),
       };
@@ -828,7 +841,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
     (wine) =>
       withPendingAction(wine._id, async () => {
         await toggleFavorite(wine._id, !wine.favorite);
-        showSuccess(wine.favorite ? "Eliminado de favoritos" : "Agregado a favoritos");
+        // Sacar el corazón de un vino sin botellas y sin probar lo deja en «Sin stock»: se dice dónde está.
+        const sinLugar = wine.favorite && !(Number(wine.quantity) > 0) && wine.tasted !== true;
+        showSuccess(
+          wine.favorite
+            ? sinLugar
+              ? `Eliminado de favoritos · sigue guardado en «${dondeQueda({ ...wine, favorite: false })}»`
+              : "Eliminado de favoritos"
+            : "Agregado a favoritos"
+        );
       }),
     [withPendingAction, toggleFavorite, showSuccess]
   );
@@ -852,7 +873,12 @@ export default function BodyPage({ initialFilter = "instock" }) {
           return;
         }
 
-        const toastId = addToast("Lo sacaste de Ya tomados", "success", 8000, {
+        // Sin botellas y sin corazón, el vino no queda en ninguna de las otras pestañas: se dice dónde está.
+        const sinBotellas = !(Number(wine.quantity) > 0);
+        const aviso = sinBotellas
+          ? `Lo sacaste de Ya tomados · sigue guardado en «${dondeQueda({ ...wine, tasted: false })}»`
+          : "Lo sacaste de Ya tomados";
+        const toastId = addToast(aviso, "success", 8000, {
           label: "Deshacer",
           onClick: async () => {
             removeToast(toastId);
@@ -924,7 +950,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
           onClick: async () => {
             removeToast(toastId);
             try {
-              await adjustStock(wine._id, -n);
+              // Deshacer una reposición saca del lote que se acaba de agregar. Un «−» común es FIFO: vaciaba
+              // el lote más viejo e inventaba una botella tomada.
+              await adjustStock(wine._id, -n, { undoRestock: true });
             } catch {
               showError("No se pudo deshacer");
             }
@@ -1163,6 +1191,18 @@ export default function BodyPage({ initialFilter = "instock" }) {
             title: "Lo que te gusta: lo tengas o lo estés buscando",
             count: conteoPorVista.favoritos + wishlist.wishes.length,
           },
+          // Sólo aparece cuando hay vinos sin otro lugar donde estar (ver VISTA_SIN_STOCK). Si es la vista
+          // abierta se queda aunque se vacíe, para que el segmentado no cambie debajo del dedo.
+          ...(conteoPorVista.sinStockTotal > 0 || vista === VISTA_SIN_STOCK
+            ? [
+                {
+                  id: VISTA_SIN_STOCK,
+                  label: "Sin stock",
+                  title: "Los que no te quedan y todavía no probaste: siguen guardados",
+                  count: conteoPorVista.sinStock,
+                },
+              ]
+            : []),
         ]}
       />
 

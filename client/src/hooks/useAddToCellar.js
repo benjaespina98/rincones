@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { createWine, deleteWine } from "../services/wineApi";
+import { createWine, deleteWine, updateWine } from "../services/wineApi";
 import { getWishes, deleteWish } from "../services/wishApi";
 import { limpiarCacheDeDeseos } from "./useWishlist";
 import { catalogWineToPayload, esElMismoVino } from "../utils/catalogWine";
@@ -16,11 +16,17 @@ const quitarDeGuardados = async (wine) => {
   try {
     const deseos = await getWishes();
     const iguales = deseos.filter((d) => esElMismoVino(d, wine));
-    if (iguales.length === 0) return;
+    if (iguales.length === 0) return null;
     await Promise.all(iguales.map((d) => deleteWish(d._id)));
     limpiarCacheDeDeseos();
+    // Lo que el deseo tenía y el vino tiene que heredar: el corazón y las notas.
+    return {
+      favorite: iguales.some((d) => d.favorite === true),
+      notes: iguales.map((d) => String(d.notes || "").trim()).find(Boolean) || "",
+    };
   } catch {
     /* la lista queda como estaba */
+    return null;
   }
 };
 
@@ -50,7 +56,14 @@ export function useAddToCellar({ alAgregar, source = "busqueda" } = {}) {
         trackEvent("wine_added", { source, destino: cantidad === 0 ? "afuera" : "bodega" });
         setVino(null);
         alAgregar?.(elegido, { quantity: cantidad, merged });
-        quitarDeGuardados(elegido);
+        // Fuera de la espera del alta, y sin que un fallo la afecte: el corazón y las notas del deseo pasan al vino.
+        quitarDeGuardados(elegido).then(async (heredado) => {
+          if (!heredado || (!heredado.favorite && !heredado.notes)) return;
+          const cambios = {};
+          if (heredado.favorite && creado.favorite !== true) cambios.favorite = true;
+          if (heredado.notes && !String(creado.notes || "").trim()) cambios.notes = heredado.notes;
+          if (Object.keys(cambios).length > 0) await updateWine(creado._id, cambios).catch(() => {});
+        });
 
         if (merged) {
           const n = Number(added) || 0;

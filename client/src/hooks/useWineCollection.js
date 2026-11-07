@@ -174,8 +174,8 @@ export const useWineCollection = () => {
     [updateWine]
   );
 
-  const adjustStock = useCallback(async (id, delta) => {
-    const updated = await adjustWineStock(id, delta);
+  const adjustStock = useCallback(async (id, delta, extra) => {
+    const updated = await adjustWineStock(id, delta, extra);
     aplicar((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
     return updated;
   }, [aplicar]);

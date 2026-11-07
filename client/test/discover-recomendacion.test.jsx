@@ -133,12 +133,27 @@ describe("Descubrí: la tarjeta no espera ninguna foto", () => {
     expect(screen.queryByRole("status", { name: /cargando la recomendación/i })).toBeNull();
   });
 
-  it("dibuja la botella del vino y no usa la foto de otra persona", async () => {
+  it("dibuja la botella y no usa la foto cuando el servidor no la marca como confiable", async () => {
     await montar([vino("b", FOTO("b"))]);
     await nombreRecomendado();
     const arte = document.querySelector(".spotlight__art");
     expect(arte.querySelector("img")).toBeNull();
     expect(arte.querySelector("svg")).not.toBeNull();
+  });
+
+  it("muestra la foto real cuando es confiable (una buena foto de vino del pool)", async () => {
+    await montar([{ ...vino("b", FOTO("b")), fotoConfiable: true }]);
+    await nombreRecomendado();
+    const img = document.querySelector(".spotlight__art img");
+    expect(img).not.toBeNull();
+    expect(img.getAttribute("src")).toBe(FOTO("b"));
+  });
+
+  it("una foto confiable que no llegó (sin imagen) vuelve a la botella dibujada", async () => {
+    await montar([{ ...vino("b", ""), fotoConfiable: true }]);
+    await nombreRecomendado();
+    expect(document.querySelector(".spotlight__art img")).toBeNull();
+    expect(document.querySelector(".spotlight__art svg")).not.toBeNull();
   });
 
   it("el esqueleto sólo está mientras llegan los datos", async () => {

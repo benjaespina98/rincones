@@ -105,6 +105,7 @@ describe("destacados: el set sobrevive al cierre de la app", () => {
     expect(localStorage.getItem(clave).length).toBeLessThan(2000);
     const guardado = await getFeaturedWines("u1");
     expect(guardado[0].image).toBe("");
+    expect(guardado[0].fotoConfiable).toBe(false);
     expect(guardado[1].image).toBe("https://res.cloudinary.com/x/image/upload/b.jpg");
   });
 

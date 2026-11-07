@@ -134,6 +134,23 @@ const getImagesFor = async (wines = []) => {
 };
 
 /**
+ * El puntaje de calidad (0-100) de las fotos del pool, por clave. Sólo trae las que tienen uno: las anteriores a
+ * que existiera el puntaje no se evaluaron, y de esas no se sabe si son una botella o una mano. Nunca lanza.
+ */
+const getCalidadFor = async (wines = []) => {
+  const keys = [...new Set(wines.map((w) => wineKey(w.name, w.winery, w.varietal)).filter(Boolean))];
+  if (keys.length === 0) return new Map();
+  try {
+    const docs = await WineImage.find({ key: { $in: keys }, qualityScore: { $type: "number" } })
+      .select("key qualityScore")
+      .lean();
+    return new Map(docs.map((d) => [d.key, d.qualityScore]));
+  } catch {
+    return new Map();
+  }
+};
+
+/**
  * Qué vinos de una lista tienen foto en el pool compartido, SIN traer las fotos (son data URL y
  * pesan). Devuelve el conjunto de claves (`poolKey`) que sí tienen. Sirve para saber, entre
  * cientos de candidatos, cuáles lucirían con foto, y recién después pedir la imagen de los pocos
@@ -227,4 +244,4 @@ const adminSet = async ({ name, winery, varietal, image, userId }) => {
   return { id: doc._id, key, qualityScore: set.qualityScore ?? null };
 };
 
-module.exports = { contribute, adminSet, getImage, getImagesFor, keysConFoto, enrichWithImages, wineKey };
+module.exports = { contribute, adminSet, getImage, getImagesFor, getCalidadFor, keysConFoto, enrichWithImages, wineKey };

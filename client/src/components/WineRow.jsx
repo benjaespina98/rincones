@@ -93,7 +93,7 @@ function WineRow({
    * mismo argumento y por eso también se plegaba — se sacó de la
    * pantalla entera (ver cellarViews.js), no de esta regla.
    */
-  const puedeExpandir = esVitrina || vista === "probados" || enFavoritos;
+  const puedeExpandir = esVitrina || vista === "probados" || vista === "sin-stock" || enFavoritos;
   // Uva y año en una línea, bodega en otra.
   //
   // Las tres cosas en un solo renglón daban textos de 45 caracteres que
@@ -393,7 +393,7 @@ function WineRow({
             {!esGrilla && wine.tasted && (
               <span className="wine-row__tomado">{resumenTomado(wine)}</span>
             )}
-            {!esGrilla && conStepper && vista === "probados" && (
+            {!esGrilla && conStepper && (vista === "probados" || vista === "sin-stock") && (
               <span className="wine-row__pista">{pistaDeStock(wine)}</span>
             )}
 

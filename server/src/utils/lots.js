@@ -37,11 +37,24 @@
  * `addedAt`.
  */
 
+// Ninguna compra de la vida real pasa de esto. Sin tope, un lote que llega de afuera (por ejemplo al restaurar un
+// vino) con `remaining: 1e15` dejaba un stock absurdo que después se sumaba y se mostraba tal cual.
+const MAX_BOTELLAS_POR_LOTE = 100000;
+
 const enteroPositivo = (valor) => {
   const n = Number(valor);
   if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.floor(n);
+  return Math.min(Math.floor(n), MAX_BOTELLAS_POR_LOTE);
 };
+
+/** Un precio sólo si es un número finito y no negativo: lo demás se descarta en vez de pasar al documento. */
+const precioValido = (valor) => {
+  const n = typeof valor === "number" ? valor : Number.NaN;
+  return Number.isFinite(n) && n >= 0 && n < 1e12 ? n : undefined;
+};
+
+/** Una tienda sólo si es texto, y acotada. */
+const tiendaValida = (valor) => (typeof valor === "string" && valor.trim() ? valor.trim().slice(0, 120) : undefined);
 
 const fecha = (valor) => {
   if (!valor) return null;
@@ -79,8 +92,8 @@ const aLotePlano = (lote, { fallbackDate } = {}) => {
 
   // `price` y `store` todavía no los escribe nadie, pero si algún día llegan no
   // pueden perderse al pasar por acá.
-  if (fuente.price !== undefined && fuente.price !== null) salida.price = fuente.price;
-  if (fuente.store) salida.store = fuente.store;
+  if (precioValido(fuente.price) !== undefined) salida.price = precioValido(fuente.price);
+  if (tiendaValida(fuente.store)) salida.store = tiendaValida(fuente.store);
 
   return salida;
 };
@@ -117,6 +130,17 @@ const normalizeLots = (lots, { quantity = 0, createdAt } = {}) => {
   if (total === 0) return [];
   const alta = fecha(createdAt) || new Date();
   return [{ addedAt: alta, quantity: total, remaining: total }];
+};
+
+/**
+ * Los lotes que se aceptan al RESTAURAR un vino borrado ("Deshacer"): sólo si viene `restauraDe` (un id de 24
+ * hexadecimales) y una lista de lotes; pasan por `normalizeLots`, que sanea cada campo, y se acotan a 200.
+ * Devuelve [] si no corresponde: entonces el vino se arma como siempre, desde la cantidad.
+ */
+const lotesParaRestaurar = (restauraDe, lots) => {
+  if (typeof restauraDe !== "string" || !/^[0-9a-fA-F]{24}$/.test(restauraDe)) return [];
+  if (!Array.isArray(lots) || lots.length === 0) return [];
+  return normalizeLots(lots.slice(0, 200));
 };
 
 /** Reposición: botellas nuevas son un lote nuevo, con su propia fecha. */
@@ -340,11 +364,63 @@ const consumirExpr = (cantidadExpr) => ({
   },
 });
 
-const reponerExpr = (cantidadExpr) => ({
+const reponerExpr = (cantidadExpr, lote = {}) => ({
   $concatArrays: [
     "$lots",
-    [{ addedAt: "$$NOW", quantity: cantidadExpr, remaining: cantidadExpr }],
+    // `lote` trae lo que se sabe de ESA compra (precio, tienda), como literales ya saneados por quien llama.
+    [{ addedAt: "$$NOW", quantity: cantidadExpr, remaining: cantidadExpr, ...lote }],
   ],
+});
+
+/**
+ * Deshacer una reposición: saca las botellas del ÚLTIMO lote (el que se acaba de agregar), no del más viejo.
+ *
+ * «Deshacer» de un «+» llamaba a un consumo FIFO, que descuenta del lote más viejo con botellas: con un lote de
+ * 2019 y otro de hoy, deshacer vaciaba el de 2019 (inventando una botella tomada) y dejaba el de hoy. El vino
+ * pasaba de «en cava desde 2019» a «desde hoy». Acá se achica el último lote en lo que entró y, si queda en
+ * cero, se saca: esa compra nunca ocurrió, no es historial.
+ */
+const quitarUltimoExpr = (cantidadExpr) => ({
+  $let: {
+    vars: { n: { $size: "$lots" } },
+    in: {
+      $filter: {
+        input: {
+          $map: {
+            input: { $range: [0, "$$n"] },
+            as: "i",
+            in: {
+              $let: {
+                vars: { lote: { $arrayElemAt: ["$lots", "$$i"] } },
+                in: {
+                  $cond: [
+                    { $eq: ["$$i", { $subtract: ["$$n", 1] }] },
+                    {
+                      $let: {
+                        vars: { sacar: { $min: [cantidadExpr, { $ifNull: ["$$lote.remaining", 0] }] } },
+                        in: {
+                          $mergeObjects: [
+                            "$$lote",
+                            {
+                              quantity: { $subtract: [{ $ifNull: ["$$lote.quantity", 0] }, "$$sacar"] },
+                              remaining: { $subtract: [{ $ifNull: ["$$lote.remaining", 0] }, "$$sacar"] },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                    "$$lote",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        as: "l",
+        cond: { $gt: [{ $ifNull: ["$$l.quantity", 0] }, 0] },
+      },
+    },
+  },
 });
 
 /**
@@ -446,14 +522,17 @@ const STATUS_SEGUN_STOCK = {
  *   - "restock": suma botellas y las guarda como un lote nuevo, con fecha de hoy.
  *   - "consume": descuenta FIFO, del lote más viejo con stock hacia adelante.
  *   - "return":  devuelve botellas al lote del que salieron (deshacer, no compra).
+ *   - "unrestock": deshace una reposición: achica el último lote (no consume FIFO).
+ * `lote` (sólo "restock"): precio y tienda de esa compra, ya saneados.
  *   - "set":     fija un total exacto y acomoda los lotes hacia donde haga falta.
  *
  * Siempre termina recalculando `quantity` desde lo que queda en los lotes, así
  * que la invariante no depende de que el llamador haga bien las cuentas.
  */
-const buildStockStages = (op, cantidadExpr) => {
+const buildStockStages = (op, cantidadExpr, { lote } = {}) => {
   const lotesNuevos = {
-    restock: () => reponerExpr(cantidadExpr),
+    restock: () => reponerExpr(cantidadExpr, lote),
+    unrestock: () => quitarUltimoExpr(cantidadExpr),
     consume: () => consumirExpr(cantidadExpr),
     return: () => devolverExpr(cantidadExpr),
     set: () => ({
@@ -498,5 +577,6 @@ module.exports = {
   consumeFromLots,
   returnToLastOpenedLot,
   reconcileLots,
+  lotesParaRestaurar,
   buildStockStages,
 };

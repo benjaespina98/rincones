@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, renderHook, act } from "@testing-library/react";
 
-const { createWine, deleteWine, toasts } = vi.hoisted(() => ({
+const { createWine, deleteWine, updateWine, toasts } = vi.hoisted(() => ({
   createWine: vi.fn(),
   deleteWine: vi.fn(),
+  updateWine: vi.fn(async () => ({})),
   toasts: { addToast: vi.fn(() => "t1"), removeToast: vi.fn(), showSuccess: vi.fn(), showError: vi.fn() },
 }));
 
-vi.mock("../src/services/wineApi", () => ({ createWine, deleteWine }));
+vi.mock("../src/services/wineApi", () => ({ createWine, deleteWine, updateWine }));
 const { getWishes, deleteWish } = vi.hoisted(() => ({ getWishes: vi.fn(async () => []), deleteWish: vi.fn(async () => ({})) }));
 vi.mock("../src/services/wishApi", () => ({ getWishes, deleteWish }));
 vi.mock("../src/services/analyticsApi", () => ({ trackEvent: vi.fn() }));
@@ -102,6 +103,30 @@ describe("useAddToCellar", () => {
     });
     await vi.waitFor(() => expect(deleteWish).toHaveBeenCalledTimes(1));
     expect(deleteWish).toHaveBeenCalledWith("d1");
+  });
+
+  it("un deseo con corazón y notas no los pierde al pasar a la bodega: el vino los hereda", async () => {
+    createWine.mockResolvedValue({ wine: { _id: "w1", name: "Alamos", favorite: false, notes: "" }, merged: false, added: 1 });
+    getWishes.mockResolvedValue([{ _id: "d1", name: "Alamos", winery: "Catena Zapata", favorite: true, notes: "para el cumple" }]);
+    const { result } = renderHook(() => useAddToCellar({}));
+    act(() => result.current.abrir(VINO));
+    await act(async () => {
+      await result.current.confirmar(1);
+    });
+    await vi.waitFor(() => expect(updateWine).toHaveBeenCalledTimes(1));
+    expect(updateWine).toHaveBeenCalledWith("w1", { favorite: true, notes: "para el cumple" });
+  });
+
+  it("si el vino ya tenía notas, las del deseo no las pisan", async () => {
+    createWine.mockResolvedValue({ wine: { _id: "w1", name: "Alamos", favorite: true, notes: "las mías" }, merged: true, added: 1 });
+    getWishes.mockResolvedValue([{ _id: "d1", name: "Alamos", winery: "Catena Zapata", favorite: true, notes: "del deseo" }]);
+    const { result } = renderHook(() => useAddToCellar({}));
+    act(() => result.current.abrir(VINO));
+    await act(async () => {
+      await result.current.confirmar(1);
+    });
+    await vi.waitFor(() => expect(deleteWish).toHaveBeenCalled());
+    expect(updateWine).not.toHaveBeenCalled();
   });
 
   it("si ya lo tenías suma botellas y no ofrece borrarlo", async () => {

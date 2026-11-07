@@ -58,7 +58,8 @@ const VIGENCIA_MS = 6 * 60 * 60 * 1000;
  * `localStorage` tiene ~5 MB por origen y se los comería a todos (el token, los filtros). La tarjeta no las
  * usa; si hace falta una foto, la ficha del vino la trae.
  */
-const liviano = (vinos) => vinos.map((w) => (typeof w?.image === "string" && w.image.startsWith("data:") ? { ...w, image: "" } : w));
+const liviano = (vinos) =>
+  vinos.map((w) => (typeof w?.image === "string" && w.image.startsWith("data:") ? { ...w, image: "", fotoConfiable: false } : w));
 
 const hoyEnArgentina = () =>
   new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
