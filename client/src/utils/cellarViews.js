@@ -50,7 +50,20 @@
 export const VISTA_DESEOS = "quiero-probar";
 
 /** El eje principal: qué parte de tu vida con el vino estás mirando. */
-export const VISTAS = ["instock", "probados", VISTA_DESEOS];
+/**
+ * Los vinos que no entran en ninguna de las otras tres: sin botellas, sin probar y sin corazón.
+ *
+ * Es la vista que le faltaba al modelo. Con tres ejes independientes hay una combinación que no tenía lugar
+ * (quantity 0, tasted false, favorite false) y se alcanza por caminos normales: sacar la última botella
+ * «sin tomarla» (la regalaste, te equivocaste), desmarcar «ya probado» de un vino que no te queda, o
+ * corregir la cantidad a cero. El vino seguía guardado, con su historial, pero no aparecía en NINGUNA pestaña:
+ * desde la pantalla era indistinguible de uno borrado. Antes se decidió sacar «Todos» porque ese caso era
+ * raro; ahora no lo es, y la solución no es volver a una pestaña que repite a las otras sino darle lugar sólo
+ * a lo que no lo tiene (el segmentado la muestra únicamente cuando hay alguno).
+ */
+export const VISTA_SIN_STOCK = "sin-stock";
+
+export const VISTAS = ["instock", "probados", VISTA_DESEOS, VISTA_SIN_STOCK];
 
 /**
  * Nombres viejos que se traducen en vez de ignorarse, para no romper un enlace
@@ -77,6 +90,11 @@ export const pasaVista = (vista, wine) => {
   // vive en otra colección del server).
   if (vista === VISTA_DESEOS) return wine?.favorite === true;
   if (vista === "instock") return Number(wine?.quantity) > 0;
+  // Exclusiva a propósito: lo probado vive en «Ya tomados» y lo que tiene corazón en «Favoritos», aunque no
+  // les queden botellas. Acá sólo entra lo que, si no, no estaría en ningún lado.
+  if (vista === VISTA_SIN_STOCK) {
+    return !(Number(wine?.quantity) > 0) && wine?.tasted !== true && wine?.favorite !== true;
+  }
   // No mira el stock a propósito: que te queden botellas de algo que ya tomaste
   // no borra que lo tomaste, y reponerlo tampoco.
   return wine?.tasted === true;

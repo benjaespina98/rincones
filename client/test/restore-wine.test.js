@@ -61,3 +61,33 @@ describe("payloadParaRestaurar (Deshacer tras eliminar)", () => {
     expect(p.identification).toBeUndefined();
   });
 });
+
+describe("payloadParaRestaurar: el historial de compras", () => {
+  const conLotes = {
+    ...VINO,
+    purchase: { ...VINO.purchase, purchasedAt: "2019-03-10T00:00:00.000Z" },
+    lots: [
+      { addedAt: "2019-03-10T00:00:00.000Z", quantity: 6, remaining: 0, depletedAt: "2021-08-01T00:00:00.000Z", price: 9000, store: "Vinoteca", _extra: "no va" },
+      { addedAt: "2026-10-01T00:00:00.000Z", quantity: 3, remaining: 3 },
+    ],
+  };
+
+  it("manda los lotes (también los agotados) con sus fechas, y la fecha de compra", () => {
+    const p = payloadParaRestaurar(conLotes);
+    expect(p.lots).toHaveLength(2);
+    expect(p.lots[0]).toEqual({
+      addedAt: "2019-03-10T00:00:00.000Z",
+      quantity: 6,
+      remaining: 0,
+      depletedAt: "2021-08-01T00:00:00.000Z",
+      price: 9000,
+      store: "Vinoteca",
+    });
+    expect(p.purchasedAt).toBe("2019-03-10T00:00:00.000Z");
+  });
+
+  it("no inventa campos que el lote no tenía y un vino sin lotes no manda nada", () => {
+    expect(Object.keys(payloadParaRestaurar(conLotes).lots[1]).filter((k) => payloadParaRestaurar(conLotes).lots[1][k] !== undefined).sort()).toEqual(["addedAt", "quantity", "remaining"]);
+    expect(payloadParaRestaurar(VINO).lots).toBeUndefined();
+  });
+});

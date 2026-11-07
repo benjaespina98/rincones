@@ -19,7 +19,7 @@ export default defineConfig({
     {
       command: "npm run dev -w server",
       cwd: "..",
-      env: { PORT: "4000" },
+      env: { PORT: "4000", REGISTER_RATE_LIMIT: "1000" },
       url: "http://localhost:4000/api/health",
       reuseExistingServer: true,
       timeout: 60_000,

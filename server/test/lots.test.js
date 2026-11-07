@@ -326,3 +326,58 @@ test("tomar, reponer y descontar no borra el historial del lote tomado", () => {
   assert.ok(lotes[0].depletedAt, "el lote tomado conserva su marca");
   assert.equal(lotes[0].quantity, 1);
 });
+
+// ── lotes que llegan de afuera al restaurar un vino ──────────────────────────────────────────────────
+const { lotesParaRestaurar } = require("../src/utils/lots");
+const ID_VALIDO = "0123456789abcdef01234567";
+
+test("restaurar: con un id válido y lotes buenos se conservan, también los agotados", () => {
+  const lotes = lotesParaRestaurar(ID_VALIDO, [
+    { addedAt: "2019-03-10", quantity: 6, remaining: 0, depletedAt: "2021-08-01", price: 9000, store: "Vinoteca" },
+    { addedAt: "2026-10-01", quantity: 3, remaining: 3 },
+  ]);
+  assert.equal(lotes.length, 2);
+  assert.deepEqual(lotes.map((l) => [l.quantity, l.remaining]), [[6, 0], [3, 3]]);
+  assert.equal(new Date(lotes[0].addedAt).getUTCFullYear(), 2019, "la fecha de compra es la original");
+  assert.equal(lotes[0].price, 9000);
+  assert.equal(lotes[0].store, "Vinoteca");
+});
+
+test("restaurar: sin un id de vino válido los lotes de afuera se ignoran", () => {
+  const lotes = [{ addedAt: "2019-03-10", quantity: 6, remaining: 6 }];
+  for (const id of [undefined, null, "", "abc", "0123456789abcdef0123456", "0123456789abcdef012345678", { $ne: 1 }, ["0123456789abcdef01234567"]]) {
+    assert.deepEqual(lotesParaRestaurar(id, lotes), [], JSON.stringify(id));
+  }
+});
+
+test("restaurar: lotes malformados o ausentes no lanzan y no devuelven basura", () => {
+  assert.deepEqual(lotesParaRestaurar(ID_VALIDO, undefined), []);
+  assert.deepEqual(lotesParaRestaurar(ID_VALIDO, []), []);
+  assert.deepEqual(lotesParaRestaurar(ID_VALIDO, "no es una lista"), []);
+  assert.deepEqual(lotesParaRestaurar(ID_VALIDO, [null, "x", 7, { quantity: -1 }, { quantity: "abc" }, {}]), []);
+});
+
+test("restaurar: ni 500 lotes ni una cantidad enorme se aceptan sin tope", () => {
+  const muchos = Array.from({ length: 500 }, () => ({ quantity: 1, remaining: 1 }));
+  assert.equal(lotesParaRestaurar(ID_VALIDO, muchos).length, 200);
+  const [enorme] = lotesParaRestaurar(ID_VALIDO, [{ quantity: 1e15, remaining: 1e15 }]);
+  assert.equal(enorme.remaining, 100000, "tope por lote");
+  assert.equal(enorme.quantity, 100000);
+});
+
+test("restaurar: el precio y la tienda de un lote se sanean (tipo y largo)", () => {
+  const [l] = lotesParaRestaurar(ID_VALIDO, [{ quantity: 1, remaining: 1, price: { $gt: 0 }, store: "x".repeat(1000) }]);
+  assert.equal(l.price, undefined, "un precio que no es número se descarta");
+  assert.equal(l.store.length, 120);
+  const [m] = lotesParaRestaurar(ID_VALIDO, [{ quantity: 1, remaining: 1, price: -5, store: { a: 1 } }]);
+  assert.equal(m.price, undefined, "negativo se descarta");
+  assert.equal(m.store, undefined, "una tienda que no es texto se descarta");
+  const [ok] = lotesParaRestaurar(ID_VALIDO, [{ quantity: 1, remaining: 1, price: 0 }]);
+  assert.equal(ok.price, 0, "cero es un precio válido");
+});
+
+test("restaurar: un lote cuya cantidad inicial quedó en 0 pero tiene remanente no pierde las botellas", () => {
+  const [l] = lotesParaRestaurar(ID_VALIDO, [{ quantity: 0, remaining: 2 }]);
+  assert.equal(l.remaining, 2);
+  assert.equal(l.quantity, 2, "lo que entró nunca es menos que lo que queda");
+});

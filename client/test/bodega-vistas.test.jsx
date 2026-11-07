@@ -159,3 +159,33 @@ describe("la barra de navegación", () => {
     expect(tabForPath("/descubrir/vino")).toBe("descubri");
   });
 });
+
+describe("«Sin stock»: lo que no tenía lugar en ninguna pestaña", () => {
+  const sinLugar = { quantity: 0, tasted: false, favorite: false };
+
+  it("entra el vino sin botellas, sin probar y sin corazón: antes no aparecía en ninguna vista", () => {
+    expect(pasaVista("sin-stock", sinLugar)).toBe(true);
+    for (const v of ["instock", "probados", VISTA_DESEOS]) expect(pasaVista(v, sinLugar), v).toBe(false);
+  });
+
+  it("es exclusiva: lo probado, lo favorito y lo que tiene stock ya tienen su pestaña", () => {
+    expect(pasaVista("sin-stock", { ...sinLugar, tasted: true })).toBe(false);
+    expect(pasaVista("sin-stock", { ...sinLugar, favorite: true })).toBe(false);
+    expect(pasaVista("sin-stock", { ...sinLugar, quantity: 2 })).toBe(false);
+  });
+
+  it("todo vino cae en al menos una vista: ninguno puede quedar invisible", () => {
+    for (const quantity of [0, 1, 5]) {
+      for (const tasted of [false, true]) {
+        for (const favorite of [false, true]) {
+          const w = { quantity, tasted, favorite };
+          expect(VISTAS.some((v) => pasaVista(v, w)), JSON.stringify(w)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("un enlace ?vista=sin-stock se reconoce", () => {
+    expect(normalizarVista("sin-stock")).toBe("sin-stock");
+  });
+});

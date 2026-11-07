@@ -64,6 +64,7 @@ const pedirFeatured = async ({
   preferencias = {},
   fotosComunidad = {},
   fotosPool = {},
+  calidadPool = {},
   usuario = "u1",
   ahora = Date.UTC(2026, 9, 20, 15),
 } = {}) => {
@@ -73,6 +74,7 @@ const pedirFeatured = async ({
     imagenes: communityWines.imagenesDe,
     claves: wineImages.keysConFoto,
     delPool: wineImages.getImagesFor,
+    calidad: wineImages.getCalidadFor,
     wineFind: Wine.find,
     userFind: User.findById,
     wishFind: WineWish.find,
@@ -87,6 +89,14 @@ const pedirFeatured = async ({
     for (const w of lista) {
       const f = fotosPool[w.id];
       if (f) m.set(wineImages.wineKey(w.name, w.winery, w.varietal), f);
+    }
+    return m;
+  };
+  wineImages.getCalidadFor = async (lista) => {
+    const m = new Map();
+    for (const w of lista) {
+      const q = calidadPool[w.id];
+      if (typeof q === "number") m.set(wineImages.wineKey(w.name, w.winery, w.varietal), q);
     }
     return m;
   };
@@ -118,6 +128,7 @@ const pedirFeatured = async ({
     communityWines.imagenesDe = original.imagenes;
     wineImages.keysConFoto = original.claves;
     wineImages.getImagesFor = original.delPool;
+    wineImages.getCalidadFor = original.calidad;
     Wine.find = original.wineFind;
     User.findById = original.userFind;
     WineWish.find = original.wishFind;
@@ -621,4 +632,28 @@ test("motivos: cada motivo sale en el mismo orden que su razón (mismo número y
   assert.equal(e.motivos.length, e.razones.length);
   // La primera razón (la más convincente) y el primer motivo hablan de lo mismo.
   assert.equal(tema(e.motivos[0]), tema(e.razones[0]));
+});
+
+test("featured: sólo la foto del pool bien puntuada es confiable para la tarjeta; la de una persona, nunca", async () => {
+  const { body } = await pedirFeatured({
+    curado: [vino("buena"), vino("floja"), vino("sinpuntaje")],
+    comunitarios: [vino("com", { fotoDiferida: true, source: "comunidad", id: "com-x" })],
+    fotosPool: { buena: FOTO("buena"), floja: FOTO("floja"), sinpuntaje: FOTO("sinpuntaje") },
+    calidadPool: { buena: 82, floja: 55 },
+    fotosComunidad: { "com-x": FOTO("de-una-persona") },
+  });
+  const por = (id) => body.data.find((w) => w.id === id);
+  assert.equal(por("buena").image, FOTO("buena"));
+  assert.equal(por("buena").fotoConfiable, true, "puntaje 82 del pool");
+  assert.equal(por("floja").fotoConfiable, false, "puntaje 55: no alcanza");
+  assert.equal(por("sinpuntaje").fotoConfiable, false, "sin puntaje no se sabe qué es");
+  assert.equal(por("com-x").image, FOTO("de-una-persona"), "la foto sigue viniendo para la ficha");
+  assert.equal(por("com-x").fotoConfiable, false, "la de una persona no es confiable aunque exista");
+  for (const w of body.data) assert.equal(typeof w.fotoConfiable, "boolean");
+});
+
+test("featured: un vino sin ninguna foto no es confiable", async () => {
+  const { body } = await pedirFeatured({ curado: [vino("a")] });
+  assert.equal(body.data[0].image, "");
+  assert.equal(body.data[0].fotoConfiable, false);
 });

@@ -300,6 +300,10 @@ const pairing = async (req, res, next) => {
 // Doce y no ocho: "Ver otro" recorre el set, y con un universo grande hay de dónde elegir.
 const DESTACADOS = 12;
 
+// Desde qué puntaje (0-100, ver wineImageQuality) una foto del pool es lo bastante buena como para ser la cara de
+// la tarjeta de Descubrí: una botella o etiqueta bien encuadrada. Más abajo, o sin puntaje, se dibuja la botella.
+const FOTO_CONFIABLE_MIN = 70;
+
 // Cuánto puede mover el desempate diario a un vino de lugar (ver `rankFeatured`).
 // Máximo 1: menos que lo que pesa la región (1,5) y que lo que suman la foto y la buena identificación
 // juntas (1,25) con lo que pesa la uva (3), para que la rotación mueva a los parecidos y nunca ponga
@@ -394,12 +398,19 @@ const featured = async (req, res, next) => {
     const diferidas = elegidos.filter((w) => w.fotoDiferida);
     const deLaComunidad = diferidas.length ? await communityWines.imagenesDe(diferidas.map((w) => w.id)) : new Map();
     const sinFoto = elegidos.filter((w) => !deLaComunidad.get(w.id) && !esImagenAceptada(w.image));
-    const delPool = sinFoto.length ? await wineImages.getImagesFor(sinFoto) : new Map();
+    const [delPool, calidadDelPool] = sinFoto.length
+      ? await Promise.all([wineImages.getImagesFor(sinFoto), wineImages.getCalidadFor(sinFoto)])
+      : [new Map(), new Map()];
     const conImagen = elegidos.map(({ fotoDiferida, confiable, ...w }) => {
       const motivo = recommendations.explicarRecomendacion(w, perfil, { semilla: semillaDelDia() + semillaDePersona(req.user.id) });
       const propia = deLaComunidad.get(w.id) || (esImagenAceptada(w.image) ? w.image : "");
-      const image = propia || delPool.get(poolKey(w.name, w.winery, w.varietal)) || "";
-      return { ...w, image: esImagenAceptada(image) ? image : "", motivo };
+      const clave = poolKey(w.name, w.winery, w.varietal);
+      const image = propia || delPool.get(clave) || "";
+      const aceptada = esImagenAceptada(image) ? image : "";
+      // Sólo la foto del pool evaluada como buena foto de vino es confiable. La que subió una persona al
+      // cargar su vino (una mano, una pared, la botella chica) no se evaluó: la ficha la muestra, la tarjeta no.
+      const fotoConfiable = Boolean(aceptada) && !propia && (calidadDelPool.get(clave) ?? 0) >= FOTO_CONFIABLE_MIN;
+      return { ...w, image: aceptada, fotoConfiable, motivo };
     });
     // Con foto primero (la primera tarjeta es la que más luce), manteniendo el orden del ranking.
     const data = conFotoPrimero(conImagen, DESTACADOS);

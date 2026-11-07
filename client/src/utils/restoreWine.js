@@ -29,6 +29,19 @@ export const payloadParaRestaurar = (wine) => ({
   price: wine.purchase?.price,
   currency: wine.purchase?.currency,
   store: wine.purchase?.store,
+  purchasedAt: wine.purchase?.purchasedAt,
+  // El historial de compras: de dónde salió cada botella y cuándo entró (los lotes agotados incluidos). Sin
+  // esto el vino volvía con un único lote de hoy y se perdía qué se tomó de cada compra.
+  lots: Array.isArray(wine.lots)
+    ? wine.lots.map(({ addedAt, quantity, remaining, depletedAt, price, store }) => ({
+        addedAt,
+        quantity,
+        remaining,
+        depletedAt,
+        price,
+        store,
+      }))
+    : undefined,
   lastConsumedAt: wine.lastConsumedAt,
   // La fecha de alta original ("en cava desde…").
   createdAt: wine.createdAt,

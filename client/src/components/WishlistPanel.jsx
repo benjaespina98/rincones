@@ -102,6 +102,11 @@ export default function WishlistPanel({
             type: wish.type || "unknown",
             image: wish.image || "",
             source: wish.source || "",
+            // Lo que ya tenía el deseo: sin esto «Deshacer» devolvía un deseo sin corazón (y desaparecía de
+            // Favoritos), sin notas y sin prioridad.
+            favorite: wish.favorite === true,
+            notes: wish.notes || "",
+            priority: wish.priority,
           });
           showSuccess(`"${wish.name}" vuelve a tu lista`);
         } catch {

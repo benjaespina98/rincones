@@ -22,7 +22,7 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia medida el 2026-11-04: **client 891**, **server 642**, tokens **155/155**,
+Referencia medida el 2026-11-07: **client 911**, **server 650**, tokens **155/155**,
 lint limpio. Los conteos pueden subir, nunca bajar. Carga inicial: presupuesto
 ~143 kB gzip (entry ≈74,9 + vendor ≈36,7 + CSS ≈11,8).
 
