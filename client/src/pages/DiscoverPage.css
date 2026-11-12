@@ -257,12 +257,24 @@
 .spotlight__art {
   position: relative;
   flex-shrink: 0;
-  width: 96px;
+  width: 120px;
   /* Alta, como la botella: las fotos de producto son verticales (~1:3,5) y en 128 px quedaban chicas,
      con el vidrio a un costado y aire de sobra arriba y abajo. */
-  height: 168px;
+  height: 176px;
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* Un escenario: la botella, fina y alta, flotaba sola a la izquierda de una tarjeta ancha. Con un
+     panel propio (la luz del tipo de vino detrás, borde de tarjeta) se lee como la foto del producto
+     y no como un recorte pegado. */
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 38%, rgb(var(--type-rgb) / 0.22), transparent 70%), var(--surface-raised);
+  border: 1px solid var(--border-card);
+}
+
+.spotlight__art > * {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .spotlight__body {
