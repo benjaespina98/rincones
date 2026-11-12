@@ -83,8 +83,10 @@ const horaDe = (fecha = new Date()) => enArgentina(fecha).getUTCHours();
  * traer varias separadas por coma: la primera es la del cliente.
  */
 const ipDe = (req) => {
-  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
-  return forwarded || req.ip || req.socket?.remoteAddress || "0.0.0.0";
+  // `req.ip` y no la cabecera cruda: con `trust proxy` Express ya toma la IP que puso el proxy
+  // de confianza. La PRIMERA entrada de `x-forwarded-for` la escribe el cliente, y cualquiera
+  // podía fabricar visitantes distintos (o saltearse el hash) mandando la que quisiera.
+  return req.ip || req.socket?.remoteAddress || "0.0.0.0";
 };
 
 const esMobile = (userAgent = "") =>
@@ -153,9 +155,14 @@ const claveMapa = (valor) =>
  * falla, la app tiene que seguir funcionando igual. Medir es una mejora, no un
  * requisito de nada.
  */
+// Forma de un nombre de evento (pageview, wine_added, sommelier:ask...): letras, números y _ : . -.
+// No es una lista cerrada a propósito —el cliente suma eventos sin tocar el servidor—, pero
+// impide sembrar claves arbitrarias en los contadores.
+const TIPO_VALIDO = /^[a-z0-9][a-z0-9_:.-]{0,59}$/i;
+
 const track = async (req, eventos = []) => {
   const lote = (Array.isArray(eventos) ? eventos : [eventos])
-    .filter((e) => e && typeof e === "object" && String(e.type || "").trim())
+    .filter((e) => e && typeof e === "object" && TIPO_VALIDO.test(String(e.type || "").trim()))
     .slice(0, MAX_EVENTS_POR_LOTE);
 
   if (lote.length === 0) return { accepted: 0 };

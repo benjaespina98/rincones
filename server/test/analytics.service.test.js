@@ -102,3 +102,11 @@ test("el rango se puede pedir más largo que la retención de los eventos", () =
   assert.ok(analytics.MAX_DIAS > analytics.DIAS_DE_EVENTOS);
   assert.equal(analytics.DIAS_DE_EVENTOS, 180, "es el TTL declarado en el modelo");
 });
+
+test("la IP sale de req.ip, no de la cabecera x-forwarded-for que escribe el cliente", () => {
+  const { identificar } = analytics;
+  const base = { "user-agent": "Mozilla/5.0 (iPhone)" };
+  const a = identificar({ headers: { ...base, "x-forwarded-for": "9.9.9.9" }, ip: "200.1.2.3" });
+  const b = identificar({ headers: { ...base, "x-forwarded-for": "8.8.8.8" }, ip: "200.1.2.3" });
+  assert.equal(a.visitorHash, b.visitorHash, "falsear la cabecera no cambia quién es el visitante");
+});

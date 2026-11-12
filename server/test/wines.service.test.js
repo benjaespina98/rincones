@@ -793,3 +793,16 @@ test("un 409 no mueve el contador de probados del perfil", async () => {
     assert.equal(user.stats.tastedWines, 5);
   });
 });
+
+test("la búsqueda acota el largo (100) y los términos (8): una consulta enorme no arma cientos de regex", async () => {
+  const original = Wine.find;
+  let filtro;
+  Wine.find = (f) => { filtro = f; return { sort: () => ({ select: () => ({ lean: async () => [] }) }) }; };
+  try {
+    await winesService.searchWines("u1", Array.from({ length: 500 }, (_, i) => `t${i}`).join(" "));
+  } finally {
+    Wine.find = original;
+  }
+  assert.ok(filtro.$and.length <= 8);
+  assert.ok(filtro.$and.length >= 1);
+});

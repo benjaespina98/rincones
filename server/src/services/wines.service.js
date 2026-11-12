@@ -147,7 +147,7 @@ async function listWines(userId) {
  * justo para la consulta más natural: "saint felicien malbec".
  */
 async function searchWines(userId, query) {
-  const terms = String(query || "").trim().split(/\s+/).filter(Boolean);
+  const terms = String(query || "").trim().slice(0, 100).split(/\s+/).filter(Boolean).slice(0, 8);
   if (terms.length === 0) return [];
 
   const campos = (regex) => [
@@ -1093,6 +1093,9 @@ async function getAllMoments(userId, { limit = 100 } = {}) {
 // Dos tomas a menos de 12 horas son la misma ocasión (la cena, no dos veces).
 const MISMA_OCASION_MS = 12 * 60 * 60 * 1000;
 
+/** Texto libre recortado: sin espacios de los bordes y con un largo máximo. */
+const acotar = (valor, max) => String(valor || "").trim().slice(0, max);
+
 async function addMoment(userId, id, body) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
@@ -1119,15 +1122,16 @@ async function addMoment(userId, id, body) {
       image: wine.image || "",
     },
     consumedAt: body.consumedAt ? new Date(body.consumedAt) : new Date(),
-    occasion: String(body.occasion || "").trim(),
-    companions: String(body.companions || "").trim(),
-    place: String(body.place || "").trim(),
-    emotion: String(body.emotion || "").trim(),
-    foodPairing: String(body.foodPairing || "").trim(),
-    notes: String(body.notes || "").trim(),
+    // Acotados: el momento es texto libre y no tenía tope (megabytes por request).
+    occasion: acotar(body.occasion, 120),
+    companions: acotar(body.companions, 200),
+    place: acotar(body.place, 120),
+    emotion: acotar(body.emotion, 60),
+    foodPairing: acotar(body.foodPairing, 200),
+    notes: acotar(body.notes, 4000),
     rating: body.rating !== undefined ? Number(body.rating) : wine.rating,
     photos,
-    tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((t) => String(t).trim()) : [],
+    tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).slice(0, 10).map((t) => acotar(t, 40)) : [],
   });
 
   const wasTasted = wine.tasted;

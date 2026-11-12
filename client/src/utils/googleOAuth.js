@@ -78,7 +78,9 @@ export const consumeGoogleAuthResult = () => {
   // — la firma y el resto de las validaciones reales las hace el server.
   try {
     const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (nonceEsperado && payload.nonce !== nonceEsperado) {
+    // Sin nonce guardado también se rechaza: «si hay, compara» dejaba pasar justo el caso que
+    // el nonce existe para frenar (un token que no salió de ESTE inicio de sesión).
+    if (!nonceEsperado || payload.nonce !== nonceEsperado) {
       return { error: "nonce_mismatch" };
     }
   } catch {

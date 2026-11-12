@@ -224,3 +224,29 @@ test("createWish sobre un deseo existente sin foto: completa con una buena, igno
   await crearDeseo("javascript:alert(1)", { existente: b });
   assert.equal(b.image, "");
 });
+
+test("addMoment acota el texto libre y la lista de etiquetas", async () => {
+  const originalFindOne = Wine.findOne;
+  const originalCreate = WineMoment.create;
+  let creado = null;
+  const vino = new Wine({ userId: USER_ID, name: "Malbec", quantity: 1, tasted: true });
+  vino.save = async function save() { return this; };
+  Wine.findOne = async () => vino;
+  WineMoment.create = async (doc) => { creado = { ...doc, consumedAt: new Date() }; return creado; };
+  try {
+    await winesService.addMoment(USER_ID, "wine-1", {
+      notes: "n".repeat(50000),
+      occasion: "o".repeat(5000),
+      companions: "c".repeat(5000),
+      tags: Array.from({ length: 50 }, () => "t".repeat(500)),
+    });
+  } finally {
+    Wine.findOne = originalFindOne;
+    WineMoment.create = originalCreate;
+  }
+  assert.equal(creado.notes.length, 4000);
+  assert.equal(creado.occasion.length, 120);
+  assert.equal(creado.companions.length, 200);
+  assert.equal(creado.tags.length, 10);
+  assert.ok(creado.tags.every((t) => t.length <= 40));
+});

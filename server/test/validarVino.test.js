@@ -68,3 +68,11 @@ test("fail(): un id mal formado es 404 y un valor inválido de Mongoose es 400, 
   await fail(c, new Error("boom"));
   assert.equal(c.code, 500);
 });
+
+test("un campo de texto que llega como objeto o lista se rechaza", () => {
+  const { validarVino } = require("../src/utils/validarVino");
+  assert.ok(validarVino({ name: { $gt: "" } }));
+  assert.ok(validarVino({ name: "Malbec", notes: ["a"] }));
+  assert.ok(validarVino({ name: "Malbec", winery: { x: 1 } }, { parcial: true }));
+  assert.equal(validarVino({ name: "Malbec", notes: null }), null);
+});
