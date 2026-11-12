@@ -648,3 +648,90 @@ test("si la auditoría del borrado en lote falla, el borrado ya hecho no se desh
     restore(User, "findById", originalFindById);
   }
 });
+
+/**
+ * Precondiciones de adjustStock: abrir sin botellas, deshacer sin apertura y
+ * deshacer fuera de orden. Van en el filtro del update (atómicas con la escritura).
+ */
+const conStock = async (fn) => {
+  const o = { foau: Wine.findOneAndUpdate, findOne: Wine.findOne, exists: Wine.exists, ufind: User.findById };
+  User.findById = async () => ({ stats: { tastedWines: 0 }, save: async () => {} });
+  Wine.findOne = () => ({ select: async () => ({ tasted: false }) });
+  try {
+    await fn();
+  } finally {
+    Wine.findOneAndUpdate = o.foau;
+    Wine.findOne = o.findOne;
+    Wine.exists = o.exists;
+    User.findById = o.ufind;
+  }
+};
+
+test("abrir una botella exige stock: el filtro pide quantity >= 1", async () => {
+  await conStock(async () => {
+    let filtro;
+    Wine.findOneAndUpdate = async (f) => { filtro = f; return { _id: "w1", tasted: true }; };
+    await winesService.adjustStock("u1", "w1", { delta: -1, markTasted: true });
+    assert.deepEqual(filtro.quantity, { $gte: 1 });
+  });
+});
+
+test("abrir sin botellas responde conflicto (409), no suma un consumo de la nada", async () => {
+  await conStock(async () => {
+    Wine.findOneAndUpdate = async () => null; // el filtro no matcheó
+    Wine.exists = async () => ({ _id: "w1" }); // pero el vino es tuyo
+    await assert.rejects(
+      () => winesService.adjustStock("u1", "w1", { delta: -1, markTasted: true }),
+      (e) => e.codigo === "CONFLICTO_DE_STOCK"
+    );
+  });
+});
+
+test("un vino que no es tuyo sigue siendo 404 (null), no 409", async () => {
+  await conStock(async () => {
+    Wine.findOneAndUpdate = async () => null;
+    Wine.exists = async () => null;
+    const r = await winesService.adjustStock("u1", "ajeno", { delta: -1, markTasted: true });
+    assert.equal(r, null);
+  });
+});
+
+test("deshacer una apertura exige un consumo previo", async () => {
+  await conStock(async () => {
+    let filtro;
+    Wine.findOneAndUpdate = async (f) => { filtro = f; return { _id: "w1" }; };
+    await winesService.adjustStock("u1", "w1", { delta: 1, undoOpen: true, wasTasted: false });
+    assert.deepEqual(filtro.consumptionCount, { $gte: 1 });
+
+    Wine.findOneAndUpdate = async () => null;
+    Wine.exists = async () => ({ _id: "w1" });
+    await assert.rejects(
+      () => winesService.adjustStock("u1", "w1", { delta: 1, undoOpen: true, wasTasted: false }),
+      (e) => e.codigo === "CONFLICTO_DE_STOCK"
+    );
+  });
+});
+
+test("deshacer una reposición exige tener esas botellas", async () => {
+  await conStock(async () => {
+    let filtro;
+    Wine.findOneAndUpdate = async (f) => { filtro = f; return { _id: "w1" }; };
+    await winesService.adjustStock("u1", "w1", { delta: -2, undoRestock: true });
+    assert.deepEqual(filtro.quantity, { $gte: 2 });
+  });
+});
+
+test("deshacer fuera de orden: si quedan otras aperturas, el vino SIGUE probado", async () => {
+  await conStock(async () => {
+    let pipeline;
+    Wine.findOneAndUpdate = async (_f, stages) => { pipeline = stages; return { _id: "w1", tasted: true }; };
+    await winesService.adjustStock("u1", "w1", { delta: 1, undoOpen: true, wasTasted: false });
+    const set = pipeline[0].$set;
+    // wasTasted=false ya no apaga `tasted` a ciegas: depende de los consumos que quedan.
+    assert.notEqual(set.tasted, false);
+    assert.ok(JSON.stringify(set.tasted).includes("$gt"), "tasted se decide por los consumos restantes");
+
+    await winesService.adjustStock("u1", "w1", { delta: 1, undoOpen: true, wasTasted: true });
+    assert.equal(pipeline[0].$set.tasted, true, "si ya estaba probado antes, queda probado");
+  });
+});

@@ -915,6 +915,12 @@ async function updateWine(userId, id, payload) {
  * no borrar un "probado" que ya era cierto antes de abrir esta botella—.
  */
 async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted }) {
+  // Precondiciones de las operaciones que dependen del estado actual. Van en el FILTRO del
+  // update (no en un chequeo previo) para que se evalúen atómicamente con la escritura:
+  // sin ellas, "abrir" un vino sin botellas sumaba un consumo de la nada, y un "deshacer"
+  // sin consumo previo restaba uno que nunca existió.
+  const filtro = { _id: id, userId };
+  const falla = [];
   // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
   // vino cargado antes de que existieran y recalcula status, que es justo lo
   // que hacía la versión anterior ante una entrada inválida.
@@ -935,6 +941,11 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       // diferencia entre "me equivoqué" y "compré más", y se nota en la ficha.
       // «Deshacer» de un «+» saca del ÚLTIMO lote (el recién agregado); un «−» común descuenta FIFO.
       const op = movimiento > 0 ? (undoOpen === true ? "return" : "restock") : undoRestock === true ? "unrestock" : "consume";
+      // Deshacer una reposición sólo se puede si hay esas botellas para quitar.
+      if (op === "unrestock") {
+        filtro.quantity = { $gte: Math.abs(movimiento) };
+        falla.push("No hay botellas para deshacer esa reposición.");
+      }
       stages = buildStockStages(op, { $literal: Math.abs(movimiento) });
     }
   }
@@ -946,6 +957,9 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
   const deshaciendo = undoOpen === true;
 
   if (abriendo) {
+    // Abrir una botella exige tener una: sin stock no hay nada que abrir.
+    filtro.quantity = { $gte: 1 };
+    falla.push("No te quedan botellas para abrir.");
     stages = [
       {
         $set: {
@@ -957,12 +971,22 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       ...stages,
     ];
   } else if (deshaciendo) {
+    // Sólo se deshace un consumo que existe.
+    filtro.consumptionCount = { $gte: 1 };
+    falla.push("No hay una apertura para deshacer.");
     // El consumo nunca ocurrió: se descuenta del contador y `tasted` vuelve a
     // donde estaba. Si con esto el vino queda sin consumos, tampoco tiene una
     // "última vez que lo tomaste" que contar.
     const consumos = { $max: [0, { $subtract: [{ $ifNull: ["$consumptionCount", 0] }, 1] }] };
     stages = [
-      { $set: { consumptionCount: consumos, tasted: wasTasted === true } },
+      {
+        $set: {
+          consumptionCount: consumos,
+          // Si quedan otras aperturas (deshacer fuera de orden: abriste A y B y deshacés A),
+          // el vino SIGUE probado. `wasTasted` sólo manda cuando no queda ninguna.
+          tasted: wasTasted === true ? true : { $gt: [consumos, 0] },
+        },
+      },
       {
         $set: {
           lastConsumedAt: {
@@ -981,10 +1005,19 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       ? await Wine.findOne({ _id: id, userId }).select("tasted")
       : null;
 
-  const updated = await Wine.findOneAndUpdate({ _id: id, userId }, stages, {
+  const updated = await Wine.findOneAndUpdate(filtro, stages, {
     returnDocument: "after",
     updatePipeline: true,
   });
+
+  // Sin resultado hay dos causas: el vino no es tuyo/no existe (404, devuelve null) o existe pero
+  // la precondición no se cumple (409). Se distinguen con una lectura barata.
+  if (!updated && falla.length && Object.keys(filtro).length > 2) {
+    const existe = await Wine.exists({ _id: id, userId });
+    if (existe) {
+      throw Object.assign(new Error(falla[0]), { codigo: "CONFLICTO_DE_STOCK" });
+    }
+  }
 
   if (updated && antes && antes.tasted !== updated.tasted) {
     const user = await User.findById(userId);

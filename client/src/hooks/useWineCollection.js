@@ -52,6 +52,32 @@ export const limpiarCacheDeBodega = () => {
   cacheDeBodega = null;
 };
 
+/**
+ * Quiénes están mirando la bodega ahora. El caché es del módulo, pero cada
+ * montaje del hook tiene su propia copia en estado: sin avisarles, una escritura
+ * hecha por OTRO lado —el «Deshacer» de un aviso que sobrevive a la pantalla que
+ * lo creó, otra instancia montada— cambiaba el caché y dejaba la lista montada
+ * mostrando el valor de antes hasta la próxima revalidación.
+ */
+const oyentes = new Set();
+
+/**
+ * Aplica un cambio sobre el caché y avisa a las listas montadas. Funciona aunque
+ * la pantalla que lo disparó ya se haya desmontado (el aviso con «Deshacer» dura
+ * ocho segundos y puede sobrevivirla): un setState sobre un componente desmontado
+ * no hace nada, y el caché se quedaba con el valor viejo.
+ */
+const aplicarACache = (actualizar) => {
+  if (cacheDeBodega === null) return false;
+  cacheDeBodega = actualizar(cacheDeBodega);
+  oyentes.forEach((avisar) => avisar(cacheDeBodega));
+  return true;
+};
+
+/** Reemplaza un vino ya cargado por su versión nueva, en el caché y en las listas montadas. */
+export const reemplazarVinoEnBodega = (wine) =>
+  aplicarACache((prev) => prev.map((w) => (w._id === wine?._id ? wine : w)));
+
 export const useWineCollection = () => {
   const [wines, setWines] = useState(() => cacheDeBodega || []);
   // Sólo se anuncia carga si no hay nada que mostrar. Con caché, lo que sigue
@@ -104,6 +130,12 @@ export const useWineCollection = () => {
     loadWines();
   }, [loadWines]);
 
+  // Escucha los cambios que se aplican sobre el caché, vengan de donde vengan.
+  useEffect(() => {
+    oyentes.add(setWines);
+    return () => oyentes.delete(setWines);
+  }, []);
+
   /**
    * Toda escritura pasa por acá.
    *
@@ -113,6 +145,9 @@ export const useWineCollection = () => {
    * revalidación. Un caché que miente por medio segundo es peor que no tenerlo.
    */
   const aplicar = useCallback((actualizar) => {
+    // Con caché, el cambio pasa por el módulo y llega a todas las listas montadas
+    // (incluida ésta). Sin caché —todavía no cargó nada— queda el camino local.
+    if (aplicarACache(actualizar)) return;
     setWines((prev) => {
       const siguiente = actualizar(prev);
       cacheDeBodega = siguiente;

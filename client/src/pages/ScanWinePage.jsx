@@ -1,6 +1,6 @@
 import { leerCosecha } from "../utils/vintage";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
@@ -143,6 +143,9 @@ export default function ScanWinePage() {
   // patrón de toast). Vale para los tres niveles de confianza por igual: el
   // toque de guardar ya fue una decisión de la persona, esto es la red de
   // seguridad para el toque equivocado, no una confirmación adicional.
+  // El deseo que este alta quitó de Guardados, por si «Deshacer» tiene que devolverlo. Es una ref y no
+  // un estado: el aviso con «Deshacer» se arma antes de que el deseo se borre y lo lee al tocarse.
+  const deseoQuitado = useRef(null);
   const saveWine = async (draft) => {
     const payload = toWinePayload(draft);
     const { wine: created, merged, added } = await createWine(payload);
@@ -185,6 +188,26 @@ export default function ScanWinePage() {
           removeToast(toastId);
           try {
             await deleteWine(created._id);
+            // Si el vino salió de un deseo, deshacer el alta lo devuelve a Guardados: si no, un
+            // toque equivocado borraba las dos cosas.
+            const deseo = deseoQuitado.current;
+            if (deseo) {
+              deseoQuitado.current = null;
+              await createWish({
+                name: deseo.name,
+                winery: deseo.winery,
+                type: deseo.type,
+                region: deseo.region,
+                varietal: deseo.varietal,
+                vintage: deseo.vintage,
+                notes: deseo.notes,
+                image: deseo.image,
+                favorite: deseo.favorite,
+                source: deseo.source,
+                priority: deseo.priority,
+              }).catch(() => {});
+              limpiarCacheDeDeseos();
+            }
             // "Deshecho" es un participio suelto: suena a log del sistema, no a
             // alguien contándote qué pasó. Además no decía QUÉ se deshizo — ni de
             // dónde, que no es lo mismo si el vino nunca entró a la bodega.
@@ -279,6 +302,8 @@ export default function ScanWinePage() {
       // El corazón y las notas del deseo viajan con el vino: «Ya lo tengo» no puede borrarlos.
       deseoFavorito: previo?.favorite === true,
       deseoNotas: previo?.notes || "",
+      // El deseo entero, para devolverlo si se deshace el alta.
+      deseoOriginal: previo?._id ? previo : null,
     });
 
   const handleConfirmReview = async (draft) => {
@@ -290,6 +315,7 @@ export default function ScanWinePage() {
     }
     try {
       setSaving(true);
+      deseoQuitado.current = null;
       const creado = await saveWine({
         ...draft,
         image: review?.photo || "",
@@ -309,6 +335,7 @@ export default function ScanWinePage() {
           if (Object.keys(cambios).length > 0) await updateWine(creado._id, cambios).catch(() => {});
         }
         await deleteWish(review.desdeGuardado).catch(() => {});
+        deseoQuitado.current = review.deseoOriginal || null;
         limpiarCacheDeDeseos();
       }
       setReview(null);

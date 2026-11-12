@@ -73,6 +73,9 @@ const adjustStock = async (req, res) => {
     if (!updatedWine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
     return res.json({ success: true, data: updatedWine });
   } catch (error) {
+    if (error?.codigo === "CONFLICTO_DE_STOCK") {
+      return res.status(409).json({ success: false, error: error.message });
+    }
     return fail(res, error, req);
   }
 };

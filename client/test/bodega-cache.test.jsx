@@ -21,6 +21,7 @@ import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
 
 const getWines = vi.fn();
 const deleteWineApi = vi.fn();
+const undoOpenBottleApi = vi.fn();
 
 vi.mock("../src/services/wineApi", () => ({
   getWines: (...a) => getWines(...a),
@@ -29,11 +30,11 @@ vi.mock("../src/services/wineApi", () => ({
   deleteWine: (...a) => deleteWineApi(...a),
   adjustWineStock: vi.fn(),
   openBottle: vi.fn(),
-  undoOpenBottle: vi.fn(),
+  undoOpenBottle: (...a) => undoOpenBottleApi(...a),
   bulkWines: vi.fn(),
 }));
 
-const { useWineCollection, limpiarCacheDeBodega } = await import(
+const { useWineCollection, limpiarCacheDeBodega, reemplazarVinoEnBodega } = await import(
   "../src/hooks/useWineCollection"
 );
 
@@ -136,5 +137,50 @@ describe("el caché de la bodega", () => {
     // frame de la bodega anterior.
     expect(segunda.result.current.wines).toHaveLength(0);
     expect(segunda.result.current.loading).toBe(true);
+  });
+});
+
+describe("un «Deshacer» que viene de otro lado refresca la lista montada", () => {
+  it("lo que hace una instancia lo ve la que está montada, sin esperar la revalidación", async () => {
+    getWines.mockResolvedValue([malbec, cabernet]);
+    const lista = renderHook(() => useWineCollection());
+    await waitFor(() => expect(lista.result.current.loading).toBe(false));
+
+    undoOpenBottleApi.mockResolvedValue({ ...malbec, quantity: 4 });
+    // Otra instancia (otra pantalla) deshace una apertura.
+    const otra = renderHook(() => useWineCollection());
+    await act(async () => {
+      await otra.result.current.undoOpenBottle("1", false, 1);
+    });
+
+    expect(lista.result.current.wines.find((w) => w._id === "1").quantity).toBe(4);
+  });
+
+  it("si la pantalla que creó el aviso ya se desmontó, el caché igual se corrige", async () => {
+    getWines.mockResolvedValue([malbec, cabernet]);
+    const pantalla = renderHook(() => useWineCollection());
+    await waitFor(() => expect(pantalla.result.current.loading).toBe(false));
+    const { undoOpenBottle } = pantalla.result.current;
+    pantalla.unmount();
+
+    undoOpenBottleApi.mockResolvedValue({ ...malbec, quantity: 9 });
+    await act(async () => {
+      await undoOpenBottle("1", false, 1);
+    });
+
+    // Al volver a Mi Bodega, la lista guardada ya tiene el valor nuevo (sin esperar a la red).
+    getWines.mockReturnValue(new Promise(() => {}));
+    const vuelta = renderHook(() => useWineCollection());
+    expect(vuelta.result.current.wines.find((w) => w._id === "1").quantity).toBe(9);
+  });
+
+  it("reemplazarVinoEnBodega actualiza las listas montadas", async () => {
+    getWines.mockResolvedValue([malbec, cabernet]);
+    const lista = renderHook(() => useWineCollection());
+    await waitFor(() => expect(lista.result.current.loading).toBe(false));
+    act(() => {
+      reemplazarVinoEnBodega({ ...cabernet, quantity: 0 });
+    });
+    expect(lista.result.current.wines.find((w) => w._id === "2").quantity).toBe(0);
   });
 });
