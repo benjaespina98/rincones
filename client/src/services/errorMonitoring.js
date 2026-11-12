@@ -51,7 +51,7 @@ const scrubEvent = (event) => {
 export const initErrorMonitoring = async () => {
   if (!isEnabled()) return;
 
-  Sentry = await import("@sentry/react");
+  Sentry = await import("./sentryBridge");
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.MODE,
