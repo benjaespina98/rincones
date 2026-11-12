@@ -408,12 +408,29 @@ const featured = async (req, res, next) => {
     const calidad = (w) => (w.source === "catalogo-ar" || w.source === "comunidad-verificada" ? 0.5 : w.confiable ? 0.25 : 0);
 
     // Con foto es PRIORIDAD, no un empujón: si hay vinos con foto de sobra se elige sólo entre ellos.
-    const elegidos = recommendations.rankFeatured(universoConFoto(universo, tieneFoto, DESTACADOS, { puntaje: (w) => recommendations.puntajeDeAfinidad(w, perfil) }), perfil, {
+    const opcionesRank = {
       count: DESTACADOS,
       seed: semillaDelDia() + semillaDePersona(req.user.id),
       extra: (w) => (tieneFoto(w) ? 0.75 : 0) + calidad(w),
       jitter: JITTER_DIARIO,
-    });
+    };
+    let elegidos = recommendations.rankFeatured(
+      universoConFoto(universo, tieneFoto, DESTACADOS, { puntaje: (w) => recommendations.puntajeDeAfinidad(w, perfil) }),
+      perfil,
+      opcionesRank
+    );
+    // El ranking reparte el set (tope por bodega y por uva). Si las fotos son pocas o de pocas
+    // bodegas, restringirse a ellas deja el set corto (llegó a devolver 2 de 12): se completa con
+    // el resto del universo, y `conFotoPrimero` igual pone adelante las que tienen foto.
+    if (elegidos.length < DESTACADOS) {
+      const yaElegidos = new Set(elegidos.map((w) => w.id));
+      const resto = recommendations.rankFeatured(
+        universo.filter((w) => !yaElegidos.has(w.id)),
+        perfil,
+        { ...opcionesRank, count: DESTACADOS - elegidos.length }
+      );
+      elegidos = [...elegidos, ...resto];
+    }
 
     // Las fotos, sólo de los elegidos: la del catálogo comunitario (si es de allí) y si no la del pool.
     const diferidas = elegidos.filter((w) => w.fotoDiferida);
