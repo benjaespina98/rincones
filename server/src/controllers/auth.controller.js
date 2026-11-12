@@ -128,7 +128,7 @@ const login = async (req, res, next) => {
 
     // Una cuenta sólo-Google no tiene contraseña: comparar contra undefined
     // lanzaba y devolvía un 500 distinto del 401 (enumeración de cuentas).
-    const isValid = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
+    const isValid = (await bcrypt.compare(password, user.passwordHash || HASH_FALSO)) && Boolean(user.passwordHash);
 
     if (!isValid) {
       return res.status(401).json({ message: "Credenciales inválidas" });
