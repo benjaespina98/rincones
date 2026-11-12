@@ -199,7 +199,7 @@
    un error, no como una espera. Las piezas usan la clase `.skeleton` compartida
    (LoadingSkeleton.css) para que el brillo sea el mismo de toda la app. */
 .spotlight--skeleton {
-  min-height: 284px;
+  min-height: 324px;
   animation: none;
   background: var(--elevated);
   border-color: var(--line);
@@ -258,7 +258,9 @@
   position: relative;
   flex-shrink: 0;
   width: 96px;
-  height: 128px;
+  /* Alta, como la botella: las fotos de producto son verticales (~1:3,5) y en 128 px quedaban chicas,
+     con el vidrio a un costado y aire de sobra arriba y abajo. */
+  height: 168px;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -979,20 +981,22 @@
 .spotlight__motivos {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0 0;
+  gap: 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .spotlight__motivo {
-  padding: 4px 10px;
-  border-radius: var(--radius-chip);
-  /* Con el tono del tipo (el hilo visual `data-wine-type`): sobre la tarjeta, que es del mismo color de superficie,
-     un chip sin tinte sólo se distinguía por el borde. */
-  background: rgb(var(--type-rgb) / 0.12);
-  border: 1px solid var(--border-card);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  /* Neutro: con el tinte del tipo (`--type-rgb`) un blanco o un espumante daba un chip marrón-dorado
+     que desentonaba con la botella real al lado. La superficie elevada y el borde de control
+     lo distinguen de la tarjeta sin competir con la foto. */
+  background: var(--surface-raised);
+  border: 1px solid var(--border-base);
   font-size: var(--text-meta);
+  font-weight: 500;
   line-height: 1.3;
   color: var(--text-secondary);
 }
