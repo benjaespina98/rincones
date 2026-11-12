@@ -309,7 +309,7 @@ const armarRespuesta = async ({
 };
 
 // POST /api/sommelier/ask { question, history? }
-const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
+const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) => {
   try {
     const question = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
     if (question.length < MIN_PREGUNTA) {
@@ -465,6 +465,11 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
       // key vencida, una cuota agotada) era indistinguible de un timeout
       // normal, y ni loggeaba ni llegaba a Sentry. `next(error)` no se usa
       // porque cambiaría el status y el mensaje que ya elegimos para esto.
+      // Salvo que quien preguntó ya se haya ido (salió de la pantalla o mandó otra
+      // pregunta): eso no es una falla del modelo. No se registra como error, no
+      // se contesta con el respaldo y, sobre todo, no se guarda en el historial
+      // una respuesta enlatada para una pregunta que se estaba contestando bien.
+      if (cancelada?.()) return undefined;
       console.error("[sommelier]", error?.message || error);
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
@@ -589,6 +594,7 @@ const askStream = async (req, res, next) => {
       evento(status === 200 ? "final" : "error", { status, ...cuerpo });
       return cerrar();
     },
+    cancelada: () => cancelacion.signal.aborted,
     llamarModelo: (args) =>
       sommelier.preguntarEnVivo({
         ...args,

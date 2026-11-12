@@ -232,9 +232,10 @@ const generateJson = async ({
     try {
       const sinPensar = sinPensamiento && !NO_ACEPTAN_PENSAMIENTO.has(model);
       const pedir = (sinPensarEsta) =>
-        fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
+        fetch(`${GEMINI_BASE}/${model}:generateContent`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          // La clave va en la cabecera, no en la URL: una URL termina en logs y breadcrumbs.
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           signal: controller.signal,
           body: cuerpo(sinPensarEsta),
         });
@@ -360,9 +361,10 @@ const streamJson = async ({
     try {
       const sinPensar = sinPensamiento && !NO_ACEPTAN_PENSAMIENTO.has(model);
       const pedir = (sinPensarEsta) =>
-        fetch(`${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, {
+        fetch(`${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          // La clave va en la cabecera, no en la URL: una URL termina en logs y breadcrumbs.
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           signal: controller.signal,
           body: cuerpo(sinPensarEsta),
         });

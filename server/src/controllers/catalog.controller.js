@@ -3,7 +3,27 @@ const wineReviews = require("../services/wineReviews.service");
 const recommendations = require("../services/recommendations.service");
 const Wine = require("../models/wine.model");
 const User = require("../models/user.model");
-const { describeWine, suggestRecipe, classifyDish, PLANS } = require("../services/wineAi.service");
+const wineAi = require("../services/wineAi.service");
+const { PLANS } = wineAi;
+
+/**
+ * Los tres controladores de abajo ya saben qué contestar cuando el modelo no
+ * devuelve nada: un 503 con un mensaje pensado. Pero el servicio no devuelve
+ * `null` cuando Gemini falla (429, 503, timeout): LANZA, y eso salía como un 500
+ * genérico más un evento de error por cada bache del proveedor. Acá la falla
+ * del modelo se vuelve lo que es para estas pantallas, "ahora no se pudo".
+ */
+const oNada = (nombre) => async (...args) => {
+  try {
+    return await wineAi[nombre](...args);
+  } catch (error) {
+    console.error(`[catalog] ${nombre} falló:`, error?.message || error);
+    return null;
+  }
+};
+const describeWine = oNada("describeWine");
+const suggestRecipe = oNada("suggestRecipe");
+const classifyDish = oNada("classifyDish");
 const wineImages = require("../services/wineImages.service");
 const winePrices = require("../services/winePrices.service");
 const WineInfo = require("../models/wineInfo.model");

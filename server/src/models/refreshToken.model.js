@@ -56,6 +56,8 @@ const refreshTokenSchema = new mongoose.Schema({
    */
   usedAt: { type: Date },
   replacedByHash: { type: String },
+  // Cuántas veces se re-canjeó este token ya usado (tope en session.service.js).
+  graceCount: { type: Number, default: 0 },
 });
 
 // Mongo borra solo los documentos vencidos: la colección no crece sin control
