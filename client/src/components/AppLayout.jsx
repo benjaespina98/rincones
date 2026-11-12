@@ -9,6 +9,7 @@ import Icon from "./Icon";
 import Logo from "./Logo";
 import { TAB_PATHS } from "../data/navigation";
 import { TopbarContext } from "../context/TopbarContext";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import "./AppLayout.css";
 
 // Onboarding y verificación de email ya no se resuelven acá: son un gate de
@@ -55,6 +56,7 @@ const AppLayout = ({ children, pageTitle }) => {
    * `span` con `aria-hidden` — si fuera otro `h1` la pantalla tendría dos.
    */
   const compacto = useHeaderCollapse();
+  useDocumentTitle(pageTitle);
   // Las ranuras de la barra: se guardan en estado para que las pantallas se enteren
   // cuando existen (un ref común no avisa) y puedan colgar sus acciones por portal.
   const [izquierda, setIzquierda] = useState(null);

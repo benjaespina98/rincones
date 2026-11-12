@@ -7,9 +7,11 @@ import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import GoogleAuthButton from "../components/GoogleAuthButton";
 import { destinoTrasLogin } from "../utils/destinoTrasLogin";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import "./Auth.css";
 
 const LoginPage = () => {
+  useDocumentTitle("Ingresar");
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();

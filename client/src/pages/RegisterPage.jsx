@@ -9,9 +9,11 @@ import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import GoogleAuthButton from "../components/GoogleAuthButton";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import "./Auth.css";
 
 const RegisterPage = () => {
+  useDocumentTitle("Crear cuenta");
   const navigate = useNavigate();
   const { applySession } = useAuth();
   const { showError, showSuccess } = useToast();

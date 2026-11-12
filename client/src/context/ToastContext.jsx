@@ -8,7 +8,10 @@ const ToastContext = createContext(null);
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = "info", duration = 3000, action = null) => {
+  const addToast = useCallback((message, type = "info", duration, action = null) => {
+    // Un error se lee más despacio que un «listo» y dice qué falló: 3 s no alcanzaba (WCAG 2.2.1,
+    // tiempo suficiente). Los errores duran 7 s; el resto sigue en 3 s salvo que se pida otra cosa.
+    if (duration === undefined || duration === null) duration = type === "error" ? 7000 : 3000;
     // `substr` está deprecado hace años; `slice` hace lo mismo y no depende de
     // una API que los navegadores mantienen sólo por compatibilidad.
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
