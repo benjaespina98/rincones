@@ -914,7 +914,7 @@ async function updateWine(userId, id, payload) {
  * de consumos baja y `tasted` vuelve a como estaba —`wasTasted` dice a qué, para
  * no borrar un "probado" que ya era cierto antes de abrir esta botella—.
  */
-async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted }) {
+async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted, consumosAntes }) {
   // Precondiciones de las operaciones que dependen del estado actual. Van en el FILTRO del
   // update (no en un chequeo previo) para que se evalúen atómicamente con la escritura:
   // sin ellas, "abrir" un vino sin botellas sumaba un consumo de la nada, y un "deshacer"
@@ -957,8 +957,10 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
   const deshaciendo = undoOpen === true;
 
   if (abriendo) {
-    // Abrir una botella exige tener una: sin stock no hay nada que abrir.
-    filtro.quantity = { $gte: 1 };
+    // Abrir exige tener las botellas que se abren: con el cliente desactualizado (otro
+    // dispositivo ya las tomó) `consume` recortaba en silencio, el contador sumaba igual y el
+    // «Deshacer» devolvía más de lo que salió.
+    filtro.quantity = { $gte: Math.max(filtro.quantity?.$gte || 0, 1, Math.abs(Number.parseInt(delta, 10)) || 1) };
     falla.push("No te quedan botellas para abrir.");
     stages = [
       {
@@ -983,8 +985,15 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
         $set: {
           consumptionCount: consumos,
           // Si quedan otras aperturas (deshacer fuera de orden: abriste A y B y deshacés A),
-          // el vino SIGUE probado. `wasTasted` sólo manda cuando no queda ninguna.
-          tasted: wasTasted === true ? true : { $gt: [consumos, 0] },
+          // el vino SIGUE probado. Pero un vino destildado puede conservar consumos viejos, así
+          // que «quedan consumos» no alcanza: tienen que ser MÁS que los que había antes de abrir
+          // esta botella. Sin `consumosAntes` (cliente viejo) manda `wasTasted`, como siempre.
+          tasted:
+            wasTasted === true
+              ? true
+              : Number.isFinite(consumosAntes)
+                ? { $gt: [consumos, Math.max(0, consumosAntes)] }
+                : false,
         },
       },
       {

@@ -230,8 +230,8 @@ export const useWineCollection = () => {
   }, [aplicar]);
 
   /** Deshacer botellas abiertas: vuelven a su lote y el historial queda como estaba. */
-  const undoOpenBottle = useCallback(async (id, wasTasted, cantidad = 1) => {
-    const updated = await undoOpenBottleApi(id, wasTasted, cantidad);
+  const undoOpenBottle = useCallback(async (id, wasTasted, cantidad = 1, consumosAntes) => {
+    const updated = await undoOpenBottleApi(id, wasTasted, cantidad, consumosAntes);
     aplicar((prev) => prev.map((wine) => (wine._id === id ? updated : wine)));
     return updated;
   }, [aplicar]);

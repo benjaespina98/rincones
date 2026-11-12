@@ -364,6 +364,7 @@ export default function WineDetailPage() {
   const handleOpenBottle = async (cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
+    const consumosAntes = Number(wine.consumptionCount) || 0;
     const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
     const quedan = Math.max(0, Number(wine.quantity) - n);
     setPending(true);
@@ -390,12 +391,12 @@ export default function WineDetailPage() {
           onClick: async () => {
             removeToast(toastId);
             try {
-              const devuelto = await undoOpenBottle(id, eraProbado, n);
+              const devuelto = await undoOpenBottle(id, eraProbado, n, consumosAntes);
               limpiarCacheDeBodega();
               setWine(devuelto);
               showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
             }
           },
         },

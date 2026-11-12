@@ -14,6 +14,7 @@ import WineRow from "../components/WineRow";
 import Chip from "../components/Chip";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { useWishlist } from "../hooks/useWishlist";
 // Buscar, filtrar y ordenar salieron de acá a un módulo propio: son funciones
 // puras con reglas que nacieron de bugs reportados, y adentro de este archivo
@@ -953,8 +954,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
               // Deshacer una reposición saca del lote que se acaba de agregar. Un «−» común es FIFO: vaciaba
               // el lote más viejo e inventaba una botella tomada.
               await adjustStock(wine._id, -n, { undoRestock: true });
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
+              recargar();
             }
           },
         }
@@ -974,6 +976,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const handleOpenBottle = (wine, cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
+    const consumosAntes = Number(wine.consumptionCount) || 0;
     const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
     const quedan = Math.max(0, Number(wine.quantity) - n);
 
@@ -1001,10 +1004,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
           onClick: async () => {
             removeToast(toastId);
             try {
-              await undoOpenBottle(wine._id, eraProbado, n);
+              await undoOpenBottle(wine._id, eraProbado, n, consumosAntes);
               showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              // Un 409 es «ya no se puede deshacer» (otro dispositivo cambió el stock): se dice
+              // y se recarga, para que la fila no siga mostrando lo que ya no es.
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
+              recargar();
             }
           },
         },

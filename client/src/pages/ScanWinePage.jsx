@@ -1,6 +1,6 @@
 import { leerCosecha } from "../utils/vintage";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import LabelScanner from "../components/LabelScanner";
 import Icon from "../components/Icon";
@@ -143,10 +143,10 @@ export default function ScanWinePage() {
   // patrón de toast). Vale para los tres niveles de confianza por igual: el
   // toque de guardar ya fue una decisión de la persona, esto es la red de
   // seguridad para el toque equivocado, no una confirmación adicional.
-  // El deseo que este alta quitó de Guardados, por si «Deshacer» tiene que devolverlo. Es una ref y no
-  // un estado: el aviso con «Deshacer» se arma antes de que el deseo se borre y lo lee al tocarse.
-  const deseoQuitado = useRef(null);
-  const saveWine = async (draft) => {
+  // `deseo` es el guardado que este alta va a quitar de Guardados, por si «Deshacer» tiene que
+  // devolverlo. Viaja por parámetro y lo cierra el aviso: con una ref compartida, guardar un segundo
+  // vino antes de que venza el primer aviso hacía que su «Deshacer» devolviera el deseo equivocado.
+  const saveWine = async (draft, deseo = null) => {
     const payload = toWinePayload(draft);
     const { wine: created, merged, added } = await createWine(payload);
     successHaptic();
@@ -190,9 +190,7 @@ export default function ScanWinePage() {
             await deleteWine(created._id);
             // Si el vino salió de un deseo, deshacer el alta lo devuelve a Guardados: si no, un
             // toque equivocado borraba las dos cosas.
-            const deseo = deseoQuitado.current;
             if (deseo) {
-              deseoQuitado.current = null;
               await createWish({
                 name: deseo.name,
                 winery: deseo.winery,
@@ -315,14 +313,14 @@ export default function ScanWinePage() {
     }
     try {
       setSaving(true);
-      deseoQuitado.current = null;
+      const deseoDeEsteAlta = review?.desdeGuardado ? review.deseoOriginal || null : null;
       const creado = await saveWine({
         ...draft,
         image: review?.photo || "",
         // Qué fuente respaldó esta identidad. Sigue siendo evidencia y no
         // conclusión: el servidor recalcula el veredicto por su cuenta.
         identMatchedFrom: review?.verification?.source || "",
-      });
+      }, deseoDeEsteAlta);
       // El vino salió de Guardados y entró a la bodega: dejarlo en las dos
       // listas sería decir a la vez "lo quiero probar" y "lo tengo". Si el
       // borrado falla no se avisa: el alta —que es lo que se pidió— ya salió
@@ -335,7 +333,6 @@ export default function ScanWinePage() {
           if (Object.keys(cambios).length > 0) await updateWine(creado._id, cambios).catch(() => {});
         }
         await deleteWish(review.desdeGuardado).catch(() => {});
-        deseoQuitado.current = review.deseoOriginal || null;
         limpiarCacheDeDeseos();
       }
       setReview(null);

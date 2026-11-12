@@ -92,6 +92,16 @@ test("el export nunca incluye la contraseña ni los tokens de recuperación ni s
   assert.ok(!fuente.includes("-resetPassword"), "quedó un nombre viejo que no existe en el modelo");
 });
 
+test("todo campo sensible del modelo (token, hash, vencimiento) está excluido del export", () => {
+  const fuente = leer("accountExport.service.js");
+  const User = require("../src/models/user.model");
+  const sensibles = Object.keys(User.schema.paths).filter((p) => /token|hash|expires/i.test(p));
+  assert.ok(sensibles.length > 0);
+  for (const campo of sensibles) {
+    assert.ok(fuente.includes(`-${campo}`), `el campo sensible ${campo} no está excluido del export`);
+  }
+});
+
 test("limpiar saca los campos internos y deja el resto", () => {
   const salida = limpiar({
     _id: "w1",
