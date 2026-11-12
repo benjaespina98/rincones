@@ -48,7 +48,7 @@ const limpiar = (doc) => {
  */
 const exportAccount = async (userId) => {
   const user = await User.findById(userId)
-    .select("-passwordHash -resetPasswordToken -resetPasswordExpires -emailVerificationToken")
+    .select("-passwordHash -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires")
     .lean();
 
   if (!user) return null;
