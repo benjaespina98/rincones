@@ -804,12 +804,16 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setPendingActionId(id);
     try {
       await action();
-    } catch {
-      showError("No se pudo completar la acción. Probá de nuevo.");
+    } catch (err) {
+      // Un 409 dice por qué no se puede (otro dispositivo ya cambió el stock) y la fila que se ve
+      // quedó vieja: se muestra el mensaje del servidor y se recarga, para que reintentar no falle igual.
+      const conflicto = err?.response?.status === 409;
+      showError(conflicto ? mensajeDelServidor(err, "Esto ya cambió") : "No se pudo completar la acción. Probá de nuevo.");
+      if (conflicto) recargar();
     } finally {
       setPendingActionId(null);
     }
-  }, [showError]);
+  }, [showError, recargar]);
 
   /**
    * Abrir la ficha del vino.

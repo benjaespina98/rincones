@@ -709,7 +709,7 @@ select:disabled {
 
 @media (hover: hover) and (pointer: fine) {
   .btn-add:hover {
-    filter: brightness(1.08);
+    background: var(--accent-fill-hover);
   }
 }
 
