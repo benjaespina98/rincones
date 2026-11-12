@@ -393,3 +393,31 @@ test("un nombre con marcas HTML, caracteres de control o un largo absurdo no se 
     CommunityWine.prototype.save = originalSave;
   }
 });
+
+test("el catálogo compartido no guarda fotos de terceros: sólo data:image o nuestro Cloudinary", async () => {
+  const originalCloud = process.env.CLOUDINARY_CLOUD_NAME;
+  const originalUrl = process.env.CLOUDINARY_URL;
+  delete process.env.CLOUDINARY_URL;
+  process.env.CLOUDINARY_CLOUD_NAME = "nuestro";
+  try {
+    const casos = [
+      ["https://tracker.ejemplo.com/pixel.png", ""],
+      ["https://res.cloudinary.com/ajeno/image/upload/a.jpg", ""],
+      ["https://res.cloudinary.com/nuestro/image/upload/a.jpg", "https://res.cloudinary.com/nuestro/image/upload/a.jpg"],
+      ["data:image/jpeg;base64,AAAA", "data:image/jpeg;base64,AAAA"],
+    ];
+    for (const [entrada, esperada] of casos) {
+      const db = fakeDb();
+      try {
+        await communityWines.contribute({ ...PISPI, image: entrada }, { userId: u1, verdict: "trusted" });
+        assert.equal(soloFila(db).image, esperada, `imagen ${entrada}`);
+      } finally {
+        db.restore();
+      }
+    }
+  } finally {
+    if (originalCloud === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
+    else process.env.CLOUDINARY_CLOUD_NAME = originalCloud;
+    if (originalUrl !== undefined) process.env.CLOUDINARY_URL = originalUrl;
+  }
+});
