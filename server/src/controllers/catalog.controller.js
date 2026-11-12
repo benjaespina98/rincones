@@ -31,7 +31,7 @@ const WineWish = require("../models/wineWish.model");
 const { describeKey } = require("../services/wineDescription.service");
 const { fold } = require("../data/argentineWines");
 const { poolKey } = require("../data/wineIdentity");
-const { conFotoPrimero } = require("../utils/destacados");
+const { conFotoPrimero, universoConFoto } = require("../utils/destacados");
 const { limpiarDato } = require("../utils/promptSeguro");
 const { esImagenAceptada } = require("../utils/imagenAceptada");
 const communityWines = require("../services/communityWines.service");
@@ -407,7 +407,8 @@ const featured = async (req, res, next) => {
       w.fotoDiferida === true || esImagenAceptada(w.image) || clavesConFoto.has(poolKey(w.name, w.winery, w.varietal));
     const calidad = (w) => (w.source === "catalogo-ar" || w.source === "comunidad-verificada" ? 0.5 : w.confiable ? 0.25 : 0);
 
-    const elegidos = recommendations.rankFeatured(universo, perfil, {
+    // Con foto es PRIORIDAD, no un empujón: si hay vinos con foto de sobra se elige sólo entre ellos.
+    const elegidos = recommendations.rankFeatured(universoConFoto(universo, tieneFoto, DESTACADOS, { puntaje: (w) => recommendations.puntajeDeAfinidad(w, perfil) }), perfil, {
       count: DESTACADOS,
       seed: semillaDelDia() + semillaDePersona(req.user.id),
       extra: (w) => (tieneFoto(w) ? 0.75 : 0) + calidad(w),

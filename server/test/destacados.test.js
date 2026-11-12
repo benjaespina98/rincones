@@ -657,3 +657,34 @@ test("featured: un vino sin ninguna foto no es confiable", async () => {
   assert.equal(body.data[0].image, "");
   assert.equal(body.data[0].fotoConfiable, false);
 });
+
+test("universoConFoto: con foto de sobra elige sólo entre los que la tienen", () => {
+  const { universoConFoto } = require("../src/utils/destacados");
+  const universo = [
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `c${i}`, foto: true })),
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `s${i}`, foto: false })),
+  ];
+  const r = universoConFoto(universo, (w) => w.foto, 5);
+  assert.equal(r.length, 5);
+  assert.ok(r.every((w) => w.foto));
+});
+
+test("universoConFoto: si las fotos no alcanzan, devuelve todo (nunca deja a Descubrí vacío)", () => {
+  const { universoConFoto } = require("../src/utils/destacados");
+  const universo = [{ id: "a", foto: true }, { id: "b", foto: false }, { id: "c", foto: false }];
+  assert.deepEqual(universoConFoto(universo, (w) => w.foto, 12), universo);
+  assert.deepEqual(universoConFoto(null, () => true, 12), []);
+});
+
+test("universoConFoto: los sin foto de mayor afinidad siguen compitiendo (máx. 2)", () => {
+  const { universoConFoto } = require("../src/utils/destacados");
+  const universo = [
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `c${i}`, foto: true, a: 0 })),
+    { id: "fav1", foto: false, a: 9 },
+    { id: "fav2", foto: false, a: 8 },
+    { id: "fav3", foto: false, a: 7 },
+    { id: "neutro", foto: false, a: 0 },
+  ];
+  const ids = universoConFoto(universo, (w) => w.foto, 4, { puntaje: (w) => w.a }).map((w) => w.id);
+  assert.deepEqual(ids, ["c0", "c1", "c2", "c3", "fav1", "fav2"]);
+});
