@@ -96,7 +96,7 @@ const RegisterPage = () => {
             <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Creá tu cuenta</h1>
-          <p className="auth-brand__subtitle">Guardá tus vinos y descubrí nuevos.</p>
+          <p className="auth-brand__subtitle">Cargá tus vinos y llevá el stock.</p>
         </div>
 
         {error && (

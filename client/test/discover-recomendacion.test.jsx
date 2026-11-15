@@ -186,12 +186,12 @@ describe("Descubrí: el porqué de la recomendación", () => {
 
   it("el rótulo dice para quién es y los motivos salen como chips, sin porcentaje", async () => {
     await montar([
-      conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Como tomás Malbec, te recomiendo este vino"], motivos: ["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"] }),
+      conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Como tomás Malbec, te recomiendo este vino"], motivos: ["Tomaste Malbec", "Región que tomás seguido: Mendoza"] }),
     ]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para vos");
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
     const chips = [...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent);
-    expect(chips).toEqual(["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"]);
+    expect(chips).toEqual(["Tomaste Malbec", "Región que tomás seguido: Mendoza"]);
     expect(screen.getByRole("list", { name: /por qué te lo sugerimos/i })).toBeInTheDocument();
     // El porcentaje no era una probabilidad: no se muestra aunque el server lo mande.
     expect(document.querySelector(".spotlight__match")).toBeNull();
@@ -200,16 +200,16 @@ describe("Descubrí: el porqué de la recomendación", () => {
   });
 
   it("un descubrimiento se rotula como tal", async () => {
-    await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: [], motivos: ["Una uva nueva para vos: Tannat"] })]);
+    await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: [], motivos: ["Uva que no tenés: Tannat"] })]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para descubrir");
-    expect([...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent)).toEqual(["Una uva nueva para vos: Tannat"]);
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
+    expect([...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent)).toEqual(["Uva que no tenés: Tannat"]);
   });
 
   it("un set viejo en caché (de antes de los motivos) no rompe y tampoco muestra el porcentaje", async () => {
     await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)"] })]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Para vos");
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
     expect(document.querySelector(".spotlight__match")).toBeNull();
     expect(screen.queryByText(/92/)).toBeNull();
   });

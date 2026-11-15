@@ -432,7 +432,7 @@ function WineRow({
                 className="wine-row__stepper-btn"
                 onClick={() => onAbrirUna?.(wine)}
                 disabled={isPending}
-                aria-label="Tomé una botella"
+                aria-label="Abrir una botella"
                 title="Abrir una botella: baja el stock y cuenta como tomada"
               >
                 <Icon name="minus" size={16} />
@@ -487,16 +487,16 @@ function WineRow({
           // El tooltip dice el ESTADO; que se pueda tocar lo dice que
           // sea un botón. "Tocá para desmarcarlo" es la app narrando
           // una interacción que el control ya ofrece.
-          title={wine.tasted ? "Ya lo probé" : "Todavía no lo probaste: tocá cuando lo hayas probado, sea tuyo o no"}
+          title={wine.tasted ? "Ya tomado" : "Todavía sin tomar: marcalo cuando lo hayas tomado, sea tuyo o no"}
           aria-label={
             wine.tasted
-              ? `Marcar ${wineDisplayName(wine)} como sin probar`
-              : `Marcar ${wineDisplayName(wine)} como ya probado`
+              ? `Marcar ${wineDisplayName(wine)} como sin tomar`
+              : `Marcar ${wineDisplayName(wine)} como tomado`
           }
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Ya lo probé" : "Marcar como probado"}
+            {wine.tasted ? "Ya tomado" : "Marcar como tomado"}
           </span>
         </button>
         )}

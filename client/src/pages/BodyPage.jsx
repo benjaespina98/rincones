@@ -673,8 +673,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (vista === "probados") {
       return {
         illustration: "copa",
-        title: "Todavía no abriste ninguna botella",
-        hint: "Los vinos que tomes van a aparecer acá.",
+        title: "Sin vinos tomados",
+        hint: "Acá aparecen los que abras o marques como tomados.",
         actionLabel: "Ver lo que tenés",
         onAction: () => setVista("instock"),
       };
@@ -711,8 +711,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     // que no hay es un vino tuyo con el corazón puesto.
     return {
       illustration: "favoritos",
-      title: "Ningún vino con el corazón puesto",
-      hint: "Marcá un favorito desde Mi Bodega y aparece acá.",
+      title: "Sin favoritos",
+      hint: "Marcá vinos con el corazón para verlos acá.",
       actionLabel: "Ver lo que tenés",
       onAction: () => setVista("instock"),
     };

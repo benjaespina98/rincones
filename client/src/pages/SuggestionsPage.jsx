@@ -843,7 +843,7 @@ export default function SuggestionsPage() {
         source: "recomendación",
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
-      showSuccess(`"${wine.name}" guardado en Quiero probar`);
+      showSuccess(`"${wine.name}" guardado en Favoritos`);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
@@ -879,7 +879,7 @@ export default function SuggestionsPage() {
                 pantalla. Sin nombre (sesión sin perfil todavía) se esconde en
                 vez de saludar a nadie. */}
             {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
-            <h2>¿Con qué maridamos hoy?</h2>
+            <h2>¿Qué vas a comer?</h2>
             <FilaDeAtajos
               className="somm__rail"
               inicial={atajos.comidas}
@@ -1082,7 +1082,7 @@ export default function SuggestionsPage() {
               {/* ── LO QUE NO ────────────────────────────────────────────── */}
               {recorteDeVinos(m, verTodos.has(m.id)).nuevos.length > 0 && (
                 <>
-                  <p className="somm__rotulo">Para descubrir</p>
+                  <p className="somm__rotulo">Nuevos</p>
                   <ul className="somm__lista">
                     {recorteDeVinos(m, verTodos.has(m.id)).nuevos.map((wine) => (
                       <li
@@ -1118,8 +1118,8 @@ export default function SuggestionsPage() {
                             className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
                             onClick={() => handleWant(wine)}
                             disabled={addingId === wine.id || addedIds.has(wine.id)}
-                            aria-label={`Guardar ${wine.name} en Quiero probar`}
-                            title="Quiero probar"
+                            aria-label={`Guardar ${wine.name} en Favoritos`}
+                            title="Guardar en Favoritos"
                           >
                             {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="heart" size={16} />}
                           </button>
@@ -1153,7 +1153,7 @@ export default function SuggestionsPage() {
         {pensando && !mensajes.some((m) => m.escribiendo) && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
-            {pensandoLargo ? "Ya casi, estoy afinando mi recomendación…" : "Dejame pensar qué te recomiendo…"}
+            {pensandoLargo ? "Armando la recomendación…" : "Buscando…"}
           </p>
         )}
 

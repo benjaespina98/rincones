@@ -313,7 +313,7 @@ export default function DiscoverPage() {
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
       successHaptic();
-      showSuccess(`"${wine.name}" guardado en Quiero probar`);
+      showSuccess(`"${wine.name}" guardado en Favoritos`);
       // Se mide el ÉXITO y no el clic: lo que interesa saber es si Descubrí
       // termina en algo, no cuántas veces se apretó un botón que falló.
       trackEvent("wish_added", { source });
@@ -687,7 +687,7 @@ export default function DiscoverPage() {
                   y siempre verificable. Si no hay nada verificable que decir,
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
-                {porque?.modo === "descubrimiento" ? "Para descubrir" : "Para vos"}
+                {"Recomendado"}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">

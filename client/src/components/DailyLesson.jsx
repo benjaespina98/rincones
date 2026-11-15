@@ -57,7 +57,7 @@ export default function DailyLesson({ stats, seed = 0 }) {
                 —"Para aprender hoy", "Para entender mejor", "Algo que quizá no
                 sabías"— le hablaban al lector sobre su propio conocimiento. Lo
                 que hay adentro es una nota sobre vino: eso es lo que dice. */}
-            <span className="lesson-card__eyebrow">Lección del día</span>
+            <span className="lesson-card__eyebrow">Concepto del día</span>
             <span className="lesson-card__title">{concepto.title}</span>
           </span>
         </span>

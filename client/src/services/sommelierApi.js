@@ -156,13 +156,13 @@ export const borrarTodasLasConversaciones = async () => {
 export const mensajeDeError = (error) => {
   const status = error?.response?.status;
   const delServer = error?.response?.data?.message;
-  if (status === 429) return delServer || "Por hoy ya conversamos un montón: volvé mañana y seguimos.";
-  if (status === 503) return delServer || "Se me trabó la respuesta. Probá de nuevo en un ratito.";
+  if (status === 429) return delServer || "Llegaste al límite de consultas de hoy. Se renueva mañana.";
+  if (status === 503) return delServer || "El Sommelier no responde ahora. Probá de nuevo en unos minutos.";
   // Un timeout de axios (`ECONNABORTED`) tampoco trae `error.response`, igual
   // que una caída de red de verdad — pero para quien lee son dos cosas muy
   // distintas: una dice "revisá tu conexión" y la otra "esperá un toque más".
   // Sin distinguirlas, alguien con la red perfecta se queda buscando el wifi.
-  if (error?.code === "ECONNABORTED") return "Estoy tardando más de lo normal. Probá de nuevo en un toque.";
-  if (!error?.response) return "Parece que te quedaste sin conexión. Probá de nuevo en un toque.";
-  return delServer || "Algo falló de mi lado. Probá de nuevo en un toque.";
+  if (error?.code === "ECONNABORTED") return "La respuesta tarda más de lo normal. Probá de nuevo.";
+  if (!error?.response) return "Sin conexión. Probá de nuevo.";
+  return delServer || "No se pudo responder. Probá de nuevo.";
 };

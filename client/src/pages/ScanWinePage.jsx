@@ -389,7 +389,7 @@ export default function ScanWinePage() {
       // Igual que arriba: la lista cacheada quedó vieja y Mi Bodega la lee.
       limpiarCacheDeDeseos();
       successHaptic();
-      showSuccess(`"${draft.name.trim()}" guardado en Quiero probar`);
+      showSuccess(`"${draft.name.trim()}" guardado en Favoritos`);
       setReview(null);
     } catch {
       showError("No se pudo guardar el vino en tu lista");

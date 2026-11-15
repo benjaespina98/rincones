@@ -37,7 +37,7 @@ test("la tarjeta explica por qué con motivos cortos, sin porcentaje ni foto de 
               modo: "afinidad",
               coincidencia: 99,
               razones: ["Como tomaste Malbec, te recomiendo este vino"],
-              motivos: ["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"],
+              motivos: ["Tomaste Malbec", "Región que tomás seguido: Mendoza"],
             },
           },
         ],
@@ -50,7 +50,7 @@ test("la tarjeta explica por qué con motivos cortos, sin porcentaje ni foto de 
   await expect(tarjeta.locator(".spotlight__name")).toHaveText("Otro Loco Más");
 
   expect(await tarjeta.locator(".spotlight__eyebrow").innerText()).toBe("Para vos");
-  expect(await tarjeta.locator(".spotlight__motivo").allInnerTexts()).toEqual(["Tomaste Malbec", "Mendoza aparece seguido en lo que tomás"]);
+  expect(await tarjeta.locator(".spotlight__motivo").allInnerTexts()).toEqual(["Tomaste Malbec", "Región que tomás seguido: Mendoza"]);
   expect(await tarjeta.innerText(), "ningún porcentaje de coincidencia").not.toMatch(/[0-9]+ ?%/);
   expect(await tarjeta.locator(".spotlight__art img").count(), "botella dibujada, no la foto ajena").toBe(0);
   expect(await tarjeta.locator(".spotlight__art svg").count()).toBeGreaterThanOrEqual(1);

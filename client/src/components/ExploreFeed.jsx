@@ -44,7 +44,7 @@ export default function ExploreFeed({ groups = [], stats, seed = 0 }) {
           cualquier app titula su cajón de contenido. Además prometía sólo
           aprender, y acá abajo también hay música y lugares para ir. */}
       <header className="explore__head">
-        <h2 className="explore__title">Más sobre vino</h2>
+        <h2 className="explore__title">Aprender</h2>
       </header>
 
       {/* Lo propio primero: es lo único de esta sección que no te saca de la

@@ -79,11 +79,11 @@ export default function VerifyEmailPage() {
           </span>
           <h1 className="auth-brand__title">
             {estado === ESTADOS.cargando && "Confirmando tu email…"}
-            {estado === ESTADOS.ok && "¡Email confirmado!"}
+            {estado === ESTADOS.ok && "Email confirmado"}
             {estado === ESTADOS.error && "No pudimos confirmarlo"}
           </h1>
           {estado === ESTADOS.ok && (
-            <p className="auth-brand__subtitle">Ya podés usar Rincones con la cuenta habilitada del todo.</p>
+            <p className="auth-brand__subtitle">Cuenta activa.</p>
           )}
         </div>
 

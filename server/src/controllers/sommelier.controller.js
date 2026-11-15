@@ -484,7 +484,7 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) 
     // Con "otra opción" NO: la respuesta anterior, que era buena, no se pisa con una genérica. Ahí falla como siempre (503) y queda
     // lo que ya estaba. Y un fuera de tema legítimo sin texto se contesta como fuera de tema (ver `armarRespuesta`).
     if (!resultado && regenerar) {
-      return enviar(503, { message: "No pude pensar otra opción ahora. Probá de nuevo en un ratito." });
+      return enviar(503, { message: "No se pudo generar otra opción. Probá de nuevo." });
     }
     if (!resultado || (!resultado.offTopic && !String(resultado.answer || "").trim())) {
       return enviar(200, {
@@ -585,7 +585,7 @@ const askStream = async (req, res, next) => {
   await resolverPregunta(req, {
     next: (error) => {
       if (!abierto) return next(error);
-      evento("error", { status: 500, message: "No pude terminar la respuesta. Probá de nuevo." });
+      evento("error", { status: 500, message: "No se pudo completar la respuesta. Probá de nuevo." });
       return cerrar();
     },
     enviar: (status, cuerpo) => {
@@ -681,13 +681,13 @@ const askPhoto = async (req, res, next) => {
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/photo" });
       return res.status(503).json({
-        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+        message: "No se pudo leer la foto. Probá de nuevo.",
       });
     }
 
     if (!resultado) {
       return res.status(503).json({
-        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+        message: "No se pudo leer la foto. Probá de nuevo.",
       });
     }
 

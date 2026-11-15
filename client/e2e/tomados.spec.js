@@ -35,7 +35,7 @@ test("un vino tomado al que le sumás una botella y se la abrís sigue en Ya tom
   await expect(page.getByText(/sigue entre los ya tomados/)).toBeVisible();
 
   // − : abrir la botella. Cuenta como tomado de nuevo y se ve.
-  await fila.getByRole("button", { name: "Tomé una botella" }).click();
+  await fila.getByRole("button", { name: "Abrir una botella" }).click();
   await expect(fila).toContainText("Tomado 2 veces · hoy");
   await expect(fila).toContainText("Sin botellas · tocá + para sumar una al stock");
   await expect(page.getByText(/lo tomaste 2 veces/)).toBeVisible();
@@ -81,7 +81,7 @@ test("en la ficha el − cuenta como tomada, igual que en la fila; quitar sin to
   await entrar(page, u);
   await page.goto(`/vino/${id}`);
 
-  await page.getByRole("button", { name: /Tomé una botella: baja el stock/ }).click();
+  await page.getByRole("button", { name: /Abrir una botella: baja el stock/ }).click();
   await expect(page.locator(".wine-detail-tomado")).toHaveText(/^Tomado · hoy$/);
   await expect(page.getByText(/Botella abierta · te quedan 2/)).toBeVisible();
   let w = await leer(request, u, id);

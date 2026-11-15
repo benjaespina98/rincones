@@ -62,7 +62,7 @@ const LoginPage = () => {
             <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Rincones</h1>
-          <p className="auth-brand__subtitle">Tu bodega, en el bolsillo.</p>
+          <p className="auth-brand__subtitle">Registro personal de tus vinos.</p>
         </div>
 
         {error && (

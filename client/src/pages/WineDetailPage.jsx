@@ -729,7 +729,7 @@ export default function WineDetailPage() {
                       tecla hacía cosas distintas según la pantalla («a veces no
                       funciona»). Quitar una SIN tomarla sigue existiendo, pero como
                       acción aparte y con nombre (abajo). */}
-                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleOpenBottle(1)} aria-label="Tomé una botella: baja el stock y cuenta como tomada" title="Tomé una botella: baja el stock y cuenta como tomada">
+                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleOpenBottle(1)} aria-label="Abrir una botella: baja el stock y cuenta como tomada" title="Abrir una botella: baja el stock y cuenta como tomada">
                     <Icon name="minus" size={14} />
                   </button>
                   {/* Ver BodyPage: el `key` va en el span interno para que la
