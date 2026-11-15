@@ -2,8 +2,8 @@
 // que lee importWineImages.js. Una página por vino (cosecha vigente), `og:image` = foto de producto.
 //
 //   node scripts/descargarFotosCatena.js --out=./fotos-catena
-//   node scripts/recortarFondoBlanco.js --in=./fotos-catena --out=./fotos-catena-recortadas
-//   npm run import:images -- --dir=./fotos-catena-recortadas --dry     (después, sin --dry)
+//   node scripts/rotarBotellasAcostadas.js --in=./fotos-catena --out=./fotos-catena-de-pie
+//   npm run import:images -- --dir=./fotos-catena-de-pie --dry     (después, sin --dry)
 //
 // - 1,2 s entre pedidos. El robots.txt de la bodega permite leer estas páginas (sólo bloquea wp-admin, búsquedas y /wp-json).
 // - Las fotos son de la bodega, sin licencia abierta: se muestran con su crédito.
@@ -12,7 +12,7 @@
 // - OJO, medido 2026-11-15: el sitio sólo publica UNA imagen por vino y es apaisada (600x190 o 600x324). 16 de las 25 son la
 //   botella ACOSTADA con fondo transparente (Catena, Angélica Zapata, DV Catena, Saint Felicien); las otras 9 (Catena Alta,
 //   Nicolás Catena Zapata, White Stones, Alta Cabernet/Chardonnay) son fotos de ambiente, no de producto. La tarjeta de
-//   Descubrí espera la botella de pie: por eso estas fotos NO se importaron. Falta una fuente con botellas verticales.
+//   Descubrí espera la botella de pie: rotarBotellasAcostadas.js las pone de pie (20 con transparencia) y saltea las de ambiente.
 // - NO están mapeados: Alamos, Alma Negra, Tikal y Siesta (otros sitios).
 const fs = require("fs");
 const path = require("path");
