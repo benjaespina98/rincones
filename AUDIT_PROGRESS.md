@@ -16,16 +16,16 @@ Este archivo existe para poder retomar el trabajo en otra sesión.
 | E. Tests de `authenticate`, `requireAdmin`, `refresh`, dueño | hecho | `b7e3531` |
 | F. Rendimiento (Sentry puente, `manualChunks`, CI) | hecho | `a98bba7` |
 | G. UX/UI (contrastes AA, título, toasts, 44 px, etiquetas) | hecho (parcial, ver abajo) | `5bcbcfe` |
-| H. QA en la app corriendo (`sherlock`) | en curso al escribir esto | — |
-| I. Fotos reales | **esperando confirmación para descargar** | — |
+| H. QA en la app corriendo (`sherlock`) | hecho (hallazgos corregidos) | `5bcbcfe` |
+| I. Fotos reales de botellas (bodegas) | hecho para Luigi Bosca (21) y Catena (20), en `test` | `f573220`, `8b6db08`, `f3ccb64`, `0f61b4c` |
 
 ## Mediciones (2026-11-12)
 
 | | Referencia | Ahora |
 |---|---|---|
-| server (`node --test`) | 650 | **705** |
-| client (vitest) | 911 | **927** |
-| tokens | 155/155 | **157/157** |
+| server (`node --test`) | 650 | **708** |
+| client (vitest) | 911 | **929** |
+| tokens | 155/155 | **158/158** |
 | lint | limpio | limpio |
 | carga inicial gzip | ~143 kB de tope | **124,4 kB** (entry 18,8 + vendor 93,4 + CSS 12,1) |
 | chunk de Sentry (sólo con DSN) | 160 kB | **29,3 kB** |
@@ -93,23 +93,24 @@ editor de vino.
 - Base `test`: 24 usuarios; 11 `qa-...` creados el 2026-11-12 ~02:48 UTC por el agente de QA cortado.
   **Nada borrado.**
 
-## Fotos reales (frente I): lo que se sabe
+## Fotos reales (frente I)
 
-El usuario pidió que sean fotos **reales**, no inventadas ni genéricas. Unsplash y Pexels rechazan la
-descarga automática (no se esquiva). Candidatas verificadas por la API de Wikimedia Commons (licencia
-y autor leídos, falta abrir cada página para confirmar):
+Se usan fotos de producto de las propias bodegas (no genéricas ni inventadas), con `server/scripts/`:
 
-| Archivo en Commons | Autor | Licencia | Tamaño |
+| Bodega | Fotos | Cómo | Estado |
 |---|---|---|---|
-| Bodega chakana viñedo camino.jpg | Juan Pelizzatti | CC BY 3.0 | 2000×1312, 1,3 MB |
-| Bodega chakana trabajador con uvas.jpg | Juan Pelizzatti | CC BY 3.0 | 1920×1476, 255 kB |
-| Bodega chakana nieve y camino.jpg | Juan Pelizzatti | CC BY 3.0 | 2048×1371, 671 kB |
-| Bicycle among olive trees and vineyards, Maipu, Mendoza.jpg | MendozaGuide | CC BY 4.0 | 1170×1463, 763 kB |
+| Luigi Bosca | 21 | `descargarFotosLuigiBosca.js` (og:image de cada ficha, 1,2 s entre pedidos) + `recortarFondoBlanco.js` | cargadas en `test` |
+| Catena Zapata | 20 | `descargarFotosCatena.js` + `rotarBotellasAcostadas.js` (la bodega publica la botella acostada: se gira 90°) | cargadas en `test` |
 
-Todas exigen atribución visible. Irían a `client/src/assets/fotos/` en WebP con `srcset`, más una
-sección de créditos, y habría que sumar `avif|webp|jpg|png` al regex de `client/public/sw.js:97`.
+- Sin foto de producto (sólo hay fotos de ambiente): Catena Alta, Nicolás Catena Zapata, White Stones, Alta Cabernet/Chardonnay.
+- Luigi Bosca sin página de producto: Finca Los Nobles, Gala 1, Gala 3, La Linda, Riesling.
+- Son fotos de las bodegas, **sin licencia abierta**. Falta el crédito visible («Foto: bodega») y un contacto para retiros.
+- Descubrí prioriza vinos con foto confiable (`universoConFoto`, `conFotoPrimero`).
+- Las fotos que suben los usuarios no se tocaron: siguen yendo a Cloudinary.
+- **Producción: la carga la hace el usuario**, nunca el agente. Orden: bajar → recortar/rotar → `npm run import:images -- --dir=… --dry` → sin `--dry`.
+- Sin usar ni commitear: `client/src/assets/fotos/` y `FotoPaisaje.*` (paisajes de Chakana, CC BY 3.0). Se pueden borrar.
 
 ## Próxima tarea
 
-1. Informe de `sherlock` (H) y corregir lo que encuentre.
-2. Con confirmación del usuario, descargar las fotos de arriba e integrarlas (frente I).
+1. Revisar el diff completo y abrir PR a `develop` (no hecho: la regla de esta auditoría es sin push).
+2. Decidir las cinco decisiones de arriba.
