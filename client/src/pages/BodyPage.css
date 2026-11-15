@@ -2203,3 +2203,56 @@
     color: var(--text);
   }
 }
+
+/* ══ ESCRITORIO: LA CABECERA EN UN SOLO RENGLÓN ═════════════════════════════
+   En el celular todo se apila: buscador, vista, tipo de filtro, chips. En una pantalla ancha eso eran
+   cuatro renglones de controles antes del primer vino. Ahora: [vista | buscador · lista · filtros] y,
+   debajo, [Tipo Uva Región Bodega | chips]. Los contenedores no existen en el celular (display: contents),
+   así que ahí nada cambia. */
+.bodega-cabecera,
+.bodega-facetas {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .bodega-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .bodega-cabecera .bodega-bar {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .bodega-cabecera .segmented.bodega-vista {
+    order: 1;
+    flex: 0 0 auto;
+    max-width: none;
+    min-width: 380px;
+  }
+
+  .bodega-facetas {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .bodega-facetas .bodega-dim {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  /* El tipo de filtro y sus chips: una división fina los separa en vez de apilarlos. */
+  .bodega-facetas .bodega-tipos {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 7px 0 7px 22px;
+    border-left: 1px solid var(--border-base);
+  }
+}

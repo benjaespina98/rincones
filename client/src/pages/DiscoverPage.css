@@ -1059,3 +1059,53 @@
 .wine-result-card__actions {
   padding: 8px 10px 8px 4px;
 }
+
+/* ══ ESCRITORIO: EL VINO DEL DÍA ════════════════════════════════════════════
+   En 860px de ancho la tarjeta del celular dejaba la botella de 120px y la mitad derecha vacía.
+   Acá la foto crece (como la ficha de producto de Vivino: la botella manda), el nombre sube de
+   tamaño y el motivo y los botones quedan alineados con el texto, no debajo de la foto. */
+@media (min-width: 1024px) {
+  .spotlight {
+    --spotlight-art-w: 148px;
+    --spotlight-gap: 28px;
+    padding: 28px 32px;
+    gap: 18px;
+  }
+
+  .spotlight__open {
+    gap: var(--spotlight-gap);
+  }
+
+  .spotlight__art {
+    width: var(--spotlight-art-w);
+    height: 208px;
+  }
+
+  .spotlight__body {
+    gap: 6px;
+  }
+
+  .spotlight__name {
+    font-size: var(--text-3xl, 2rem);
+    line-height: 1.1;
+  }
+
+  .spotlight__meta {
+    font-size: var(--text-base);
+  }
+
+  /* Alineados con la columna del texto: foto + separación. */
+  .spotlight__motivos,
+  .spotlight__actions {
+    padding-left: calc(var(--spotlight-art-w) + var(--spotlight-gap));
+  }
+
+  /* Las dos acciones ya no se parten en dos renglones por falta de ancho. */
+  .spotlight__actions {
+    flex-wrap: nowrap;
+  }
+
+  .spotlight--skeleton {
+    min-height: 300px;
+  }
+}

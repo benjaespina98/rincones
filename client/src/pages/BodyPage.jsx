@@ -1096,6 +1096,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
           La protagonista es la colección. Todo lo que no es un vino se apretó en
           dos filas: ésta y la de la vista, que además lleva los números adentro. */}
+      {/* En escritorio la vista (En stock / Ya tomados / Favoritos) y el buscador comparten renglón; en el celular
+          el contenedor no existe (display: contents) y todo se apila como siempre. */}
+      <div className="bodega-cabecera">
       <div className="bodega-bar">
         <div className="search-container">
           <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
@@ -1215,6 +1218,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
             : []),
         ]}
       />
+      </div>
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (
@@ -1263,7 +1267,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           fichas de filtro a propósito: describe el resultado del segmentado y de los filtros,
           así que se lee como consecuencia de lo de arriba y no como un encabezado suelto. */}
       {!loading && !error && dimensionesConDatos.length > 0 && (
-        <>
+        <div className="bodega-facetas">
           {/* Con qué se filtra: Tipo, Uva, Región o Bodega. Una sola fila de fichas que cambia con la
               dimensión elegida, en vez de cuatro filas apiladas. */}
           {dimensionesConDatos.length > 1 && (
@@ -1330,7 +1334,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
               </div>
             )
           )}
-        </>
+        </div>
       )}
 
       {!loading && !error && (
