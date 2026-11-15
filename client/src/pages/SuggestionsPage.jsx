@@ -1050,7 +1050,7 @@ export default function SuggestionsPage() {
                         }
                       >
                         <div className="suggestion-card__image">
-                          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} marca={wine.winery || wine.name} />
+                          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} fit="auto" marca={wine.winery || wine.name} />
                         </div>
                         <div className="suggestion-card__body">
                           <p className="suggestion-card__name">{wine.name}</p>
@@ -1097,7 +1097,7 @@ export default function SuggestionsPage() {
                             onClick={() => openCatalog(wine)}
                           >
                             <span className="discover-card__thumb">
-                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} marca={wine.winery || wine.name} />
+                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} fit="auto" marca={wine.winery || wine.name} />
                             </span>
                             <span className="discover-card__body">
                               <span className="discover-card__name">{wine.name}</span>
