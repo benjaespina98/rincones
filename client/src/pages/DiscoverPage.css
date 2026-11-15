@@ -1181,3 +1181,41 @@
     animation: none;
   }
 }
+
+/* ══ EL VINO ES EL PROTAGONISTA ═════════════════════════════════════════════
+   Los botones ocupaban más lugar que la botella. Ahora la foto crece (136×224 en el celular), vive sobre un fondo
+   casi negro con una luz detrás —la botella resalta— y las dos acciones comparten un solo renglón, más bajo.
+   En escritorio mandan las medidas del bloque de arriba (148×208 y más). */
+.spotlight__art {
+  background:
+    radial-gradient(60% 46% at 50% 42%, rgb(var(--paper-rgb) / 0.14), transparent 72%),
+    rgb(var(--ink-rgb) / 0.94);
+  border-color: rgb(var(--paper-rgb) / 0.06);
+}
+
+.spotlight__actions {
+  flex-wrap: nowrap;
+}
+
+.spotlight__actions .spotlight__add,
+.spotlight__actions .spotlight__surprise {
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  white-space: nowrap;
+}
+
+.spotlight__actions .spotlight__add {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 1023px) {
+  .spotlight__art {
+    width: 136px;
+    height: 224px;
+  }
+
+  .spotlight--skeleton {
+    min-height: 330px;
+  }
+}

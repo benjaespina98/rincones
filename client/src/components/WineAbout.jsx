@@ -69,6 +69,8 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
   // Plegado por defecto, pero ahora esconde bastante menos: sólo lo que se
   // consulta una vez (cómo tomarlo, la graduación, la curiosidad).
   const [abierto, setAbierto] = useState(false);
+  const [resumenAbierto, setResumenAbierto] = useState(false);
+  const resumenLargo = (info?.summary || "").length > 150;
 
   if (!loading && !failed && !info) return null;
 
@@ -103,7 +105,17 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
 
       {info && !loading && (
         <>
-          {info.summary && <p className="wine-about__summary">{info.summary}</p>}
+          {info.summary && (
+            <>
+              {/* El párrafo largo se recorta a tres renglones: lo primero que se lee es el estilo del vino, no un muro de texto. */}
+              <p className={`wine-about__summary${resumenLargo && !resumenAbierto ? " is-clamped" : ""}`}>{info.summary}</p>
+              {resumenLargo && (
+                <button type="button" className="wine-about__leer" onClick={() => setResumenAbierto((v) => !v)} aria-expanded={resumenAbierto}>
+                  {resumenAbierto ? "Leer menos" : "Leer más"}
+                </button>
+              )}
+            </>
+          )}
 
           {/* El perfil en barras, sin nada que tocar: es lo que se mira de un
               vistazo y lo único de la ficha que se puede comparar entre dos

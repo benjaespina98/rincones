@@ -1375,3 +1375,102 @@
   flex: 1;
   margin-top: 0;
 }
+
+/* ══ LA FICHA, MÁS VISUAL Y MENOS TEXTO ═════════════════════════════════════
+   1. La botella manda: el escenario sube de 340 a 460px como máximo y la foto pierde el aire de 9% que la achicaba.
+   2. Detrás, un cono de luz y debajo una sombra de apoyo: se lee como un objeto sobre una mesa, no como un recorte.
+   3. Respira (4px en 7 s) y entra con un leve ascenso. Sólo transform y opacity.
+   4. El resumen se recorta a tres renglones con «Leer más». */
+.wine-detail-hero__placeholder {
+  height: clamp(320px, 54vh, 460px);
+}
+
+.wine-detail-hero__placeholder > * {
+  position: relative;
+  z-index: 1;
+}
+
+.wine-detail-hero__placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(42% 58% at 50% 46%, rgb(var(--paper-rgb) / 0.2), transparent 72%);
+  pointer-events: none;
+}
+
+.wine-detail-hero__placeholder::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 34%;
+  height: 16px;
+  z-index: 0;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--ink-rgb) / 0.55), transparent);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.wine-detail-hero .wine-photo--contain .wine-photo__img {
+  padding: 3% 0 6%;
+  filter: drop-shadow(0 14px 22px rgb(var(--ink-rgb) / 0.55));
+}
+
+@keyframes ficha-botella-entra {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ficha-botella-flota {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.wine-detail-hero .wine-photo--contain.is-loaded .wine-photo__img {
+  animation: ficha-botella-entra 520ms var(--ease-out) both, ficha-botella-flota 7s ease-in-out 520ms infinite;
+}
+
+.wine-about__summary.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wine-about__leer {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Las secciones entran de a una al llegar a la ficha. */
+.wine-detail-body > * {
+  animation: rincon-enter-up 420ms var(--ease-out) both;
+}
+
+.wine-detail-body > :nth-child(2) { animation-delay: 70ms; }
+.wine-detail-body > :nth-child(3) { animation-delay: 140ms; }
+.wine-detail-body > :nth-child(4) { animation-delay: 210ms; }
+.wine-detail-body > :nth-child(n + 5) { animation-delay: 280ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-detail-hero .wine-photo--contain.is-loaded .wine-photo__img,
+  .wine-detail-body > * {
+    animation: none;
+  }
+}
+
+/* Fondo casi negro: la botella es la protagonista. */
+.wine-detail-hero__ambient {
+  filter: blur(38px) saturate(1.2) brightness(0.34);
+}
