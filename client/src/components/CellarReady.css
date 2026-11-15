@@ -173,3 +173,9 @@
   color: var(--gold-soft);
   font-weight: 700;
 }
+
+/* «última botella» entera: antes se cortaba con puntos suspensivos (79 px de texto en una caja de 73). */
+.cellar-ready__qty {
+  overflow: visible;
+  text-overflow: clip;
+}

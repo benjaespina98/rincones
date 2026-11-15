@@ -1227,3 +1227,20 @@
   padding: 0 10px;
   gap: 5px;
 }
+
+/* Las dos acciones caben en un renglón también a 360 px: «Quiero probarlo» cede ancho y «Ver otro» no se corta. */
+.spotlight__actions .spotlight__add {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.spotlight__actions .spotlight__surprise {
+  flex: 0 0 auto;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.spotlight__actions .spotlight__add {
+  padding-left: 14px;
+  padding-right: 14px;
+}

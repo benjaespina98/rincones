@@ -446,7 +446,7 @@ function WineRow({
                 onClick={() => onSumarStock?.(wine)}
                 disabled={isPending || !onSumarStock}
                 aria-live="polite"
-                aria-label={`${wine.quantity} botellas: tocá para sumar varias`}
+                aria-label={`${wine.quantity} ${Number(wine.quantity) === 1 ? "botella" : "botellas"}: tocá para sumar varias`}
                 title="Sumar varias botellas"
               >
                 {wine.quantity}
