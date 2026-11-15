@@ -49,7 +49,9 @@ test("la tarjeta explica por qué con motivos cortos, sin porcentaje ni foto de 
   const tarjeta = page.locator(".spotlight").first();
   await expect(tarjeta.locator(".spotlight__name")).toHaveText("Otro Loco Más");
 
-  expect(await tarjeta.locator(".spotlight__eyebrow").innerText()).toBe("Para vos");
+  expect(await tarjeta.locator(".spotlight__eyebrow").innerText()).toBe("Recomendado");
+  expect(await tarjeta.locator(".spotlight__motivo").allInnerTexts()).toEqual(["Tomaste Malbec"]);
+  await tarjeta.getByRole("button", { name: "+1" }).click();
   expect(await tarjeta.locator(".spotlight__motivo").allInnerTexts()).toEqual(["Tomaste Malbec", "Región que tomás seguido: Mendoza"]);
   expect(await tarjeta.innerText(), "ningún porcentaje de coincidencia").not.toMatch(/[0-9]+ ?%/);
   expect(await tarjeta.locator(".spotlight__art img").count(), "botella dibujada, no la foto ajena").toBe(0);

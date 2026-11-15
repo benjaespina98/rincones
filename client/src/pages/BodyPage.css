@@ -2256,3 +2256,44 @@
     border-left: 1px solid var(--border-base);
   }
 }
+
+/* ══ GRILLA: DOS INSIGNIAS REDONDAS SOBRE LA FOTO, NUNCA UN CHIP ════════════
+   «Marcar como tomado» en un chip con texto, al lado del corazón y sobre la botella, se pisaba con los dos en
+   una celda de ~170px. En la grilla el estado es un círculo con ícono (el mismo tamaño que el corazón, en la
+   esquina opuesta) y la palabra queda en el aria-label y el title. El texto sólo vive en las filas de lista,
+   donde hay ancho de sobra. */
+.wines-list--grid .wine-row--vitrina .wine-row__tasted,
+.wines-list--grid .wine-row .wine-row__tasted {
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(var(--bg-rgb) / 0.82);
+  color: var(--text-secondary);
+}
+
+.wines-list--grid .wine-row--vitrina .wine-row__tasted.is-on,
+.wines-list--grid .wine-row .wine-row__tasted.is-on {
+  background: rgb(var(--success-rgb) / 0.28);
+  color: var(--success-text);
+}
+
+.wines-list--grid .wine-row--vitrina .wine-row__tasted .wine-row__tasted-text,
+.wines-list--grid .wine-row .wine-row__tasted .wine-row__tasted-text {
+  display: none;
+}
+
+/* En la grilla la celda es angosta: «Listo para tomar · hasta 2029» baja a un segundo renglón en vez de cortarse. */
+.wines-list--grid .wine-row__peak {
+  white-space: normal;
+  line-height: 1.3;
+  overflow: visible;
+  text-overflow: clip;
+}

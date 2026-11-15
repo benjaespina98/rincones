@@ -96,6 +96,9 @@ export default function DiscoverPage() {
   // "Ver otro" recorre el resto.
   // El vino que se ve, por id (no por posición): si se descarta uno, la posición se corre sola.
   const [spotlightElegido, setSpotlightElegido] = useState(null);
+  // Los motivos arrancan en una sola ficha (más las que faltan en «+N») y se apilan al pedirlos. Se guarda el
+  // vino para el que se abrieron: al cambiar de recomendación vuelven solos a su versión corta.
+  const [motivosAbiertosDe, setMotivosAbiertosDe] = useState(null);
 
   /* Semilla de la sesión. Ya no la usan el título ni el motivo —eso era el
      generador de redacciones que se fue con el cambio de tono—, pero sí la
@@ -701,10 +704,22 @@ export default function DiscoverPage() {
             </div>
           </button>
           {motivos.length > 0 && (
-            <ul className="spotlight__motivos" aria-label="Por qué te lo sugerimos">
-              {motivos.map((m, i) => (
+            <ul className={`spotlight__motivos${motivosAbiertosDe === spotlight.id ? " is-abierto" : ""}`} aria-label="Por qué te lo sugerimos">
+              {(motivosAbiertosDe === spotlight.id ? motivos : motivos.slice(0, 1)).map((m, i) => (
                 <li key={`${i}-${m}`} className="spotlight__motivo">{m}</li>
               ))}
+              {motivos.length > 1 && (
+                <li>
+                  <button
+                    type="button"
+                    className="spotlight__mas"
+                    aria-expanded={motivosAbiertosDe === spotlight.id}
+                    onClick={() => setMotivosAbiertosDe(motivosAbiertosDe === spotlight.id ? null : spotlight.id)}
+                  >
+                    {motivosAbiertosDe === spotlight.id ? "Ver menos" : `+${motivos.length - 1}`}
+                  </button>
+                </li>
+              )}
             </ul>
           )}
           <div className="spotlight__actions">

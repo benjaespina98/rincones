@@ -135,7 +135,9 @@ const FUERA_DE_LA_LISTA = "-rawText -description";
 // un documento completo por vino —getters, setters, tracking de cambios— para
 // tirarlo a la basura apenas se serializa.
 async function listWines(userId) {
-  return Wine.find({ userId }).sort({ createdAt: -1 }).select(FUERA_DE_LA_LISTA).lean();
+  const wines = await Wine.find({ userId }).sort({ createdAt: -1 }).select(FUERA_DE_LA_LISTA).lean();
+  // Los que no tienen foto propia muestran la del pool si es buena (sólo lectura: no se guarda en el vino).
+  return wineImages.conFotoConfiable(wines);
 }
 
 /**

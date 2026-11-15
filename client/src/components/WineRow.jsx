@@ -120,7 +120,7 @@ function WineRow({
        queda con lo que sirve para RECONOCER la botella de un vistazo
        (tipo y uva) y la ficha técnica completa vive en un solo lugar,
        en vez de repartida entre un subtítulo y unos bloques sueltos. */
-    esVitrina || yaLoDice(wine.vintage) ? "" : wine.vintage,
+    yaLoDice(wine.vintage) ? "" : wine.vintage,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -143,7 +143,8 @@ function WineRow({
    * fila sería una columna de advertencias sobre botellas que están
    * perfectamente bien guardadas.
    */
-  const enSuPunto = esVitrina && getCellarStatus(wine).status === "peak";
+  const guarda = esVitrina ? getCellarStatus(wine) : null;
+  const enSuPunto = guarda?.status === "peak";
 
   /**
    * Deslizar para llegar al corazón y al tacho sin desplegar la fila.
@@ -379,8 +380,8 @@ function WineRow({
                 cortarse. Acá tiene la fila entera para él y no empuja
                 nada. */}
             {enSuPunto && (
-              <span className="wine-row__peak" title="Está dentro de su ventana de guarda">
-                <Icon name="sparkle" size={11} /> En su punto
+              <span className="wine-row__peak" title={`Ventana de consumo estimada: ${guarda.detail}`}>
+                <Icon name="sparkle" size={11} /> {guarda.label}{guarda.yearsLeft > 0 ? ` · hasta ${guarda.until}` : ""}
               </span>
             )}
 

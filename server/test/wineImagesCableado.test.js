@@ -47,3 +47,29 @@ test("contribute guarda una URL https aceptable", async () => {
     assert.equal(escrituras.length, 1);
   });
 });
+
+test("conFotoConfiable: completa sólo los vinos sin foto y sólo con fotos del pool bien puntuadas", async () => {
+  const original = WineImage.find;
+  let filtro;
+  WineImage.find = (f) => {
+    filtro = f;
+    const q = Promise.resolve([{ key: wineImages.wineKey("Catena", "Catena Zapata", "Malbec"), image: BUENA }]);
+    q.select = () => q;
+    q.lean = () => q;
+    return q;
+  };
+  try {
+    const propia = "https://res.cloudinary.com/x/image/upload/mia.jpg";
+    const salida = await wineImages.conFotoConfiable([
+      { name: "Catena", winery: "Catena Zapata", varietal: "Malbec" },
+      { name: "Otro", winery: "Otra", varietal: "Syrah" },
+      { name: "Catena", winery: "Catena Zapata", varietal: "Malbec", image: propia },
+    ]);
+    assert.equal(salida[0].image, BUENA);
+    assert.equal(salida[1].image, undefined, "sin foto en el pool, queda sin foto");
+    assert.equal(salida[2].image, propia, "la foto propia nunca se pisa");
+    assert.deepEqual(filtro.qualityScore, { $gte: 70 }, "el pool se consulta con piso de calidad");
+  } finally {
+    WineImage.find = original;
+  }
+});

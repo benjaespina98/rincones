@@ -190,8 +190,13 @@ describe("Descubrí: el porqué de la recomendación", () => {
     ]);
     await nombreRecomendado();
     expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
-    const chips = [...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent);
-    expect(chips).toEqual(["Tomaste Malbec", "Región que tomás seguido: Mendoza"]);
+    // Compacto: el motivo principal y un «+1» que abre el resto.
+    const chips = () => [...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent);
+    expect(chips()).toEqual(["Tomaste Malbec"]);
+    fireEvent.click(screen.getByRole("button", { name: "+1" }));
+    expect(chips()).toEqual(["Tomaste Malbec", "Región que tomás seguido: Mendoza"]);
+    fireEvent.click(screen.getByRole("button", { name: "Ver menos" }));
+    expect(chips()).toEqual(["Tomaste Malbec"]);
     expect(screen.getByRole("list", { name: /por qué te lo sugerimos/i })).toBeInTheDocument();
     // El porcentaje no era una probabilidad: no se muestra aunque el server lo mande.
     expect(document.querySelector(".spotlight__match")).toBeNull();
