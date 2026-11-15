@@ -7,7 +7,10 @@ import { useHeaderCollapse } from "../hooks/useHeaderCollapse";
 import BottomTabNavigation from "./BottomTabNavigation";
 import Icon from "./Icon";
 import Logo from "./Logo";
-import { TAB_PATHS } from "../data/navigation";
+import { TAB_PATHS, TABS, tabForPath } from "../data/navigation";
+
+// A dónde vuelve una pantalla interna cuando no hay historial (se abrió por enlace o con recarga): a su pestaña.
+const rutaPadre = (pathname) => TABS.find((t) => t.id === tabForPath(pathname))?.path || "/";
 import { TopbarContext } from "../context/TopbarContext";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import "./AppLayout.css";
@@ -83,7 +86,7 @@ const AppLayout = ({ children, pageTitle }) => {
             type="button"
             aria-label="Volver"
             title="Volver"
-            onClick={() => navigate(-1)}
+            onClick={() => (location.key !== "default" ? navigate(-1) : navigate(rutaPadre(location.pathname), { replace: true }))}
           >
             {/* Chevron y no flecha: es el gesto de "atrás" del sistema en iOS y
                 en Android, y la flecha llena de la app significa "ir hacia

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import "./LegalPage.css";
 
@@ -24,6 +24,7 @@ import "./LegalPage.css";
  */
 export default function LegalPage({ title, actualizado, children }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div className="legal">
@@ -31,7 +32,7 @@ export default function LegalPage({ title, actualizado, children }) {
         <button
           type="button"
           className="legal__volver"
-          onClick={() => navigate(-1)}
+          onClick={() => (location.key !== "default" ? navigate(-1) : navigate("/", { replace: true }))}
           aria-label="Volver"
         >
           <Icon name="chevron-left" size={20} />
