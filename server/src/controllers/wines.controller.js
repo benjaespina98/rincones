@@ -1,4 +1,5 @@
 const winesService = require("../services/wines.service");
+const wineImages = require("../services/wineImages.service");
 const { fail } = require("../utils/apiError");
 const { validarVino } = require("../utils/validarVino");
 
@@ -35,7 +36,9 @@ const getOne = async (req, res) => {
   try {
     const wine = await winesService.getWineById(req.user.id, req.params.id);
     if (!wine) return res.status(404).json({ success: false, error: "Vino no encontrado" });
-    return res.json({ success: true, data: wine });
+    // Sin foto propia, la ficha muestra la del pool si es buena (sólo lectura: no se guarda en el vino).
+    const [conFoto] = await wineImages.conFotoConfiable([typeof wine.toObject === "function" ? wine.toObject() : wine]);
+    return res.json({ success: true, data: conFoto });
   } catch (error) {
     return fail(res, error, req);
   }

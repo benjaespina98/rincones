@@ -161,7 +161,7 @@ async function searchWines(userId, query) {
     { notes: regex },
   ];
 
-  return Wine.find({
+  const encontrados = await Wine.find({
     userId,
     $and: terms.map((t) => ({ $or: campos(new RegExp(escapeRegex(t), "i")) })),
   })
@@ -169,6 +169,7 @@ async function searchWines(userId, query) {
     // Misma lista y mismo consumidor que `listWines`: mismo recorte.
     .select(FUERA_DE_LA_LISTA)
     .lean();
+  return wineImages.conFotoConfiable(encontrados);
 }
 
 /**
@@ -1411,7 +1412,7 @@ async function getCellarReady(userId) {
   const wines = await Wine.find({ userId, quantity: { $gt: 0 } })
     .select("-rawText -description")
     .lean();
-  return wines.filter((w) => getCellarStatus(w).status === "peak");
+  return wineImages.conFotoConfiable(wines.filter((w) => getCellarStatus(w).status === "peak"));
 }
 
 /**
