@@ -234,7 +234,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <h2 className="profile-section-title">Tu perfil</h2>
+      <h2 className="profile-section-title">Tu actividad</h2>
 
       {/* ── UN NÚMERO CON TIEMPO ADENTRO ────────────────────────────────────
           Acá vivía la tarjeta de nivel ("Nv 3 · Conocedor", con barra de
