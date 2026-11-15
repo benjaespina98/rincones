@@ -95,20 +95,37 @@ editor de vino.
 
 ## Fotos reales (frente I)
 
-Se usan fotos de producto de las propias bodegas (no genéricas ni inventadas), con `server/scripts/`:
+Fotos de producto de las propias bodegas (no genéricas ni inventadas), cargadas en la base **test** con scripts de `server/scripts/`. Pool de `test`: 108 fotos.
 
-| Bodega | Fotos | Cómo | Estado |
+| Bodega | Fotos | Script | Fuente / particularidad |
 |---|---|---|---|
-| Luigi Bosca | 21 | `descargarFotosLuigiBosca.js` (og:image de cada ficha, 1,2 s entre pedidos) + `recortarFondoBlanco.js` | cargadas en `test` |
-| Catena Zapata | 20 | `descargarFotosCatena.js` + `rotarBotellasAcostadas.js` (la bodega publica la botella acostada: se gira 90°) | cargadas en `test` |
+| Luigi Bosca | 21 | `descargarFotosLuigiBosca.js` + `recortarFondoBlanco.js` | og:image de cada ficha, fondo blanco |
+| Catena Zapata | 20 | `descargarFotosCatena.js` + `rotarBotellasAcostadas.js` | la bodega publica la botella acostada |
+| Rutini | 50 | `descargarFotosRutini.js` + `recortarFondoBlanco.js` | 806×1600, una por etiqueta de cada línea |
+| Zuccardi | 13 | `descargarFotosZuccardi.js` + `recortarFondoBlanco.js` | PNG con transparencia; **los nombres de archivo de Serie A están cruzados en su sitio** (Malbec ↔ Bonarda): el mapeo se verificó mirando la etiqueta |
+| Susana Balbo | 5 | `descargarFotosSusanaBalbo.js` | API pública del sitio (una consulta) |
 
-- Sin foto de producto (sólo hay fotos de ambiente): Catena Alta, Nicolás Catena Zapata, White Stones, Alta Cabernet/Chardonnay.
-- Luigi Bosca sin página de producto: Finca Los Nobles, Gala 1, Gala 3, La Linda, Riesling.
-- Son fotos de las bodegas, **sin licencia abierta**. Falta el crédito visible («Foto: bodega») y un contacto para retiros.
-- Descubrí prioriza vinos con foto confiable (`universoConFoto`, `conFotoPrimero`).
+- Sin foto de producto en el sitio de la bodega: Catena Alta, Nicolás Catena Zapata, White Stones (sólo ambiente); Zuccardi Santa Julia, Fuzión, Aluvional; Rutini Blend of Terroirs y Finca Centenaria; BenMarco.
+- Bodega Noemía: tiene 3 botellas (A Lisa, J Alberto, Noemía) pero ninguna coincide con el vino cargado («Cabernet Franc»); no se importó. Baron B: sin sitio oficial encontrado.
+- **Licencia:** son fotos de las bodegas, sin licencia abierta. Falta el crédito visible («Foto: bodega») y un contacto para retiros.
+- Los vinos sin foto propia muestran la del pool si tiene puntaje ≥ 70 (`wineImages.conFotoConfiable`, sólo lectura): no hace falta recargarlos.
 - Las fotos que suben los usuarios no se tocaron: siguen yendo a Cloudinary.
-- **Producción: la carga la hace el usuario**, nunca el agente. Orden: bajar → recortar/rotar → `npm run import:images -- --dir=… --dry` → sin `--dry`.
-- Sin usar ni commitear: `client/src/assets/fotos/` y `FotoPaisaje.*` (paisajes de Chakana, CC BY 3.0). Se pueden borrar.
+
+### Pasar las fotos a producción (lo hace el usuario, nunca el agente)
+
+Las fotos **ya están en Cloudinary**; el pool sólo guarda la URL. No hay que volver a subir nada: se copian los documentos de `test` a `rincones`.
+
+```bash
+cd server
+# 1) Simulacro: lista qué copiaría y no escribe nada
+npm run copiar:fotos -- --origen=test --destino=rincones
+# 2) Copiar de verdad (hay que repetir el nombre de la base destino)
+npm run copiar:fotos -- --origen=test --destino=rincones --aplicar --confirmo-destino=rincones
+```
+
+- Sólo copia fotos con puntaje ≥ 70 y URL de nuestro Cloudinary; si el vino ya tiene foto en producción, la respeta (`--force` para pisar; `--bodegas=Rutini,Zuccardi` para acotar).
+- Probado con una base de ensayo (se creó y se borró): simulacro, frena sin confirmación, copia 108 y una segunda corrida salta las 108.
+- Es reversible: borrar de `rincones.wineimages` las claves copiadas devuelve el estado anterior (las fotos de Cloudinary no se tocan).
 
 ## Próxima tarea
 

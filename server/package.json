@@ -19,6 +19,7 @@
     "mail:test": "node scripts/testEmail.js",
     "backup:drill": "node scripts/backupRestoreDrill.js",
     "import:images": "node scripts/importWineImages.js",
+    "copiar:fotos": "node scripts/copiarFotosDelPool.js",
     "fotos:preparar": "node scripts/prepararFotos.js"
   },
   "keywords": [],
