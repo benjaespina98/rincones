@@ -1,7 +1,6 @@
 import { memo } from "react";
 import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
-import StarRating from "./StarRating";
 import WineRowPanel from "./WineRowPanel";
 import { useLongPress } from "../hooks/useLongPress";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -296,7 +295,7 @@ function WineRow({
                    que el fix de arriba le devolviera sus 130px de
                    alto real. Ahora cada modo pide el tamaño que su
                    propio marco puede mostrar entero, con aire. */
-                artSize={esGrilla ? 112 : esVitrina ? 76 : 30}
+                artSize={esGrilla ? 112 : esVitrina ? 92 : 30}
                 /* La vitrina y la grilla presentan la botella entera
                    (contain); el archivo en lista es una miniatura de
                    38px, donde lo que importa es el color y la
@@ -345,10 +344,10 @@ function WineRow({
             )}
             {/* El puntaje va con la bodega, en la línea de abajo, y no en la columna de la derecha:
                 ahí se apilaba contra la cantidad y se superponían. Con la vitrina se ve en estrellas. */}
-            {(bodega || (!esVitrina && wine.rating > 0)) && (
+            {(bodega || wine.rating > 0) && (
               <span className="wine-row__winery">
                 {bodega}
-                {!esVitrina && wine.rating > 0 && (
+                {wine.rating > 0 && (
                   <span className="wine-row__rating-inline" aria-label={`${wine.rating} de 5`}>
                     {bodega ? " · " : ""}
                     <Icon name="star" filled size={11} /> {wine.rating.toFixed(1).replace(".", ",")}
@@ -381,7 +380,7 @@ function WineRow({
                 nada. */}
             {enSuPunto && (
               <span className="wine-row__peak" title={`Ventana de consumo estimada: ${guarda.detail}`}>
-                <Icon name="sparkle" size={11} /> {guarda.label}{guarda.yearsLeft > 0 ? ` · hasta ${guarda.until}` : ""}
+                <Icon name="sparkle" size={11} /> {guarda.yearsLeft > 0 ? `Tomalo hasta ${guarda.until}` : "Tomalo este año"}
               </span>
             )}
 
@@ -403,9 +402,6 @@ function WineRow({
                 entre vinos vecinos, que es justo lo que uno hace acá.
                 En el archivo sigue siendo el número, que ocupa un
                 cuarto del ancho. */}
-            {esVitrina && wine.rating > 0 && (
-              <StarRating value={wine.rating} size="sm" />
-            )}
           </span>
 
           <span className="wine-row__right">
@@ -449,7 +445,7 @@ function WineRow({
                 aria-label={`${wine.quantity} ${Number(wine.quantity) === 1 ? "botella" : "botellas"}: tocá para sumar varias`}
                 title="Sumar varias botellas"
               >
-                {wine.quantity}
+                <span key={wine.quantity} className="wine-row__stepper-num">{wine.quantity}</span>
               </button>
             )}
             <button
@@ -497,7 +493,7 @@ function WineRow({
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Ya tomado" : "Marcar como tomado"}
+            {wine.tasted ? resumenTomado(wine) || "Ya tomado" : "Marcar como tomado"}
           </span>
         </button>
         )}

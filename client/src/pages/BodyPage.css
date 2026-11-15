@@ -2297,3 +2297,66 @@
   overflow: visible;
   text-overflow: clip;
 }
+
+/* ══ MI BODEGA, MENOS DENSA Y MÁS VIVA ══════════════════════════════════════
+   1. «Tomado 2 veces · hoy» vive dentro del botón de estado: el renglón suelto repetía el mismo dato.
+   2. La botella crece (56×72 → 68×92): es el protagonista de la tarjeta.
+   3. Las estrellas pasaron al renglón de la bodega («★ 4,0»), como en las demás vistas.
+   4. La lista entra con un fundido corto al cambiar de pestaña o de vista, y el número del stepper rueda. */
+.wine-row--vitrina .wine-row__tomado {
+  display: none;
+}
+
+.wines-list--protagonista {
+  --wine-thumb-w: 68px;
+  --wine-thumb-h: 92px;
+}
+
+@keyframes lista-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes numero-rueda {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.wines-list {
+  animation: lista-entra 240ms var(--ease-out) both;
+}
+
+.wine-row__stepper-num {
+  display: inline-block;
+  animation: numero-rueda 180ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wines-list,
+  .wine-row__stepper-num {
+    animation: none;
+  }
+}
+
+/* En la lista (no en la grilla) el subtítulo y la bodega van en UN renglón cada uno, con puntos suspensivos:
+   la columna de texto es angosta (el stepper reserva 104 px) y partían en 3 y 2 renglones. */
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__sub {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__varietal {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__winery {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

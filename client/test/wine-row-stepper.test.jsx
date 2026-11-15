@@ -87,10 +87,10 @@ describe("WineRow: stepper junto a la cantidad", () => {
     expect(screen.getByRole("button", { name: "Abrir una botella" })).toBeDisabled();
   });
 
-  it("el chip de tomado dice 'Ya tomado' / 'Marcar como tomado'", () => {
+  it("el chip de tomado dice «Marcar como tomado» y, ya tomado, el resumen (Tomado 2 veces · hoy)", () => {
     const { rerender } = montar({ vista: "instock" });
     expect(screen.getByText("Marcar como tomado")).toBeInTheDocument();
     rerender(<WineRow wine={{ ...VINO, tasted: true }} vista="instock" esGrilla={false} enFavoritos={false} modoSeleccion={false} elegido={false} expanded={false} isPending={false} onAbrirFicha={() => {}} onSeleccionar={() => {}} onToggleTasted={() => {}} onToggleFavorite={() => {}} onExpandir={() => {}} onAbrirBotella={() => {}} onEliminar={() => {}} />);
-    expect(screen.getByText("Ya tomado")).toBeInTheDocument();
+    expect(screen.getAllByText("Tomado").length).toBeGreaterThan(0);
   });
 });

@@ -31,9 +31,26 @@ export default function BodegaResumen({ wines = [], className = "" }) {
   // hay que decir, y dos vacíos seguidos es uno de más.
   if (partes.length === 0) return null;
 
+  // Un segmento por tipo, del tamaño de las botellas que hay (o de los vinos, si no queda ninguna).
+  const porTipo = new Map();
+  for (const w of wines) {
+    const peso = Number(w.quantity) > 0 ? Number(w.quantity) : 1;
+    porTipo.set(w.type || "unknown", (porTipo.get(w.type || "unknown") || 0) + peso);
+  }
+  const tipos = [...porTipo.entries()].sort((x, y) => y[1] - x[1]);
+
   return (
-    <p className={`bres ${className}`.trim()} aria-label="Resumen de lo que estás viendo">
-      {partes.join(" · ")}
-    </p>
+    <div className="bres-wrap">
+      <p className={`bres ${className}`.trim()} aria-label="Resumen de lo que estás viendo">
+        {partes.join(" · ")}
+      </p>
+      {tipos.length > 1 && (
+        <div className="bres__barra" aria-hidden="true">
+          {tipos.map(([tipo, n]) => (
+            <span key={tipo} className="bres__seg" data-wine-type={tipo} style={{ flexGrow: n }} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

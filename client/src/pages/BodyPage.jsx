@@ -1419,6 +1419,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
       {!loading && !error && sortedWines.length > 0 && (
         <div
+          key={`${vista}-${viewMode}`}
           className={`wines-list wines-list--${viewMode} ${
             vista === "instock" ? "wines-list--protagonista" : "wines-list--archivo"
           } ${modoSeleccion ? "is-selecting" : ""}`}
