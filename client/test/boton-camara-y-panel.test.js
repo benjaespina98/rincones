@@ -12,10 +12,10 @@ import { resolve } from "node:path";
 const leer = (f) => readFileSync(resolve(process.cwd(), f), "utf8");
 
 describe("Escanear es un lugar de la barra, con nombre", () => {
-  test("el botón dice \"Escanear\" y no flota sobre el contenido", () => {
+  test("el botón dice \"Agregar vino\" y no flota sobre el contenido", () => {
     const jsx = leer("src/components/AddWineButton.jsx");
     const css = leer("src/components/AddWineButton.css").replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(jsx).toMatch(/Escanear/);
+    expect(jsx).toMatch(/Agregar vino/);
     const base = css.match(/\.add-fab\s*\{[^}]*\}/)?.[0] ?? "";
     expect(base).not.toMatch(/position:\s*fixed/);
   });

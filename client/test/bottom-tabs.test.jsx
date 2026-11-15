@@ -60,19 +60,19 @@ describe("BottomTabNavigation", () => {
     expect(container.querySelector(".bottom-tabs__indicador")).toBeNull();
   });
 
-  it("renderiza las cuatro pestañas y Escanear en el centro, con su nombre", () => {
+  it("renderiza las cuatro pestañas y Agregar vino en el centro, con su nombre", () => {
     enRuta("/");
     for (const tab of TABS) {
       expect(screen.getByLabelText(tab.label)).toBeInTheDocument();
     }
     expect(TABS).toHaveLength(4);
-    expect(screen.getByRole("button", { name: /escanear/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /agregar vino/i })).toBeInTheDocument();
   });
 
-  it("el orden es Descubrí, Sommelier, Escanear, Mi Bodega, Cuenta", () => {
+  it("el orden es Descubrí, Sommelier, Agregar vino, Mi Bodega, Cuenta", () => {
     const { container } = enRuta("/");
     const nombres = [...container.querySelectorAll(".bottom-tabs > button")].map((b) => b.textContent.trim());
-    expect(nombres).toEqual(["Descubrí", "Sommelier", "Escanear", "Mi Bodega", expect.stringMatching(/Cuenta$/)]);
+    expect(nombres).toEqual(["Descubrí", "Sommelier", "Agregar vino", "Mi Bodega", expect.stringMatching(/Cuenta$/)]);
   });
 
   it("Cuenta lleva al perfil y toma el estado de la ficha de valoraciones", () => {

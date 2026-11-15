@@ -84,15 +84,3 @@
 }
 
 
-/* En escritorio no hay una cámara de uso habitual: la tarea es agregar un vino (por foto, búsqueda o a mano).
-   El texto del DOM sigue siendo «Escanear»; sólo cambia lo que se ve, así el celular no se toca. */
-@media (min-width: 1024px) {
-  .add-fab__texto {
-    font-size: 0;
-  }
-
-  .add-fab__texto::after {
-    content: "Agregar vino";
-    font-size: var(--text-sm);
-  }
-}

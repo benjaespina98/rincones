@@ -543,10 +543,10 @@ export default function DiscoverPage() {
                         <Icon name="check" size={15} />
                         {agregados[r.id]
                           ? agregados[r.id].bottles > 0
-                            ? `Agregado · ${agregados[r.id].bottles} ${agregados[r.id].bottles === 1 ? "botella" : "botellas"}`
+                            ? `${agregados[r.id].bottles} agregada${agregados[r.id].bottles === 1 ? "" : "s"}`
                             : "Anotado como tomado"
                           : r.owned.bottles > 0
-                            ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
+                            ? `${r.owned.bottles} en tu bodega`
                             : r.owned.tasted
                               ? "Ya lo tomaste"
                               : "Ya está en tu bodega"}

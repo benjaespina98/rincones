@@ -105,8 +105,8 @@
 
 .cellar-ready__art {
   flex: none;
-  width: 44px;
-  height: 56px;
+  width: 52px;
+  height: 72px;
   display: grid;
   place-items: center;
 }
