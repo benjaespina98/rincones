@@ -95,7 +95,7 @@ editor de vino.
 
 ## Fotos reales (frente I)
 
-Fotos de producto de las propias bodegas (no genéricas ni inventadas), cargadas en la base **test** con scripts de `server/scripts/`. Pool de `test`: 108 fotos.
+Fotos de producto de las propias bodegas (no genéricas ni inventadas), cargadas en la base **test** con scripts de `server/scripts/`. Pool de `test`: 154 fotos.
 
 | Bodega | Fotos | Script | Fuente / particularidad |
 |---|---|---|---|
@@ -104,8 +104,11 @@ Fotos de producto de las propias bodegas (no genéricas ni inventadas), cargadas
 | Rutini | 50 | `descargarFotosRutini.js` + `recortarFondoBlanco.js` | 806×1600, una por etiqueta de cada línea |
 | Zuccardi | 13 | `descargarFotosZuccardi.js` + `recortarFondoBlanco.js` | PNG con transparencia; **los nombres de archivo de Serie A están cruzados en su sitio** (Malbec ↔ Bonarda): el mapeo se verificó mirando la etiqueta |
 | Susana Balbo | 5 | `descargarFotosSusanaBalbo.js` | API pública del sitio (una consulta) |
+| Piattelli | 13 | `descargarFotosPiattelli.js` + `recortarFondoBlanco.js` | sitio Wix sin texto en las imágenes: mapeo mirando etiquetas; PNG de hasta 13 MB que se achican a 2000 px |
+| Matías Riccitelli | 33 | `descargarFotosRiccitelli.js` + `recortarFondoBlanco.js` | API de su tienda WooCommerce |
 
 - Sin foto de producto en el sitio de la bodega: Catena Alta, Nicolás Catena Zapata, White Stones (sólo ambiente); Zuccardi Santa Julia, Fuzión, Aluvional; Rutini Blend of Terroirs y Finca Centenaria; BenMarco.
+- Séptima: su sitio oficial no responde (conexión cortada / certificado vencido): sin fotos. Faltan por revisar: Casarena, Mosquita Muerta, Fabre Montmayou, Trapiche, Norton, Trivento, Salentein, El Esteco, Nieto Senetiner.
 - Bodega Noemía: tiene 3 botellas (A Lisa, J Alberto, Noemía) pero ninguna coincide con el vino cargado («Cabernet Franc»); no se importó. Baron B: sin sitio oficial encontrado.
 - **Licencia:** son fotos de las bodegas, sin licencia abierta. Falta el crédito visible («Foto: bodega») y un contacto para retiros.
 - Los vinos sin foto propia muestran la del pool si tiene puntaje ≥ 70 (`wineImages.conFotoConfiable`, sólo lectura): no hace falta recargarlos.
@@ -124,7 +127,7 @@ npm run copiar:fotos -- --origen=test --destino=rincones --aplicar --confirmo-de
 ```
 
 - Sólo copia fotos con puntaje ≥ 70 y URL de nuestro Cloudinary; si el vino ya tiene foto en producción, la respeta (`--force` para pisar; `--bodegas=Rutini,Zuccardi` para acotar).
-- Probado con una base de ensayo (se creó y se borró): simulacro, frena sin confirmación, copia 108 y una segunda corrida salta las 108.
+- Probado con una base de ensayo (se creó y se borró): simulacro, frena sin confirmación, copia todas y una segunda corrida las salta. Hoy serían 154 fotos.
 - Es reversible: borrar de `rincones.wineimages` las claves copiadas devuelve el estado anterior (las fotos de Cloudinary no se tocan).
 
 ## Próxima tarea
