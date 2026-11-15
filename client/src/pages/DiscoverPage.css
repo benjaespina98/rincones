@@ -1086,7 +1086,7 @@
   }
 
   .spotlight__name {
-    font-size: var(--text-3xl, 2rem);
+    font-size: var(--text-3xl);
     line-height: 1.1;
   }
 

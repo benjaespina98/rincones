@@ -2252,7 +2252,7 @@
     flex: 1;
     min-width: 0;
     margin: 0;
-    padding: 7px 0 7px 22px;
+    padding: 7px 6px 7px 22px;
     border-left: 1px solid var(--border-base);
   }
 }
