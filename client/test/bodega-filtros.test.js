@@ -364,7 +364,7 @@ describe("frasesDelResumen según la vista", () => {
   it("en «En stock» cuenta botellas", () => {
     expect(frasesDelResumen(resumenDeBodega(vinos), "instock")[0]).toBe("1 botella");
   });
-  it("en «Ya tomados» cuenta vinos, no la botella que sobra", () => {
-    expect(frasesDelResumen(resumenDeBodega(vinos), "probados")).toEqual(["3 vinos", "3 uvas"]);
+  it("en «Ya tomados» cuenta vinos (sin detalle de uvas, eso vive en el perfil), no la botella que sobra", () => {
+    expect(frasesDelResumen(resumenDeBodega(vinos), "probados")).toEqual(["3 vinos"]);
   });
 });

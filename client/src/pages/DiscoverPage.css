@@ -1187,14 +1187,23 @@
    casi negro con una luz detrás —la botella resalta— y las dos acciones comparten un solo renglón, más bajo.
    En escritorio mandan las medidas del bloque de arriba (148×208 y más). */
 .spotlight__art {
+  /* Antes un casi-negro: las fotos de bodega vienen sobre negro y el rectángulo se leía como un parche. Ahora el panel
+     es una superficie de la app teñida con la luz del tipo de vino, y la foto se funde con él (abajo). */
   background:
-    radial-gradient(60% 46% at 50% 42%, rgb(var(--paper-rgb) / 0.14), transparent 72%),
-    rgb(var(--ink-rgb) / 0.94);
-  border-color: rgb(var(--paper-rgb) / 0.06);
+    radial-gradient(70% 55% at 50% 45%, rgb(var(--type-rgb) / 0.3), transparent 78%),
+    rgb(var(--surface-raised-rgb));
+  border-color: rgb(var(--paper-rgb) / 0.08);
+}
+
+/* `lighten` se queda con el más claro de cada píxel: el negro del fondo de la foto toma el color del panel y la botella
+   (vidrio, etiqueta, reflejos) queda tal cual. Sin esto el negro puro de la foto dibujaba un rectángulo. */
+.spotlight__art .wine-photo--contain .wine-photo__img {
+  mix-blend-mode: lighten;
+  filter: none;
 }
 
 .spotlight__actions {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .spotlight__actions .spotlight__add,
