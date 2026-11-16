@@ -15,7 +15,8 @@ export const searchWines = async (query) => {
   const q = String(query || "").trim();
   if (q.length < 2) return [];
 
-  const { data } = await api.get("/catalog/search", { params: { q } });
+  // El server puede tardar hasta 14 s si completa con IA: con el tope de 12 s del resto se cortaba antes de que contestara.
+  const { data } = await api.get("/catalog/search", { params: { q }, timeout: 18000 });
   return Array.isArray(data?.data) ? data.data : [];
 };
 
@@ -184,6 +185,24 @@ export const mercadoLibreUrl = (name, winery, varietal = "") => {
 };
 
 /**
+ * Los pedidos que generan texto con IA (ficha, receta) pueden pasar de los 12 s del resto: si el cliente cortaba antes,
+ * el server igual terminaba y lo dejaba guardado, y al recargar aparecía («da error y al actualizar se ve bien»).
+ * Por eso esperan más y reintentan UNA vez ante lo transitorio (modelo saturado, corte de red, timeout): el segundo
+ * intento suele encontrar el resultado ya guardado. Un 4xx no se reintenta: repetirlo daría lo mismo.
+ */
+const TIMEOUT_IA_MS = 25000;
+const conReintento = async (pedir) => {
+  try {
+    return await pedir();
+  } catch (error) {
+    const estado = error?.response?.status;
+    if (estado && estado >= 400 && estado < 500 && estado !== 429) throw error;
+    await new Promise((r) => setTimeout(r, 1200));
+    return pedir();
+  }
+};
+
+/**
  * Trae la ficha del vino (descripción, aromas, maridaje) generada por IA y
  * cacheada en el server. Lanza si falla, para que la UI muestre un estado claro.
  */
@@ -199,21 +218,9 @@ export const describeWine = async (wine) => {
         region: wine.region,
         vintage: wine.vintage,
       },
-      // Generar la ficha puede pasar de los 12 s del resto de los pedidos: si el cliente cortaba antes, el server igual
-      // terminaba y la dejaba guardada, y al recargar aparecía. Era «da error y al actualizar se ve bien».
-      { timeout: 25000 }
+      { timeout: TIMEOUT_IA_MS }
     );
-  let respuesta;
-  try {
-    respuesta = await pedir();
-  } catch (error) {
-    // Una sola vez, para lo transitorio (modelo saturado, corte de red, timeout): el segundo intento suele encontrar la
-    // ficha ya guardada. Un 4xx no se reintenta: repetirlo daría lo mismo.
-    const estado = error?.response?.status;
-    if (estado && estado >= 400 && estado < 500 && estado !== 429) throw error;
-    await new Promise((r) => setTimeout(r, 1200));
-    respuesta = await pedir();
-  }
+  const respuesta = await conReintento(pedir);
   return respuesta.data?.data || null;
 };
 
@@ -223,14 +230,20 @@ export const describeWine = async (wine) => {
  * noche" que cuesta una llamada. El server la cachea por vino + plan.
  */
 export const getWineRecipe = async (wine, plan) => {
-  const { data } = await api.post("/catalog/recipe", {
-    name: wine.name,
-    winery: wine.winery,
-    varietal: wine.varietal,
-    type: wine.type,
-    region: wine.region,
-    plan,
-  });
+  const { data } = await conReintento(() =>
+    api.post(
+      "/catalog/recipe",
+      {
+        name: wine.name,
+        winery: wine.winery,
+        varietal: wine.varietal,
+        type: wine.type,
+        region: wine.region,
+        plan,
+      },
+      { timeout: TIMEOUT_IA_MS }
+    )
+  );
   return data?.data || null;
 };
 
