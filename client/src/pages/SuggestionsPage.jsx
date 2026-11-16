@@ -40,6 +40,7 @@ import WineMeta from "../components/WineMeta";
 import WineRecipeSheet from "../components/WineRecipeSheet";
 import { FOOD_PAIRINGS } from "../data/wineReference";
 import { tapHaptic } from "../utils/haptics";
+import { lineaDeServicio } from "../utils/servicio";
 import { greeting, dayPart } from "../utils/momentCopy";
 import { trackEvent } from "../services/analyticsApi";
 import "./SuggestionsPage.css";
@@ -1100,6 +1101,7 @@ export default function SuggestionsPage() {
                             )}
                           </div>
                           {wine.rating > 0 && <StarRating value={wine.rating} size="sm" />}
+                          {lineaDeServicio(wine) && <p className="suggestion-card__servicio">{lineaDeServicio(wine)}</p>}
                         </div>
                       </li>
                     ))}

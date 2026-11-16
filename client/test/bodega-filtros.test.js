@@ -354,3 +354,17 @@ describe("orden por defecto: lo más reciente primero", () => {
     expect(ordenarVinos(vinos, { sortBy: "rating" }).map((w) => w._id)).toEqual(["con-stock", "sin-stock-mejor"]);
   });
 });
+
+describe("frasesDelResumen según la vista", () => {
+  const vinos = [
+    { quantity: 1, tasted: true, varietal: "Malbec" },
+    { quantity: 0, tasted: true, varietal: "Merlot" },
+    { quantity: 0, tasted: true, varietal: "Syrah" },
+  ];
+  it("en «En stock» cuenta botellas", () => {
+    expect(frasesDelResumen(resumenDeBodega(vinos), "instock")[0]).toBe("1 botella");
+  });
+  it("en «Ya tomados» cuenta vinos, no la botella que sobra", () => {
+    expect(frasesDelResumen(resumenDeBodega(vinos), "probados")).toEqual(["3 vinos", "3 uvas"]);
+  });
+});

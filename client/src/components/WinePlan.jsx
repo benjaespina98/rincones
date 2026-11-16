@@ -4,6 +4,7 @@ import ConceptTerm from "./ConceptTerm";
 import WineRecipeSheet from "./WineRecipeSheet";
 import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
 import { planTitle } from "../utils/momentCopy";
+import { TEMPERATURAS } from "../utils/servicio";
 import { getWineRecipe } from "../services/wineSearchApi";
 import "../styles/shared/SettingsSheet.css";
 import "../styles/shared/WinePlan.css";
@@ -39,16 +40,8 @@ import "../styles/shared/WinePlan.css";
  * usan los filtros y las preferencias.
  */
 
-// Temperaturas de servicio por tipo, para cuando la ficha no trae `serve`.
-// Son las de manual y no dependen de la botella: tomar un tinto a temperatura
-// ambiente de verano argentino es el error más común y más fácil de evitar.
-const TEMPERATURAS = {
-  red: "16-18 °C",
-  white: "8-10 °C",
-  "rosé": "8-10 °C",
-  sparkling: "6-8 °C",
-  fortified: "12-14 °C",
-};
+// Temperaturas de servicio por tipo, para cuando la ficha no trae `serve`: la tabla es compartida con el Sommelier
+// (ver utils/servicio.js) para que las dos pantallas digan lo mismo.
 
 export default function WinePlan({ wine, info }) {
   const [plan, setPlan] = useState(null);
