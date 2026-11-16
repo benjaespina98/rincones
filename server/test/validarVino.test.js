@@ -76,3 +76,12 @@ test("un campo de texto que llega como objeto o lista se rechaza", () => {
   assert.ok(validarVino({ name: "Malbec", winery: { x: 1 } }, { parcial: true }));
   assert.equal(validarVino({ name: "Malbec", notes: null }), null);
 });
+
+test("image, rawText, currency y cellarShelf que llegan como objeto o lista se rechazan (antes daban 500)", () => {
+  for (const campo of ["image", "rawText", "currency", "cellarShelf"]) {
+    assert.equal(validarVino({ name: "Malbec", [campo]: { $gt: "" } }), "Hay un dato que no es un texto válido", campo);
+    assert.equal(validarVino({ name: "Malbec", [campo]: ["a"] }), "Hay un dato que no es un texto válido", campo);
+    assert.equal(validarVino({ name: "Malbec", [campo]: "texto" }), null, campo);
+    assert.equal(validarVino({ name: "Malbec", [campo]: null }), null, campo);
+  }
+});
