@@ -105,8 +105,8 @@
 
 .cellar-ready__art {
   flex: none;
-  width: 44px;
-  height: 56px;
+  width: 52px;
+  height: 72px;
   display: grid;
   place-items: center;
 }
@@ -172,4 +172,10 @@
 .cellar-ready__qty.is-last {
   color: var(--gold-soft);
   font-weight: 700;
+}
+
+/* «última botella» entera: antes se cortaba con puntos suspensivos (79 px de texto en una caja de 73). */
+.cellar-ready__qty {
+  overflow: visible;
+  text-overflow: clip;
 }

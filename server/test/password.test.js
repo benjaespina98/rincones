@@ -57,3 +57,12 @@ test("toda consulta que compara contraseñas pide +passwordHash", () => {
     `Estos archivos comparan contraseñas sin pedir +passwordHash: ${fallas.join(", ")}`
   );
 });
+
+test("limpiarPassword: un solo criterio (string + trim); lo que no es texto cuenta como faltante", () => {
+  const { limpiarPassword } = require("../src/utils/password");
+  assert.equal(limpiarPassword("  Abcdef12  "), "Abcdef12");
+  assert.equal(limpiarPassword({ $ne: "" }), "");
+  assert.equal(limpiarPassword(["a"]), "");
+  assert.equal(limpiarPassword(undefined), "");
+  assert.equal(limpiarPassword(12345678), "");
+});

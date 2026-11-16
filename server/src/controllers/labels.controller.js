@@ -321,6 +321,9 @@ const analyzeLabel = async (req, res, next) => {
           region: v.region || "",
           type: v.type || "unknown",
           vintage: v.vintage || "",
+          composition: v.composition || "",
+          aging: v.aging || "",
+          alcohol: v.alcohol || 0,
           // Nombre visible ya compuesto con la convención del catálogo.
           displayName: v.displayName || "",
           isWineLabel: v.isWineLabel,
@@ -362,7 +365,17 @@ const analyzeLabel = async (req, res, next) => {
     // para que el cliente no tenga que saber de qué camino vino: el OCR sólo
     // logra sacar nombre y año, así que el resto va vacío con confianza 0.
     const tOcr = process.hrtime.bigint();
-    const result = await labelsService.analyzeImageBuffer(req.file.buffer);
+    // El OCR puede fallar por su cuenta (HEIC, que Leptonica no decodifica; el
+    // idioma que no carga). Eso no es un 500: es "no la pude leer", con la misma
+    // salida que ya ofrece la pantalla (otra foto o cargarlo a mano).
+    let result;
+    try {
+      if (imagen.info.type === "heic") throw new Error("el OCR local no lee HEIC");
+      result = await labelsService.analyzeImageBuffer(req.file.buffer);
+    } catch (ocrError) {
+      console.error(`[scan] analyze source=ocr falló tras ${ms(tOcr).toFixed(1)}ms:`, ocrError?.message || ocrError);
+      return res.status(503).json({ message: "No pudimos leer la etiqueta ahora. Sacá otra foto o cargalo a mano." });
+    }
     const ocrMs = ms(tOcr);
     // Mismo riesgo que la visión de Gemini, por el mismo motivo: una lectura
     // que se corta en una sola letra ("Tomero" → "T") no es un nombre, es

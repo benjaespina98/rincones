@@ -7,9 +7,11 @@ import Logo from "../components/Logo";
 import PasswordInput from "../components/PasswordInput";
 import GoogleAuthButton from "../components/GoogleAuthButton";
 import { destinoTrasLogin } from "../utils/destinoTrasLogin";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import "./Auth.css";
 
 const LoginPage = () => {
+  useDocumentTitle("Ingresar");
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -60,7 +62,7 @@ const LoginPage = () => {
             <Logo size={38} />
           </span>
           <h1 className="auth-brand__title">Rincones</h1>
-          <p className="auth-brand__subtitle">Tu bodega, en el bolsillo.</p>
+          <p className="auth-brand__subtitle">Registro personal de tus vinos.</p>
         </div>
 
         {error && (

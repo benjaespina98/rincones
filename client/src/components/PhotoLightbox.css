@@ -18,9 +18,11 @@
 }
 
 .photo-lightbox__img {
-  max-width: 100%;
-  /* Deja aire abajo para el pie y arriba para el botón de cerrar. */
-  max-height: calc(100% - 72px);
+  /* Ocupa todo el lugar disponible (y se agranda si la foto es chica): el objetivo de abrir el visor es verla grande.
+     Deja aire abajo para el pie y arriba para el botón de cerrar. */
+  width: 100%;
+  max-width: 900px;
+  height: calc(100% - 72px);
   object-fit: contain;
   border-radius: var(--radius-lg);
   cursor: zoom-in;

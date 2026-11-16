@@ -51,7 +51,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .btn--primary:hover:not(:disabled) {
-    background: var(--accent-light);
+    background: var(--accent-fill-hover);
   }
 }
 

@@ -97,7 +97,7 @@
 }
 
 .confirm-modal__confirm--danger {
-  background: linear-gradient(135deg, var(--danger), var(--danger));
+  background: var(--danger-fill);
 }
 
 .confirm-modal__confirm--danger:active {

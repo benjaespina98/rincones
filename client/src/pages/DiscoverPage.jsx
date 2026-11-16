@@ -18,7 +18,7 @@ import WineMeta from "../components/WineMeta";
 import { successHaptic, tapHaptic } from "../utils/haptics";
 import { displayName } from "../utils/identity";
 import { greeting, homeTitle, whyThisWine } from "../utils/momentCopy";
-import { elegirOtroDistinto, conFotoPrimero, topDeEntrada, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
+import { elegirOtroDistinto, soloConFoto, topDeEntrada, elegirEntrada, leerUltimoVisto, guardarUltimoVisto } from "../utils/discovery";
 import Icon from "../components/Icon";
 import { sugerenciasDeBusqueda } from "../utils/sugerenciasBusqueda";
 import FilaDeAtajos from "../components/FilaDeAtajos";
@@ -96,6 +96,9 @@ export default function DiscoverPage() {
   // "Ver otro" recorre el resto.
   // El vino que se ve, por id (no por posición): si se descarta uno, la posición se corre sola.
   const [spotlightElegido, setSpotlightElegido] = useState(null);
+  // Los motivos arrancan en una sola ficha (más las que faltan en «+N») y se apilan al pedirlos. Se guarda el
+  // vino para el que se abrieron: al cambiar de recomendación vuelven solos a su versión corta.
+  const [motivosAbiertosDe, setMotivosAbiertosDe] = useState(null);
 
   /* Semilla de la sesión. Ya no la usan el título ni el motivo —eso era el
      generador de redacciones que se fue con el cambio de tono—, pero sí la
@@ -133,8 +136,8 @@ export default function DiscoverPage() {
     getFeaturedWines(userId)
       .then((todos) => {
         if (!active) return;
-        // Con foto primero (ver `conFotoPrimero`), sin sacar ninguno.
-        const w = conFotoPrimero(todos);
+        // Sólo vinos con foto de botella (ver `soloConFoto`): una recomendación sin foto no se muestra.
+        const w = soloConFoto(todos);
         setFeatured(w);
         /**
          * Se entra por una de las primeras del ranking y nunca por la que se vio
@@ -313,7 +316,7 @@ export default function DiscoverPage() {
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
       successHaptic();
-      showSuccess(`"${wine.name}" guardado en Quiero probar`);
+      showSuccess(`"${wine.name}" guardado en Favoritos`);
       // Se mide el ÉXITO y no el clic: lo que interesa saber es si Descubrí
       // termina en algo, no cuántas veces se apretó un botón que falló.
       trackEvent("wish_added", { source });
@@ -540,10 +543,10 @@ export default function DiscoverPage() {
                         <Icon name="check" size={15} />
                         {agregados[r.id]
                           ? agregados[r.id].bottles > 0
-                            ? `Agregado · ${agregados[r.id].bottles} ${agregados[r.id].bottles === 1 ? "botella" : "botellas"}`
+                            ? `${agregados[r.id].bottles} agregada${agregados[r.id].bottles === 1 ? "" : "s"}`
                             : "Anotado como tomado"
                           : r.owned.bottles > 0
-                            ? `En tu bodega · ${r.owned.bottles} ${r.owned.bottles === 1 ? "botella" : "botellas"}`
+                            ? `${r.owned.bottles} en tu bodega`
                             : r.owned.tasted
                               ? "Ya lo tomaste"
                               : "Ya está en tu bodega"}
@@ -687,7 +690,7 @@ export default function DiscoverPage() {
                   y siempre verificable. Si no hay nada verificable que decir,
                   `whyThisWine` devuelve null y el renglón no se dibuja. */}
               <span className="spotlight__eyebrow">
-                {porque?.modo === "descubrimiento" ? "Para descubrir" : "Para vos"}
+                {"Recomendado para vos"}
               </span>
               <h2 className="spotlight__name">{spotlight.name}</h2>
               <p className="spotlight__meta">
@@ -701,10 +704,22 @@ export default function DiscoverPage() {
             </div>
           </button>
           {motivos.length > 0 && (
-            <ul className="spotlight__motivos" aria-label="Por qué te lo sugerimos">
-              {motivos.map((m, i) => (
+            <ul className={`spotlight__motivos${motivosAbiertosDe === spotlight.id ? " is-abierto" : ""}`} aria-label="Por qué te lo sugerimos">
+              {(motivosAbiertosDe === spotlight.id ? motivos : motivos.slice(0, 1)).map((m, i) => (
                 <li key={`${i}-${m}`} className="spotlight__motivo">{m}</li>
               ))}
+              {motivos.length > 1 && (
+                <li>
+                  <button
+                    type="button"
+                    className="spotlight__mas"
+                    aria-expanded={motivosAbiertosDe === spotlight.id}
+                    onClick={() => setMotivosAbiertosDe(motivosAbiertosDe === spotlight.id ? null : spotlight.id)}
+                  >
+                    {motivosAbiertosDe === spotlight.id ? "Ver menos" : `+${motivos.length - 1}`}
+                  </button>
+                </li>
+              )}
             </ul>
           )}
           <div className="spotlight__actions">
@@ -724,7 +739,7 @@ export default function DiscoverPage() {
                 hay otra es prometer algo que no va a pasar. */}
             {featured.length > 1 && (
               <button type="button" className="spotlight__surprise" onClick={mostrarOtra}>
-                <Icon name="refresh" size={15} /> Ver otro
+                <Icon name="refresh" size={15} /> Recomendame otro
               </button>
             )}
           </div>

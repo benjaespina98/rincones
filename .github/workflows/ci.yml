@@ -32,6 +32,8 @@ jobs:
   test:
     name: Lint y tests
     runs-on: ubuntu-latest
+    # Una corrida colgada no puede comerse los minutos del mes (repo privado).
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v5
@@ -64,3 +66,15 @@ jobs:
 
       - name: Tests del client
         run: npm test -w client
+
+      # Que el build compile y que la carga inicial no pase del presupuesto (~143 kB gzip):
+      # hasta acá sólo Vercel construía, y un PR que engordaba el bundle se veía igual de verde.
+      - name: Build
+        run: npm run build
+
+      - name: Presupuesto de la carga inicial
+        run: node client/scripts/check-bundle.cjs
+
+      # Dependencias de producción con vulnerabilidades conocidas (nivel alto o crítico).
+      - name: Auditoría de dependencias
+        run: npm audit --omit=dev --audit-level=high

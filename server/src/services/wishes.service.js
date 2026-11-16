@@ -49,7 +49,7 @@ async function updateWish(userId, id, patch = {}) {
   const wish = await WineWish.findOne({ _id: id, userId });
   if (!wish) return null;
   if (typeof patch.favorite === "boolean") wish.favorite = patch.favorite;
-  if (typeof patch.notes === "string") wish.notes = patch.notes.trim();
+  if (typeof patch.notes === "string") wish.notes = patch.notes.trim().slice(0, 2000);
   if (patch.priority) wish.priority = parseInt(patch.priority);
   await wish.save();
   return wish;

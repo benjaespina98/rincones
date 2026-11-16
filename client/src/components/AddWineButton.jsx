@@ -36,12 +36,12 @@ export default function AddWineButton() {
           replace: enEscaner,
         });
       }}
-      title="Escanear la etiqueta de un vino para agregarlo o ver su información"
+      title="Agregar un vino: escaneá la etiqueta, buscalo o cargalo a mano"
     >
       <span className="add-fab__icono" aria-hidden="true">
         <Icon name="scan" size={18} />
       </span>
-      <span className="add-fab__texto">Escanear</span>
+      <span className="add-fab__texto">Agregar vino</span>
     </button>
   );
 }

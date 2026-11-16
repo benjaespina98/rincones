@@ -11,9 +11,11 @@ import ErrorState from "../components/ErrorState";
 import WishlistPanel from "../components/WishlistPanel";
 import BodegaResumen from "../components/BodegaResumen";
 import WineRow from "../components/WineRow";
+import { cierraEsteAnio } from "../utils/cellarStatus";
 import Chip from "../components/Chip";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
+import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { useWishlist } from "../hooks/useWishlist";
 // Buscar, filtrar y ordenar salieron de acá a un módulo propio: son funciones
 // puras con reglas que nacieron de bugs reportados, y adentro de este archivo
@@ -158,6 +160,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
   const [soloListos, setSoloListos] = useState(Boolean(guardados.soloListos));
+  // «Cierran este año»: se pide desde el aviso de arriba de la lista, no persiste entre visitas.
+  const [cierraAnio, setCierraAnio] = useState(false);
   // null = no filtra por probado; true = sólo probados; false = sólo pendientes.
   const [probado, setProbado] = useState(
     guardados.probado === true || guardados.probado === false ? guardados.probado : null
@@ -397,8 +401,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const enLaVista = useCallback((wine) => pasaVista(vista, wine), [vista]);
 
   const pasaFiltros = useCallback(
-    (wine) => pasaFiltrosDe(wine, { probado, soloListos }),
-    [probado, soloListos]
+    (wine) => pasaFiltrosDe(wine, { probado, soloListos }) && (!cierraAnio || cierraEsteAnio(wine)),
+    [probado, soloListos, cierraAnio]
   );
 
   /**
@@ -619,11 +623,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * en pantalla que lo explique. Acá cada filtro aplicado tiene su ficha, y la
    * ficha es el botón para quitarlo.
    */
+  const cierranEsteAnio = useMemo(() => wines.filter(cierraEsteAnio).length, [wines]);
+
   const filtrosActivos = useMemo(() => {
     const fichas = [];
     if (probado === false) fichas.push({ id: "prob", label: "Sin tomar", quitar: () => setProbado(null) });
     if (probado === true) fichas.push({ id: "prob", label: "Ya tomados", quitar: () => setProbado(null) });
     if (soloListos) fichas.push({ id: "listos", label: "Listos para abrir", quitar: () => setSoloListos(false) });
+    if (cierraAnio) fichas.push({ id: "cierra", label: "Cierran este año", quitar: () => setCierraAnio(false) });
     if (tipoFilter !== "all") {
       fichas.push({
         id: "tipo",
@@ -646,7 +653,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
       fichas.push({ id: "cosecha", label: `Cosecha ${vintageFilter}`, quitar: () => setVintageFilter("all") });
     }
     return fichas;
-  }, [probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]);
+  }, [probado, soloListos, cierraAnio, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]);
 
   /**
    * Qué decir cuando no hay nada que mostrar.
@@ -672,8 +679,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (vista === "probados") {
       return {
         illustration: "copa",
-        title: "Todavía no abriste ninguna botella",
-        hint: "Los vinos que tomes van a aparecer acá.",
+        title: "Sin vinos tomados",
+        hint: "Acá aparecen los que abras o marques como tomados.",
         actionLabel: "Ver lo que tenés",
         onAction: () => setVista("instock"),
       };
@@ -710,8 +717,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
     // que no hay es un vino tuyo con el corazón puesto.
     return {
       illustration: "favoritos",
-      title: "Ningún vino con el corazón puesto",
-      hint: "Marcá un favorito desde Mi Bodega y aparece acá.",
+      title: "Sin favoritos",
+      hint: "Marcá vinos con el corazón para verlos acá.",
       actionLabel: "Ver lo que tenés",
       onAction: () => setVista("instock"),
     };
@@ -790,6 +797,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   const clearAllFilters = () => {
     setSoloListos(false);
+    setCierraAnio(false);
     setProbado(null);
     setTipoFilter("all");
     setVarietalFilter("all");
@@ -803,12 +811,16 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setPendingActionId(id);
     try {
       await action();
-    } catch {
-      showError("No se pudo completar la acción. Probá de nuevo.");
+    } catch (err) {
+      // Un 409 dice por qué no se puede (otro dispositivo ya cambió el stock) y la fila que se ve
+      // quedó vieja: se muestra el mensaje del servidor y se recarga, para que reintentar no falle igual.
+      const conflicto = err?.response?.status === 409;
+      showError(conflicto ? mensajeDelServidor(err, "Esto ya cambió") : "No se pudo completar la acción. Probá de nuevo.");
+      if (conflicto) recargar();
     } finally {
       setPendingActionId(null);
     }
-  }, [showError]);
+  }, [showError, recargar]);
 
   /**
    * Abrir la ficha del vino.
@@ -953,8 +965,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
               // Deshacer una reposición saca del lote que se acaba de agregar. Un «−» común es FIFO: vaciaba
               // el lote más viejo e inventaba una botella tomada.
               await adjustStock(wine._id, -n, { undoRestock: true });
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
+              recargar();
             }
           },
         }
@@ -974,6 +987,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const handleOpenBottle = (wine, cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
+    const consumosAntes = Number(wine.consumptionCount) || 0;
     const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
     const quedan = Math.max(0, Number(wine.quantity) - n);
 
@@ -1001,10 +1015,13 @@ export default function BodyPage({ initialFilter = "instock" }) {
           onClick: async () => {
             removeToast(toastId);
             try {
-              await undoOpenBottle(wine._id, eraProbado, n);
+              await undoOpenBottle(wine._id, eraProbado, n, consumosAntes);
               showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              // Un 409 es «ya no se puede deshacer» (otro dispositivo cambió el stock): se dice
+              // y se recarga, para que la fila no siga mostrando lo que ya no es.
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
+              recargar();
             }
           },
         },
@@ -1086,6 +1103,9 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
           La protagonista es la colección. Todo lo que no es un vino se apretó en
           dos filas: ésta y la de la vista, que además lleva los números adentro. */}
+      {/* En escritorio la vista (En stock / Ya tomados / Favoritos) y el buscador comparten renglón; en el celular
+          el contenedor no existe (display: contents) y todo se apila como siempre. */}
+      <div className="bodega-cabecera">
       <div className="bodega-bar">
         <div className="search-container">
           <span className="search-icon" aria-hidden="true"><Icon name="search" size={18} /></span>
@@ -1205,6 +1225,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
             : []),
         ]}
       />
+      </div>
 
       {/* Las fichas de lo que está filtrando. Cada una es el botón para sacarla. */}
       {filtrosActivos.length > 0 && (
@@ -1253,7 +1274,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           fichas de filtro a propósito: describe el resultado del segmentado y de los filtros,
           así que se lee como consecuencia de lo de arriba y no como un encabezado suelto. */}
       {!loading && !error && dimensionesConDatos.length > 0 && (
-        <>
+        <div className="bodega-facetas">
           {/* Con qué se filtra: Tipo, Uva, Región o Bodega. Una sola fila de fichas que cambia con la
               dimensión elegida, en vez de cuatro filas apiladas. */}
           {dimensionesConDatos.length > 1 && (
@@ -1320,7 +1341,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
               </div>
             )
           )}
-        </>
+        </div>
       )}
 
       {!loading && !error && (
@@ -1354,8 +1375,24 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </div>
       )}
 
+      {/* «Esta noche»: lleva al Sommelier con la pregunta ya hecha (él ve tu bodega y elige). Sólo en «En stock» y con botellas:
+          sin nada en la cava no hay qué sugerir. No depende de los filtros. */}
+      {!loading && !error && !modoSeleccion && vista === "instock" && wines.some((w) => w.quantity > 0) && (
+        <button type="button" className="esta-noche-entrada" onClick={() => navigate("/sommelier", { state: { pregunta: "¿Qué abro esta noche?" } })}>
+          <Icon name="wine-glass" filled size={18} />
+          ¿Qué abro esta noche?
+          <Icon name="chevron-right" size={16} className="esta-noche-entrada__sub" />
+        </button>
+      )}
 
-
+      {/* «Se vencen este año»: lo que está en el último año de su ventana. Un renglón que filtra la lista; si no hay
+          ninguno, no se dibuja. */}
+      {!loading && !error && !modoSeleccion && vista === "instock" && !cierraAnio && cierranEsteAnio > 0 && (
+        <button type="button" className="cierran-aviso" onClick={() => setCierraAnio(true)}>
+          {cierranEsteAnio === 1 ? "1 vino cierra" : `${cierranEsteAnio} vinos cierran`} su mejor momento este año
+          <span className="cierran-aviso__ver">Verlos</span>
+        </button>
+      )}
 
         </>
       )}
@@ -1367,7 +1404,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           único propio de esa vista es lo que se agrega DESPUÉS: la wishlist,
           que sale de otra colección y se dibuja con otra fila —un vino que no
           tenés no ofrece abrir una botella, ofrece decir "ya lo tengo". */}
-      {loading && <LoadingSkeleton type="card" count={4} />}
+      {loading && <LoadingSkeleton type="list" count={4} />}
 
       {!loading && error && (
         <ErrorState
@@ -1405,6 +1442,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
       {!loading && !error && sortedWines.length > 0 && (
         <div
+          key={`${vista}-${viewMode}`}
           className={`wines-list wines-list--${viewMode} ${
             vista === "instock" ? "wines-list--protagonista" : "wines-list--archivo"
           } ${modoSeleccion ? "is-selecting" : ""}`}

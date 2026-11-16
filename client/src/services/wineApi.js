@@ -68,9 +68,13 @@ export const openBottle = async (id, cantidad = 1) => {
  * lo habías probado, deshacer no puede borrarte ese dato. `cantidad` tiene que
  * ser la misma que se abrió, para devolver exactamente lo que salió.
  */
-export const undoOpenBottle = async (id, wasTasted, cantidad = 1) => {
+export const undoOpenBottle = async (id, wasTasted, cantidad = 1, consumosAntes) => {
   const n = Math.max(1, Number.parseInt(cantidad, 10) || 1);
-  return adjustWineStock(id, n, { undoOpen: true, wasTasted: wasTasted === true });
+  const extra = { undoOpen: true, wasTasted: wasTasted === true };
+  // Cuántos consumos tenía el vino ANTES de abrir. Con eso el servidor distingue «sigue probado
+  // porque hubo otras aperturas» de «tenía consumos viejos pero no estaba marcado como probado».
+  if (Number.isFinite(consumosAntes)) extra.consumosAntes = consumosAntes;
+  return adjustWineStock(id, n, extra);
 };
 
 export const getWineStats = async () => {

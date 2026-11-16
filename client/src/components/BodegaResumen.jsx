@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { resumenDeBodega, frasesDelResumen } from "../utils/bodegaResumen";
 import "./BodegaResumen.css";
 
@@ -31,9 +32,37 @@ export default function BodegaResumen({ wines = [], className = "" }) {
   // hay que decir, y dos vacíos seguidos es uno de más.
   if (partes.length === 0) return null;
 
+  // Un segmento por tipo, del tamaño de las botellas que hay (o de los vinos, si no queda ninguna).
+  const porTipo = new Map();
+  for (const w of wines) {
+    const peso = Number(w.quantity) > 0 ? Number(w.quantity) : 1;
+    porTipo.set(w.type || "unknown", (porTipo.get(w.type || "unknown") || 0) + peso);
+  }
+  const tipos = [...porTipo.entries()].sort((x, y) => y[1] - x[1]);
+
   return (
-    <p className={`bres ${className}`.trim()} aria-label="Resumen de lo que estás viendo">
-      {partes.join(" · ")}
-    </p>
+    <div className="bres-wrap">
+      <p className={`bres ${className}`.trim()} aria-label="Resumen de lo que estás viendo">
+        {partes.join(" · ")}
+      </p>
+      {tipos.length > 1 && (
+        <>
+          <div className="bres__barra" aria-hidden="true">
+            {tipos.map(([tipo, n]) => (
+              <span key={tipo} className="bres__seg" data-wine-type={tipo} style={{ flexGrow: n }} />
+            ))}
+          </div>
+          {/* La barra sola no dice qué es cada color: la leyenda nombra cada tipo con su cantidad. */}
+          <ul className="bres__leyenda" aria-label="Por tipo de vino">
+            {tipos.map(([tipo, n]) => (
+              <li key={tipo} className="bres__item" data-wine-type={tipo}>
+                <span className="bres__punto" aria-hidden="true" />
+                {WINE_TYPE_LABELS[tipo] || "Otro"} {n}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }

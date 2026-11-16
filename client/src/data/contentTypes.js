@@ -104,7 +104,7 @@ export const CONTENT_TYPES = {
   lesson: {
     // Mismo rótulo que muestra la tarjeta (ver DailyLesson): el tipo de
     // contenido tiene que llamarse igual en los dos lados.
-    label: "Algo que quizá no sabías",
+    label: "Concepto del día",
     icon: "graduation",
     accent: "#b497f3",
     cta: "Leer",

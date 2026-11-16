@@ -272,3 +272,23 @@ test("un fuera de tema del modelo sin texto se contesta como fuera de tema, no c
   assert.equal(ev[ev.length - 1].datos.data.offTopic, true);
   assert.notEqual(ev[ev.length - 1].datos.respaldo, true);
 });
+
+test("si la persona se fue y el modelo falla, NO se guarda un turno enlatado ni se registra como error", async () => {
+  const errores = [];
+  const restaurarConsola = parchar(console, "error", (...a) => errores.push(a.join(" ")));
+  const restaurar = entorno({
+    enVivo: async () => {
+      // La persona sale de la pantalla: la llamada se aborta y el modelo revienta.
+      res.cerrarDesdeElCliente();
+      throw new Error("AbortError simulado");
+    },
+  });
+  const res = crearRes();
+  await askStream(pedido(), res, () => {});
+  const guardado = entorno.guardado;
+  restaurar();
+  restaurarConsola();
+
+  assert.equal(guardado, null, "no se guarda ninguna respuesta de respaldo en el historial");
+  assert.ok(!errores.some((e) => e.includes("[sommelier]")), "una cancelación no es un error del modelo");
+});

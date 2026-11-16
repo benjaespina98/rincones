@@ -217,7 +217,7 @@ function App() {
         <Route path="/explorar" element={<Navigate to="/sommelier" replace />} />
         <Route path="/descubrir" element={<Navigate to="/agregar" replace />} />
 
-        <Route path="/perfil" element={withLayout("Perfil", <ProfilePage />)} />
+        <Route path="/perfil" element={withLayout("Cuenta", <ProfilePage />)} />
         {/* Tus valoraciones tienen pantalla propia y no una sección más adentro
             del perfil: son una lista que crece sin techo. Ver RatingsPage. */}
         <Route path="/valoraciones" element={withLayout("Valoraciones", <RatingsPage />)} />

@@ -113,7 +113,7 @@ export default function CatalogWinePage() {
         source: "search",
       });
       setAdded(true);
-      showSuccess(favorite ? `"${wine.name}" guardado como favorito` : `"${wine.name}" guardado en Quiero probar`);
+      showSuccess(favorite ? `"${wine.name}" guardado como favorito` : `"${wine.name}" guardado en Favoritos`);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {

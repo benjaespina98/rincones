@@ -169,3 +169,35 @@ test("si quien llama cancela (cerró la pantalla), no se sigue con otro modelo",
 test("la cadena de modelos es la de siempre", () => {
   assert.ok(CADENA.length >= 2);
 });
+
+test("la API key viaja en la cabecera x-goog-api-key y NUNCA en la URL (stream)", async () => {
+  let visto;
+  global.fetch = async (url, opciones) => {
+    visto = { url: String(url), headers: opciones.headers };
+    return flujo([evento('{"answer":"ok"}', "STOP")]);
+  };
+  await llamar();
+  assert.ok(!visto.url.includes("clave-de-prueba"), "la clave no puede estar en la URL");
+  assert.ok(!/[?&]key=/.test(visto.url));
+  assert.equal(visto.headers["x-goog-api-key"], "clave-de-prueba");
+});
+
+test("la API key viaja en la cabecera y NUNCA en la URL (sin stream)", async () => {
+  const { generateJson } = require("../src/services/gemini.service");
+  let visto;
+  global.fetch = async (url, opciones) => {
+    visto = { url: String(url), headers: opciones.headers };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"answer":"ok"}' }] }, finishReason: "STOP" }],
+      }),
+      text: async () => "",
+    };
+  };
+  await generateJson({ parts: [{ text: "hola" }], schema: { type: "object" }, timeoutMs: 2000, budgetMs: 10000 });
+  assert.ok(!visto.url.includes("clave-de-prueba"));
+  assert.ok(!/[?&]key=/.test(visto.url));
+  assert.equal(visto.headers["x-goog-api-key"], "clave-de-prueba");
+});

@@ -40,6 +40,7 @@ import WineMeta from "../components/WineMeta";
 import WineRecipeSheet from "../components/WineRecipeSheet";
 import { FOOD_PAIRINGS } from "../data/wineReference";
 import { tapHaptic } from "../utils/haptics";
+import { greeting, dayPart } from "../utils/momentCopy";
 import { trackEvent } from "../services/analyticsApi";
 import "./SuggestionsPage.css";
 
@@ -227,6 +228,29 @@ export default function SuggestionsPage() {
       }),
     [listos, stats, semillaAtajos]
   );
+  const tituloDeHoy = (() => {
+    const parte = dayPart();
+    if (parte === "mediodia") return "¿Qué hay para almorzar?";
+    if (parte === "noche" || parte === "madrugada") return "¿Qué hay para cenar?";
+    return "¿Qué vas a comer?";
+  })();
+  /* La columna de conversaciones de escritorio se puede esconder (en el teléfono es un cajón y ya se cierra). Se
+     recuerda entre visitas: quien la esconde no quiere volver a esconderla cada vez. */
+  const [chatsOcultos, setChatsOcultos] = useState(() => {
+    try {
+      return window.localStorage.getItem("rincones:somm-chats-ocultos") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternarChats = (ocultar) => {
+    setChatsOcultos(ocultar);
+    try {
+      window.localStorage.setItem("rincones:somm-chats-ocultos", ocultar ? "1" : "0");
+    } catch {
+      /* Sin almacenamiento sólo se pierde el recuerdo. */
+    }
+  };
   const [pensando, setPensando] = useState(false);
   /* El archivo de charlas: la hoja abierta o cerrada, y a qué conversación
      guardada pertenece la de ahora. `null` significa "todavía no se guardó
@@ -548,7 +572,10 @@ export default function SuggestionsPage() {
           // que ya está arriba es decir dos veces lo mismo. Recién ahora se
           // sabe cuáles son, porque la búsqueda salió antes que la respuesta.
           const mios = new Set(deTuBodega.map(wineKey));
-          const descubrir = catalogo.filter((w) => !mios.has(wineKey(w))).slice(0, 4);
+          // Sólo con foto: una sugerencia sin foto de botella no se muestra.
+          const descubrir = catalogo
+            .filter((w) => !mios.has(wineKey(w)) && typeof w.image === "string" && w.image.trim() !== "" && !w.image.startsWith("data:"))
+            .slice(0, 4);
 
           setMensajes((prev) =>
             prev.map((m) =>
@@ -843,7 +870,7 @@ export default function SuggestionsPage() {
         source: "recomendación",
       });
       setAddedIds((prev) => new Set(prev).add(wine.id));
-      showSuccess(`"${wine.name}" guardado en Quiero probar`);
+      showSuccess(`"${wine.name}" guardado en Favoritos`);
     } catch {
       showError("No se pudo guardar el vino. Probá de nuevo.");
     } finally {
@@ -852,7 +879,18 @@ export default function SuggestionsPage() {
   };
 
   return (
-    <div className="somm" ref={raizRef}>
+    <div className="somm" ref={raizRef} data-chats={chatsOcultos ? "ocultos" : undefined}>
+      {chatsOcultos && (
+        <button
+          type="button"
+          className="somm__chats-abrir"
+          aria-label="Mostrar conversaciones"
+          title="Mostrar conversaciones"
+          onClick={() => alternarChats(false)}
+        >
+          <Icon name="menu" size={20} />
+        </button>
+      )}
       {/* `aria-live="polite"` para que un lector de pantalla anuncie la
           respuesta apenas llega, sin que la persona tenga que ir a buscarla
           — antes sólo "Buscando…" (role="status", más abajo) hablaba, y en
@@ -878,8 +916,8 @@ export default function SuggestionsPage() {
                 aparte del título, que es el que describe qué hace esta
                 pantalla. Sin nombre (sesión sin perfil todavía) se esconde en
                 vez de saludar a nadie. */}
-            {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
-            <h2>¿Con qué maridamos hoy?</h2>
+            {nombre && <p className="somm__saludo">{greeting()}, {nombre}</p>}
+            <h2>{tituloDeHoy}</h2>
             <FilaDeAtajos
               className="somm__rail"
               inicial={atajos.comidas}
@@ -904,7 +942,7 @@ export default function SuggestionsPage() {
                 sueltas. */}
             {datosListos && (
               <div className="somm__otras">
-                <span className="somm__otras-rotulo">O preguntame</span>
+                <span className="somm__otras-rotulo">O preguntame otra cosa</span>
                 {/* La `key` cambia si cambian los datos de los que depende (llegó la bodega):
                     la fila se vuelve a armar. Las preguntas que dependen de la bodega son
                     fijas; las demás rotan solas. */}
@@ -1035,7 +1073,7 @@ export default function SuggestionsPage() {
                   sola cosa y no tres pantallas del mismo proyecto. */}
               {recorteDeVinos(m, verTodos.has(m.id)).bodega.length > 0 && (
                 <>
-                  <p className="somm__rotulo">De tu bodega</p>
+                  <p className="somm__rotulo">En tu bodega</p>
                   <ul className="somm__lista">
                     {recorteDeVinos(m, verTodos.has(m.id)).bodega.map((wine) => (
                       <li
@@ -1050,7 +1088,7 @@ export default function SuggestionsPage() {
                         }
                       >
                         <div className="suggestion-card__image">
-                          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} marca={wine.winery || wine.name} />
+                          <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={92} fit="auto" marca={wine.winery || wine.name} />
                         </div>
                         <div className="suggestion-card__body">
                           <p className="suggestion-card__name">{wine.name}</p>
@@ -1082,7 +1120,7 @@ export default function SuggestionsPage() {
               {/* ── LO QUE NO ────────────────────────────────────────────── */}
               {recorteDeVinos(m, verTodos.has(m.id)).nuevos.length > 0 && (
                 <>
-                  <p className="somm__rotulo">Para descubrir</p>
+                  <p className="somm__rotulo">Recomendados</p>
                   <ul className="somm__lista">
                     {recorteDeVinos(m, verTodos.has(m.id)).nuevos.map((wine) => (
                       <li
@@ -1097,7 +1135,7 @@ export default function SuggestionsPage() {
                             onClick={() => openCatalog(wine)}
                           >
                             <span className="discover-card__thumb">
-                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} marca={wine.winery || wine.name} />
+                              <WinePhoto src={wine.image} type={wine.type} alt={wine.name} artSize={48} fit="auto" marca={wine.winery || wine.name} />
                             </span>
                             <span className="discover-card__body">
                               <span className="discover-card__name">{wine.name}</span>
@@ -1118,8 +1156,8 @@ export default function SuggestionsPage() {
                             className={`discover-card__add ${addedIds.has(wine.id) ? "is-added" : ""}`}
                             onClick={() => handleWant(wine)}
                             disabled={addingId === wine.id || addedIds.has(wine.id)}
-                            aria-label={`Guardar ${wine.name} en Quiero probar`}
-                            title="Quiero probar"
+                            aria-label={`Guardar ${wine.name} en Favoritos`}
+                            title="Guardar en Favoritos"
                           >
                             {addedIds.has(wine.id) ? <Icon name="check" size={16} /> : <Icon name="heart" size={16} />}
                           </button>
@@ -1153,7 +1191,7 @@ export default function SuggestionsPage() {
         {pensando && !mensajes.some((m) => m.escribiendo) && (
           <p className="somm__pensando" role="status">
             <span className="somm__pensando-punto" aria-hidden="true" />
-            {pensandoLargo ? "Ya casi, estoy afinando mi recomendación…" : "Dejame pensar qué te recomiendo…"}
+            {pensandoLargo ? "Armando la recomendación…" : "Buscando…"}
           </p>
         )}
 
@@ -1308,6 +1346,8 @@ export default function SuggestionsPage() {
         )}
 
       <SommelierChats
+        oculto={chatsOcultos}
+        onOcultar={() => alternarChats(true)}
         abierto={historialAbierto}
         onClose={() => setHistorialAbierto(false)}
         activoId={conversacionId}

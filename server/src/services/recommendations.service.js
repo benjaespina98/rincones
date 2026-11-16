@@ -447,7 +447,7 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
   const di = (opciones, sal) => variante(opciones, wine, semilla, sal);
 
   if (perfil.puntuadosAlto.has(uva) && cuantas) {
-    motivos.push(`Puntuaste alto el ${U}`);
+    motivos.push(`${U}: lo puntuaste alto`);
     razones.push(
       di(
         [
@@ -475,7 +475,7 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
     );
   }
   if (perfil.elegidos.varietals.has(uva)) {
-    motivos.push(`${U} está entre tus gustos`);
+    motivos.push(`Elegiste ${U} en tus preferencias`);
     razones.push(
       di(
         [
@@ -522,7 +522,7 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
   // Región y tipo sólo se afirman con lo que TOMÓ, no con lo que tiene guardado: "tomás mucho tinto" con un
   // único tinto sin abrir sería mentira.
   if ((perfil.tomadosPorRegion?.get(region) || 0) >= 2) {
-    motivos.push(`${wine.region} aparece seguido en lo que tomás`);
+    motivos.push(`Región que tomás seguido: ${wine.region}`);
     razones.push(
       di(
         [
@@ -536,7 +536,7 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
   }
   if ((perfil.tomadosPorTipo?.get(tipo) || 0) >= 3 && razones.length < 3 && TIPO_PLURAL[tipo]) {
     const t = TIPO_PLURAL[tipo].replace(/s$/, "");
-    motivos.push(`Tomás mucho ${t}`);
+    motivos.push(`Tomás seguido ${t}`);
     razones.push(
       di(
         [
@@ -554,7 +554,7 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
     let puente = "";
     let puenteCorto = "";
     if (uva && !perfil.varietals.has(uva)) {
-      puenteCorto = `Una uva nueva para vos: ${U}`;
+      puenteCorto = `Uva que no tenés: ${U}`;
       puente = di(
         [
           "Para que pruebes una uva nueva, te recomiendo este vino",
@@ -564,13 +564,13 @@ const explicarRecomendacion = (wine, perfil, { semilla = 0 } = {}) => {
         "nueva"
       );
     } else if (perfil.tomadosPorRegion?.get(region)) {
-      puenteCorto = `Ya conocés ${wine.region}`;
+      puenteCorto = `Región que ya tomaste: ${wine.region}`;
       puente = di(
         [`Como ya conocés ${wine.region}, te recomiendo este vino`, `${wine.region} ya es terreno conocido: te propongo este vino`],
         "regionc"
       );
     } else if (perfil.tomadosPorTipo?.get(tipo) && TIPO_PLURAL[tipo]) {
-      puenteCorto = "Un estilo que ya conocés";
+      puenteCorto = "Estilo que ya tomaste";
       puente = di(["Como ya conocés este estilo, te recomiendo este vino", "Un estilo que ya conocés: te sugiero este vino"], "estilo");
     }
     return { modo: "descubrimiento", coincidencia: null, razones: puente ? [puente] : [], motivos: puenteCorto ? [puenteCorto] : [] };

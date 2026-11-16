@@ -8,6 +8,14 @@
  */
 const MIN_LENGTH = 8;
 
+/**
+ * El criterio ÚNICO para leer una contraseña de un body: tiene que ser un string y se le quitan los
+ * espacios de los bordes. Login y registro ya hacían `trim`; restablecer y cambiar desde el perfil
+ * no, así que quien restablecía con un espacio al final guardaba una contraseña con el espacio y
+ * después no podía entrar (el login la recorta). Un objeto o lista devuelve "" (= faltante).
+ */
+const limpiarPassword = (valor) => (typeof valor === "string" ? valor.trim() : "");
+
 const validatePasswordStrength = (password) => {
   const value = String(password || "");
 
@@ -28,4 +36,4 @@ const validatePasswordStrength = (password) => {
   return { valid: true };
 };
 
-module.exports = { validatePasswordStrength, MIN_LENGTH };
+module.exports = { validatePasswordStrength, limpiarPassword, MIN_LENGTH };

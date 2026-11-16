@@ -222,7 +222,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .auth-submit:hover:not(:disabled) {
-    background: var(--accent-light);
+    background: var(--accent-fill-hover);
   }
 }
 

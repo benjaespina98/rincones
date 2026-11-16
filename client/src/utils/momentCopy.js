@@ -57,9 +57,9 @@ const esHoraDeVino = () => ["mediodia", "tarde", "noche"].includes(dayPart());
    "Hola" y "Buenas tardes" alternarse entre dos visitas. Con uno solo, la pantalla de entrada se leía como una
    plantilla que se repite. Todos llevan después ", Nombre". */
 const SALUDOS = {
-  mañana: ["Buen día", "Hola", "Qué bueno verte"],
-  tarde: ["Buenas tardes", "Hola", "Qué bueno verte"],
-  noche: ["Buenas noches", "Hola", "Qué bueno verte por acá"],
+  mañana: ["Buen día"],
+  tarde: ["Buenas tardes"],
+  noche: ["Buenas noches"],
 };
 
 export const greeting = (ahora = new Date()) => {

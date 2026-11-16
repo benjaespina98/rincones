@@ -37,7 +37,12 @@ const simpleNameFromOcr = (text) => {
 
 const analyzeImageBuffer = async (buffer) => {
   const { createWorker } = getTesseract();
-  const worker = await createWorker({ logger: () => {} });
+  // `errorHandler` no es opcional en la práctica: sin él, tesseract.js además de
+  // rechazar la promesa hace `throw` dentro del handler de mensajes del worker,
+  // y eso es una `uncaughtException` que tira el proceso entero (y con él todos
+  // los requests que esa instancia estaba atendiendo). El error ya llega por la
+  // promesa rechazada, que es la que se maneja acá abajo.
+  const worker = await createWorker({ logger: () => {}, errorHandler: () => {} });
   try {
     // try spanish then english
     try {

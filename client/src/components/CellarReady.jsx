@@ -78,7 +78,7 @@ export default function CellarReady({ enabled = true }) {
             único trabajo que hacía, distinguir esta fila de una recomendación
             de vinos que no tenés. */}
         <h2 id="cellar-ready-title" className="cellar-ready__title">
-          <Icon name="bottle" size={16} /> De tu bodega, listos para abrir
+          <Icon name="bottle" size={16} /> Listos para abrir
         </h2>
       </header>
 
