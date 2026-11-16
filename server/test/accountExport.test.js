@@ -73,16 +73,32 @@ test("las conversaciones del Sommelier están en los dos lados", () => {
   assert.ok(modelosDe(leer("accountDeletion.service.js")).has("sommelierConversation"));
 });
 
-test("el export nunca incluye la contraseña ni los tokens de recuperación", () => {
+test("el export nunca incluye la contraseña ni los tokens de recuperación ni sus vencimientos", () => {
   const fuente = leer("accountExport.service.js");
-  // El `select` es negativo: lo que importa es que esos cuatro estén listados.
+  const User = require("../src/models/user.model");
+  // El `select` es negativo: lo que importa es que esos campos estén listados Y
+  // que existan en el modelo. Antes se excluían nombres inexistentes
+  // (resetPasswordToken) y el vencimiento real salía en el archivo.
   for (const campo of [
-    "-passwordHash",
-    "-resetPasswordToken",
-    "-resetPasswordExpires",
-    "-emailVerificationToken",
+    "passwordHash",
+    "passwordResetToken",
+    "passwordResetExpires",
+    "emailVerificationToken",
+    "emailVerificationExpires",
   ]) {
-    assert.ok(fuente.includes(campo), `falta excluir ${campo} del export`);
+    assert.ok(User.schema.path(campo), `${campo} no existe en el modelo User: el select no excluye nada`);
+    assert.ok(fuente.includes(`-${campo}`), `falta excluir ${campo} del export`);
+  }
+  assert.ok(!fuente.includes("-resetPassword"), "quedó un nombre viejo que no existe en el modelo");
+});
+
+test("todo campo sensible del modelo (token, hash, vencimiento) está excluido del export", () => {
+  const fuente = leer("accountExport.service.js");
+  const User = require("../src/models/user.model");
+  const sensibles = Object.keys(User.schema.paths).filter((p) => /token|hash|expires/i.test(p));
+  assert.ok(sensibles.length > 0);
+  for (const campo of sensibles) {
+    assert.ok(fuente.includes(`-${campo}`), `el campo sensible ${campo} no está excluido del export`);
   }
 });
 

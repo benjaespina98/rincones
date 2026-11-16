@@ -9,8 +9,8 @@ const { createWine, deleteWine, updateWine, toasts } = vi.hoisted(() => ({
 }));
 
 vi.mock("../src/services/wineApi", () => ({ createWine, deleteWine, updateWine }));
-const { getWishes, deleteWish } = vi.hoisted(() => ({ getWishes: vi.fn(async () => []), deleteWish: vi.fn(async () => ({})) }));
-vi.mock("../src/services/wishApi", () => ({ getWishes, deleteWish }));
+const { getWishes, deleteWish, createWish } = vi.hoisted(() => ({ getWishes: vi.fn(async () => []), deleteWish: vi.fn(async () => ({})), createWish: vi.fn(async () => ({})) }));
+vi.mock("../src/services/wishApi", () => ({ getWishes, deleteWish, createWish }));
 vi.mock("../src/services/analyticsApi", () => ({ trackEvent: vi.fn() }));
 vi.mock("../src/context/ToastContext", () => ({ useToast: () => toasts }));
 
@@ -127,6 +127,39 @@ describe("useAddToCellar", () => {
     });
     await vi.waitFor(() => expect(deleteWish).toHaveBeenCalled());
     expect(updateWine).not.toHaveBeenCalled();
+  });
+
+  it("deshacer un alta que vino de un deseo devuelve el deseo: no se pierden las dos cosas", async () => {
+    createWine.mockResolvedValue({ wine: { _id: "w1", name: "Alamos" }, merged: false, added: 1 });
+    deleteWine.mockResolvedValue({});
+    getWishes.mockResolvedValue([{ _id: "d1", name: "Alamos", winery: "Catena Zapata", favorite: true, notes: "para el cumple", priority: 1, source: "manual" }]);
+    const { result } = renderHook(() => useAddToCellar({}));
+    act(() => result.current.abrir(VINO));
+    await act(async () => {
+      await result.current.confirmar(1);
+    });
+    await vi.waitFor(() => expect(deleteWish).toHaveBeenCalledWith("d1"));
+    await act(async () => {
+      await toasts.addToast.mock.calls[0][3].onClick();
+    });
+    expect(deleteWine).toHaveBeenCalledWith("w1");
+    expect(createWish).toHaveBeenCalledTimes(1);
+    expect(createWish.mock.calls[0][0]).toMatchObject({ name: "Alamos", winery: "Catena Zapata", favorite: true, notes: "para el cumple" });
+  });
+
+  it("deshacer un alta que NO venía de un deseo no inventa ninguno", async () => {
+    createWine.mockResolvedValue({ wine: { _id: "w1", name: "Alamos" }, merged: false, added: 1 });
+    deleteWine.mockResolvedValue({});
+    getWishes.mockResolvedValue([]);
+    const { result } = renderHook(() => useAddToCellar({}));
+    act(() => result.current.abrir(VINO));
+    await act(async () => {
+      await result.current.confirmar(1);
+    });
+    await act(async () => {
+      await toasts.addToast.mock.calls[0][3].onClick();
+    });
+    expect(createWish).not.toHaveBeenCalled();
   });
 
   it("si ya lo tenías suma botellas y no ofrece borrarlo", async () => {

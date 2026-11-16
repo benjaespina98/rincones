@@ -12,3 +12,64 @@
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
+
+/* La barra por tipo: un segmento por tipo de vino, del tamaño de lo que hay. Decorativa (el control son los chips). */
+.bres-wrap {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bres__barra {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  transform-origin: left center;
+  animation: bres-barra 520ms var(--ease-out) both;
+}
+
+.bres__seg {
+  min-width: 6px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--type-rgb, var(--accent-rgb)));
+}
+
+@keyframes bres-barra {
+  from { transform: scaleX(0.2); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bres__barra {
+    animation: none;
+  }
+}
+
+/* La leyenda de la barra: punto de color + tipo + cantidad, en una línea que baja si no entra. */
+.bres__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-meta);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bres__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bres__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--type-rgb, var(--accent-rgb)));
+}

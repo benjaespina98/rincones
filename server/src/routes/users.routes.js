@@ -7,7 +7,7 @@ const { calculateAge, validateBirthDate } = require("../utils/age");
 const { fail } = require("../utils/apiError");
 const { esImagenAceptada } = require("../utils/imagenAceptada");
 const winesService = require("../services/wines.service");
-const { validatePasswordStrength } = require("../utils/password");
+const { validatePasswordStrength, limpiarPassword } = require("../utils/password");
 const sessions = require("../services/session.service");
 const wineReviews = require("../services/wineReviews.service");
 const { deleteAccount } = require("../services/accountDeletion.service");
@@ -211,7 +211,7 @@ router.delete("/me", authenticate, passwordLimiter, async (req, res) => {
       return res.status(400).json({ message: "Escribí tu email para confirmar la baja" });
     }
     if (user.passwordHash) {
-      const passwordOk = await user.comparePassword(String(req.body?.password || ""));
+      const passwordOk = await user.comparePassword(limpiarPassword(req.body?.password));
       // 403 y no 401: un 401 le dice al cliente "la sesión venció" y lo manda al login.
       if (!passwordOk) return res.status(403).json({ message: "La contraseña no es correcta" });
     }
@@ -235,7 +235,8 @@ router.delete("/me", authenticate, passwordLimiter, async (req, res) => {
 // PUT /api/users/password - Cambiar contraseña
 router.put("/password", authenticate, passwordLimiter, async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const currentPassword = limpiarPassword(req.body?.currentPassword);
+    const newPassword = limpiarPassword(req.body?.newPassword);
 
     if (!currentPassword || !newPassword) {
       return res
@@ -251,6 +252,15 @@ router.put("/password", authenticate, passwordLimiter, async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ success: false, error: "Usuario no encontrado" });
+    }
+
+    // Una cuenta que entra sólo con Google no tiene contraseña que cambiar: antes bcrypt recibía
+    // `undefined` y esto salía como un 500.
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        success: false,
+        error: "Tu cuenta entra con Google y no tiene contraseña. Para tener una, usá «Olvidé mi contraseña».",
+      });
     }
 
     const isPasswordValid = await user.comparePassword(currentPassword);

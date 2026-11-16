@@ -55,3 +55,24 @@
   color: var(--text-muted);
   text-align: right;
 }
+
+/* Las barras se llenan al aparecer, de a una, de izquierda a derecha. */
+@keyframes barra-llena {
+  from { opacity: 0; transform: scaleX(0.2); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+.wine-structure__step.is-on {
+  transform-origin: left center;
+  animation: barra-llena 520ms var(--ease-out) both;
+}
+
+.wine-structure__row:nth-child(2) .wine-structure__step.is-on { animation-delay: 90ms; }
+.wine-structure__row:nth-child(3) .wine-structure__step.is-on { animation-delay: 180ms; }
+.wine-structure__row:nth-child(4) .wine-structure__step.is-on { animation-delay: 270ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wine-structure__step.is-on {
+    animation: none;
+  }
+}

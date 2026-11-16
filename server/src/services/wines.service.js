@@ -135,7 +135,9 @@ const FUERA_DE_LA_LISTA = "-rawText -description";
 // un documento completo por vino —getters, setters, tracking de cambios— para
 // tirarlo a la basura apenas se serializa.
 async function listWines(userId) {
-  return Wine.find({ userId }).sort({ createdAt: -1 }).select(FUERA_DE_LA_LISTA).lean();
+  const wines = await Wine.find({ userId }).sort({ createdAt: -1 }).select(FUERA_DE_LA_LISTA).lean();
+  // Los que no tienen foto propia muestran la del pool si es buena (sólo lectura: no se guarda en el vino).
+  return wineImages.conFotoConfiable(wines);
 }
 
 /**
@@ -147,7 +149,7 @@ async function listWines(userId) {
  * justo para la consulta más natural: "saint felicien malbec".
  */
 async function searchWines(userId, query) {
-  const terms = String(query || "").trim().split(/\s+/).filter(Boolean);
+  const terms = String(query || "").trim().slice(0, 100).split(/\s+/).filter(Boolean).slice(0, 8);
   if (terms.length === 0) return [];
 
   const campos = (regex) => [
@@ -159,7 +161,7 @@ async function searchWines(userId, query) {
     { notes: regex },
   ];
 
-  return Wine.find({
+  const encontrados = await Wine.find({
     userId,
     $and: terms.map((t) => ({ $or: campos(new RegExp(escapeRegex(t), "i")) })),
   })
@@ -167,6 +169,7 @@ async function searchWines(userId, query) {
     // Misma lista y mismo consumidor que `listWines`: mismo recorte.
     .select(FUERA_DE_LA_LISTA)
     .lean();
+  return wineImages.conFotoConfiable(encontrados);
 }
 
 /**
@@ -418,8 +421,11 @@ async function createWine(userId, payload) {
     : "";
   // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
   // queda el base64 tal cual. Así el vino y el pool comparten la misma referencia.
-  const providedImage = rawProvided ? await imageStorage.store(rawProvided) : "";
-  const resolvedImage = providedImage || (await wineImages.getImage(name, winery, varietal));
+  // Si el pool tiene la foto de producto de este vino (bien puntuada), esa gana sobre la que sacó quien lo cargó:
+  // la etiqueta fotografiada se ve mal en una tarjeta, la botella real se ve bien en todas.
+  const fotoDelPool = await wineImages.getImageConfiable(name, winery, varietal);
+  const providedImage = rawProvided && !fotoDelPool ? await imageStorage.store(rawProvided) : "";
+  const resolvedImage = fotoDelPool || providedImage || (await wineImages.getImage(name, winery, varietal));
 
   // La uva pasa por el vocabulario también acá. El escaneo ya la corrige al
   // leerla, pero por este camino entra además la carga a mano y la edición, que
@@ -914,7 +920,13 @@ async function updateWine(userId, id, payload) {
  * de consumos baja y `tasted` vuelve a como estaba —`wasTasted` dice a qué, para
  * no borrar un "probado" que ya era cierto antes de abrir esta botella—.
  */
-async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted }) {
+async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, undoRestock, wasTasted, consumosAntes }) {
+  // Precondiciones de las operaciones que dependen del estado actual. Van en el FILTRO del
+  // update (no en un chequeo previo) para que se evalúen atómicamente con la escritura:
+  // sin ellas, "abrir" un vino sin botellas sumaba un consumo de la nada, y un "deshacer"
+  // sin consumo previo restaba uno que nunca existió.
+  const filtro = { _id: id, userId };
+  const falla = [];
   // Un "no movimiento" igual pasa por el pipeline: normaliza los lotes de un
   // vino cargado antes de que existieran y recalcula status, que es justo lo
   // que hacía la versión anterior ante una entrada inválida.
@@ -935,6 +947,11 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       // diferencia entre "me equivoqué" y "compré más", y se nota en la ficha.
       // «Deshacer» de un «+» saca del ÚLTIMO lote (el recién agregado); un «−» común descuenta FIFO.
       const op = movimiento > 0 ? (undoOpen === true ? "return" : "restock") : undoRestock === true ? "unrestock" : "consume";
+      // Deshacer una reposición sólo se puede si hay esas botellas para quitar.
+      if (op === "unrestock") {
+        filtro.quantity = { $gte: Math.abs(movimiento) };
+        falla.push("No hay botellas para deshacer esa reposición.");
+      }
       stages = buildStockStages(op, { $literal: Math.abs(movimiento) });
     }
   }
@@ -946,6 +963,11 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
   const deshaciendo = undoOpen === true;
 
   if (abriendo) {
+    // Abrir exige tener las botellas que se abren: con el cliente desactualizado (otro
+    // dispositivo ya las tomó) `consume` recortaba en silencio, el contador sumaba igual y el
+    // «Deshacer» devolvía más de lo que salió.
+    filtro.quantity = { $gte: Math.max(filtro.quantity?.$gte || 0, 1, Math.abs(Number.parseInt(delta, 10)) || 1) };
+    falla.push("No te quedan botellas para abrir.");
     stages = [
       {
         $set: {
@@ -957,12 +979,29 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       ...stages,
     ];
   } else if (deshaciendo) {
+    // Sólo se deshace un consumo que existe.
+    filtro.consumptionCount = { $gte: 1 };
+    falla.push("No hay una apertura para deshacer.");
     // El consumo nunca ocurrió: se descuenta del contador y `tasted` vuelve a
     // donde estaba. Si con esto el vino queda sin consumos, tampoco tiene una
     // "última vez que lo tomaste" que contar.
     const consumos = { $max: [0, { $subtract: [{ $ifNull: ["$consumptionCount", 0] }, 1] }] };
     stages = [
-      { $set: { consumptionCount: consumos, tasted: wasTasted === true } },
+      {
+        $set: {
+          consumptionCount: consumos,
+          // Si quedan otras aperturas (deshacer fuera de orden: abriste A y B y deshacés A),
+          // el vino SIGUE probado. Pero un vino destildado puede conservar consumos viejos, así
+          // que «quedan consumos» no alcanza: tienen que ser MÁS que los que había antes de abrir
+          // esta botella. Sin `consumosAntes` (cliente viejo) manda `wasTasted`, como siempre.
+          tasted:
+            wasTasted === true
+              ? true
+              : Number.isFinite(consumosAntes)
+                ? { $gt: [consumos, Math.max(0, consumosAntes)] }
+                : false,
+        },
+      },
       {
         $set: {
           lastConsumedAt: {
@@ -981,10 +1020,19 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
       ? await Wine.findOne({ _id: id, userId }).select("tasted")
       : null;
 
-  const updated = await Wine.findOneAndUpdate({ _id: id, userId }, stages, {
+  const updated = await Wine.findOneAndUpdate(filtro, stages, {
     returnDocument: "after",
     updatePipeline: true,
   });
+
+  // Sin resultado hay dos causas: el vino no es tuyo/no existe (404, devuelve null) o existe pero
+  // la precondición no se cumple (409). Se distinguen con una lectura barata.
+  if (!updated && falla.length && Object.keys(filtro).length > 2) {
+    const existe = await Wine.exists({ _id: id, userId });
+    if (existe) {
+      throw Object.assign(new Error(falla[0]), { codigo: "CONFLICTO_DE_STOCK" });
+    }
+  }
 
   if (updated && antes && antes.tasted !== updated.tasted) {
     const user = await User.findById(userId);
@@ -1051,6 +1099,9 @@ async function getAllMoments(userId, { limit = 100 } = {}) {
 // Dos tomas a menos de 12 horas son la misma ocasión (la cena, no dos veces).
 const MISMA_OCASION_MS = 12 * 60 * 60 * 1000;
 
+/** Texto libre recortado: sin espacios de los bordes y con un largo máximo. */
+const acotar = (valor, max) => String(valor || "").trim().slice(0, max);
+
 async function addMoment(userId, id, body) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
@@ -1077,15 +1128,16 @@ async function addMoment(userId, id, body) {
       image: wine.image || "",
     },
     consumedAt: body.consumedAt ? new Date(body.consumedAt) : new Date(),
-    occasion: String(body.occasion || "").trim(),
-    companions: String(body.companions || "").trim(),
-    place: String(body.place || "").trim(),
-    emotion: String(body.emotion || "").trim(),
-    foodPairing: String(body.foodPairing || "").trim(),
-    notes: String(body.notes || "").trim(),
+    // Acotados: el momento es texto libre y no tenía tope (megabytes por request).
+    occasion: acotar(body.occasion, 120),
+    companions: acotar(body.companions, 200),
+    place: acotar(body.place, 120),
+    emotion: acotar(body.emotion, 60),
+    foodPairing: acotar(body.foodPairing, 200),
+    notes: acotar(body.notes, 4000),
     rating: body.rating !== undefined ? Number(body.rating) : wine.rating,
     photos,
-    tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((t) => String(t).trim()) : [],
+    tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).slice(0, 10).map((t) => acotar(t, 40)) : [],
   });
 
   const wasTasted = wine.tasted;
@@ -1363,7 +1415,7 @@ async function getCellarReady(userId) {
   const wines = await Wine.find({ userId, quantity: { $gt: 0 } })
     .select("-rawText -description")
     .lean();
-  return wines.filter((w) => getCellarStatus(w).status === "peak");
+  return wineImages.conFotoConfiable(wines.filter((w) => getCellarStatus(w).status === "peak"));
 }
 
 /**

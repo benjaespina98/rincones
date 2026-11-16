@@ -23,6 +23,14 @@ const validarVino = (body = {}, { parcial = false, ahora = new Date() } = {}) =>
     if (typeof b.name === "string" && b.name.trim() === "") return "El nombre del vino es obligatorio";
   }
 
+  // Un campo de texto que llega como objeto o lista (`{"$gt":""}`, `["a"]`) no es un texto con un
+  // error: es otra cosa. Se rechaza antes de que `String()` lo convierta en "[object Object]" o
+  // un Mongoose lo castee de maneras raras.
+  for (const campo of ["name", "line", "winery", "region", "varietal", "notes", "cellarLocation", "store", "type"]) {
+    const v = b[campo];
+    if (v !== undefined && v !== null && typeof v !== "string") return "Hay un dato que no es un texto válido";
+  }
+
   for (const [campo, etiqueta, largoDe] of [
     ["name", "El nombre", "largo"],
     ["line", "La línea", "larga"],

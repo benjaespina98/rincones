@@ -456,3 +456,44 @@ test("auth resendVerification no hace nada si el email ya está confirmado", asy
     User.findById = originalFindById;
   }
 });
+
+test("login con un email que no existe gasta el mismo bcrypt que uno real (no se delata por tiempo)", async () => {
+  const originalFindOne = User.findOne;
+  const originalCompare = bcrypt.compare;
+  let comparaciones = 0;
+  User.findOne = () => ({ select: async () => null });
+  bcrypt.compare = async () => { comparaciones += 1; return false; };
+  const res = createRes();
+  try {
+    await authController.login({ body: { email: "nadie@example.com", password: "Abcdef12" }, headers: {} }, res, () => {});
+  } finally {
+    User.findOne = originalFindOne;
+    bcrypt.compare = originalCompare;
+  }
+  assert.equal(res.statusCode, 401);
+  assert.equal(comparaciones, 1);
+});
+
+test("login con una contraseña que no es texto se trata como faltante (400), no rompe", async () => {
+  const res = createRes();
+  await authController.login({ body: { email: "a@b.com", password: { $ne: "" } }, headers: {} }, res, () => {});
+  assert.equal(res.statusCode, 400);
+});
+
+test("login con una cuenta sólo-Google también gasta bcrypt y nunca entra", async () => {
+  const originalFindOne = User.findOne;
+  const originalCompare = bcrypt.compare;
+  let comparaciones = 0;
+  User.findOne = () => ({ select: async () => ({ _id: "g1", email: "g@example.com", passwordHash: undefined }) });
+  // Aunque bcrypt dijera «coincide» contra el hash falso, sin contraseña real no se entra.
+  bcrypt.compare = async () => { comparaciones += 1; return true; };
+  const res = createRes();
+  try {
+    await authController.login({ body: { email: "g@example.com", password: "Abcdef12" }, headers: {} }, res, () => {});
+  } finally {
+    User.findOne = originalFindOne;
+    bcrypt.compare = originalCompare;
+  }
+  assert.equal(res.statusCode, 401);
+  assert.equal(comparaciones, 1);
+});

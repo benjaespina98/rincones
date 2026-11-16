@@ -609,6 +609,21 @@ select:disabled {
   grid-template-columns: 1fr 1fr;
 }
 
+/* Etiqueta VISIBLE de cada campo del editor. El placeholder desaparece al escribir y deja de decir
+   qué campo es; la etiqueta queda siempre. */
+.scan-edit-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scan-edit-campo__etiqueta {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
 .scan-edit-input,
 .scan-edit-textarea {
   width: 100%;
@@ -694,7 +709,7 @@ select:disabled {
 
 @media (hover: hover) and (pointer: fine) {
   .btn-add:hover {
-    filter: brightness(1.08);
+    background: var(--accent-fill-hover);
   }
 }
 

@@ -113,6 +113,22 @@ const getImage = async (name, winery, varietal) => {
 };
 
 /**
+ * La foto del pool SÓLO si está bien puntuada (mismo mínimo que `conFotoConfiable`), o "". Es la que gana sobre la
+ * foto de etiqueta que saca quien escanea: la botella de producto se ve en todas las pantallas, la etiqueta no.
+ * Nunca lanza.
+ */
+const getImageConfiable = async (name, winery, varietal, minimo = 70) => {
+  try {
+    const key = wineKey(name, winery, varietal);
+    if (!key) return "";
+    const doc = await WineImage.findOne({ key, qualityScore: { $gte: minimo } }).select("image").lean();
+    return doc?.image || "";
+  } catch {
+    return "";
+  }
+};
+
+/**
  * El estado del pool para una lista de vinos, en un solo viaje a la base.
  *
  * Para el navegador del catálogo (panel de admin): necesita saber, de una
@@ -244,4 +260,27 @@ const adminSet = async ({ name, winery, varietal, image, userId }) => {
   return { id: doc._id, key, qualityScore: set.qualityScore ?? null };
 };
 
-module.exports = { contribute, adminSet, getImage, getImagesFor, getCalidadFor, keysConFoto, enrichWithImages, wineKey };
+/**
+ * Foto del pool para los vinos de una bodega que no tienen una propia, SÓLO si el pool la tiene bien puntuada
+ * (mínimo de calidad). Es de lectura: no escribe nada en el vino. Un vino cargado antes de que existiera la
+ * foto del pool, o a mano, así muestra su botella real sin que haya que volver a cargarlo. Nunca lanza.
+ */
+const conFotoConfiable = async (wines = [], minimo = 70) => {
+  const need = wines.filter((w) => w && !looksLikeImage(w.image) && wineKey(w.name, w.winery, w.varietal));
+  if (need.length === 0) return wines;
+  const keys = [...new Set(need.map((w) => wineKey(w.name, w.winery, w.varietal)))];
+  let byKey;
+  try {
+    const docs = await WineImage.find({ key: { $in: keys }, qualityScore: { $gte: minimo } }).select("key image").lean();
+    byKey = new Map(docs.map((d) => [d.key, d.image]));
+  } catch {
+    return wines;
+  }
+  return wines.map((w) => {
+    if (looksLikeImage(w.image)) return w;
+    const img = byKey.get(wineKey(w.name, w.winery, w.varietal));
+    return img ? { ...w, image: img, imageSource: "pool" } : w;
+  });
+};
+
+module.exports = { contribute, adminSet, getImage, getImageConfiable, getImagesFor, getCalidadFor, keysConFoto, enrichWithImages, conFotoConfiable, wineKey };

@@ -110,6 +110,33 @@ test("si la respuesta se perdió, reintentar con el mismo token NO mata la sesi�
   }
 });
 
+test("el esquema declara graceCount: sin eso Mongoose lo descarta y el tope no persiste", () => {
+  const campo = RefreshToken.schema.path("graceCount");
+  assert.ok(campo, "graceCount tiene que estar en el esquema");
+  assert.equal(RefreshToken.schema.path("graceCount").options.default, 0);
+});
+
+test("re-canjear el MISMO token usado más de 3 veces es abuso y corta todas las sesiones", async () => {
+  const store = fakeStore();
+  try {
+    const { token: a } = await sessions.issueRefreshToken(USER);
+    await sessions.rotateRefreshToken(a); // canje normal
+
+    // Tres reintentos con el mismo token se toleran (respuestas perdidas).
+    for (let i = 0; i < 3; i += 1) {
+      const r = await sessions.rotateRefreshToken(a);
+      assert.ok(r?.token && !r.reused, `el reintento ${i + 1} tiene que pasar`);
+    }
+
+    // El siguiente ya no es red mala: se cierra todo.
+    const cuarto = await sessions.rotateRefreshToken(a);
+    assert.equal(cuarto?.reused, true);
+    assert.equal(store.vivos(), 0, "no queda ninguna sesión del usuario");
+  } finally {
+    store.restore();
+  }
+});
+
 test("reusar un token cuyo reemplazo YA circuló es robo, y corta todo", async () => {
   const store = fakeStore();
   try {

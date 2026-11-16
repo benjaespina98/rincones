@@ -309,7 +309,7 @@ const armarRespuesta = async ({
 };
 
 // POST /api/sommelier/ask { question, history? }
-const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
+const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) => {
   try {
     const question = String(req.body.question || "").trim().slice(0, MAX_PREGUNTA);
     if (question.length < MIN_PREGUNTA) {
@@ -465,6 +465,11 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
       // key vencida, una cuota agotada) era indistinguible de un timeout
       // normal, y ni loggeaba ni llegaba a Sentry. `next(error)` no se usa
       // porque cambiaría el status y el mensaje que ya elegimos para esto.
+      // Salvo que quien preguntó ya se haya ido (salió de la pantalla o mandó otra
+      // pregunta): eso no es una falla del modelo. No se registra como error, no
+      // se contesta con el respaldo y, sobre todo, no se guarda en el historial
+      // una respuesta enlatada para una pregunta que se estaba contestando bien.
+      if (cancelada?.()) return undefined;
       console.error("[sommelier]", error?.message || error);
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/ask" });
@@ -479,7 +484,7 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next }) => {
     // Con "otra opción" NO: la respuesta anterior, que era buena, no se pisa con una genérica. Ahí falla como siempre (503) y queda
     // lo que ya estaba. Y un fuera de tema legítimo sin texto se contesta como fuera de tema (ver `armarRespuesta`).
     if (!resultado && regenerar) {
-      return enviar(503, { message: "No pude pensar otra opción ahora. Probá de nuevo en un ratito." });
+      return enviar(503, { message: "No se pudo generar otra opción. Probá de nuevo." });
     }
     if (!resultado || (!resultado.offTopic && !String(resultado.answer || "").trim())) {
       return enviar(200, {
@@ -580,7 +585,7 @@ const askStream = async (req, res, next) => {
   await resolverPregunta(req, {
     next: (error) => {
       if (!abierto) return next(error);
-      evento("error", { status: 500, message: "No pude terminar la respuesta. Probá de nuevo." });
+      evento("error", { status: 500, message: "No se pudo completar la respuesta. Probá de nuevo." });
       return cerrar();
     },
     enviar: (status, cuerpo) => {
@@ -589,6 +594,7 @@ const askStream = async (req, res, next) => {
       evento(status === 200 ? "final" : "error", { status, ...cuerpo });
       return cerrar();
     },
+    cancelada: () => cancelacion.signal.aborted,
     llamarModelo: (args) =>
       sommelier.preguntarEnVivo({
         ...args,
@@ -675,13 +681,13 @@ const askPhoto = async (req, res, next) => {
       recordError({ error, req, statusCode: 503 });
       captureException(error, { route: "POST /api/sommelier/photo" });
       return res.status(503).json({
-        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+        message: "No se pudo leer la foto. Probá de nuevo.",
       });
     }
 
     if (!resultado) {
       return res.status(503).json({
-        message: "No pude mirar la foto ahora. Probá de nuevo en un minuto.",
+        message: "No se pudo leer la foto. Probá de nuevo.",
       });
     }
 

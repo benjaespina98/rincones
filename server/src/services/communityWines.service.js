@@ -20,6 +20,17 @@ const isGeneric = (name) => {
 };
 
 const { esImagenAceptada: looksLikeImage } = require("../utils/imagenAceptada");
+const imageStorage = require("./imageStorage.service");
+
+/**
+ * Lo que se puede GUARDAR en el catálogo que ven todos. A diferencia de `looksLikeImage` (piso de
+ * formato, que también se usa para LEER lo que ya había), acá se exige que sea una foto subida
+ * (`data:image/`) o una URL de NUESTRO Cloudinary. Una URL de un tercero en el catálogo
+ * compartido hace que el navegador de cada persona que lo abra le pegue a ese servidor con su IP
+ * y su referer: un rastreador que cualquier usuario podía sembrar.
+ */
+const imagenParaComunidad = (valor) =>
+  looksLikeImage(valor) && (String(valor).trim().toLowerCase().startsWith("data:image/") || imageStorage.esUrlPropia(valor));
 
 /** Cuántas personas distintas hacen falta para considerarlo tan bueno como el catálogo curado. */
 const CONTRIBUTORS_TO_VERIFY = 2;
@@ -184,7 +195,7 @@ const contribute = async (
         region: String(wine.region || "").trim(),
         varietal: String(wine.varietal || "").trim(),
         type: wine.type || "unknown",
-        image: looksLikeImage(wine.image) ? wine.image.trim() : "",
+        image: imagenParaComunidad(wine.image) ? wine.image.trim() : "",
         count: 1,
         contributors: userId ? [userId] : [],
         trustedCount: confiable ? 1 : 0,
@@ -219,7 +230,7 @@ const contribute = async (
     if (!existing.region && wine.region) existing.region = String(wine.region).trim();
     if (!existing.varietal && wine.varietal) existing.varietal = String(wine.varietal).trim();
     if ((existing.type === "unknown" || !existing.type) && wine.type) existing.type = wine.type;
-    if (!looksLikeImage(existing.image) && looksLikeImage(wine.image)) existing.image = wine.image.trim();
+    if (!looksLikeImage(existing.image) && imagenParaComunidad(wine.image)) existing.image = wine.image.trim();
 
     aplicarUmbrales(existing);
     await existing.save();

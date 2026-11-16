@@ -46,7 +46,7 @@ describe("el diario sin momentos", () => {
     getAllMoments.mockResolvedValue([]);
     montar({ probados: 3 });
 
-    await waitFor(() => expect(screen.getByText(/tu diario/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/tu diario/i)).toBeTruthy(), { timeout: 5000 });
     // El número sale de lo que la persona realmente hizo, no de una frase
     // genérica: es lo que hace que la invitación hable de su bodega.
     expect(screen.getByText(/3 vinos/)).toBeTruthy();

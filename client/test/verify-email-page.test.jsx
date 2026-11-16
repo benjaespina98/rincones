@@ -43,7 +43,7 @@ describe("VerifyEmailPage", () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText("¡Email confirmado!")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Email confirmado")).toBeInTheDocument());
 
     expect(verifyEmailSpy).toHaveBeenCalledWith({ token: "abc123", email: "vos@ejemplo.com" });
     // El corazón del arreglo: sin `user`, antes esto no se llamaba nunca.

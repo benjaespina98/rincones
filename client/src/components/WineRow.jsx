@@ -1,7 +1,6 @@
 import { memo } from "react";
 import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
-import StarRating from "./StarRating";
 import WineRowPanel from "./WineRowPanel";
 import { useLongPress } from "../hooks/useLongPress";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
@@ -11,7 +10,7 @@ import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../u
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nombreDeFila } from "../utils/viewTransition";
 import { useSwipeAcciones } from "../hooks/useSwipeAcciones";
-import { resumenTomado, pistaDeStock } from "../utils/tomados";
+import { resumenTomado } from "../utils/tomados";
 
 /**
  * Una fila de Mi Bodega.
@@ -120,7 +119,7 @@ function WineRow({
        queda con lo que sirve para RECONOCER la botella de un vistazo
        (tipo y uva) y la ficha técnica completa vive en un solo lugar,
        en vez de repartida entre un subtítulo y unos bloques sueltos. */
-    esVitrina || yaLoDice(wine.vintage) ? "" : wine.vintage,
+    yaLoDice(wine.vintage) ? "" : wine.vintage,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -143,7 +142,8 @@ function WineRow({
    * fila sería una columna de advertencias sobre botellas que están
    * perfectamente bien guardadas.
    */
-  const enSuPunto = esVitrina && getCellarStatus(wine).status === "peak";
+  const guarda = esVitrina ? getCellarStatus(wine) : null;
+  const enSuPunto = guarda?.status === "peak";
 
   /**
    * Deslizar para llegar al corazón y al tacho sin desplegar la fila.
@@ -295,12 +295,12 @@ function WineRow({
                    que el fix de arriba le devolviera sus 130px de
                    alto real. Ahora cada modo pide el tamaño que su
                    propio marco puede mostrar entero, con aire. */
-                artSize={esGrilla ? 112 : esVitrina ? 76 : 30}
+                artSize={esGrilla ? 112 : esVitrina ? 92 : 30}
                 /* La vitrina y la grilla presentan la botella entera
                    (contain); el archivo en lista es una miniatura de
                    38px, donde lo que importa es el color y la
                    textura de la etiqueta, no la forma completa. */
-                fit={esVitrina ? "auto" : "cover"}
+                fit={esVitrina || esGrilla ? "auto" : "cover"}
               />
             )}
           </span>
@@ -344,10 +344,10 @@ function WineRow({
             )}
             {/* El puntaje va con la bodega, en la línea de abajo, y no en la columna de la derecha:
                 ahí se apilaba contra la cantidad y se superponían. Con la vitrina se ve en estrellas. */}
-            {(bodega || (!esVitrina && wine.rating > 0)) && (
+            {(bodega || wine.rating > 0) && (
               <span className="wine-row__winery">
                 {bodega}
-                {!esVitrina && wine.rating > 0 && (
+                {wine.rating > 0 && (
                   <span className="wine-row__rating-inline" aria-label={`${wine.rating} de 5`}>
                     {bodega ? " · " : ""}
                     <Icon name="star" filled size={11} /> {wine.rating.toFixed(1).replace(".", ",")}
@@ -379,8 +379,8 @@ function WineRow({
                 cortarse. Acá tiene la fila entera para él y no empuja
                 nada. */}
             {enSuPunto && (
-              <span className="wine-row__peak" title="Está dentro de su ventana de guarda">
-                <Icon name="sparkle" size={11} /> En su punto
+              <span className="wine-row__peak" title={`Ventana de consumo estimada: ${guarda.detail}`}>
+                <Icon name="sparkle" size={11} /> {guarda.yearsLeft > 0 ? `Tomalo hasta ${guarda.until}` : "Tomalo este año"}
               </span>
             )}
 
@@ -393,18 +393,12 @@ function WineRow({
             {!esGrilla && wine.tasted && (
               <span className="wine-row__tomado">{resumenTomado(wine)}</span>
             )}
-            {!esGrilla && conStepper && (vista === "probados" || vista === "sin-stock") && (
-              <span className="wine-row__pista">{pistaDeStock(wine)}</span>
-            )}
 
             {/* El puntaje con estrellas y no como número: en la vitrina
                 hay lugar, y cinco estrellas se comparan de un vistazo
                 entre vinos vecinos, que es justo lo que uno hace acá.
                 En el archivo sigue siendo el número, que ocupa un
                 cuarto del ancho. */}
-            {esVitrina && wine.rating > 0 && (
-              <StarRating value={wine.rating} size="sm" />
-            )}
           </span>
 
           <span className="wine-row__right">
@@ -432,7 +426,7 @@ function WineRow({
                 className="wine-row__stepper-btn"
                 onClick={() => onAbrirUna?.(wine)}
                 disabled={isPending}
-                aria-label="Tomé una botella"
+                aria-label="Abrir una botella"
                 title="Abrir una botella: baja el stock y cuenta como tomada"
               >
                 <Icon name="minus" size={16} />
@@ -445,10 +439,10 @@ function WineRow({
                 onClick={() => onSumarStock?.(wine)}
                 disabled={isPending || !onSumarStock}
                 aria-live="polite"
-                aria-label={`${wine.quantity} botellas: tocá para sumar varias`}
+                aria-label={`${wine.quantity} ${Number(wine.quantity) === 1 ? "botella" : "botellas"}: tocá para sumar varias`}
                 title="Sumar varias botellas"
               >
-                {wine.quantity}
+                <span key={wine.quantity} className="wine-row__stepper-num">{wine.quantity}</span>
               </button>
             )}
             <button
@@ -487,16 +481,16 @@ function WineRow({
           // El tooltip dice el ESTADO; que se pueda tocar lo dice que
           // sea un botón. "Tocá para desmarcarlo" es la app narrando
           // una interacción que el control ya ofrece.
-          title={wine.tasted ? "Ya lo probé" : "Todavía no lo probaste: tocá cuando lo hayas probado, sea tuyo o no"}
+          title={wine.tasted ? "Ya tomado" : "Todavía sin tomar: marcalo cuando lo hayas tomado, sea tuyo o no"}
           aria-label={
             wine.tasted
-              ? `Marcar ${wineDisplayName(wine)} como sin probar`
-              : `Marcar ${wineDisplayName(wine)} como ya probado`
+              ? `Marcar ${wineDisplayName(wine)} como sin tomar`
+              : `Marcar ${wineDisplayName(wine)} como tomado`
           }
         >
           <Icon name={wine.tasted ? "check" : "circle"} size={13} />
           <span className="wine-row__tasted-text">
-            {wine.tasted ? "Ya lo probé" : "Marcar como probado"}
+            {wine.tasted ? resumenTomado(wine) || "Ya tomado" : "Marcar como tomado"}
           </span>
         </button>
         )}

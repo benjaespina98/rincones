@@ -73,6 +73,9 @@
      El color no cambia: es el mismo violeta de siempre, lleno en vez de
      estirado. */
   --accent-fill: var(--accent);
+  /* Hover del botón primario: MÁS OSCURO, no más claro. Con --accent-light el texto blanco caía a
+     2,42:1; con este pasa a 6,14:1 (AA pide 4,5). Medido con la fórmula de luminancia de WCAG. */
+  --accent-fill-hover: #7447c2;
 
   /* ── EL VIOLETA COMO TEXTO ES OTRO VIOLETA ───────────────────────────────
      --accent (#7e59c9) da 3.57 sobre el fondo: como TEXTO no pasa AA. Como
@@ -96,6 +99,8 @@
   --danger: #e2555f;
   --danger-soft: rgb(var(--danger-rgb) / 0.16);
   --danger-text: #f0a9b6;
+  /* Relleno de botones destructivos con texto blanco: --danger daba 3,69:1; éste da 5,03:1. */
+  --danger-fill: #c93a46;
   --favorite: #ff6ea0;
   --favorite-soft: rgb(var(--favorite-rgb) / 0.14);
 
@@ -432,7 +437,7 @@
 
   /* Alturas de control: los botones iban de 32 a 50px sin criterio. */
   --control-sm: 34px;
-  --control-md: 42px;
+  --control-md: 44px;
   --control-lg: 48px;
 
   /* Escala de z-index. Antes eran 13 valores sueltos y había una colisión real

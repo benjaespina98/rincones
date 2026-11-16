@@ -47,6 +47,11 @@ const args = process.argv.slice(2);
 const flag = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];
 const dryRun = args.includes("--dry") || args.includes("--dry-run");
 const force = args.includes("--force");
+// Puntaje de calidad (0-100) con el que entran las fotos del lote. La tarjeta de Descubrí sólo muestra
+// fotos del pool con puntaje >= 70 (las «no evaluadas» no): una foto cargada a mano por quien la
+// eligió y bajó —en general la foto oficial de producto— es de lo mejor que hay, así que por defecto
+// entra con 90. Se puede cambiar con --calidad=NN.
+const calidad = Number(flag("calidad")) || 90;
 
 const EXTENSIONES_VALIDAS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
@@ -155,7 +160,7 @@ const run = async () => {
       await WineImage.updateOne(
         { key },
         {
-          $set: { image: url, name: nombre.trim(), winery: bodega.trim() },
+          $set: { image: url, name: nombre.trim(), winery: bodega.trim(), qualityScore: calidad },
           $setOnInsert: { key },
         },
         { upsert: true }

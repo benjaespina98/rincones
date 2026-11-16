@@ -60,6 +60,9 @@ export default function SommelierChats({
   onNueva,
   onBorrada,
   onBorradasTodas,
+  /* Sólo escritorio: la columna se puede esconder para leer a todo el ancho. */
+  oculto = false,
+  onOcultar,
 }) {
   const escritorio = useMediaQuery(ESCRITORIO);
   const modal = !escritorio && abierto;
@@ -180,10 +183,16 @@ export default function SommelierChats({
             <Icon name="plus" size={16} />
             Nueva conversación
           </button>
-          {modal && (
+          {modal ? (
             <button type="button" className="schats__cerrar" aria-label="Cerrar" onClick={onClose}>
               <Icon name="x" size={18} />
             </button>
+          ) : (
+            onOcultar && (
+              <button type="button" className="schats__cerrar" aria-label="Ocultar conversaciones" title="Ocultar conversaciones" onClick={onOcultar}>
+                <Icon name="chevron-left" size={18} />
+              </button>
+            )
           )}
         </div>
 
@@ -284,7 +293,7 @@ export default function SommelierChats({
           {panel}
         </Portal>
       ) : (
-        escritorio && panel
+        escritorio && !oculto && panel
       )}
 
       {/* Borrar una charla no se deshace, así que se pregunta. */}

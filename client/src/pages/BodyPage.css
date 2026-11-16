@@ -2203,3 +2203,209 @@
     color: var(--text);
   }
 }
+
+/* ══ ESCRITORIO: LA CABECERA EN UN SOLO RENGLÓN ═════════════════════════════
+   En el celular todo se apila: buscador, vista, tipo de filtro, chips. En una pantalla ancha eso eran
+   cuatro renglones de controles antes del primer vino. Ahora: [vista | buscador · lista · filtros] y,
+   debajo, [Tipo Uva Región Bodega | chips]. Los contenedores no existen en el celular (display: contents),
+   así que ahí nada cambia. */
+.bodega-cabecera,
+.bodega-facetas {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .bodega-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .bodega-cabecera .bodega-bar {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .bodega-cabecera .segmented.bodega-vista {
+    order: 1;
+    flex: 0 0 auto;
+    max-width: none;
+    min-width: 380px;
+  }
+
+  .bodega-facetas {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .bodega-facetas .bodega-dim {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  /* El tipo de filtro y sus chips: una división fina los separa en vez de apilarlos. */
+  .bodega-facetas .bodega-tipos {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 7px 6px 7px 22px;
+    border-left: 1px solid var(--border-base);
+  }
+}
+
+/* ══ GRILLA: DOS INSIGNIAS REDONDAS SOBRE LA FOTO, NUNCA UN CHIP ════════════
+   «Marcar como tomado» en un chip con texto, al lado del corazón y sobre la botella, se pisaba con los dos en
+   una celda de ~170px. En la grilla el estado es un círculo con ícono (el mismo tamaño que el corazón, en la
+   esquina opuesta) y la palabra queda en el aria-label y el title. El texto sólo vive en las filas de lista,
+   donde hay ancho de sobra. */
+.wines-list--grid .wine-row--vitrina .wine-row__tasted,
+.wines-list--grid .wine-row .wine-row__tasted {
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(var(--bg-rgb) / 0.82);
+  color: var(--text-secondary);
+}
+
+.wines-list--grid .wine-row--vitrina .wine-row__tasted.is-on,
+.wines-list--grid .wine-row .wine-row__tasted.is-on {
+  background: rgb(var(--success-rgb) / 0.28);
+  color: var(--success-text);
+}
+
+.wines-list--grid .wine-row--vitrina .wine-row__tasted .wine-row__tasted-text,
+.wines-list--grid .wine-row .wine-row__tasted .wine-row__tasted-text {
+  display: none;
+}
+
+/* En la grilla la celda es angosta: «Listo para tomar · hasta 2029» baja a un segundo renglón en vez de cortarse. */
+.wines-list--grid .wine-row__peak {
+  white-space: normal;
+  line-height: 1.3;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* ══ MI BODEGA, MENOS DENSA Y MÁS VIVA ══════════════════════════════════════
+   1. «Tomado 2 veces · hoy» vive dentro del botón de estado: el renglón suelto repetía el mismo dato.
+   2. La botella crece (56×72 → 68×92): es el protagonista de la tarjeta.
+   3. Las estrellas pasaron al renglón de la bodega («★ 4,0»), como en las demás vistas.
+   4. La lista entra con un fundido corto al cambiar de pestaña o de vista, y el número del stepper rueda. */
+.wine-row--vitrina .wine-row__tomado {
+  display: none;
+}
+
+.wines-list--protagonista {
+  --wine-thumb-w: 68px;
+  --wine-thumb-h: 92px;
+}
+
+@keyframes lista-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes numero-rueda {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.wines-list {
+  animation: lista-entra 240ms var(--ease-out) both;
+}
+
+.wine-row__stepper-num {
+  display: inline-block;
+  animation: numero-rueda 180ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wines-list,
+  .wine-row__stepper-num {
+    animation: none;
+  }
+}
+
+/* En la lista (no en la grilla) el subtítulo y la bodega van en UN renglón cada uno, con puntos suspensivos:
+   la columna de texto es angosta (el stepper reserva 104 px) y partían en 3 y 2 renglones. */
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__sub {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__varietal {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wines-list:not(.wines-list--grid) .wine-row--vitrina .wine-row__winery {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* La entrada, en Mi Bodega: un renglón, pegado a la línea de resumen. */
+.esta-noche-entrada {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line-accent);
+  background: rgb(var(--accent-rgb) / 0.1);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.esta-noche-entrada__sub {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* «Se vencen este año»: un renglón de aviso que filtra la lista. Sobrio: es información, no una alarma. */
+.cierran-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cierran-aviso__ver {
+  flex: none;
+  font-weight: 700;
+  color: var(--accent-text);
+}

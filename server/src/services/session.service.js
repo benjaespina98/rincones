@@ -81,6 +81,9 @@ const issueRefreshToken = async (userId, userAgent = "") => {
  * Devuelve `{ reused: true }` en ese último caso para que el controlador pueda
  * responder distinto de un "no existe".
  */
+/** Cuántas veces se puede re-canjear un token ya usado cuyo sucesor nadie estrenó. */
+const MAX_REINTENTOS_DE_GRACIA = 3;
+
 const rotateRefreshToken = async (token, userAgent = "") => {
   if (!token) return null;
 
@@ -104,6 +107,17 @@ const rotateRefreshToken = async (token, userAgent = "") => {
 
     // El sucesor existe y nunca se usó: nadie lo recibió. Se descarta y se emite
     // uno nuevo, que es lo que el dueño está pidiendo.
+    //
+    // Con un tope. Sin él, quien copió este token podía canjearlo una y otra vez
+    // mientras se cuidara de no estrenar el sucesor, y de paso le iba borrando el
+    // suyo al dueño: una sesión robada que no vencía en 30 días y que la
+    // detección de reuso nunca veía. Una respuesta perdida se reintenta una vez,
+    // a lo sumo dos; más que eso sobre el MISMO token no es mala señal de red.
+    if ((existente.graceCount || 0) >= MAX_REINTENTOS_DE_GRACIA) {
+      await revokeAllForUser(existente.userId);
+      return { reused: true, userId: existente.userId };
+    }
+    existente.graceCount = (existente.graceCount || 0) + 1;
     await RefreshToken.deleteOne({ _id: sucesor._id });
   }
 

@@ -54,72 +54,82 @@ export default function WineDetailEditor({
         Nombres de vinos y bodegas no son texto de idioma: no hay nada
         que autocompletar ni que corregir.
       */}
-      <input
-        type="text"
-        className="scan-edit-input"
-        placeholder="Nombre del vino *"
-        maxLength={120}
-          aria-label="Nombre del vino"
-        value={draft.name}
-        onChange={(event) => updateDraftField("name", event.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      <input
-        type="text"
-        className="scan-edit-input"
-        placeholder="Bodega"
-        maxLength={120}
-          aria-label="Bodega (productor)"
-        list="wine-wineries"
-        value={draft.winery}
-        onChange={(event) => updateDraftField("winery", event.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      <input
-        type="text"
-        className="scan-edit-input"
-        placeholder="Región"
-        maxLength={120}
-          aria-label="Región"
-        list="wine-regions"
-        value={draft.region}
-        onChange={(event) => updateDraftField("region", event.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      <input
-        type="text"
-        className="scan-edit-input"
-        placeholder="Varietal"
-        maxLength={80}
-          aria-label="Varietal"
-        list="wine-varietals"
-        value={draft.varietal}
-        onChange={(event) => updateDraftField("varietal", event.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      <input
-        type="number"
-        inputMode="numeric"
-        min="1900"
-        max={new Date().getFullYear()}
-        aria-label="Año de cosecha"
-        className="scan-edit-input"
-        placeholder="Año"
-        value={draft.vintage}
-        onChange={(event) => updateDraftField("vintage", event.target.value)}
-      />
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Nombre del vino</span>
+        <input
+          type="text"
+          className="scan-edit-input"
+          placeholder="Nombre del vino *"
+          maxLength={120}
+          value={draft.name}
+          onChange={(event) => updateDraftField("name", event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Bodega (productor)</span>
+        <input
+          type="text"
+          className="scan-edit-input"
+          placeholder="Bodega"
+          maxLength={120}
+          list="wine-wineries"
+          value={draft.winery}
+          onChange={(event) => updateDraftField("winery", event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Región</span>
+        <input
+          type="text"
+          className="scan-edit-input"
+          placeholder="Región"
+          maxLength={120}
+          list="wine-regions"
+          value={draft.region}
+          onChange={(event) => updateDraftField("region", event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Varietal</span>
+        <input
+          type="text"
+          className="scan-edit-input"
+          placeholder="Varietal"
+          maxLength={80}
+          list="wine-varietals"
+          value={draft.varietal}
+          onChange={(event) => updateDraftField("varietal", event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Año de cosecha</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min="1900"
+          max={new Date().getFullYear()}
+          className="scan-edit-input"
+          placeholder="Año"
+          value={draft.vintage}
+          onChange={(event) => updateDraftField("vintage", event.target.value)}
+        />
+      </label>
       <Dropdown
         ariaLabel="Tipo de vino"
         value={draft.type}
@@ -129,16 +139,18 @@ export default function WineDetailEditor({
           ...WINE_TYPES.map(({ value, label }) => ({ value, label })),
         ]}
       />
-      <textarea
-        className="scan-edit-textarea"
-        placeholder="Notas"
-        maxLength={4000}
-          aria-label="Notas"
-        value={draft.notes}
-        onChange={(event) => updateDraftField("notes", event.target.value)}
-        autoCorrect="off"
-        spellCheck="false"
-      />
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Notas</span>
+        <textarea
+          className="scan-edit-textarea"
+          placeholder="Notas"
+          maxLength={4000}
+          value={draft.notes}
+          onChange={(event) => updateDraftField("notes", event.target.value)}
+          autoCorrect="off"
+          spellCheck="false"
+        />
+      </label>
 
       <div className="scan-section-divider">
         <span>Bodega</span>
@@ -148,90 +160,105 @@ export default function WineDetailEditor({
           buscar la botella, y separados la tarjeta puede mostrar sólo el
           primero sin partir un texto libre a la mitad. */}
       <div className="scan-edit-grid scan-edit-grid--two">
-        <input
-          type="text"
-          className="scan-edit-input"
-          placeholder="Lugar (ej: Cava 1, Heladera)"
-        maxLength={120}
-          aria-label="Lugar en tu casa"
-          value={draft.cellarLocation}
-          onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-        />
-        <input
-          type="text"
-          className="scan-edit-input"
-          placeholder="Posición (ej: Estante 3)"
-        maxLength={120}
-          aria-label="Posición dentro de ese lugar"
-          value={draft.cellarShelf}
-          onChange={(e) => updateDraftField("cellarShelf", e.target.value)}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-        />
+        <label className="scan-edit-campo">
+          <span className="scan-edit-campo__etiqueta">Lugar en tu casa</span>
+          <input
+            type="text"
+            className="scan-edit-input"
+            placeholder="Lugar (ej: Cava 1, Heladera)"
+          maxLength={120}
+            value={draft.cellarLocation}
+            onChange={(e) => updateDraftField("cellarLocation", e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+          />
+        </label>
+        <label className="scan-edit-campo">
+          <span className="scan-edit-campo__etiqueta">Posición dentro de ese lugar</span>
+          <input
+            type="text"
+            className="scan-edit-input"
+            placeholder="Posición (ej: Estante 3)"
+          maxLength={120}
+            value={draft.cellarShelf}
+            onChange={(e) => updateDraftField("cellarShelf", e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+          />
+        </label>
       </div>
       <div className="scan-edit-grid scan-edit-grid--two">
-        <input
-          type="number"
-          inputMode="numeric"
-          min="1900"
-          aria-label="Beber desde (año)"
-          className="scan-edit-input"
-          placeholder="Beber desde (año)"
-          value={draft.drinkFrom}
-          onChange={(e) => updateDraftField("drinkFrom", e.target.value)}
-        />
-        <input
-          type="number"
-          inputMode="numeric"
-          min="1900"
-          aria-label="Beber hasta (año)"
-          className="scan-edit-input"
-          placeholder="Beber hasta (año)"
-          value={draft.drinkUntil}
-          onChange={(e) => updateDraftField("drinkUntil", e.target.value)}
-        />
+        <label className="scan-edit-campo">
+          <span className="scan-edit-campo__etiqueta">Beber desde (año)</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1900"
+            className="scan-edit-input"
+            placeholder="Beber desde (año)"
+            value={draft.drinkFrom}
+            onChange={(e) => updateDraftField("drinkFrom", e.target.value)}
+          />
+        </label>
+        <label className="scan-edit-campo">
+          <span className="scan-edit-campo__etiqueta">Beber hasta (año)</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1900"
+            className="scan-edit-input"
+            placeholder="Beber hasta (año)"
+            value={draft.drinkUntil}
+            onChange={(e) => updateDraftField("drinkUntil", e.target.value)}
+          />
+        </label>
       </div>
 
       <div className="scan-section-divider">
         <span>Datos de compra</span>
       </div>
-      <input
-        type="number"
-        inputMode="decimal"
-        aria-label="Precio pagado"
-        className="scan-edit-input"
-        placeholder="Precio"
-        min="0"
-        step="0.01"
-        value={draft.price}
-        onChange={(e) => updateDraftField("price", e.target.value)}
-      />
-      <input
-        type="text"
-        className="scan-edit-input"
-        placeholder="Tienda o vinoteca"
-        maxLength={120}
-        list="detail-stores"
-        value={draft.store}
-        onChange={(e) => updateDraftField("store", e.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      <input
-        type="date"
-        className="scan-edit-input"
-        value={draft.purchasedAt}
-        onChange={(e) => updateDraftField("purchasedAt", e.target.value)}
-        aria-label="Fecha de compra"
-      />
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Precio pagado</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          className="scan-edit-input"
+          placeholder="Precio"
+          min="0"
+          step="0.01"
+          value={draft.price}
+          onChange={(e) => updateDraftField("price", e.target.value)}
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Tienda o vinoteca</span>
+        <input
+          type="text"
+          className="scan-edit-input"
+          placeholder="Tienda o vinoteca"
+          maxLength={120}
+          list="detail-stores"
+          value={draft.store}
+          onChange={(e) => updateDraftField("store", e.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+        />
+      </label>
+      <label className="scan-edit-campo">
+        <span className="scan-edit-campo__etiqueta">Fecha de compra</span>
+        <input
+          type="date"
+          className="scan-edit-input"
+          value={draft.purchasedAt}
+          onChange={(e) => updateDraftField("purchasedAt", e.target.value)}
+        />
+      </label>
 
       <datalist id="wine-wineries">
         {WINERIES.map((name) => <option key={name} value={name} />)}

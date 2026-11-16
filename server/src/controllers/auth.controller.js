@@ -7,7 +7,7 @@ const mailService = require("../services/mail.service");
 const { validateBirthDate } = require("../utils/age");
 const sessions = require("../services/session.service");
 const { setAuthCookie, setRefreshCookie, clearAuthCookies, startSession } = sessions;
-const { validatePasswordStrength } = require("../utils/password");
+const { validatePasswordStrength, limpiarPassword } = require("../utils/password");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -105,10 +105,13 @@ const sendVerificationEmail = async (user, token) => {
   return { sent: false, verifyUrl: isDev ? verifyUrl : undefined };
 };
 
+// Un hash válido de algo que nadie conoce, para igualar el costo de login con cuentas inexistentes.
+const HASH_FALSO = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), 10);
+
 const login = async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "").trim();
+    const password = limpiarPassword(req.body.password);
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email y contrasena son obligatorios" });
@@ -117,12 +120,15 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select("+passwordHash");
 
     if (!user) {
+      // Se gasta el mismo bcrypt que con una cuenta real: sin esto, «no existe» respondía en
+      // milisegundos y «existe» en ~60 ms, y el tiempo delataba qué emails tienen cuenta.
+      await bcrypt.compare(password, HASH_FALSO);
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
     // Una cuenta sólo-Google no tiene contraseña: comparar contra undefined
     // lanzaba y devolvía un 500 distinto del 401 (enumeración de cuentas).
-    const isValid = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
+    const isValid = (await bcrypt.compare(password, user.passwordHash || HASH_FALSO)) && Boolean(user.passwordHash);
 
     if (!isValid) {
       return res.status(401).json({ message: "Credenciales inválidas" });
@@ -166,7 +172,7 @@ const me = async (req, res, next) => {
 const register = async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "").trim();
+    const password = limpiarPassword(req.body.password);
     const firstName = String(req.body.firstName || "").trim();
 
     if (!email || !password || !firstName) {
@@ -370,7 +376,8 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token } = req.body;
+    const newPassword = limpiarPassword(req.body.newPassword);
     const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
 
     if (!token || !email || !newPassword) {

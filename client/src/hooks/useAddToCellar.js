@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { createWine, deleteWine, updateWine } from "../services/wineApi";
-import { getWishes, deleteWish } from "../services/wishApi";
+import { getWishes, deleteWish, createWish } from "../services/wishApi";
 import { limpiarCacheDeDeseos } from "./useWishlist";
 import { catalogWineToPayload, esElMismoVino } from "../utils/catalogWine";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
@@ -23,11 +23,36 @@ const quitarDeGuardados = async (wine) => {
     return {
       favorite: iguales.some((d) => d.favorite === true),
       notes: iguales.map((d) => String(d.notes || "").trim()).find(Boolean) || "",
+      // Los deseos tal cual estaban: si se deshace el alta hay que devolverlos.
+      borrados: iguales,
     };
   } catch {
     /* la lista queda como estaba */
     return null;
   }
+};
+
+/** Vuelve a crear los deseos que el alta había quitado. Es un detalle: si falla no rompe el deshacer. */
+const devolverDeseos = async (heredado) => {
+  const deseos = heredado?.borrados || [];
+  await Promise.all(
+    deseos.map((d) =>
+      createWish({
+        name: d.name,
+        winery: d.winery,
+        type: d.type,
+        region: d.region,
+        varietal: d.varietal,
+        vintage: d.vintage,
+        notes: d.notes,
+        image: d.image,
+        favorite: d.favorite,
+        source: d.source,
+        priority: d.priority,
+      }).catch(() => {})
+    )
+  );
+  if (deseos.length > 0) limpiarCacheDeDeseos();
 };
 
 /**
@@ -57,7 +82,8 @@ export function useAddToCellar({ alAgregar, source = "busqueda" } = {}) {
         setVino(null);
         alAgregar?.(elegido, { quantity: cantidad, merged });
         // Fuera de la espera del alta, y sin que un fallo la afecte: el corazón y las notas del deseo pasan al vino.
-        quitarDeGuardados(elegido).then(async (heredado) => {
+        const deseosQuitados = quitarDeGuardados(elegido);
+        deseosQuitados.then(async (heredado) => {
           if (!heredado || (!heredado.favorite && !heredado.notes)) return;
           const cambios = {};
           if (heredado.favorite && creado.favorite !== true) cambios.favorite = true;
@@ -86,6 +112,9 @@ export function useAddToCellar({ alAgregar, source = "busqueda" } = {}) {
               removeToast(id);
               try {
                 await deleteWine(creado._id);
+                // Si el vino salió de un deseo, deshacer el alta tiene que devolver el deseo:
+                // si no, el toque equivocado borra las DOS cosas (vino y deseo).
+                await devolverDeseos(await deseosQuitados);
                 alAgregar?.(elegido, { quantity: 0, merged: false, deshecho: true });
                 showSuccess(`"${creado.name}" ya no está en tu bodega`);
               } catch {

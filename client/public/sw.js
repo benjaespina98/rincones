@@ -92,9 +92,16 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/** ¿Es un asset con hash en el nombre? Esos son inmutables. */
+/**
+ * ¿Es un asset con hash en el nombre? Esos son inmutables.
+ *
+ * Vite nombra `nombre-HASH.ext` (guion), y la regla anterior exigía un PUNTO antes del hash: no
+ * coincidía con ningún archivo real, así que el caché de inmutables nunca se usaba. Además suma las
+ * imágenes (las fotos van en `src/assets` con hash).
+ */
 const esAssetConHash = (url) =>
-  url.origin === self.location.origin && /^\/assets\/.+\.[a-zA-Z0-9_-]{8,}\.(js|css|woff2?)$/.test(url.pathname);
+  url.origin === self.location.origin &&
+  /^\/assets\/.+[.-][a-zA-Z0-9_-]{8,}\.(js|css|woff2?|avif|webp|jpe?g|png)$/.test(url.pathname);
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;

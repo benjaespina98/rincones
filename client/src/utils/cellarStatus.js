@@ -108,6 +108,16 @@ function buildResult(currentYear, from, until, source) {
 }
 
 /**
+ * ¿Es de los que hay que tomar ESTE año? Con botellas y en el último año de su ventana. Sale de la misma cuenta que
+ * «Tomalo este año» de la fila, así que lo que se cuenta y lo que se filtra no pueden discrepar.
+ */
+export const cierraEsteAnio = (wine) => {
+  if (!wine || !(Number(wine.quantity) > 0)) return false;
+  const guarda = getCellarStatus(wine);
+  return guarda.status === "peak" && guarda.yearsLeft === 0;
+};
+
+/**
  * De dónde salió la ventana. Ya no se imprime como renglón: va en el `title`, para
  * quien se lo pregunte. Salvo que la haya cargado el usuario, es una estimación por
  * estilo y conviene que eso esté escrito en algún lado.

@@ -26,8 +26,18 @@ export default defineConfig({
         // Separamos las librerías (React, Router, Axios) en un chunk propio.
         // Cambian poquísimo, así que el navegador lo mantiene cacheado entre
         // deploys aunque cambie el código de la app.
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom", "axios"],
+        //
+        // Función y no lista: con la lista, `react-dom/client` (que la app importa por esa ruta
+        // y no por `react-dom`) quedaba FUERA del chunk y viajaba dentro del entry, que cambia
+        // en cada deploy y se vuelve a bajar entero. Acá se agrupa por carpeta de node_modules.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          // Las rutas de Windows traen barras invertidas: se normalizan antes de comparar.
+          const ruta = id.split("\\").join("/");
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler|axios)\//.test(ruta)) {
+            return "vendor";
+          }
+          return undefined;
         },
       },
     },

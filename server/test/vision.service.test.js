@@ -112,3 +112,30 @@ test("ubicarNombrePropio no toca un nombre propio de verdad", () => {
   });
   assert.equal(resultado.name, "Nicasia Vineyards");
 });
+
+test("la elaboración de la etiqueta (corte, crianza, alcohol) llega saneada", async () => {
+  const original = geminiService.generateJson;
+  const base = {
+    winery: "Catena Zapata", line: "", name: "Nicasia", varietal: "Blend", vintage: "2019", region: "", type: "red",
+    isWineLabel: true,
+    confidence: { winery: 95, line: 0, name: 90, varietal: 90, vintage: 90, region: 0, type: 70 },
+  };
+  try {
+    geminiService.generateJson = async () => ({
+      ...base, composition: "60% Malbec, 40% Cabernet Franc", aging: "12 meses en roble francés", alcohol: 13.54,
+    });
+    const ok = await visionService.analyzeWineLabel(Buffer.from("foto-falsa"));
+    assert.equal(ok.composition, "60% Malbec, 40% Cabernet Franc");
+    assert.equal(ok.aging, "12 meses en roble francés");
+    assert.equal(ok.alcohol, 13.5);
+
+    // Una graduación imposible es un error de lectura (un lote, un volumen): se descarta.
+    geminiService.generateJson = async () => ({ ...base, alcohol: 750 });
+    const mala = await visionService.analyzeWineLabel(Buffer.from("foto-falsa"));
+    assert.equal(mala.alcohol, 0);
+    assert.equal(mala.composition, "");
+    assert.equal(mala.aging, "");
+  } finally {
+    geminiService.generateJson = original;
+  }
+});

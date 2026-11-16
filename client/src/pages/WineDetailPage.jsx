@@ -364,6 +364,7 @@ export default function WineDetailPage() {
   const handleOpenBottle = async (cantidad = 1) => {
     if (Number(wine.quantity) <= 0) return;
     const eraProbado = wine.tasted === true;
+    const consumosAntes = Number(wine.consumptionCount) || 0;
     const n = Math.max(1, Math.min(Number(wine.quantity), cantidad));
     const quedan = Math.max(0, Number(wine.quantity) - n);
     setPending(true);
@@ -390,12 +391,12 @@ export default function WineDetailPage() {
           onClick: async () => {
             removeToast(toastId);
             try {
-              const devuelto = await undoOpenBottle(id, eraProbado, n);
+              const devuelto = await undoOpenBottle(id, eraProbado, n, consumosAntes);
               limpiarCacheDeBodega();
               setWine(devuelto);
               showSuccess(n === 1 ? "Botella devuelta a tu bodega" : `${n} botellas devueltas`);
-            } catch {
-              showError("No se pudo deshacer");
+            } catch (err) {
+              showError(mensajeDelServidor(err, "No se pudo deshacer"));
             }
           },
         },
@@ -728,7 +729,7 @@ export default function WineDetailPage() {
                       tecla hacía cosas distintas según la pantalla («a veces no
                       funciona»). Quitar una SIN tomarla sigue existiendo, pero como
                       acción aparte y con nombre (abajo). */}
-                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleOpenBottle(1)} aria-label="Tomé una botella: baja el stock y cuenta como tomada" title="Tomé una botella: baja el stock y cuenta como tomada">
+                  <button type="button" className="qty-btn" disabled={pending || Number(wine.quantity) <= 0} onClick={() => handleOpenBottle(1)} aria-label="Abrir una botella: baja el stock y cuenta como tomada" title="Abrir una botella: baja el stock y cuenta como tomada">
                     <Icon name="minus" size={14} />
                   </button>
                   {/* Ver BodyPage: el `key` va en el span interno para que la
