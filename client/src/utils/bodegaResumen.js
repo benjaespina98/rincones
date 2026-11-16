@@ -123,7 +123,9 @@ export const frasesDelResumen = (r, vista = "instock") => {
     partes.push(plural(r.probados, "vino ya tomado", "vinos ya tomados"));
   }
 
-  if (r.uvasDistintas > 0) partes.push(plural(r.uvasDistintas, "uva", "uvas"));
+  /* En «Ya tomados» las uvas no se cuentan acá: el detalle de lo que tomaste (8 Malbec, 5 Pinot…) vive en el perfil. */
+  const detalleDeUvas = vista === "instock";
+  if (detalleDeUvas && r.uvasDistintas > 0) partes.push(plural(r.uvasDistintas, "uva", "uvas"));
 
   return partes;
 };

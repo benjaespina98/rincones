@@ -33,7 +33,8 @@ export default function BodegaResumen({ wines = [], vista = "instock", className
   if (partes.length === 0) return null;
 
   // Un segmento por uva (coloreado por su tipo), del tamaño de las botellas en «En stock» y de los vinos en el resto.
-  const tipos = distribucionPorUva(wines, { porBotellas: vista === "instock" });
+  // Sólo en «En stock»: ahí sirve para elegir qué abrir. En «Ya tomados» el desglose por uva está en el perfil.
+  const tipos = vista === "instock" ? distribucionPorUva(wines, { porBotellas: true }) : [];
 
   return (
     <div className="bres-wrap">
