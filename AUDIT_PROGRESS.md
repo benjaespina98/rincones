@@ -78,6 +78,24 @@ editor de vino.
 - El test `diario-invitacion.test.jsx` falló una vez bajo carga y pasó en aislamiento y en la
   corrida completa siguiente: posible flaky, sin investigar.
 
+## Backlog de producto (pedido por el dueño)
+
+- **Panel admin: rediseño general.** Quedó viejo respecto del resto de la app y en el celular hay partes
+  que no se ven bien (por ejemplo, la parte de arriba se ve cortada). Revisar a 375, 768 y 1280 px:
+  cabecera, navegación, tablas y formularios; usar los mismos tokens y componentes que la app (Chip,
+  BottomSheet, botones), áreas táctiles de 44 px y tipografía unificada. Excepción actual: el admin usa
+  campos de texto de menos de 16 px a propósito; decidir si se unifica.
+- **Mi Bodega: cabecera que se achica al scrollear** (buscador, pestañas y filtros ocupan mucho antes del
+  primer vino) e indicador deslizante entre pestañas.
+- **Sommelier: receta y servicio integrados al chat** (hoy hay una línea de servicio por vino y el botón
+  «Qué cocinar»; falta decantar/airear con criterio por vino y unir la receta con la ficha).
+- **Fotos de más bodegas**: Casarena, Mosquita Muerta, Fabre Montmayou, Trapiche, Norton, Trivento,
+  Salentein, El Esteco, Nieto Senetiner, Finca Las Moras. Crédito visible «Foto: bodega» y contacto para
+  pedir baja.
+- **Escaneo**: medir la precisión de la lectura (nombre, uva, cosecha, reserva, corte, barrica) con fotos
+  reales de varias bodegas; la mejora de corte/crianza/graduación está hecha y probada sólo con tests.
+- **Accesibilidad táctil**: áreas bajo 44 px (stepper 32, pestañas 40, insignias de grilla 34).
+
 ## Decisiones que no se toman solas
 
 - Rate limits en memoria sobre serverless (hace falta store compartido: Mongo con TTL o Redis).
