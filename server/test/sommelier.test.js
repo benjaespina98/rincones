@@ -228,7 +228,7 @@ test("un pick que nombra un vino sin stock tampoco se dibuja", () => {
  * `armarInventario`) y nunca pasa por Gemini, así que no hay nada que pisar.
  */
 test("detecta la pregunta de inventario y no la confunde con pedir una recomendación", () => {
-  for (const q of ["¿Qué vinos tengo?", "¿Qué Malbec tengo?", "¿Cuántas botellas me quedan?", "mi stock", "¿qué tengo en mi bodega?"]) {
+  for (const q of ["¿Qué vinos tengo?", "¿Qué Malbec tengo?", "¿Cuántas botellas me quedan?", "mi stock", "¿qué tengo en mi bodega?", "¿Tengo algún otro Malbec?", "¿Tengo más tintos?", "tengo un syrah"]) {
     assert.equal(esPreguntaDeInventario(q), true, `debería ser inventario: ${q}`);
   }
   // Pide una sugerencia, no una lista — aunque diga "tengo" en algún lado.

@@ -673,6 +673,7 @@ export default function DiscoverPage() {
                   alt=""
                   artSize={112}
                   fit="contain"
+                  priority
                   marca={spotlight.winery || spotlight.name}
                 />
               ) : (

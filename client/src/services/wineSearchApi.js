@@ -94,7 +94,26 @@ const clavesGuardadas = () => {
   }
 };
 
-export const getFeaturedWines = async (userId = "") => {
+// Pedidos en vuelo por persona: si la app lo precarga al abrir sesión y Descubrí lo pide un instante después,
+// es UN solo viaje al server, no dos.
+const enVuelo = new Map();
+
+export const getFeaturedWines = (userId = "") => {
+  const k = userId || "";
+  if (!k) return pedirDestacados(userId);
+  if (!enVuelo.has(k)) {
+    const p = pedirDestacados(userId).finally(() => enVuelo.delete(k));
+    enVuelo.set(k, p);
+  }
+  return enVuelo.get(k);
+};
+
+/** Se llama al abrir sesión: cuando la persona llega a Descubrí, la recomendación ya viene en camino (o ya llegó). */
+export const precargarDestacados = (userId = "") => {
+  if (userId) getFeaturedWines(userId).catch(() => {});
+};
+
+const pedirDestacados = async (userId = "") => {
   // Sin saber de quién es el set no se lee ni se guarda nada: una clave común mezclaría a las personas.
   const clave = userId ? `${FEATURED_KEY}_${userId}_${hoyEnArgentina()}` : "";
 
@@ -169,15 +188,33 @@ export const mercadoLibreUrl = (name, winery, varietal = "") => {
  * cacheada en el server. Lanza si falla, para que la UI muestre un estado claro.
  */
 export const describeWine = async (wine) => {
-  const { data } = await api.post("/catalog/describe", {
-    name: wine.name,
-    winery: wine.winery,
-    varietal: wine.varietal,
-    type: wine.type,
-    region: wine.region,
-    vintage: wine.vintage,
-  });
-  return data?.data || null;
+  const pedir = () =>
+    api.post(
+      "/catalog/describe",
+      {
+        name: wine.name,
+        winery: wine.winery,
+        varietal: wine.varietal,
+        type: wine.type,
+        region: wine.region,
+        vintage: wine.vintage,
+      },
+      // Generar la ficha puede pasar de los 12 s del resto de los pedidos: si el cliente cortaba antes, el server igual
+      // terminaba y la dejaba guardada, y al recargar aparecía. Era «da error y al actualizar se ve bien».
+      { timeout: 25000 }
+    );
+  let respuesta;
+  try {
+    respuesta = await pedir();
+  } catch (error) {
+    // Una sola vez, para lo transitorio (modelo saturado, corte de red, timeout): el segundo intento suele encontrar la
+    // ficha ya guardada. Un 4xx no se reintenta: repetirlo daría lo mismo.
+    const estado = error?.response?.status;
+    if (estado && estado >= 400 && estado < 500 && estado !== 429) throw error;
+    await new Promise((r) => setTimeout(r, 1200));
+    respuesta = await pedir();
+  }
+  return respuesta.data?.data || null;
 };
 
 /**
