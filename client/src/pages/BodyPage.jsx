@@ -11,6 +11,7 @@ import ErrorState from "../components/ErrorState";
 import WishlistPanel from "../components/WishlistPanel";
 import BodegaResumen from "../components/BodegaResumen";
 import WineRow from "../components/WineRow";
+import { cierraEsteAnio } from "../utils/cellarStatus";
 import Chip from "../components/Chip";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
@@ -159,6 +160,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState(() => guardados.sortBy || "recent");
   const [soloListos, setSoloListos] = useState(Boolean(guardados.soloListos));
+  // «Cierran este año»: se pide desde el aviso de arriba de la lista, no persiste entre visitas.
+  const [cierraAnio, setCierraAnio] = useState(false);
   // null = no filtra por probado; true = sólo probados; false = sólo pendientes.
   const [probado, setProbado] = useState(
     guardados.probado === true || guardados.probado === false ? guardados.probado : null
@@ -398,8 +401,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
   const enLaVista = useCallback((wine) => pasaVista(vista, wine), [vista]);
 
   const pasaFiltros = useCallback(
-    (wine) => pasaFiltrosDe(wine, { probado, soloListos }),
-    [probado, soloListos]
+    (wine) => pasaFiltrosDe(wine, { probado, soloListos }) && (!cierraAnio || cierraEsteAnio(wine)),
+    [probado, soloListos, cierraAnio]
   );
 
   /**
@@ -620,11 +623,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * en pantalla que lo explique. Acá cada filtro aplicado tiene su ficha, y la
    * ficha es el botón para quitarlo.
    */
+  const cierranEsteAnio = useMemo(() => wines.filter(cierraEsteAnio).length, [wines]);
+
   const filtrosActivos = useMemo(() => {
     const fichas = [];
     if (probado === false) fichas.push({ id: "prob", label: "Sin tomar", quitar: () => setProbado(null) });
     if (probado === true) fichas.push({ id: "prob", label: "Ya tomados", quitar: () => setProbado(null) });
     if (soloListos) fichas.push({ id: "listos", label: "Listos para abrir", quitar: () => setSoloListos(false) });
+    if (cierraAnio) fichas.push({ id: "cierra", label: "Cierran este año", quitar: () => setCierraAnio(false) });
     if (tipoFilter !== "all") {
       fichas.push({
         id: "tipo",
@@ -647,7 +653,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
       fichas.push({ id: "cosecha", label: `Cosecha ${vintageFilter}`, quitar: () => setVintageFilter("all") });
     }
     return fichas;
-  }, [probado, soloListos, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]);
+  }, [probado, soloListos, cierraAnio, tipoFilter, varietalFilter, regionFilter, vintageFilter, wineryFilter, puntajeMin]);
 
   /**
    * Qué decir cuando no hay nada que mostrar.
@@ -791,6 +797,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
 
   const clearAllFilters = () => {
     setSoloListos(false);
+    setCierraAnio(false);
     setProbado(null);
     setTipoFilter("all");
     setVarietalFilter("all");
@@ -1378,6 +1385,15 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </button>
       )}
 
+      {/* «Se vencen este año»: lo que está en el último año de su ventana. Un renglón que filtra la lista; si no hay
+          ninguno, no se dibuja. */}
+      {!loading && !error && !modoSeleccion && vista === "instock" && !cierraAnio && cierranEsteAnio > 0 && (
+        <button type="button" className="cierran-aviso" onClick={() => setCierraAnio(true)}>
+          {cierranEsteAnio === 1 ? "1 vino cierra" : `${cierranEsteAnio} vinos cierran`} su mejor momento este año
+          <span className="cierran-aviso__ver">Verlos</span>
+        </button>
+      )}
+
         </>
       )}
 
@@ -1388,7 +1404,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
           único propio de esa vista es lo que se agrega DESPUÉS: la wishlist,
           que sale de otra colección y se dibuja con otra fila —un vino que no
           tenés no ofrece abrir una botella, ofrece decir "ya lo tengo". */}
-      {loading && <LoadingSkeleton type="card" count={4} />}
+      {loading && <LoadingSkeleton type="list" count={4} />}
 
       {!loading && error && (
         <ErrorState

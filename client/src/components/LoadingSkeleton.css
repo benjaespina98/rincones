@@ -7,12 +7,11 @@
    mismo radio, misma superficie, mismo borde y la misma banda de 3 px del tipo
    de vino. Si `Card` cambia, esto cambia con ella. */
 
+/* El brillo recorre el bloque con `transform` (compuesto en la GPU), no con `background-position`, que repinta en cada
+   cuadro. Sólo transform y opacity se animan en esta app. */
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -25,23 +24,27 @@
    Ahora es luz neutra sobre la superficie — que es lo que un esqueleto es: el
    lugar donde va a haber algo. */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgb(var(--paper-rgb) / 0.04) 0%,
-    rgb(var(--paper-rgb) / 0.11) 50%,
-    rgb(var(--paper-rgb) / 0.04) 100%
-  );
-  background-size: 1000px 100%;
-  animation: shimmer 1.6s var(--ease-out) infinite;
+  position: relative;
+  overflow: hidden;
+  background: rgb(var(--paper-rgb) / 0.06);
   border-radius: var(--radius-md);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--paper-rgb) / 0.09) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: shimmer 1.5s var(--ease-out) infinite;
 }
 
 /* Un esqueleto que late es una animación en bucle: con reduced-motion se
    apaga y queda el bloque quieto, que informa lo mismo. */
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
+  .skeleton::after {
     animation: none;
-    background: rgb(var(--paper-rgb) / 0.07);
+    display: none;
   }
 }
 
@@ -172,10 +175,11 @@
   padding: var(--card-pad-compact);
 }
 
+/* La botella de la fila real (68×92 en Mi Bodega): mismo tamaño, así al cargar no hay salto. */
 .skeleton--thumb {
   flex-shrink: 0;
-  width: 54px;
-  height: 54px;
+  width: var(--wine-thumb-w, 68px);
+  height: var(--wine-thumb-h, 92px);
   border-radius: var(--radius-md);
 }
 
