@@ -32,11 +32,12 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const Promotion = require("../src/models/promotion.model");
 
 dotenv.config();
 
-const dryRun = process.argv.includes("--dry");
+const { dry: dryRun } = modoMigracion();
 
 const TIPOS = ["event", "wineShop", "winery", "article", "course", "video"];
 
@@ -113,7 +114,7 @@ const run = async () => {
     console.log("  Si alguna era otra cosa (una bodega, una nota), cambiale el tipo en el panel.\n");
   }
 
-  if (dryRun) console.log("  Nada de esto se escribió. Corré sin --dry para aplicarlo.\n");
+  if (dryRun) console.log("  Nada de esto se escribió. Corré con --aplicar para escribirlo (en producción, también --confirmo-destino=rincones).\n");
 };
 
 run()
