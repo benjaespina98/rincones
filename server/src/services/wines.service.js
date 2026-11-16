@@ -421,8 +421,11 @@ async function createWine(userId, payload) {
     : "";
   // Subimos a Cloudinary (si está configurado) y guardamos la URL liviana; si no,
   // queda el base64 tal cual. Así el vino y el pool comparten la misma referencia.
-  const providedImage = rawProvided ? await imageStorage.store(rawProvided) : "";
-  const resolvedImage = providedImage || (await wineImages.getImage(name, winery, varietal));
+  // Si el pool tiene la foto de producto de este vino (bien puntuada), esa gana sobre la que sacó quien lo cargó:
+  // la etiqueta fotografiada se ve mal en una tarjeta, la botella real se ve bien en todas.
+  const fotoDelPool = await wineImages.getImageConfiable(name, winery, varietal);
+  const providedImage = rawProvided && !fotoDelPool ? await imageStorage.store(rawProvided) : "";
+  const resolvedImage = fotoDelPool || providedImage || (await wineImages.getImage(name, winery, varietal));
 
   // La uva pasa por el vocabulario también acá. El escaneo ya la corrige al
   // leerla, pero por este camino entra además la carga a mano y la edición, que

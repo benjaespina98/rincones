@@ -40,6 +40,7 @@ import WineMeta from "../components/WineMeta";
 import WineRecipeSheet from "../components/WineRecipeSheet";
 import { FOOD_PAIRINGS } from "../data/wineReference";
 import { tapHaptic } from "../utils/haptics";
+import { greeting, dayPart } from "../utils/momentCopy";
 import { trackEvent } from "../services/analyticsApi";
 import "./SuggestionsPage.css";
 
@@ -227,6 +228,29 @@ export default function SuggestionsPage() {
       }),
     [listos, stats, semillaAtajos]
   );
+  const tituloDeHoy = (() => {
+    const parte = dayPart();
+    if (parte === "mediodia") return "¿Qué hay para almorzar?";
+    if (parte === "noche" || parte === "madrugada") return "¿Qué hay para cenar?";
+    return "¿Qué vas a comer?";
+  })();
+  /* La columna de conversaciones de escritorio se puede esconder (en el teléfono es un cajón y ya se cierra). Se
+     recuerda entre visitas: quien la esconde no quiere volver a esconderla cada vez. */
+  const [chatsOcultos, setChatsOcultos] = useState(() => {
+    try {
+      return window.localStorage.getItem("rincones:somm-chats-ocultos") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternarChats = (ocultar) => {
+    setChatsOcultos(ocultar);
+    try {
+      window.localStorage.setItem("rincones:somm-chats-ocultos", ocultar ? "1" : "0");
+    } catch {
+      /* Sin almacenamiento sólo se pierde el recuerdo. */
+    }
+  };
   const [pensando, setPensando] = useState(false);
   /* El archivo de charlas: la hoja abierta o cerrada, y a qué conversación
      guardada pertenece la de ahora. `null` significa "todavía no se guardó
@@ -852,7 +876,18 @@ export default function SuggestionsPage() {
   };
 
   return (
-    <div className="somm" ref={raizRef}>
+    <div className="somm" ref={raizRef} data-chats={chatsOcultos ? "ocultos" : undefined}>
+      {chatsOcultos && (
+        <button
+          type="button"
+          className="somm__chats-abrir"
+          aria-label="Mostrar conversaciones"
+          title="Mostrar conversaciones"
+          onClick={() => alternarChats(false)}
+        >
+          <Icon name="menu" size={20} />
+        </button>
+      )}
       {/* `aria-live="polite"` para que un lector de pantalla anuncie la
           respuesta apenas llega, sin que la persona tenga que ir a buscarla
           — antes sólo "Buscando…" (role="status", más abajo) hablaba, y en
@@ -878,8 +913,8 @@ export default function SuggestionsPage() {
                 aparte del título, que es el que describe qué hace esta
                 pantalla. Sin nombre (sesión sin perfil todavía) se esconde en
                 vez de saludar a nadie. */}
-            {nombre && <p className="somm__saludo">Hola, {nombre}</p>}
-            <h2>¿Qué vas a comer?</h2>
+            {nombre && <p className="somm__saludo">{greeting()}, {nombre}</p>}
+            <h2>{tituloDeHoy}</h2>
             <FilaDeAtajos
               className="somm__rail"
               inicial={atajos.comidas}
@@ -904,7 +939,7 @@ export default function SuggestionsPage() {
                 sueltas. */}
             {datosListos && (
               <div className="somm__otras">
-                <span className="somm__otras-rotulo">O preguntame</span>
+                <span className="somm__otras-rotulo">O preguntame otra cosa</span>
                 {/* La `key` cambia si cambian los datos de los que depende (llegó la bodega):
                     la fila se vuelve a armar. Las preguntas que dependen de la bodega son
                     fijas; las demás rotan solas. */}
@@ -1308,6 +1343,8 @@ export default function SuggestionsPage() {
         )}
 
       <SommelierChats
+        oculto={chatsOcultos}
+        onOcultar={() => alternarChats(true)}
         abierto={historialAbierto}
         onClose={() => setHistorialAbierto(false)}
         activoId={conversacionId}

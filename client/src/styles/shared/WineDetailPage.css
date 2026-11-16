@@ -55,12 +55,16 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    transparent 55%,
-    rgb(var(--bg-rgb) / 0.55) 100%
-  );
+  /* Viñeta: las fotos de estudio traen un gris de fondo; los bordes se hunden en el negro de la app y la
+     botella queda como lo único iluminado. */
+  background:
+    radial-gradient(ellipse 62% 70% at 50% 42%, transparent 35%, rgb(var(--bg-deep-rgb) / 0.82) 100%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 55%,
+      rgb(var(--bg-rgb) / 0.55) 100%
+    );
   pointer-events: none;
 }
 

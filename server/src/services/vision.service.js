@@ -60,6 +60,12 @@ Además:
 - region: región o país de origen si aparece (ej: "Luján de Cuyo, Mendoza", "Valle de Uco").
 - type: red, white, rosé, sparkling, fortified o "unknown". Si no lo dice la etiqueta, inferilo
   por la uva: Malbec/Cabernet/Syrah/Bonarda/Merlot = red; Chardonnay/Sauvignon Blanc/Torrontés = white.
+- composition: SOLO si la etiqueta (frente o contraetiqueta) dice de qué uvas está hecho el vino y en qué
+  proporción, escribilo como figura impreso ("60% Malbec, 40% Cabernet Franc"; sin porcentajes: "Malbec,
+  Cabernet Franc"). Si es un corte, el varietal es "Blend" y acá va el detalle. Vacío si no lo dice.
+- aging: SOLO si dice la crianza o paso por barrica, tal cual ("12 meses en barricas de roble francés",
+  "Sin paso por madera", "Crianza en roble"). Vacío si no lo dice.
+- alcohol: la graduación alcohólica impresa como número (ej: 13.5). 0 si no se lee.
 - isWineLabel: true si la imagen realmente es la etiqueta de un vino; false si no lo es.
 
 CONFIANZA (objeto "confidence", un entero 0-100 por campo). Puntuá según lo que hiciste
@@ -93,6 +99,9 @@ const RESPONSE_SCHEMA = {
       type: "string",
       enum: ["red", "white", "rosé", "sparkling", "fortified", "unknown"],
     },
+    composition: { type: "string" },
+    aging: { type: "string" },
+    alcohol: { type: "number" },
     isWineLabel: { type: "boolean" },
     confidence: {
       type: "object",
@@ -267,6 +276,14 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
   );
 
   const confidence = clampConfidence(parsed.confidence, values);
+  // Lo que la etiqueta cuenta de la elaboración: no es identidad (no entra en la clave del vino) pero es lo que
+  // más se busca en una contraetiqueta. Se sanea igual que el resto y un alcohol fuera de rango es un error de lectura.
+  const alcoholLeido = Number(parsed.alcohol);
+  const elaboracion = {
+    composition: limpiarDato(parsed.composition, 120),
+    aging: limpiarDato(parsed.aging, 120),
+    alcohol: Number.isFinite(alcoholLeido) && alcoholLeido >= 5 && alcoholLeido <= 20 ? Math.round(alcoholLeido * 10) / 10 : 0,
+  };
 
   // Una uva que no reconocimos no puede seguir declarándose leída con seguridad:
   // el modelo cree que la leyó bien, y el que sabe que no es este módulo. Bajarla
@@ -278,6 +295,7 @@ const analyzeWineLabel = async (buffer, mimeType = "image/jpeg") => {
 
   return {
     ...values,
+    ...elaboracion,
     // Nombre visible, compuesto con la MISMA regla que el catálogo curado.
     displayName: composeDisplayName(values),
     isWineLabel: parsed.isWineLabel !== false,

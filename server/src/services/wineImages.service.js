@@ -113,6 +113,22 @@ const getImage = async (name, winery, varietal) => {
 };
 
 /**
+ * La foto del pool SÓLO si está bien puntuada (mismo mínimo que `conFotoConfiable`), o "". Es la que gana sobre la
+ * foto de etiqueta que saca quien escanea: la botella de producto se ve en todas las pantallas, la etiqueta no.
+ * Nunca lanza.
+ */
+const getImageConfiable = async (name, winery, varietal, minimo = 70) => {
+  try {
+    const key = wineKey(name, winery, varietal);
+    if (!key) return "";
+    const doc = await WineImage.findOne({ key, qualityScore: { $gte: minimo } }).select("image").lean();
+    return doc?.image || "";
+  } catch {
+    return "";
+  }
+};
+
+/**
  * El estado del pool para una lista de vinos, en un solo viaje a la base.
  *
  * Para el navegador del catálogo (panel de admin): necesita saber, de una
@@ -267,4 +283,4 @@ const conFotoConfiable = async (wines = [], minimo = 70) => {
   });
 };
 
-module.exports = { contribute, adminSet, getImage, getImagesFor, getCalidadFor, keysConFoto, enrichWithImages, conFotoConfiable, wineKey };
+module.exports = { contribute, adminSet, getImage, getImageConfiable, getImagesFor, getCalidadFor, keysConFoto, enrichWithImages, conFotoConfiable, wineKey };

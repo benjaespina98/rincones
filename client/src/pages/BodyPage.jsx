@@ -10,7 +10,7 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import WishlistPanel from "../components/WishlistPanel";
 import BodegaResumen from "../components/BodegaResumen";
-import EstaNocheSheet from "../components/EstaNocheSheet";import WineRow from "../components/WineRow";
+import WineRow from "../components/WineRow";
 import Chip from "../components/Chip";
 import { useToast } from "../context/ToastContext";
 import { useWineCollection } from "../hooks/useWineCollection";
@@ -184,7 +184,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
    * sólo si no se ve en qué modo estás, y acá se ve.
    */
   const [seleccion, setSeleccion] = useState(() => new Set());
-  const [estaNocheAbierta, setEstaNocheAbierta] = useState(false);
   const [modoSeleccion, setModoSeleccion] = useState(false);
   const [enLote, setEnLote] = useState(false);
   const [confirmarLote, setConfirmarLote] = useState(false);
@@ -1369,10 +1368,10 @@ export default function BodyPage({ initialFilter = "instock" }) {
         </div>
       )}
 
-      {/* «Esta noche»: la entrada a la sugerencia por ocasión. Sólo en «En stock» y con botellas:
-          sin nada en la cava no hay qué sugerir. No depende de los filtros (sugiere de toda la bodega). */}
+      {/* «Esta noche»: lleva al Sommelier con la pregunta ya hecha (él ve tu bodega y elige). Sólo en «En stock» y con botellas:
+          sin nada en la cava no hay qué sugerir. No depende de los filtros. */}
       {!loading && !error && !modoSeleccion && vista === "instock" && wines.some((w) => w.quantity > 0) && (
-        <button type="button" className="esta-noche-entrada" onClick={() => setEstaNocheAbierta(true)}>
+        <button type="button" className="esta-noche-entrada" onClick={() => navigate("/sommelier", { state: { pregunta: "¿Qué abro esta noche?" } })}>
           <Icon name="wine-glass" filled size={18} />
           ¿Qué abro esta noche?
           <Icon name="chevron-right" size={16} className="esta-noche-entrada__sub" />
@@ -1661,8 +1660,6 @@ export default function BodyPage({ initialFilter = "instock" }) {
         onConfirm={() => handleDeleteWine(showDeleteConfirm)}
         onCancel={() => setShowDeleteConfirm(null)}
       />
-
-      <EstaNocheSheet isOpen={estaNocheAbierta} onClose={() => setEstaNocheAbierta(false)} />
 
       {sumando && (
         <AddStockSheet

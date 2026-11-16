@@ -321,6 +321,9 @@ const analyzeLabel = async (req, res, next) => {
           region: v.region || "",
           type: v.type || "unknown",
           vintage: v.vintage || "",
+          composition: v.composition || "",
+          aging: v.aging || "",
+          alcohol: v.alcohol || 0,
           // Nombre visible ya compuesto con la convención del catálogo.
           displayName: v.displayName || "",
           isWineLabel: v.isWineLabel,

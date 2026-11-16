@@ -1,4 +1,5 @@
 import { leerCosecha } from "../utils/vintage";
+import { textoDeEtiqueta } from "../utils/fichaDeEtiqueta";
 import { mensajeDelServidor } from "../utils/mensajeDelServidor";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -258,6 +259,8 @@ export default function ScanWinePage() {
         type: payload.type || "unknown",
       },
       confidence: { ...(payload.confidence || {}) },
+      // Corte con proporciones, crianza y graduación que dice la etiqueta: van a las notas del vino al guardarlo.
+      ficha: textoDeEtiqueta(payload),
       // Quién respalda este nombre: el catálogo curado, dos personas que
       // cargaron lo mismo, el modelo consultado por texto — o nadie.
       verification: payload.verification || null,
@@ -334,6 +337,10 @@ export default function ScanWinePage() {
         }
         await deleteWish(review.desdeGuardado).catch(() => {});
         limpiarCacheDeDeseos();
+      }
+      // Lo que la etiqueta decía de la elaboración queda en las notas (sólo si no había nada escrito).
+      if (creado && review?.ficha && !String(creado.notes || "").trim()) {
+        await updateWine(creado._id, { notes: review.ficha }).catch(() => {});
       }
       setReview(null);
     } catch (err) {

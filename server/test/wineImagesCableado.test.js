@@ -73,3 +73,35 @@ test("conFotoConfiable: completa sólo los vinos sin foto y sólo con fotos del 
     WineImage.find = original;
   }
 });
+
+test("getImageConfiable sólo devuelve la foto del pool si pasa el mínimo de calidad", async () => {
+  const original = WineImage.findOne;
+  let filtro = null;
+  WineImage.findOne = (f) => {
+    filtro = f;
+    const q = Promise.resolve({ image: BUENA });
+    q.select = () => q;
+    q.lean = () => q;
+    return q;
+  };
+  try {
+    const img = await wineImages.getImageConfiable("Saint Felicien", "Catena", "Malbec");
+    assert.equal(img, BUENA);
+    assert.deepEqual(filtro.qualityScore, { $gte: 70 });
+    assert.equal(await wineImages.getImageConfiable("", "", ""), "");
+  } finally {
+    WineImage.findOne = original;
+  }
+});
+
+test("getImageConfiable no lanza si la base falla", async () => {
+  const original = WineImage.findOne;
+  WineImage.findOne = () => {
+    throw new Error("sin base");
+  };
+  try {
+    assert.equal(await wineImages.getImageConfiable("Saint Felicien", "Catena", "Malbec"), "");
+  } finally {
+    WineImage.findOne = original;
+  }
+});

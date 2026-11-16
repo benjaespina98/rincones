@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { WINE_TYPE_LABELS } from "../data/wineReference";
 import { resumenDeBodega, frasesDelResumen } from "../utils/bodegaResumen";
 import "./BodegaResumen.css";
 
@@ -45,11 +46,22 @@ export default function BodegaResumen({ wines = [], className = "" }) {
         {partes.join(" · ")}
       </p>
       {tipos.length > 1 && (
-        <div className="bres__barra" aria-hidden="true">
-          {tipos.map(([tipo, n]) => (
-            <span key={tipo} className="bres__seg" data-wine-type={tipo} style={{ flexGrow: n }} />
-          ))}
-        </div>
+        <>
+          <div className="bres__barra" aria-hidden="true">
+            {tipos.map(([tipo, n]) => (
+              <span key={tipo} className="bres__seg" data-wine-type={tipo} style={{ flexGrow: n }} />
+            ))}
+          </div>
+          {/* La barra sola no dice qué es cada color: la leyenda nombra cada tipo con su cantidad. */}
+          <ul className="bres__leyenda" aria-label="Por tipo de vino">
+            {tipos.map(([tipo, n]) => (
+              <li key={tipo} className="bres__item" data-wine-type={tipo}>
+                <span className="bres__punto" aria-hidden="true" />
+                {WINE_TYPE_LABELS[tipo] || "Otro"} {n}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

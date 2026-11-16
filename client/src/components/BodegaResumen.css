@@ -47,3 +47,29 @@
     animation: none;
   }
 }
+
+/* La leyenda de la barra: punto de color + tipo + cantidad, en una línea que baja si no entra. */
+.bres__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-meta);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bres__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bres__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--type-rgb, var(--accent-rgb)));
+}
