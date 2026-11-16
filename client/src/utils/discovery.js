@@ -164,6 +164,15 @@ export const topDeEntrada = (wines) => {
   return conFoto > 0 ? Math.min(4, conFoto) : 4;
 };
 
+/**
+ * Las recomendaciones de Descubrí son SÓLO de vinos con foto de botella confiable: una tarjeta de recomendación sin
+ * foto es la que menos se quiere tocar. `fotoConfiable` lo decide el server (puntaje de calidad del pool).
+ */
+export const soloConFoto = (wines) =>
+  (Array.isArray(wines) ? wines : []).filter(
+    (w) => w && w.fotoConfiable === true && typeof w.image === "string" && w.image.trim() !== "" && !w.image.startsWith("data:")
+  );
+
 export const conFotoPrimero = (wines) => {
   const lista = (Array.isArray(wines) ? wines : []).filter(Boolean);
   const tieneFoto = (w) => typeof w.image === "string" && w.image.trim() !== "";

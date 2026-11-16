@@ -10,7 +10,7 @@ import { tiempoEnCava, enCavaDesde, stockLabel, nuncaEstuvoEnTuCava } from "../u
 import { wineDisplayName } from "../utils/wineIdentity";
 import { nombreDeFila } from "../utils/viewTransition";
 import { useSwipeAcciones } from "../hooks/useSwipeAcciones";
-import { resumenTomado, pistaDeStock } from "../utils/tomados";
+import { resumenTomado } from "../utils/tomados";
 
 /**
  * Una fila de Mi Bodega.
@@ -392,9 +392,6 @@ function WineRow({
                 veces lo tomaste, cuántas botellas quedan) y se dicen aparte. */}
             {!esGrilla && wine.tasted && (
               <span className="wine-row__tomado">{resumenTomado(wine)}</span>
-            )}
-            {!esGrilla && conStepper && (vista === "probados" || vista === "sin-stock") && (
-              <span className="wine-row__pista">{pistaDeStock(wine)}</span>
             )}
 
             {/* El puntaje con estrellas y no como número: en la vitrina

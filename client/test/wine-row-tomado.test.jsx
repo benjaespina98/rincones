@@ -44,18 +44,18 @@ const props = {
 };
 
 describe("WineRow: lo que pasó con el vino", () => {
-  it("en Ya tomados dice cuántas veces lo tomaste y qué hace cada botón", () => {
+  it("en Ya tomados dice cuántas veces lo tomaste, sin renglón explicativo de los botones", () => {
     const { container } = render(<WineRow {...props} />);
     expect(container.querySelector(".wine-row__tomado").textContent).toBe("Tomado 2 veces · hoy");
-    expect(container.querySelector(".wine-row__pista").textContent).toBe("Sin botellas · tocá + para sumar una al stock");
+    expect(container.querySelector(".wine-row__pista")).toBeNull();
   });
 
-  it("con botellas, la pista dice cuántas hay y qué hace el −", () => {
+  it("con botellas tampoco hay un renglón que explique el −", () => {
     const { container } = render(<WineRow {...props} wine={{ ...TOMADO, quantity: 2 }} />);
-    expect(container.querySelector(".wine-row__pista").textContent).toBe("2 botellas en tu bodega · tocá − para abrir una");
+    expect(container.querySelector(".wine-row__pista")).toBeNull();
   });
 
-  it("la pista sólo está en Ya tomados; «Tomado» también se ve en En stock", () => {
+  it("«Tomado» también se ve en En stock", () => {
     const { container } = render(<WineRow {...props} vista="instock" wine={{ ...TOMADO, quantity: 2 }} />);
     expect(container.querySelector(".wine-row__pista")).toBeNull();
     expect(container.querySelector(".wine-row__tomado").textContent).toBe("Tomado 2 veces · hoy");
@@ -76,10 +76,10 @@ describe("WineRow: lo que pasó con el vino", () => {
 describe("WineRow en «Sin stock»: lo que no tenía lugar sigue siendo operable", () => {
   const SIN_LUGAR = { ...TOMADO, tasted: false, consumptionCount: 0, lastConsumedAt: undefined, quantity: 0 };
 
-  it("la fila se puede desplegar (marcar como probado, favorito, eliminar) y dice qué hace el +", () => {
+  it("la fila se puede desplegar (marcar como probado, favorito, eliminar)", () => {
     const { container } = render(<WineRow {...props} vista="sin-stock" wine={SIN_LUGAR} expanded />);
     expect(container.querySelector(".wine-row__expand")).not.toBeNull();
-    expect(container.querySelector(".wine-row__pista").textContent).toBe("Sin botellas · tocá + para sumar una al stock");
+    expect(container.querySelector(".wine-row__pista")).toBeNull();
     expect(container.querySelector('[aria-label="Marcar como ya probado"]')).not.toBeNull();
   });
 

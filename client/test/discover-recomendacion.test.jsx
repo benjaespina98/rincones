@@ -3,8 +3,8 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router-dom";
 
 /**
- * La recomendación de Descubrí prioriza los vinos con foto, pero NUNCA queda vacía por no tener:
- * con foto primero y los demás después, como siempre. Sin ninguno con foto se recomienda igual.
+ * La recomendación de Descubrí es SÓLO de vinos con foto de botella confiable: un vino sin foto no se recomienda.
+ * Si ninguno la tiene, la sección dice que no hay recomendaciones ahora (nunca muestra uno sin foto).
  */
 const { featured, navigate } = vi.hoisted(() => ({ featured: { lista: [], llamadas: [] }, navigate: vi.fn() }));
 
@@ -36,8 +36,8 @@ vi.mock("../src/components/FilaDeAtajos", () => ({ default: () => null }));
 
 const { default: DiscoverPage } = await import("../src/pages/DiscoverPage");
 
-const vino = (id, image = "") => ({ id, name: `Vino ${id}`, winery: "Bodega", varietal: "Malbec", type: "red", region: "Mendoza", image });
 const FOTO = (n) => `https://res.cloudinary.com/x/image/upload/${n}.jpg`;
+const vino = (id, image = FOTO(id)) => ({ id, name: `Vino ${id}`, winery: "Bodega", varietal: "Malbec", type: "red", region: "Mendoza", image, fotoConfiable: Boolean(image) });
 
 /* La precarga de la foto (Image aparte) no existe en jsdom: se simula. Por defecto "carga" al asignar
    el src; con `imagenes.modo = "nunca"` no responde, para ver el esqueleto. */
@@ -77,30 +77,29 @@ const montar = async (lista) => {
 
 const nombreRecomendado = async () => (await screen.findByRole("heading", { level: 2, name: /^Vino [a-z]$/ }, { timeout: 4000 })).textContent;
 
-describe("Descubrí: recomienda con foto primero", () => {
-  it("entra por uno con foto aunque haya otros sin foto en el set (repetido: el sorteo es al azar)", async () => {
+describe("Descubrí: recomienda sólo con foto", () => {
+  it("nunca entra por uno sin foto aunque haya otros en el set (repetido: el sorteo es al azar)", async () => {
     for (let i = 0; i < 8; i += 1) {
       cleanup();
-      await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d")), vino("e", "  ")]);
+      await montar([vino("a", ""), vino("b", FOTO("b")), vino("c", FOTO("c")), vino("d", FOTO("d")), vino("e", "  ")]);
       const nombre = await nombreRecomendado();
       expect(["Vino b", "Vino c", "Vino d"]).toContain(nombre);
     }
   }, 20000);
 
-  it("sin ningún vino con foto recomienda igual, sin pantalla de error ni de pedido de foto", async () => {
-    await montar([vino("a"), vino("b", "")]);
-    const nombre = await nombreRecomendado();
-    expect(["Vino a", "Vino b"]).toContain(nombre);
+  it("sin ningún vino con foto no recomienda ninguno: dice que no hay, sin pedir una foto", async () => {
+    await montar([vino("a", ""), vino("b", "")]);
+    expect(await screen.findByText(/no hay recomendaciones ahora/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: /^Vino [a-z]$/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sumá una foto" })).toBeNull();
-    expect(screen.queryByText(/todavía no hay recomendaciones con foto/i)).toBeNull();
   });
 
-  it("'Ver otro' recorre todos los vinos del set, con los de foto primero, sin repetir el mismo seguido", async () => {
+  it("'Recomendame otro' recorre los vinos del set, sin repetir el mismo seguido", async () => {
     await montar([vino("a"), vino("b", FOTO("b")), vino("c", FOTO("c"))]);
     let actual = await nombreRecomendado();
     const vistos = new Set([actual]);
     for (let i = 0; i < 6; i += 1) {
-      fireEvent.click(screen.getByRole("button", { name: /ver otro/i }));
+      fireEvent.click(screen.getByRole("button", { name: /recomendame otro/i }));
       const siguiente = await waitFor(() => {
         const n = screen.getByRole("heading", { level: 2, name: /^Vino [a-z]$/ }).textContent;
         expect(n).not.toBe(actual);
@@ -112,10 +111,10 @@ describe("Descubrí: recomienda con foto primero", () => {
     expect(vistos.size).toBeGreaterThan(1);
   });
 
-  it("con un solo vino no hay 'Ver otro'", async () => {
+  it("con un solo vino no hay 'Recomendame otro'", async () => {
     await montar([vino("a")]);
     expect(await nombreRecomendado()).toBe("Vino a");
-    expect(screen.queryByRole("button", { name: /ver otro/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /recomendame otro/i })).toBeNull();
   });
 
   it("si el set viene vacío dice que no hay recomendaciones ahora", async () => {
@@ -133,12 +132,10 @@ describe("Descubrí: la tarjeta no espera ninguna foto", () => {
     expect(screen.queryByRole("status", { name: /cargando la recomendación/i })).toBeNull();
   });
 
-  it("dibuja la botella y no usa la foto cuando el servidor no la marca como confiable", async () => {
-    await montar([vino("b", FOTO("b"))]);
-    await nombreRecomendado();
-    const arte = document.querySelector(".spotlight__art");
-    expect(arte.querySelector("img")).toBeNull();
-    expect(arte.querySelector("svg")).not.toBeNull();
+  it("un vino cuya foto el servidor no marca como confiable no se recomienda", async () => {
+    await montar([{ ...vino("b", FOTO("b")), fotoConfiable: false }]);
+    expect(await screen.findByText(/no hay recomendaciones ahora/i)).toBeInTheDocument();
+    expect(document.querySelector(".spotlight__art")).toBeNull();
   });
 
   it("muestra la foto real cuando es confiable (una buena foto de vino del pool)", async () => {
@@ -149,11 +146,9 @@ describe("Descubrí: la tarjeta no espera ninguna foto", () => {
     expect(img.getAttribute("src")).toBe(FOTO("b"));
   });
 
-  it("una foto confiable que no llegó (sin imagen) vuelve a la botella dibujada", async () => {
+  it("una foto marcada confiable pero sin imagen tampoco se recomienda", async () => {
     await montar([{ ...vino("b", ""), fotoConfiable: true }]);
-    await nombreRecomendado();
-    expect(document.querySelector(".spotlight__art img")).toBeNull();
-    expect(document.querySelector(".spotlight__art svg")).not.toBeNull();
+    expect(await screen.findByText(/no hay recomendaciones ahora/i)).toBeInTheDocument();
   });
 
   it("el esqueleto sólo está mientras llegan los datos", async () => {
@@ -189,7 +184,7 @@ describe("Descubrí: el porqué de la recomendación", () => {
       conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Como tomás Malbec, te recomiendo este vino"], motivos: ["Tomaste Malbec", "Región que tomás seguido: Mendoza"] }),
     ]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado para vos");
     // Compacto: el motivo principal y un «+1» que abre el resto.
     const chips = () => [...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent);
     expect(chips()).toEqual(["Tomaste Malbec"]);
@@ -207,14 +202,14 @@ describe("Descubrí: el porqué de la recomendación", () => {
   it("un descubrimiento se rotula como tal", async () => {
     await montar([conMotivo({ modo: "descubrimiento", coincidencia: null, razones: [], motivos: ["Uva que no tenés: Tannat"] })]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado para vos");
     expect([...document.querySelectorAll(".spotlight__motivo")].map((c) => c.textContent)).toEqual(["Uva que no tenés: Tannat"]);
   });
 
   it("un set viejo en caché (de antes de los motivos) no rompe y tampoco muestra el porcentaje", async () => {
     await montar([conMotivo({ modo: "afinidad", coincidencia: 92, razones: ["Tomás Malbec (3 en tu bodega)"] })]);
     await nombreRecomendado();
-    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado");
+    expect(document.querySelector(".spotlight__eyebrow").textContent).toBe("Recomendado para vos");
     expect(document.querySelector(".spotlight__match")).toBeNull();
     expect(screen.queryByText(/92/)).toBeNull();
   });

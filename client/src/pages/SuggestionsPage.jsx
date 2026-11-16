@@ -572,7 +572,10 @@ export default function SuggestionsPage() {
           // que ya está arriba es decir dos veces lo mismo. Recién ahora se
           // sabe cuáles son, porque la búsqueda salió antes que la respuesta.
           const mios = new Set(deTuBodega.map(wineKey));
-          const descubrir = catalogo.filter((w) => !mios.has(wineKey(w))).slice(0, 4);
+          // Sólo con foto: una sugerencia sin foto de botella no se muestra.
+          const descubrir = catalogo
+            .filter((w) => !mios.has(wineKey(w)) && typeof w.image === "string" && w.image.trim() !== "" && !w.image.startsWith("data:"))
+            .slice(0, 4);
 
           setMensajes((prev) =>
             prev.map((m) =>
@@ -1070,7 +1073,7 @@ export default function SuggestionsPage() {
                   sola cosa y no tres pantallas del mismo proyecto. */}
               {recorteDeVinos(m, verTodos.has(m.id)).bodega.length > 0 && (
                 <>
-                  <p className="somm__rotulo">De tu bodega</p>
+                  <p className="somm__rotulo">En tu bodega</p>
                   <ul className="somm__lista">
                     {recorteDeVinos(m, verTodos.has(m.id)).bodega.map((wine) => (
                       <li
@@ -1117,7 +1120,7 @@ export default function SuggestionsPage() {
               {/* ── LO QUE NO ────────────────────────────────────────────── */}
               {recorteDeVinos(m, verTodos.has(m.id)).nuevos.length > 0 && (
                 <>
-                  <p className="somm__rotulo">Nuevos</p>
+                  <p className="somm__rotulo">Recomendados</p>
                   <ul className="somm__lista">
                     {recorteDeVinos(m, verTodos.has(m.id)).nuevos.map((wine) => (
                       <li

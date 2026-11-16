@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { elegirOtroDistinto, elegirEntrada } from "../src/utils/discovery";
+import { elegirOtroDistinto, elegirEntrada, soloConFoto } from "../src/utils/discovery";
 
 /**
  * "Ver otro" tiene que devolver algo DISTINTO, no algo otro.
@@ -165,5 +165,23 @@ describe("topDeEntrada", () => {
     const { topDeEntrada, elegirEntrada } = await import("../src/utils/discovery");
     const lista = [{ id: "b", image: "https://x/b" }, { id: "a" }, { id: "c" }];
     expect(elegirEntrada(lista, "b", { top: topDeEntrada(lista) })).toBe(0);
+  });
+});
+
+describe("soloConFoto", () => {
+  const foto = "https://res.cloudinary.com/x/image/upload/a.jpg";
+  it("deja sólo los vinos con foto confiable", () => {
+    const lista = [
+      { id: "ok", image: foto, fotoConfiable: true },
+      { id: "sin-foto", image: "", fotoConfiable: true },
+      { id: "no-confiable", image: foto, fotoConfiable: false },
+      { id: "sin-marca", image: foto },
+      { id: "subida", image: "data:image/png;base64,AAA", fotoConfiable: true },
+      null,
+    ];
+    expect(soloConFoto(lista).map((w) => w.id)).toEqual(["ok"]);
+  });
+  it("tolera lo que no es lista", () => {
+    expect(soloConFoto(undefined)).toEqual([]);
   });
 });
