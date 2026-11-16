@@ -22,19 +22,20 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const User = require("../src/models/user.model");
 
 dotenv.config();
 
 const run = async () => {
-  const dryRun = process.argv.slice(2).some((a) => a === "--dry" || a === "--dry-run");
+  const { dry: dryRun } = modoMigracion();
 
   await connectToDatabase();
 
   const filtro = { emailVerified: { $ne: true } };
   const total = await User.countDocuments(filtro);
 
-  console.log(`\n${total} cuenta(s) sin verificar de antes de este cambio.${dryRun ? "  [DRY RUN — no se escribe nada]" : ""}\n`);
+  console.log(`\n${total} cuenta(s) sin verificar de antes de este cambio.${dryRun ? "  [SIMULACRO — no se escribe nada]" : ""}\n`);
 
   if (total === 0) {
     console.log("Nada para migrar.\n");
@@ -45,7 +46,7 @@ const run = async () => {
     const muestra = await User.find(filtro, { email: 1, createdAt: 1 }).limit(20).lean();
     for (const u of muestra) console.log(`  ${u.email}  (creada ${u.createdAt?.toISOString?.() || "?"})`);
     if (total > muestra.length) console.log(`  … y ${total - muestra.length} más`);
-    console.log("\nCorré sin --dry para aplicarlo.\n");
+    console.log("\nCorré con --aplicar para escribirlo (en producción, también --confirmo-destino=rincones).\n");
     return;
   }
 

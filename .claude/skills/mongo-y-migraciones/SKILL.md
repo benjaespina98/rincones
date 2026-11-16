@@ -14,5 +14,6 @@ Solución: un índice sobre **OTRO campo** (así lo hace `SommelierConversation`
 
 ## Migraciones
 - Scripts `migrate:*` en `server/package.json`. Hacerlas **aditivas**: los documentos viejos siguen siendo válidos y todo lector cae a un default.
+- Todos corren en **simulacro por defecto** (`server/scripts/lib/modoMigracion.js`): sin `--aplicar` no escriben. Aplicar sobre `rincones` exige además `--confirmo-destino=rincones`.
 - Idempotentes: correrlas dos veces no rompe nada.
 - Backups: `npm run backup:drill -w server` ensaya el restore.

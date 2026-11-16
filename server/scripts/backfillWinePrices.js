@@ -22,6 +22,7 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const Wine = require("../src/models/wine.model");
 const WinePrice = require("../src/models/winePrice.model");
 const { recalcular, wineKey } = require("../src/services/winePrices.service");
@@ -29,7 +30,7 @@ const { recalcular, wineKey } = require("../src/services/winePrices.service");
 dotenv.config();
 
 const run = async () => {
-  const dryRun = process.argv.includes("--dry");
+  const { dry: dryRun } = modoMigracion();
   await connectToDatabase();
   console.log(`\n  Precios comunitarios${dryRun ? "  (simulación)" : ""}\n`);
 
@@ -85,7 +86,7 @@ const run = async () => {
   ${pools.size} pool(s) quedarían armados
   ${sinClave} vino(s) sin clave (nombre demasiado corto), se ignoran
 
-  Nada de esto se escribió. Corré sin --dry para aplicarlo.
+  Nada de esto se escribió. Corré con --aplicar para escribirlo (en producción, también --confirmo-destino=rincones).
 `);
     return;
   }

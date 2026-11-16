@@ -43,6 +43,7 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const Wine = require("../src/models/wine.model");
 const CommunityWine = require("../src/models/communityWine.model");
 const WineImage = require("../src/models/wineImage.model");
@@ -445,7 +446,7 @@ const recalcularPublicadas = async (dry) => {
 };
 
 const run = async () => {
-  const dry = process.argv.includes("--dry");
+  const { dry } = modoMigracion();
   await connectToDatabase();
 
   console.log("\n── 0. Claves viejas y duplicados ──");
