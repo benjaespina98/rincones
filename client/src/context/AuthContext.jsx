@@ -4,6 +4,7 @@ import { getMe, login as loginRequest, logout as logoutRequest } from "../servic
 import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
 import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
 import { limpiarCacheDeResenas } from "../services/reviewApi";
+import { precargarDestacados } from "../services/wineSearchApi";
 import { limpiarDatosLocales } from "../utils/limpiarDatosLocales";
 
 export const AuthContext = createContext(null);
@@ -142,6 +143,12 @@ export const AuthProvider = ({ children }) => {
       }
     }
   }, [tomarTurno, escribir]);
+
+  // Con la sesión abierta, la recomendación de Descubrí se pide ya: es lo más lento de la home.
+  const idDeLaSesion = sesion.estado === AUTENTICADO ? sesion.user?.id : "";
+  useEffect(() => {
+    if (idDeLaSesion) precargarDestacados(idDeLaSesion);
+  }, [idDeLaSesion]);
 
   // En el mount, restaurar sesión
   useEffect(() => {
