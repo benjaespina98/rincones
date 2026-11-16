@@ -295,6 +295,10 @@ const PATRONES_INVENTARIO = [
   /\bcuant[oa]s?\b(?:\s+\w+){0,2}\s+(tengo|me queda|me quedan|quedan)\b/,
   /\bque\s+me\s+(queda|quedan)\b/,
   /\bque\s+(tengo|hay)\s+en\s+(mi\s+)?(bodega|cava|casa)\b/,
+  // "¿Tengo algún otro Malbec?", "¿Tengo más tintos?", "¿Tengo un Syrah?": arranca con «tengo» y pregunta por lo que hay AHORA.
+  // Sin esto iba al modelo, que veía «YA TOMÓ» y contestaba con un vino que ya no está en stock.
+  /^(tengo|me queda|me quedan)\b/,
+  /\bhay\s+(algun|alguna|algunos|algunas|otro|otra|otros|otras|mas)\b.*\b(bodega|cava|stock)\b/,
   /\bmi\s+stock\b/,
   /\bmi\s+inventario\b/,
   /\bque\s+stock\s+tengo\b/,

@@ -352,7 +352,7 @@ const featured = async (req, res, next) => {
      * catálogo sin personalizar: una recomendación genérica es mucho mejor que
      * una pantalla vacía.
      */
-    const [wines, user, guardados] = await Promise.all([
+    const [wines, user, guardados, comunidad] = await Promise.all([
       Wine.find({ userId: req.user.id })
         .select("name winery line varietal region type rating quantity tasted")
         .lean()
@@ -360,6 +360,8 @@ const featured = async (req, res, next) => {
       User.findById(req.user.id).select("preferences").lean().catch(() => null),
       // Lo que ya guardó para probar tampoco se recomienda: ya lo tiene en la mira.
       WineWish.find({ userId: req.user.id }).select("name winery varietal").lean().catch(() => []),
+      // No depende de la persona: se lee en paralelo en vez de esperar a las otras tres.
+      communityWines.paraRecomendar(800),
     ]);
 
     const perfil = recommendations.buildTasteProfile({
@@ -391,7 +393,7 @@ const featured = async (req, res, next) => {
     const claveOk = (w) => poolKey(w.name, w.winery, w.varietal) || null;
     const propios = new Set([...wines, ...guardados].map(claveOk).filter(Boolean));
     const vistos = new Set(curado.map(claveOk).filter(Boolean));
-    const comunitarios = (await communityWines.paraRecomendar(800)).filter((w) => {
+    const comunitarios = comunidad.filter((w) => {
       const k = claveOk(w);
       if (!k) return true;
       if (vistos.has(k)) return false;

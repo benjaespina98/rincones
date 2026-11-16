@@ -1197,9 +1197,19 @@
 
 /* `lighten` se queda con el más claro de cada píxel: el negro del fondo de la foto toma el color del panel y la botella
    (vidrio, etiqueta, reflejos) queda tal cual. Sin esto el negro puro de la foto dibujaba un rectángulo. */
-.spotlight__art .wine-photo--contain .wine-photo__img {
+.spotlight__art .wine-photo--contain .wine-photo__img,
+.spotlight__art .wine-photo--contain.is-loaded .wine-photo__img {
   mix-blend-mode: lighten;
   filter: none;
+  padding: 3%;
+  animation: none;
+}
+
+/* Sin halo ni flote: la luz difusa detrás y el movimiento lento hacían ver la botella borrosa. Quieta y nítida. */
+.spotlight__art .wine-photo--contain::after,
+.spotlight__art .wine-photo--contain.is-loaded::after {
+  display: none;
+  animation: none;
 }
 
 .spotlight__actions {
