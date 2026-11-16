@@ -34,6 +34,12 @@ const cache = new Map();
 const claveDe = (name, winery, varietal) =>
   `${name || ""}|${winery || ""}|${varietal || ""}`.toLowerCase();
 
+/**
+ * Borra TODO lo cacheado. Se llama al cerrar sesión: cada entrada trae `mine` (tu reseña), así que sin esto la persona
+ * que entrara después en el mismo navegador vería tu opinión durante los segundos que dura el caché.
+ */
+export const limpiarCacheDeResenas = () => cache.clear();
+
 /** Borra lo cacheado de un vino. Se llama al publicar y al borrar. */
 const olvidar = (name, winery, varietal) => cache.delete(claveDe(name, winery, varietal));
 
