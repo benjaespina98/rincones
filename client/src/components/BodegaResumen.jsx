@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { WINE_TYPE_LABELS } from "../data/wineReference";
+import { distribucionPorUva } from "../utils/distribucionPorUva";
 import { resumenDeBodega, frasesDelResumen } from "../utils/bodegaResumen";
 import "./BodegaResumen.css";
 
@@ -24,21 +24,16 @@ import "./BodegaResumen.css";
  * —la vista de los ya tomados— dice cuántos vinos son. Nunca las dos cosas: serían dos
  * números para la misma pregunta.
  */
-export default function BodegaResumen({ wines = [], className = "" }) {
+export default function BodegaResumen({ wines = [], vista = "instock", className = "" }) {
   const resumen = useMemo(() => resumenDeBodega(wines), [wines]);
-  const partes = useMemo(() => frasesDelResumen(resumen), [resumen]);
+  const partes = useMemo(() => frasesDelResumen(resumen, vista), [resumen, vista]);
 
   // Sin nada que contar no se dibuja nada: el estado vacío de la pantalla ya dice lo que
   // hay que decir, y dos vacíos seguidos es uno de más.
   if (partes.length === 0) return null;
 
-  // Un segmento por tipo, del tamaño de las botellas que hay (o de los vinos, si no queda ninguna).
-  const porTipo = new Map();
-  for (const w of wines) {
-    const peso = Number(w.quantity) > 0 ? Number(w.quantity) : 1;
-    porTipo.set(w.type || "unknown", (porTipo.get(w.type || "unknown") || 0) + peso);
-  }
-  const tipos = [...porTipo.entries()].sort((x, y) => y[1] - x[1]);
+  // Un segmento por uva (coloreado por su tipo), del tamaño de las botellas en «En stock» y de los vinos en el resto.
+  const tipos = distribucionPorUva(wines, { porBotellas: vista === "instock" });
 
   return (
     <div className="bres-wrap">
@@ -48,16 +43,16 @@ export default function BodegaResumen({ wines = [], className = "" }) {
       {tipos.length > 1 && (
         <>
           <div className="bres__barra" aria-hidden="true">
-            {tipos.map(([tipo, n]) => (
-              <span key={tipo} className="bres__seg" data-wine-type={tipo} style={{ flexGrow: n }} />
+            {tipos.map((g) => (
+              <span key={g.uva} className="bres__seg" data-wine-type={g.tipo} style={{ flexGrow: g.n }} />
             ))}
           </div>
-          {/* La barra sola no dice qué es cada color: la leyenda nombra cada tipo con su cantidad. */}
-          <ul className="bres__leyenda" aria-label="Por tipo de vino">
-            {tipos.map(([tipo, n]) => (
-              <li key={tipo} className="bres__item" data-wine-type={tipo}>
+          {/* La barra sola no dice qué es cada color: la leyenda nombra cada uva con su cantidad. */}
+          <ul className="bres__leyenda" aria-label="Por uva">
+            {tipos.map((g) => (
+              <li key={g.uva} className="bres__item" data-wine-type={g.tipo}>
                 <span className="bres__punto" aria-hidden="true" />
-                {WINE_TYPE_LABELS[tipo] || "Otro"} {n}
+                {g.uva} {g.n}
               </li>
             ))}
           </ul>

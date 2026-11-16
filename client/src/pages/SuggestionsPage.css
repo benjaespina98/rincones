@@ -954,3 +954,10 @@
     border-color: var(--line-accent);
   }
 }
+
+/* Cómo servirlo, dentro de la tarjeta del vino: una línea, con el mismo peso que la bodega. */
+.suggestion-card__servicio {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}

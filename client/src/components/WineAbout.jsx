@@ -4,6 +4,8 @@ import ConceptTerm from "./ConceptTerm";
 import WineStructure from "./WineStructure";
 import LoadingSkeleton from "./LoadingSkeleton";
 import ErrorState from "./ErrorState";
+import BottomSheet from "./BottomSheet";
+import { wineDisplayName } from "../utils/wineIdentity";
 
 /**
  * "Sobre este vino": lo que la app sabe del vino, generado con IA.
@@ -69,7 +71,8 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
   // Plegado por defecto, pero ahora esconde bastante menos: sólo lo que se
   // consulta una vez (cómo tomarlo, la graduación, la curiosidad).
   const [abierto, setAbierto] = useState(false);
-  const [resumenAbierto, setResumenAbierto] = useState(false);
+  // La descripción completa, en una hoja a pantalla casi completa: tocar el texto (o «Leer todo») la abre.
+  const [lecturaAbierta, setLecturaAbierta] = useState(false);
   const resumenLargo = (info?.summary || "").length > 150;
 
   if (!loading && !failed && !info) return null;
@@ -84,6 +87,28 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
 
   return (
     <div className="wine-about">
+      <BottomSheet
+        isOpen={lecturaAbierta}
+        onClose={() => setLecturaAbierta(false)}
+        title={wine ? wineDisplayName(wine) : "Sobre este vino"}
+        className="about-sheet"
+      >
+        <div className="about-sheet__texto">
+          {info?.summary && <p className="about-sheet__resumen">{info.summary}</p>}
+          {detalle && <p className="about-sheet__parrafo">{detalle}</p>}
+          {info?.alcohol && (
+            <p className="about-sheet__dato">
+              <strong>{info.alcohol}%</strong> alcohol
+            </p>
+          )}
+          {info?.funFact && (
+            <p className="wine-about__fact-fun">
+              <Icon name="sparkle" size={14} />
+              <span>{info.funFact}</span>
+            </p>
+          )}
+        </div>
+      </BottomSheet>
       {/* El ícono y el rótulo ya dicen que es generado; abajo había además un
           renglón de descargo repitiéndolo. Va en el title. */}
       <div className="wine-about__head">
@@ -108,10 +133,21 @@ export default function WineAbout({ loading, failed, info, onRetry, wine }) {
           {info.summary && (
             <>
               {/* El párrafo largo se recorta a tres renglones: lo primero que se lee es el estilo del vino, no un muro de texto. */}
-              <p className={`wine-about__summary${resumenLargo && !resumenAbierto ? " is-clamped" : ""}`}>{info.summary}</p>
-              {resumenLargo && (
-                <button type="button" className="wine-about__leer" onClick={() => setResumenAbierto((v) => !v)} aria-expanded={resumenAbierto}>
-                  {resumenAbierto ? "Leer menos" : "Leer más"}
+              {resumenLargo || hayDetalle ? (
+                <button
+                  type="button"
+                  className={`wine-about__summary wine-about__summary--tocable${resumenLargo ? " is-clamped" : ""}`}
+                  onClick={() => setLecturaAbierta(true)}
+                  aria-label="Leer la descripción completa"
+                >
+                  {info.summary}
+                </button>
+              ) : (
+                <p className="wine-about__summary">{info.summary}</p>
+              )}
+              {(resumenLargo || hayDetalle) && (
+                <button type="button" className="wine-about__leer" onClick={() => setLecturaAbierta(true)}>
+                  Leer todo <Icon name="expand" size={14} />
                 </button>
               )}
             </>

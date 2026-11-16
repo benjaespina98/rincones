@@ -1228,16 +1228,20 @@
   gap: 5px;
 }
 
-/* Las dos acciones caben en un renglón también a 360 px: «Quiero probarlo» cede ancho y «Ver otro» no se corta. */
+/* Las dos acciones nunca se pisan: cada una pide el ancho de su texto (`min-width: max-content`) y, si no entran juntas
+   en un renglón (360 px con «Recomendame otro»), la segunda baja a su propia fila a todo el ancho en vez de montarse. */
 .spotlight__actions .spotlight__add {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: max-content;
+  justify-content: center;
 }
 
 .spotlight__actions .spotlight__surprise {
-  flex: 0 0 auto;
-  padding-left: 12px;
-  padding-right: 12px;
+  flex: 1 1 auto;
+  min-width: max-content;
+  justify-content: center;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .spotlight__actions .spotlight__add {

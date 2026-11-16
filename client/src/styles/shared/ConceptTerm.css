@@ -28,12 +28,17 @@
   cursor: pointer;
 }
 
-/* El subrayado vive en el texto y no en el botón, para que no cruce la "i". */
+/* Se ve tocable sin ser un botón pesado: un fondo suave del color de acento detrás del texto (como una etiqueta), con
+   el aro de la «i» al final. El subrayado solo se confundía con tipografía. `box-decoration-break: clone` mantiene el
+   fondo prolijo si el rótulo cae en dos renglones. */
 .concept-term__text {
-  text-decoration: underline solid var(--accent-soft);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-  transition: text-decoration-color var(--transition-fast);
+  padding: 2px 4px 2px 8px;
+  margin-right: -2px;
+  border-radius: var(--radius-tag);
+  background: rgb(var(--accent-rgb) / 0.14);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background var(--transition-fast);
 }
 
 /* La "i": del tamaño de la letra chica, alineada con la palabra y en el color de
@@ -68,7 +73,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .concept-term:hover .concept-term__text {
-    text-decoration-color: var(--accent-light);
+    background: rgb(var(--accent-rgb) / 0.24);
   }
 
   .concept-term:hover .concept-term__mark {

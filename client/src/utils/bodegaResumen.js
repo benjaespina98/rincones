@@ -108,10 +108,14 @@ const plural = (n, uno, varios) => `${Number(n).toLocaleString("es-AR")} ${n ===
  * "Seleccionar" y con tres datos se partía en dos, que es justo lo que se quería evitar. El
  * promedio vive en el perfil.
  */
-export const frasesDelResumen = (r) => {
+export const frasesDelResumen = (r, vista = "instock") => {
   const partes = [];
 
-  if (r.botellas > 0) {
+  /* Fuera de «En stock» lo que se cuenta son VINOS, no botellas: en «Ya tomados» había 14 vinos y la línea decía «1 botella»
+     (la única que quedaba en la cava), que se leía como si la lista tuviera una sola. */
+  if (vista !== "instock" && r.total > 0) {
+    partes.push(plural(r.total, "vino", "vinos"));
+  } else if (r.botellas > 0) {
     const enVinos =
       r.vinosConStock > 0 && r.vinosConStock !== r.botellas ? ` en ${r.vinosConStock} vinos` : "";
     partes.push(`${plural(r.botellas, "botella", "botellas")}${enVinos}`);

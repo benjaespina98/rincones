@@ -389,6 +389,13 @@ wineSchema.statics.getUserStats = async function (userId) {
           { $group: { _id: "$type", count: { $sum: 1 } } },
           { $sort: { count: -1 } },
         ],
+        // Uva + tipo de cada una: el perfil muestra «20 Malbec, 3 Sauvignon Blanc» coloreado por tipo, no sólo tinto/blanco.
+        countsByVarietal: [
+          { $match: { varietal: { $nin: [null, ""] } } },
+          { $group: { _id: { varietal: "$varietal", type: "$type" }, count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 60 },
+        ],
         topVarietals: [
           { $group: { _id: "$varietal", count: { $sum: 1 } } },
           { $match: { _id: { $ne: null } } },
@@ -477,6 +484,11 @@ wineSchema.statics.getUserStats = async function (userId) {
 
   return {
     countsByType: (out.countsByType || []).map((r) => ({ type: r._id || 'unknown', count: r.count })),
+    countsByVarietal: (out.countsByVarietal || []).map((r) => ({
+      varietal: r._id?.varietal || "",
+      type: r._id?.type || "unknown",
+      count: r.count,
+    })),
     topVarietals: (out.topVarietals || []).map((r) => ({ varietal: r._id, count: r.count })),
     topRegions: (out.topRegions || []).map((r) => ({ region: r._id, count: r.count })),
     avgRating: out.avgRating && out.avgRating[0] ? Number((out.avgRating[0].avgRating || 0).toFixed(2)) : 0,

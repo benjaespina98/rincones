@@ -25,13 +25,14 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const Promotion = require("../src/models/promotion.model");
 const { parseFecha, aFechaInput } = require("../src/utils/promotionState");
 
 dotenv.config();
 
 const SIN_FECHA_DE_EVENTO = new Date("3000-01-01T00:00:00.000Z");
-const dryRun = process.argv.includes("--dry");
+const { dry: dryRun } = modoMigracion();
 
 /** ¿Este fin quedó guardado a la medianoche UTC, o sea 21:00 del día anterior? */
 const esMedianocheUTC = (fecha) =>
@@ -85,7 +86,7 @@ const run = async () => {
   ${resumen.fechas} fin(es) de vigencia corregido(s) al día argentino completo
   ${resumen.intactas} ya estaban bien
 `);
-  if (dryRun) console.log("  Nada de esto se escribió. Corré sin --dry para aplicarlo.\n");
+  if (dryRun) console.log("  Nada de esto se escribió. Corré con --aplicar para escribirlo (en producción, también --confirmo-destino=rincones).\n");
 };
 
 run()

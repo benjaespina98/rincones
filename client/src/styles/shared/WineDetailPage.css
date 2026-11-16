@@ -1447,7 +1447,10 @@
 
 .wine-about__leer {
   align-self: flex-start;
-  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: none;
@@ -1455,6 +1458,59 @@
   font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
+}
+
+/* El párrafo tocable es un botón sin apariencia de botón: hereda la tipografía del texto y sólo responde al toque. */
+.wine-about__summary--tocable {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wine-about__summary--tocable:not(.is-clamped) {
+  display: block;
+}
+
+.wine-about__summary--tocable:active {
+  opacity: 0.85;
+}
+
+/* La hoja de lectura: casi toda la pantalla, para leer sin recorte. */
+.about-sheet {
+  max-width: 640px;
+  max-height: min(92vh, 100% - 16px);
+  min-height: 60vh;
+}
+
+.about-sheet__texto {
+  display: grid;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.about-sheet__resumen {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.about-sheet__parrafo {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.about-sheet__dato {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 /* Las secciones entran de a una al llegar a la ficha. */

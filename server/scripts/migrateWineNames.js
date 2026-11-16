@@ -27,6 +27,7 @@
 
 const dotenv = require("dotenv");
 const connectToDatabase = require("../src/config/db");
+const { modoMigracion } = require("./lib/modoMigracion");
 const Wine = require("../src/models/wine.model");
 const { fold } = require("../src/data/argentineWines");
 
@@ -58,12 +59,12 @@ const nombreSinUva = (name, varietal) => {
 };
 
 const run = async () => {
-  const dryRun = process.argv.slice(2).some((a) => a === "--dry" || a === "--dry-run");
+  const { dry: dryRun } = modoMigracion();
 
   await connectToDatabase();
 
   const total = await Wine.countDocuments();
-  console.log(`\n${total} vino(s) en la base.${dryRun ? "  [DRY RUN — no se escribe nada]" : ""}\n`);
+  console.log(`\n${total} vino(s) en la base.${dryRun ? "  [SIMULACRO — no se escribe nada]" : ""}\n`);
 
   const resumen = { renombrados: 0, lineaCompletada: 0, intactos: 0 };
   let pendientes = [];
@@ -117,7 +118,7 @@ const run = async () => {
   ${resumen.lineaCompletada} con "line" completado
   ${resumen.intactos} ya estaban bien
 `);
-  if (dryRun) console.log("  Nada de esto se escribió. Corré sin --dry para aplicarlo.\n");
+  if (dryRun) console.log("  Nada de esto se escribió. Corré con --aplicar para escribirlo (en producción, también --confirmo-destino=rincones).\n");
 };
 
 run()

@@ -3,6 +3,7 @@ import { createContext, useCallback, useEffect, useMemo, useRef, useState } from
 import { getMe, login as loginRequest, logout as logoutRequest } from "../services/authApi";
 import { limpiarCacheDeBodega } from "../hooks/useWineCollection";
 import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
+import { limpiarCacheDeResenas } from "../services/reviewApi";
 import { limpiarDatosLocales } from "../utils/limpiarDatosLocales";
 
 export const AuthContext = createContext(null);
@@ -199,6 +200,7 @@ export const AuthProvider = ({ children }) => {
        */
       limpiarCacheDeBodega();
       limpiarCacheDeDeseos();
+      limpiarCacheDeResenas();
       limpiarDatosLocales();
       escribir(turno, { estado: ANONIMO, user: null });
     }
