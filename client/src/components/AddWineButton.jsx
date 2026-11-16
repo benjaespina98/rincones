@@ -39,7 +39,7 @@ export default function AddWineButton() {
       title="Agregar un vino: escaneá la etiqueta, buscalo o cargalo a mano"
     >
       <span className="add-fab__icono" aria-hidden="true">
-        <Icon name="scan" size={18} />
+        <Icon name="plus" size={20} />
       </span>
       <span className="add-fab__texto">Agregar vino</span>
     </button>

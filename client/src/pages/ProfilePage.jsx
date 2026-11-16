@@ -6,6 +6,7 @@ import { useWineStats } from "../hooks/useWineStats";
 import { useSpendingStats } from "../hooks/useSpendingStats";
 import { getProfile, updateProfile } from "../services/authApi";
 import { WINE_TYPE_LABELS } from "../data/wineReference";
+import { filasDeUvas } from "../utils/distribucionPorUva";
 import { calculateAge } from "../utils/age";
 import { initials, avatarColor } from "../utils/identity";
 import { errorHaptic } from "../utils/haptics";
@@ -176,6 +177,7 @@ export default function ProfilePage() {
   const uvasFrecuentes = conRepeticion(
     agrupar((wineStats?.topVarietals || []).filter((v) => esUva(v.varietal)), "varietal")
   );
+  const filasPorUva = filasDeUvas(wineStats?.countsByVarietal);
   const regionesFrecuentes = conRepeticion(
     agrupar(wineStats?.topRegions || [], "region", limpiarRegion)
   );
@@ -344,7 +346,11 @@ export default function ProfilePage() {
               {wineStats.countsByType?.length > 0 && (
                 <div className="insight">
                   <h3 className="insight__title">Qué tomás</h3>
-                  <TypeSplit counts={wineStats.countsByType} total={wineStats.totals?.total || 0} />
+                  {/* Por uva (Malbec 20 · Sauvignon Blanc 3), coloreado por tipo; sin uvas cargadas, el reparto por tipo. */}
+                  <TypeSplit
+                    counts={filasPorUva.length > 0 ? filasPorUva : wineStats.countsByType}
+                    total={filasPorUva.length > 0 ? filasPorUva.reduce((n, r) => n + r.count, 0) : wineStats.totals?.total || 0}
+                  />
                 </div>
               )}
 

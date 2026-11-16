@@ -1365,7 +1365,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
               </span>
             </>
           ) : (
-            <BodegaResumen wines={filteredWines} />
+            <BodegaResumen wines={filteredWines} vista={vista} />
           )}
           {!modoSeleccion && sortedWines.length >= 3 && (
             <button type="button" className="bodega-seleccionar" onClick={() => setModoSeleccion(true)}>

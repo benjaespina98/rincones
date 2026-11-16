@@ -26,11 +26,11 @@ export default function TypeSplit({ counts = [], total = 0 }) {
   return (
     <div className="type-split">
       <div className="type-split__bar" role="img" aria-label={
-        rows.map((r) => `${WINE_TYPE_LABELS[r.type] || r.type}: ${r.count}`).join(", ")
+        rows.map((r) => `${r.label || WINE_TYPE_LABELS[r.type] || r.type}: ${r.count}`).join(", ")
       }>
         {rows.map((r, i) => (
           <span
-            key={r.type}
+            key={r.key || r.type}
             className="type-split__seg"
             style={{
               "--seg": i,
@@ -47,13 +47,13 @@ export default function TypeSplit({ counts = [], total = 0 }) {
           tipo dice 100%, que también es información: es lo único que tomás. */}
       <ul className="type-split__legend">
         {rows.map((r) => (
-          <li key={r.type} className="type-split__item">
+          <li key={r.key || r.type} className="type-split__item">
             <span
               className="type-split__dot"
               style={{ background: TYPE_COLORS[r.type] || TYPE_COLORS.unknown }}
               aria-hidden="true"
             />
-            {WINE_TYPE_LABELS[r.type] || WINE_TYPE_LABELS.unknown}
+            {r.label || WINE_TYPE_LABELS[r.type] || WINE_TYPE_LABELS.unknown}
             <span className="type-split__n">{r.count}</span>
             <span className="type-split__pct">{Math.round((r.count / total) * 100)}%</span>
           </li>
