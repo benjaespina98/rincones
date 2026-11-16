@@ -38,3 +38,13 @@ describe("describeWine: la ficha no falla a la primera por algo transitorio", ()
     expect(post.mock.calls[0][2].timeout).toBeGreaterThan(12000);
   });
 });
+
+describe("getWineRecipe: mismo trato que la ficha", () => {
+  it("reintenta una vez ante un fallo transitorio", async () => {
+    const { getWineRecipe } = await import("../src/services/wineSearchApi");
+    post.mockRejectedValueOnce({ code: "ECONNABORTED" }).mockResolvedValueOnce({ data: { data: { dish: "x" } } });
+    expect(await getWineRecipe(vino, "cena")).toEqual({ dish: "x" });
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[0][2].timeout).toBeGreaterThan(12000);
+  });
+});
