@@ -8,6 +8,8 @@
 .admin-shell {
   position: relative;
   min-height: 100vh;
+  /* dvh: en el celular 100vh incluye la barra del navegador y el pie queda cortado. */
+  min-height: 100dvh;
   display: flex;
   /* El mismo fondo que la app. Tenía dos halos propios, con otros violetas y en
      otras posiciones: el panel se veía como otro producto. Lo que lo marca como
@@ -304,6 +306,10 @@
   flex: 1;
   min-width: 0;
   padding: clamp(0.8rem, 2vw, 1.6rem);
+  /* La zona segura del teléfono (isla, barra de estado, indicador de inicio): sin ella, en un iPhone la barra de arriba
+     queda debajo de la isla y se ve cortada, y el pie pegado al borde. */
+  padding-top: calc(env(safe-area-inset-top, 0px) + clamp(0.8rem, 2vw, 1.6rem));
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(0.8rem, 2vw, 1.6rem));
 }
 
 .admin-panel-surface {
