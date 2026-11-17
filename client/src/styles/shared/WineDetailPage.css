@@ -1420,7 +1420,7 @@
 
 .wine-detail-hero .wine-photo--contain .wine-photo__img {
   padding: 3% 0 6%;
-  filter: drop-shadow(0 14px 22px rgb(var(--ink-rgb) / 0.55));
+  filter: none;
 }
 
 @keyframes ficha-botella-entra {
@@ -1428,13 +1428,9 @@
   to { opacity: 1; transform: none; }
 }
 
-@keyframes ficha-botella-flota {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
 .wine-detail-hero .wine-photo--contain.is-loaded .wine-photo__img {
-  animation: ficha-botella-entra 520ms var(--ease-out) both, ficha-botella-flota 7s ease-in-out 520ms infinite;
+  /* Entra y se queda quieta: el flote lento dejaba la botella siempre en subpíxeles, o sea, borrosa. */
+  animation: ficha-botella-entra 520ms var(--ease-out) both;
 }
 
 .wine-about__summary.is-clamped {
