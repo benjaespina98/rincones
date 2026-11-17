@@ -5,6 +5,8 @@ const RefreshToken = require("../src/models/refreshToken.model");
 const AnalyticsEvent = require("../src/models/analyticsEvent.model");
 const SommelierConversation = require("../src/models/sommelierConversation.model");
 const WineImage = require("../src/models/wineImage.model");
+const CommunityWine = require("../src/models/communityWine.model");
+const ErrorLog = require("../src/models/errorLog.model");
 const winePrices = require("../src/services/winePrices.service");
 const accountDeletion = require("../src/services/accountDeletion.service");
 const imageStorage = require("../src/services/imageStorage.service");
@@ -48,11 +50,13 @@ test("el borrado desde admin limpia sesiones, charlas, analytics, precios y atri
     stub(SommelierConversation, "deleteMany", async (f) => llamadas.push(["SommelierConversation", f])),
     stub(winePrices, "retractAllFromUser", async (id) => llamadas.push(["WinePrice", id])),
     stub(WineImage, "updateMany", async (f, u) => llamadas.push(["WineImage", f, u])),
+    stub(CommunityWine, "updateMany", async (f, u) => llamadas.push(["CommunityWine", f, u])),
+    stub(ErrorLog, "deleteMany", async (f) => llamadas.push(["ErrorLog", f])),
   ];
   try {
     await accountDeletion.purgeUserLeftovers("u7");
     assert.deepEqual(llamadas.map((c) => c[0]).sort(), [
-      "AnalyticsEvent", "RefreshToken", "SommelierConversation", "WineImage", "WinePrice",
+      "AnalyticsEvent", "CommunityWine", "ErrorLog", "RefreshToken", "SommelierConversation", "WineImage", "WinePrice",
     ]);
     assert.deepEqual(llamadas.find((c) => c[0] === "WineImage").slice(1), [
       { contributedBy: "u7" },

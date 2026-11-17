@@ -2419,9 +2419,14 @@
   .segmented.bodega-vista {
     position: sticky;
     top: 0;
-    z-index: 6;
+    z-index: var(--z-base);
+    /* Fondo sólido bajo la superficie: la lista pasa por debajo sin transparentarse. Sin bandas de color alrededor
+       (el fondo de la app es un degradé y una banda plana se vería como una franja). */
     background: linear-gradient(var(--glass), var(--glass)), var(--bg);
-    /* Un respiro opaco arriba y abajo, para que ninguna fila asome por el borde. */
-    box-shadow: 0 -6px 0 var(--bg), 0 6px 0 var(--bg);
+    min-height: 44px;
+  }
+
+  .segmented.bodega-vista .segmented__btn {
+    min-height: 44px;
   }
 }

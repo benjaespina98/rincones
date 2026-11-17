@@ -394,6 +394,10 @@ const deleteUser = async (req, res, next) => {
     // Un Mongo standalone local (`mongodb://127.0.0.1:27017`, sin réplica) no
     // soporta transacciones y tira ese error puntual — ahí se cae al borrado
     // sin transacción de siempre, para no bloquear el desarrollo local.
+    // Lo que cuelga de la cuenta fuera de la transacción (sesiones, charlas con la guía, analytics…) se limpia ANTES de
+    // borrarla: si falla, la cuenta sigue existiendo y se puede reintentar, en vez de quedar huérfano lo más personal.
+    await accountDeletion.purgeUserLeftovers(user._id);
+
     const cascade = async (session) => {
       const opts = session ? { session } : undefined;
       await accountDeletion.borrarDatosPropios(user._id, opts);
@@ -436,7 +440,6 @@ const deleteUser = async (req, res, next) => {
       if (!noSoportaTransacciones) throw txError;
       await cascade(null);
     }
-    await accountDeletion.purgeUserLeftovers(user._id).catch((e) => console.error("Limpieza posterior a la baja:", e.message));
 
     await logAdminAction({
       entityType: "user",
@@ -493,9 +496,9 @@ const bulkDeleteUsers = async (req, res, next) => {
           }
         }
 
+        await accountDeletion.purgeUserLeftovers(user._id);
         await accountDeletion.borrarDatosPropios(user._id);
         await User.deleteOne({ _id: user._id });
-        await accountDeletion.purgeUserLeftovers(user._id).catch((e) => console.error("Limpieza posterior a la baja:", e.message));
 
         await logAdminAction({
           entityType: "user",

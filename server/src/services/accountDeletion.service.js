@@ -8,6 +8,8 @@ const WineImage = require("../models/wineImage.model");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
 const RefreshToken = require("../models/refreshToken.model");
 const SommelierConversation = require("../models/sommelierConversation.model");
+const CommunityWine = require("../models/communityWine.model");
+const ErrorLog = require("../models/errorLog.model");
 
 /**
  * LA lista de lo que le pertenece a una persona y se borra con ella (vinos, deseos, momentos, reseñas), en un solo lugar.
@@ -15,13 +17,15 @@ const SommelierConversation = require("../models/sommelierConversation.model");
  * nueva había que acordarse de los tres, y el que se olvidaba dejaba datos huérfanos de alguien que pidió irse.
  * `opts` admite `{ session }` para correrlo dentro de una transacción.
  */
-const borrarDatosPropios = (userId, opts) =>
-  Promise.all([
-    Wine.deleteMany({ userId }, opts),
-    WineWish.deleteMany({ userId }, opts),
-    WineMoment.deleteMany({ userId }, opts),
-    WineReview.deleteMany({ userId }, opts),
-  ]);
+const borrarDatosPropios = async (userId, opts) => {
+  const modelos = [Wine, WineWish, WineMoment, WineReview];
+  // Dentro de una transacción las operaciones van de a una: Mongo no admite operaciones en paralelo sobre la misma sesión.
+  if (opts?.session) {
+    for (const Modelo of modelos) await Modelo.deleteMany({ userId }, opts);
+    return;
+  }
+  await Promise.all(modelos.map((Modelo) => Modelo.deleteMany({ userId }, opts)));
+};
 
 /**
  * Baja de cuenta con borrado real: el usuario y todo lo que le pertenece.
@@ -48,6 +52,8 @@ const deleteAccount = async (userId) => {
   /* Sesiones, analytics, precios, atribución de fotos y las charlas con la guía (ver `purgeUserLeftovers`). Las charlas son
      de lo más personal que guarda la app —con qué come, con quién, qué puede pagar— y el archivo tiene una retención de 180
      días que NO alcanza acá: quien se da de baja pidió que se vaya ahora, no dentro de medio año. */
+  // Primero se cierran las sesiones: mientras se borra, nadie puede renovar el acceso de esta cuenta.
+  await RefreshToken.deleteMany({ userId });
   await Promise.all([borrarDatosPropios(userId), purgeUserLeftovers(userId)]);
   await User.deleteOne({ _id: userId });
   return { ok: true };
@@ -65,6 +71,9 @@ const purgeUserLeftovers = async (userId) => {
     SommelierConversation.deleteMany({ userId }),
     winePrices.retractAllFromUser(userId),
     WineImage.updateMany({ contributedBy: userId }, { $unset: { contributedBy: 1 } }),
+    // Su id deja de figurar como contribuyente del catálogo comunitario (el vino queda, es anónimo) y de los errores.
+    CommunityWine.updateMany({ contributors: userId }, { $pull: { contributors: userId } }),
+    ErrorLog.deleteMany({ userId }),
   ]);
 };
 

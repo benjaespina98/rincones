@@ -31,3 +31,25 @@ describe("servicio", () => {
     expect(lineaDeServicio({ type: "white", varietal: "Chardonnay", vintage: 2010 }, 2026)).toBe("Servilo a 8-10 °C");
   });
 });
+
+describe("servicio: bordes de la regla de decantar", () => {
+  it("10 años justos decantan, 9 no", () => {
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir", vintage: 2016 }, 2026)).toContain("decantalo");
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir", vintage: 2017 }, 2026)).toBe("Servilo a 16-18 °C");
+  });
+
+  it("entre 10 y 12 años, un tánico se decanta (no se airea)", () => {
+    expect(lineaDeServicio({ type: "red", varietal: "Malbec", vintage: 2015 }, 2026)).toContain("decantalo");
+  });
+
+  it("rosé, espumante y fortificado con años no se decantan", () => {
+    for (const type of ["rosé", "sparkling", "fortified"]) {
+      expect(lineaDeServicio({ type, varietal: "x", vintage: 2005 }, 2026)).not.toContain("decantalo");
+    }
+  });
+
+  it("una cosecha inválida o futura no afirma nada", () => {
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir", vintage: 0 }, 2026)).toBe("Servilo a 16-18 °C");
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir", vintage: 2030 }, 2026)).toBe("Servilo a 16-18 °C");
+  });
+});

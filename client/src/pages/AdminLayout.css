@@ -984,8 +984,9 @@ button.admin-chip.is-active {
 
   .admin-table tbody tr {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 2px 12px;
+    position: relative;
     align-items: center;
     margin-bottom: 10px;
     padding: 12px 14px;
@@ -996,6 +997,7 @@ button.admin-chip.is-active {
 
   .admin-table tbody td {
     display: flex;
+    min-width: 0;
     justify-content: space-between;
     gap: 12px;
     padding: 3px 0;
@@ -1015,10 +1017,42 @@ button.admin-chip.is-active {
   }
 
   /* Lo que identifica la fila ocupa el ancho entero y va arriba, sin rótulo. */
+  /* Lo que identifica la fila va primero, aunque en el marcado no sea la primera celda (Logs, Actividad). */
   .admin-table tbody td.admin-table__id {
     grid-column: 1 / -1;
     display: block;
+    order: -1;
     padding-bottom: 6px;
+  }
+
+  /* El checkbox de selección flota arriba a la derecha de la tarjeta, con área de toque de 44 px, y no ocupa una fila. */
+  .admin-table tbody td.admin-table__sel {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    order: -2;
+  }
+
+  .admin-table tbody td.admin-table__sel:empty {
+    display: none;
+  }
+
+  .admin-table tbody td.admin-table__id {
+    padding-right: 44px;
+  }
+
+  /* El separador de día es un rótulo, no otra tarjeta. */
+  .admin-table tbody tr.admin-table__day {
+    display: block;
+    padding: 6px 2px 0;
+    margin-bottom: 4px;
+    border: 0;
+    background: none;
   }
 
   .admin-table tbody td.admin-table__id::before,
@@ -1053,7 +1087,17 @@ button.admin-chip.is-active {
     min-height: 44px;
   }
 
-  .admin-table__skel td {
+  .admin-table tbody .admin-table__skel td {
     display: block;
+  }
+
+  .admin-table tbody tr.admin-table__skel {
+    display: block;
+  }
+
+  .admin-table tbody .admin-table__skel td span {
+    display: block;
+    width: 100%;
+    min-height: 18px;
   }
 }
