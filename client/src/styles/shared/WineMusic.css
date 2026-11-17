@@ -1,0 +1,101 @@
+/* «Para acompañar»: la música de la ficha. Sin caja alrededor: una frase y una fila, como parte del texto de la ficha. */
+.wine-music {
+  display: grid;
+  gap: 10px;
+  /* El mismo ritmo que la descripción de arriba (filete fino y 18 px de aire), para que se lea como su continuación. */
+  padding: 18px 2px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.wine-music__frase {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wine-music__acciones {
+  display: grid;
+  gap: 6px;
+}
+
+.wine-music__lista {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.wine-music__lista:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wine-music__lista:hover {
+    border-color: var(--line-accent);
+  }
+}
+
+.wine-music__icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  /* EXCEPCIÓN: verde de Spotify. Es una marca de terceros: el color identifica el servicio y no sigue nuestra paleta. */
+  background: #1db954;
+  color: #06210f;
+}
+
+.wine-music__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wine-music__texto strong {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.wine-music__texto em {
+  font-style: normal;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.wine-music__ir {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.wine-music__yt {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wine-music__yt:hover {
+    color: var(--text);
+  }
+}

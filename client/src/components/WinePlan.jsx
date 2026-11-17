@@ -2,7 +2,7 @@ import { useState } from "react";
 import Icon from "./Icon";
 import ConceptTerm from "./ConceptTerm";
 import WineRecipeSheet from "./WineRecipeSheet";
-import { NIGHT_PLANS, playlistFor, playlistUrl } from "../data/playlists";
+import { NIGHT_PLANS } from "../data/playlists";
 import { planTitle } from "../utils/momentCopy";
 import { TEMPERATURAS } from "../utils/servicio";
 import { getWineRecipe } from "../services/wineSearchApi";
@@ -43,7 +43,11 @@ import "../styles/shared/WinePlan.css";
 // Temperaturas de servicio por tipo, para cuando la ficha no trae `serve`: la tabla es compartida con el Sommelier
 // (ver utils/servicio.js) para que las dos pantallas digan lo mismo.
 
-export default function WinePlan({ wine, info }) {
+/**
+ * La música ya no vive acá: está a la vista en la ficha (ver WineMusic.jsx) y sigue al plan que se elija. `onPlanChange`
+ * le avisa a la ficha qué plan está elegido (o null).
+ */
+export default function WinePlan({ wine, info, onPlanChange }) {
   const [plan, setPlan] = useState(null);
   // Las recetas ya traídas, por plan: cambiar de plan y volver no vuelve a pedir.
   const [recipes, setRecipes] = useState({});
@@ -59,15 +63,11 @@ export default function WinePlan({ wine, info }) {
   const airear = wine.type === "red" && Number(info?.structure?.tannin) >= 4;
 
   const receta = plan ? recipes[plan] : null;
-  // La estructura viaja junto al tipo: con el cuerpo de ESTA botella, un Pinot
-  // liviano deja de recibir la música de un tinto pesado sólo por ser tinto.
-  const playlist = plan
-    ? playlistFor(plan, wine.type, new Date().getHours(), info?.structure)
-    : null;
-
   const elegirPlan = (value) => {
     setFailed(false);
-    setPlan((actual) => (actual === value ? null : value));
+    const siguiente = plan === value ? null : value;
+    setPlan(siguiente);
+    onPlanChange?.(siguiente);
   };
 
   const verReceta = async () => {
@@ -161,24 +161,6 @@ export default function WinePlan({ wine, info }) {
 
       {plan && (
         <div className="wine-plan__body">
-          {playlist && (
-            <a
-              className="wine-plan__music"
-              href={playlistUrl(playlist)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="wine-plan__music-icon">
-                <Icon name="play" size={14} />
-              </span>
-              <span className="wine-plan__music-text">
-                <strong>{playlist.name}</strong>
-                <em>{playlist.mood}</em>
-              </span>
-              <Icon name="arrow-right" size={16} />
-            </a>
-          )}
-
           {/* Un solo botón, que cambia de texto según lo que va a pasar: pedir la
               receta, reintentarla, o abrir la que ya está. */}
           <button
@@ -202,7 +184,7 @@ export default function WinePlan({ wine, info }) {
 
           {failed && !loading && (
             <p className="wine-plan__failed">
-              No se pudo armar la receta ahora. La botella y la música siguen en pie.
+              No se pudo armar la receta ahora. La botella sigue en pie.
             </p>
           )}
         </div>
