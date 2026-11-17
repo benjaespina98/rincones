@@ -2,6 +2,7 @@ import Icon from "./Icon";
 import WinePhoto from "./WinePhoto";
 import { wineDisplayName } from "../utils/wineIdentity";
 import { cssUrl } from "../utils/image";
+import { INSTAGRAM_RINCONES_USUARIO } from "../data/contacto";
 
 /**
  * El encabezado de una ficha de vino: la botella grande, su nombre y su origen.
@@ -28,11 +29,11 @@ import { cssUrl } from "../utils/image";
  */
 /**
  * El crédito de la foto, sólo en el visor a pantalla completa. Las fotos que no subió quien tiene el vino (las del pool
- * y las de la comunidad) son de las bodegas o de otras personas: se dice y se da un contacto para pedir que se retiren.
+ * y las de la comunidad) son de las bodegas o de otras personas: se dice de dónde viene y a quién escribirle para pedir que se retire.
  */
 const creditoDeFoto = (wine) =>
   wine?.imageSource === "pool" || wine?.imageSource === "community"
-    ? "Foto de la bodega o de la comunidad. Para pedir que se retire: rincones.wines@gmail.com"
+    ? `Foto de la bodega o de la comunidad. Para pedir que se retire: Instagram ${INSTAGRAM_RINCONES_USUARIO}`
     : "";
 
 export default function WineDetailHero({

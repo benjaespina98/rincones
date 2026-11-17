@@ -43,10 +43,18 @@
      la tarjeta de 92px. */
   padding: 6%;
   z-index: 2;
-  /* Las fotos de bodega vienen sobre fondo negro. `lighten` toma el más claro de cada píxel: el negro del fondo adopta
-     el color de la superficie y la botella queda tal cual. Sin esto el negro dibujaba un rectángulo, y la sombra y el
-     halo que se le sumaban encima lo hacían ver borroso en todas partes (Descubrí, rails, ficha). */
-  mix-blend-mode: lighten;
+  /* Las fotos de bodega vienen sobre fondo negro. Antes se fundían con `mix-blend-mode: lighten`, que levantaba también
+     el vidrio oscuro de la botella y la dejaba lavada, con un aura de color alrededor («brillosa»). Ahora la botella se
+     pinta tal cual y sólo se desvanecen los costados y los bordes de arriba y abajo, que es donde está el negro sobrante:
+     la foto termina en el color del panel sin tocar la botella. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0, #000 26%, #000 74%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0, #000 26%, #000 74%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 .wine-photo--contain .wine-photo__art {
