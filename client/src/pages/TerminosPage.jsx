@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import LegalPage from "../components/LegalPage";
+import { INSTAGRAM_RINCONES_URL, INSTAGRAM_RINCONES_USUARIO } from "../data/contacto";
 
 /**
  * Términos de uso.
@@ -121,7 +122,7 @@ export default function TerminosPage() {
         Estos términos se rigen por las leyes de{" "}
         <strong>Argentina</strong>, y cualquier conflicto se resuelve ante
         sus tribunales. El responsable es <strong>200ok.dev</strong>, y
-        el contacto es <strong>rincones.wines@gmail.com</strong>.
+        el contacto es nuestro <a href={INSTAGRAM_RINCONES_URL} target="_blank" rel="noopener noreferrer">Instagram {INSTAGRAM_RINCONES_USUARIO}</a>.
       </p>
     </LegalPage>
   );

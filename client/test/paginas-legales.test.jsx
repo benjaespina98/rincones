@@ -21,7 +21,10 @@ describe("páginas legales", () => {
   ])("%s nombra al responsable y el contacto, y no una persona", (_, Pagina) => {
     const texto = textoDe(Pagina);
     expect(texto).toContain("200ok.dev");
-    expect(texto).toContain("rincones.wines@gmail.com");
+    // Todavía no hay casilla de correo: el contacto es el Instagram de la app. Un mail que no existe en una política de
+    // privacidad es peor que ninguno.
+    expect(texto).toContain("@rincones.com.ar");
+    expect(texto).not.toContain("rincones.wines@gmail.com");
     expect(texto).not.toMatch(/Benjam[ií]n|Espina/i);
   });
 });
