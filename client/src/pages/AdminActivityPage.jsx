@@ -305,15 +305,15 @@ const AdminActivityPage = () => {
                       </tr>
                       {grupo.filas.map((log) => (
                         <tr key={log._id}>
-                          <td className="admin-table__num">{hora(log.createdAt)}</td>
-                          <td>
+                          <td className="admin-table__num" data-label="Hora">{hora(log.createdAt)}</td>
+                          <td data-label="Acción">
                             <span className={`admin-log-badge admin-log-badge--${log.action}`}>
                               {ACTION_LABELS[log.action] || String(log.action || "").toUpperCase()}
                             </span>
                           </td>
-                          <td>{ENTITY_LABELS[log.entityType] || log.entityType}</td>
-                          <td className="admin-table__desc admin-table__id">{describirLog(log)}</td>
-                          <td>{log.actor?.email || "Sin dato"}</td>
+                          <td data-label="Tipo">{ENTITY_LABELS[log.entityType] || log.entityType}</td>
+                          <td className="admin-table__desc admin-table__id" data-label="Qué">{describirLog(log)}</td>
+                          <td data-label="Admin">{log.actor?.email || "Sin dato"}</td>
                         </tr>
                       ))}
                     </Fragment>

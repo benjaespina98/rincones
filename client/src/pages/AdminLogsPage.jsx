@@ -143,12 +143,12 @@ const AdminLogsPage = () => {
                           onClick={() => setExpandedId(expanded ? null : log._id)}
                           aria-expanded={expanded}
                         >
-                          <td className="admin-table__num">{hora(log.createdAt)}</td>
-                          <td>
+                          <td className="admin-table__num" data-label="Cuándo">{hora(log.createdAt)}</td>
+                          <td data-label="Estado">
                             <span className="admin-log-badge admin-log-badge--delete">{log.statusCode || 500}</span>
                           </td>
-                          <td className="admin-table__id">{log.method} {log.route || "Sin dato"}</td>
-                          <td className="admin-table__desc">{log.message}</td>
+                          <td className="admin-table__id" data-label="Ruta">{log.method} {log.route || "Sin dato"}</td>
+                          <td className="admin-table__desc" data-label="Mensaje">{log.message}</td>
                         </tr>
                         {expanded && (
                           <tr>

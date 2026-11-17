@@ -956,3 +956,104 @@ button.admin-chip.is-active {
     grid-column: span 2;
   }
 }
+
+/* ══ TABLAS EN EL CELULAR: CADA FILA ES UNA TARJETA ═════════════════════════
+   Una tabla de seis columnas en 375 px obliga a deslizar de costado para ver el rol o las acciones. Debajo de 720 px
+   cada fila pasa a una tarjeta: el encabezado se esconde (queda para lectores de pantalla) y cada celda con
+   `data-label` dice qué es. Sin cambiar el marcado de escritorio. */
+@media (max-width: 719px) {
+  .admin-table-wrap {
+    border: 0;
+    background: none;
+    overflow: visible;
+  }
+
+  .admin-table,
+  .admin-table tbody {
+    display: block;
+    white-space: normal;
+  }
+
+  .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .admin-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+
+  .admin-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    border: 0;
+    text-align: left;
+  }
+
+  /* Cada dato lleva su rótulo, chico y apagado, a la izquierda. */
+  .admin-table tbody td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Lo que identifica la fila ocupa el ancho entero y va arriba, sin rótulo. */
+  .admin-table tbody td.admin-table__id {
+    grid-column: 1 / -1;
+    display: block;
+    padding-bottom: 6px;
+  }
+
+  .admin-table tbody td.admin-table__id::before,
+  .admin-table tbody td.admin-table__desc::before {
+    display: none;
+  }
+
+  .admin-table tbody td:not(.admin-table__id):not(.admin-table__sel):not(:last-child) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-table tbody td.admin-table__desc {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .admin-table tbody td.admin-table__num {
+    text-align: left;
+  }
+
+  /* Acciones al pie de la tarjeta, con áreas de toque de 44 px. */
+  .admin-table tbody td:last-child:not([data-label]) {
+    grid-column: 1 / -1;
+    padding-top: 8px;
+  }
+
+  .admin-table__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-table__actions .admin-btn {
+    min-height: 44px;
+  }
+
+  .admin-table__skel td {
+    display: block;
+  }
+}
