@@ -961,3 +961,79 @@
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
+
+/* ══ LOS VINOS DE LA RESPUESTA, DENTRO DE LA CONVERSACIÓN ═══════════════════
+   Eran tarjetas con borde, fondo, banda de color y salto al pasar el mouse: bloques que interrumpían el texto y se leían
+   como un panel fijo pegado al chat. En una conversación los vinos son parte de lo que se dice: filas livianas, sin caja,
+   separadas por una línea fina, con el mismo aire y la misma tipografía que el mensaje. El hilo del tipo de vino queda en
+   el punto de color que ya dibuja `WineMeta`. */
+.somm__rotulo {
+  margin: 20px 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.somm__lista {
+  gap: 0;
+}
+
+.suggestion-card,
+.discover-card {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 14px 0;
+}
+
+.suggestion-card[data-wine-type],
+.discover-card[data-wine-type] {
+  border-color: var(--line);
+  padding-left: 0;
+}
+
+.suggestion-card[data-wine-type]::before,
+.discover-card[data-wine-type]::before {
+  display: none;
+}
+
+.discover-card[data-wine-type] .discover-card__row {
+  padding-left: 0;
+}
+
+.somm__lista > li:last-child {
+  border-bottom: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .suggestion-card:hover,
+  .discover-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--line);
+  }
+}
+
+.suggestion-card {
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+}
+
+.suggestion-card__image {
+  width: 56px;
+  height: 76px;
+  border: 0;
+  border-radius: var(--radius-chip);
+  background: linear-gradient(rgb(var(--ink-rgb) / 0.5), rgb(var(--ink-rgb) / 0.5)), var(--bg);
+}
+
+.suggestion-card__body {
+  gap: 4px;
+}
+
+.suggestion-card__name {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
