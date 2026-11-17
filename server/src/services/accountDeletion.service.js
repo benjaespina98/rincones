@@ -10,6 +10,20 @@ const RefreshToken = require("../models/refreshToken.model");
 const SommelierConversation = require("../models/sommelierConversation.model");
 
 /**
+ * LA lista de lo que le pertenece a una persona y se borra con ella (vinos, deseos, momentos, reseñas), en un solo lugar.
+ * Antes estaba copiada en tres sitios (la baja propia, el borrado de admin y el borrado en lote): al agregar una colección
+ * nueva había que acordarse de los tres, y el que se olvidaba dejaba datos huérfanos de alguien que pidió irse.
+ * `opts` admite `{ session }` para correrlo dentro de una transacción.
+ */
+const borrarDatosPropios = (userId, opts) =>
+  Promise.all([
+    Wine.deleteMany({ userId }, opts),
+    WineWish.deleteMany({ userId }, opts),
+    WineMoment.deleteMany({ userId }, opts),
+    WineReview.deleteMany({ userId }, opts),
+  ]);
+
+/**
  * Baja de cuenta con borrado real: el usuario y todo lo que le pertenece.
  *
  * Queda afuera, a propósito, lo que no es dato personal suyo: el catálogo
@@ -31,21 +45,10 @@ const deleteAccount = async (userId) => {
     if (admins <= 1) return { ok: false, reason: "last_admin" };
   }
 
-  await RefreshToken.deleteMany({ userId });
-  await Promise.all([
-    Wine.deleteMany({ userId }),
-    WineWish.deleteMany({ userId }),
-    WineMoment.deleteMany({ userId }),
-    WineReview.deleteMany({ userId }),
-    winePrices.retractAllFromUser(userId),
-    WineImage.updateMany({ contributedBy: userId }, { $unset: { contributedBy: 1 } }),
-    AnalyticsEvent.deleteMany({ userId }),
-    /* Las charlas con la guía. Es de lo más personal que guarda la app —con qué
-       come, con quién, qué puede pagar— y el archivo tiene una retención de 180
-       días que NO alcanza acá: quien se da de baja pidió que se vaya ahora, no
-       dentro de medio año. */
-    SommelierConversation.deleteMany({ userId }),
-  ]);
+  /* Sesiones, analytics, precios, atribución de fotos y las charlas con la guía (ver `purgeUserLeftovers`). Las charlas son
+     de lo más personal que guarda la app —con qué come, con quién, qué puede pagar— y el archivo tiene una retención de 180
+     días que NO alcanza acá: quien se da de baja pidió que se vaya ahora, no dentro de medio año. */
+  await Promise.all([borrarDatosPropios(userId), purgeUserLeftovers(userId)]);
   await User.deleteOne({ _id: userId });
   return { ok: true };
 };
@@ -65,4 +68,4 @@ const purgeUserLeftovers = async (userId) => {
   ]);
 };
 
-module.exports = { deleteAccount, purgeUserLeftovers };
+module.exports = { deleteAccount, purgeUserLeftovers, borrarDatosPropios };

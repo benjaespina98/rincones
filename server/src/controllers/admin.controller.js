@@ -396,12 +396,7 @@ const deleteUser = async (req, res, next) => {
     // sin transacción de siempre, para no bloquear el desarrollo local.
     const cascade = async (session) => {
       const opts = session ? { session } : undefined;
-      await Promise.all([
-        Wine.deleteMany({ userId: user._id }, opts),
-        WineWish.deleteMany({ userId: user._id }, opts),
-        WineMoment.deleteMany({ userId: user._id }, opts),
-        WineReview.deleteMany({ userId: user._id }, opts),
-      ]);
+      await accountDeletion.borrarDatosPropios(user._id, opts);
       await User.deleteOne({ _id: user._id }, opts);
     };
 
@@ -498,12 +493,7 @@ const bulkDeleteUsers = async (req, res, next) => {
           }
         }
 
-        await Promise.all([
-          Wine.deleteMany({ userId: user._id }),
-          WineWish.deleteMany({ userId: user._id }),
-          WineMoment.deleteMany({ userId: user._id }),
-          WineReview.deleteMany({ userId: user._id }),
-        ]);
+        await accountDeletion.borrarDatosPropios(user._id);
         await User.deleteOne({ _id: user._id });
         await accountDeletion.purgeUserLeftovers(user._id).catch((e) => console.error("Limpieza posterior a la baja:", e.message));
 
