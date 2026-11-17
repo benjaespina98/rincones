@@ -49,7 +49,12 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
     reviewDeleteMany: WineReview.deleteMany,
     changeLogCreate: ChangeLog.create,
     purge: accountDeletion.purgeUserLeftovers,
+    imagenes: accountDeletion.imagenesPropias,
+    limpiar: accountDeletion.limpiarImagenes,
   };
+  // Las imágenes tienen su propio test (accountDeletion.test.js); acá se aíslan.
+  accountDeletion.imagenesPropias = async () => [];
+  accountDeletion.limpiarImagenes = async () => {};
 
   const targetUser = { _id: "u2", email: "borrar@rincones.app", role: "user" };
   User.findById = async () => targetUser;
@@ -93,6 +98,8 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
     WineReview.deleteMany = original.reviewDeleteMany;
     ChangeLog.create = original.changeLogCreate;
     accountDeletion.purgeUserLeftovers = original.purge;
+    accountDeletion.imagenesPropias = original.imagenes;
+    accountDeletion.limpiarImagenes = original.limpiar;
   }
 });
 
