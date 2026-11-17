@@ -638,11 +638,7 @@
   transition: transform var(--transition-slow);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .wine-result-card:hover .wine-result-card__media img {
-    transform: scale(1.06);
-  }
-}
+/* Sin zoom al pasar el mouse: reescalar la foto la remuestrea y la deja borrosa. */
 
 
 .wine-result-card__body {
