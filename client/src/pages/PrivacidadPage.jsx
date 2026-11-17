@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import LegalPage from "../components/LegalPage";
+import { INSTAGRAM_RINCONES_URL, INSTAGRAM_RINCONES_USUARIO } from "../data/contacto";
 
 /**
  * Política de privacidad.
@@ -39,7 +40,7 @@ export default function PrivacidadPage() {
       <p>
         <strong>200ok.dev</strong>, con domicilio en{" "}
         <strong>Córdoba, Argentina</strong>. Para cualquier consulta sobre tus datos escribinos
-        a <strong>rincones.wines@gmail.com</strong>.
+        por <a href={INSTAGRAM_RINCONES_URL} target="_blank" rel="noopener noreferrer">Instagram {INSTAGRAM_RINCONES_USUARIO}</a>.
       </p>
 
       <h2>Qué guardamos</h2>
