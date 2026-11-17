@@ -10,6 +10,7 @@ const RefreshToken = require("../models/refreshToken.model");
 const SommelierConversation = require("../models/sommelierConversation.model");
 const CommunityWine = require("../models/communityWine.model");
 const ErrorLog = require("../models/errorLog.model");
+const imageStorage = require("./imageStorage.service");
 
 /**
  * LA lista de lo que le pertenece a una persona y se borra con ella (vinos, deseos, momentos, reseñas), en un solo lugar.
@@ -25,6 +26,49 @@ const borrarDatosPropios = async (userId, opts) => {
     return;
   }
   await Promise.all(modelos.map((Modelo) => Modelo.deleteMany({ userId }, opts)));
+};
+
+/**
+ * Las imágenes de Cloudinary que subió esta persona (la foto de sus vinos y las de sus momentos), SIN contar las que
+ * también usa otro documento: la foto que pasó al pool compartido o al catálogo comunitario, o la que otra persona
+ * tenga igual. Esas son contenido de todos y se quedan (sin su nombre: ver `purgeUserLeftovers`).
+ */
+const imagenesPropias = async (userId) => {
+  const [vinos, momentos] = await Promise.all([
+    Wine.find({ userId, image: { $type: "string" } }).select("image").lean(),
+    WineMoment.find({ userId }).select("photos").lean(),
+  ]);
+  const candidatas = [
+    ...vinos.map((w) => w.image),
+    ...momentos.flatMap((m) => m.photos || []),
+  ].filter((u) => imageStorage.esUrlPropia(u));
+  return [...new Set(candidatas)];
+};
+
+/** De `urls`, las que ya no usa ningún otro documento (ya borrados los de la persona). */
+const urlsSinUso = async (urls) => {
+  if (urls.length === 0) return [];
+  const usadas = new Set();
+  const [enPool, enComunidad, enVinos, enMomentos] = await Promise.all([
+    WineImage.find({ image: { $in: urls } }).select("image").lean(),
+    CommunityWine.find({ image: { $in: urls } }).select("image").lean(),
+    Wine.find({ image: { $in: urls } }).select("image").lean(),
+    WineMoment.find({ photos: { $in: urls } }).select("photos").lean(),
+  ]);
+  enPool.forEach((d) => usadas.add(d.image));
+  enComunidad.forEach((d) => usadas.add(d.image));
+  enVinos.forEach((d) => usadas.add(d.image));
+  enMomentos.forEach((d) => (d.photos || []).forEach((u) => usadas.add(u)));
+  return urls.filter((u) => !usadas.has(u));
+};
+
+/** Borra de Cloudinary las imágenes que ya nadie usa. Mejor esfuerzo: la cuenta ya no existe, un fallo no deshace la baja. */
+const limpiarImagenes = async (imagenes) => {
+  try {
+    await imageStorage.eliminarImagenes(await urlsSinUso(imagenes));
+  } catch (error) {
+    console.error("Limpieza de imágenes tras la baja:", error.message);
+  }
 };
 
 /**
@@ -54,8 +98,11 @@ const deleteAccount = async (userId) => {
      días que NO alcanza acá: quien se da de baja pidió que se vaya ahora, no dentro de medio año. */
   // Primero se cierran las sesiones: mientras se borra, nadie puede renovar el acceso de esta cuenta.
   await RefreshToken.deleteMany({ userId });
+  // Se anotan ANTES de borrar los vinos y momentos: después ya no hay de dónde sacarlas.
+  const imagenes = await imagenesPropias(userId);
   await Promise.all([borrarDatosPropios(userId), purgeUserLeftovers(userId)]);
   await User.deleteOne({ _id: userId });
+  await limpiarImagenes(imagenes);
   return { ok: true };
 };
 
@@ -77,4 +124,4 @@ const purgeUserLeftovers = async (userId) => {
   ]);
 };
 
-module.exports = { deleteAccount, purgeUserLeftovers, borrarDatosPropios };
+module.exports = { deleteAccount, purgeUserLeftovers, borrarDatosPropios, imagenesPropias, urlsSinUso, limpiarImagenes };

@@ -142,8 +142,10 @@ export default function PrivacidadPage() {
         </li>
         <li>
           <strong>Borrar todo.</strong> Desde <em>Perfil → Eliminar mi cuenta</em>. Se borra de
-          verdad: la cuenta y todo lo que cargaste, incluidas las consultas al Sommelier. No es
-          un borrado marcado ni diferido, y no se puede deshacer.
+          verdad: la cuenta y todo lo que cargaste, incluidas las fotos de tus vinos y de tus
+          momentos y las consultas al Sommelier. No es un borrado marcado ni diferido, y no se
+          puede deshacer. Lo único que queda es una foto de un vino que ya sirve a toda la
+          comunidad (la del catálogo compartido), sin tu nombre.
         </li>
         <li>
           <strong>Corregir lo que esté mal.</strong> Todo lo que cargaste se edita desde la app.

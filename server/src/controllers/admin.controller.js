@@ -397,6 +397,7 @@ const deleteUser = async (req, res, next) => {
     // Lo que cuelga de la cuenta fuera de la transacción (sesiones, charlas con la guía, analytics…) se limpia ANTES de
     // borrarla: si falla, la cuenta sigue existiendo y se puede reintentar, en vez de quedar huérfano lo más personal.
     await accountDeletion.purgeUserLeftovers(user._id);
+    const imagenes = await accountDeletion.imagenesPropias(user._id);
 
     const cascade = async (session) => {
       const opts = session ? { session } : undefined;
@@ -440,6 +441,8 @@ const deleteUser = async (req, res, next) => {
       if (!noSoportaTransacciones) throw txError;
       await cascade(null);
     }
+
+    await accountDeletion.limpiarImagenes(imagenes);
 
     await logAdminAction({
       entityType: "user",
@@ -497,8 +500,10 @@ const bulkDeleteUsers = async (req, res, next) => {
         }
 
         await accountDeletion.purgeUserLeftovers(user._id);
+        const imagenes = await accountDeletion.imagenesPropias(user._id);
         await accountDeletion.borrarDatosPropios(user._id);
         await User.deleteOne({ _id: user._id });
+        await accountDeletion.limpiarImagenes(imagenes);
 
         await logAdminAction({
           entityType: "user",

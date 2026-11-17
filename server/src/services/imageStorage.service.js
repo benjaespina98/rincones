@@ -128,8 +128,48 @@ const store = async (image, { folder = "rincones/wines" } = {}) => {
   }
 };
 
+/**
+ * El `public_id` de una imagen de NUESTRO Cloudinary, sacado de su URL; "" si la URL no es nuestra o no se entiende.
+ * `.../upload/f_auto,q_auto,w_800,c_limit/v123/rincones/wines/abc.jpg` → `rincones/wines/abc`
+ * (se salta la versión `v123` y las transformaciones, y se quita la extensión).
+ */
+const publicIdDeUrl = (url) => {
+  const v = String(url || "").trim();
+  if (!esUrlPropia(v)) return "";
+  const m = v.match(/\/upload\/(.+)$/);
+  if (!m) return "";
+  const segmentos = m[1].split("?")[0].split("/");
+  // Transformaciones: segmentos con comas o con forma "w_800" antes de la versión o de la carpeta.
+  while (segmentos.length > 1 && (/^v\d+$/.test(segmentos[0]) || /^[a-z]{1,3}_[^/]*$/i.test(segmentos[0]) || segmentos[0].includes(","))) {
+    segmentos.shift();
+  }
+  const ruta = segmentos.join("/").replace(/\.[a-z0-9]{2,5}$/i, "");
+  return decodeURIComponent(ruta);
+};
+
+/**
+ * Borra de Cloudinary las imágenes de ESTE cloud que se le pasan. Mejor esfuerzo: nunca lanza (un fallo de red no puede
+ * frenar una baja de cuenta) y devuelve cuántas pidió borrar. Quien llama decide QUÉ borrar (que nada más las use).
+ */
+const eliminarImagenes = async (urls = []) => {
+  const ids = [...new Set(urls.map(publicIdDeUrl).filter(Boolean))];
+  if (ids.length === 0 || !ensureConfigured()) return 0;
+  let pedidas = 0;
+  for (const id of ids) {
+    try {
+      await cloudinary.uploader.destroy(id, { resource_type: "image", invalidate: true });
+      pedidas += 1;
+    } catch (error) {
+      console.error("No se pudo borrar una imagen de Cloudinary:", id, error.message);
+    }
+  }
+  return pedidas;
+};
+
 module.exports = {
   store,
+  publicIdDeUrl,
+  eliminarImagenes,
   esUrlPropia,
   isConfigured,
   optimized,
