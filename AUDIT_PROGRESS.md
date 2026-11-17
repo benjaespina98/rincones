@@ -128,7 +128,7 @@ Fotos de producto de las propias bodegas (no genéricas ni inventadas), cargadas
 - Sin foto de producto en el sitio de la bodega: Catena Alta, Nicolás Catena Zapata, White Stones (sólo ambiente); Zuccardi Santa Julia, Fuzión, Aluvional; Rutini Blend of Terroirs y Finca Centenaria; BenMarco.
 - Séptima: su sitio oficial no responde (conexión cortada / certificado vencido): sin fotos. Faltan por revisar: Casarena, Mosquita Muerta, Fabre Montmayou, Trapiche, Norton, Trivento, Salentein, El Esteco, Nieto Senetiner.
 - Bodega Noemía: tiene 3 botellas (A Lisa, J Alberto, Noemía) pero ninguna coincide con el vino cargado («Cabernet Franc»); no se importó. Baron B: sin sitio oficial encontrado.
-- **Licencia:** son fotos de las bodegas, sin licencia abierta. Falta el crédito visible («Foto: bodega») y un contacto para retiros.
+- **Licencia:** son fotos de las bodegas, sin licencia abierta. El visor dice de dónde viene la foto, pero falta un contacto para retiros: la casilla rincones.wines@gmail.com que aparece en Privacidad y Términos todavía no existe.
 - Los vinos sin foto propia muestran la del pool si tiene puntaje ≥ 70 (`wineImages.conFotoConfiable`, sólo lectura): no hace falta recargarlos.
 - Las fotos que suben los usuarios no se tocaron: siguen yendo a Cloudinary.
 
