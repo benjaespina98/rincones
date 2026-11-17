@@ -7,6 +7,7 @@ import WineReviews from "../components/WineReviews";
 import WineAbout from "../components/WineAbout";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
+import WineMusic from "../components/WineMusic";
 import { useToast } from "../context/ToastContext";
 import { useWishlist } from "../hooks/useWishlist";
 import { useAddToCellar } from "../hooks/useAddToCellar";
@@ -28,6 +29,8 @@ export default function CatalogWinePage() {
 
   const wine = location.state?.wine || null;
 
+  // El plan elegido en «Qué hacer con ella»: la música de «Para acompañar» lo sigue.
+  const [planElegido, setPlanElegido] = useState(null);
   const [aiInfo, setAiInfo] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
@@ -170,7 +173,8 @@ export default function CatalogWinePage() {
             no comprás, saber qué se cocina con él y con qué suena es justamente
             lo que ayuda a decidir si lo querés. La botella no hace falta tenerla
             para planear la noche en que la vas a abrir. */}
-        <WinePlan wine={wine} info={aiInfo} />
+        <WineMusic wine={wine} info={aiInfo} plan={planElegido} />
+        <WinePlan wine={wine} info={aiInfo} onPlanChange={setPlanElegido} />
 
         {/* Reseñas de la comunidad: el motivo principal por el que alguien mira
             la ficha de un vino que todavía no tiene. */}

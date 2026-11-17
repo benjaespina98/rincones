@@ -166,6 +166,48 @@ export const playlistFor = (plan, wineType, hour = new Date().getHours(), struct
 
 export const playlistUrl = (playlist) => `https://open.spotify.com/playlist/${playlist.id}`;
 
+/**
+ * Buscar la misma música en YouTube. Es una búsqueda y no un video fijo a propósito: un ID de YouTube inventado (o uno que
+ * el dueño borró) lleva a un 404, y una sugerencia que no abre es peor que ninguna. La búsqueda siempre abre.
+ */
+export const youtubeUrl = (playlist) =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(`${playlist.name} playlist`)}`;
+
+/** El plan con el que se arma la música cuando todavía no se eligió ninguno: sale de la hora. */
+const planPorHora = (hour) => (hour >= 19 || hour < 5 ? "cena" : "copas");
+
+/** Una frase por plan: lo que la música tiene que hacer en esa mesa. */
+const FRASES_DE_PLAN = {
+  cena: "Para una cena de a dos, algo de fondo que deje conversar.",
+  copas: "Para unas copas con calma, algo suave que no pida atención.",
+  familia: "Mesa larga y sobremesa: temas que conozca todo el mundo.",
+  amigos: "Con amigos, que la música acompañe la juntada.",
+  asado: "Con el asado, los de siempre.",
+  solo: "Para una copa tranqui, algo que baje un cambio.",
+};
+
+/**
+ * La música de ESTE vino, lista para mostrar sin que nadie tenga que elegir nada: una frase y una playlist.
+ *
+ * Sin plan, la hora decide la mesa y el vino decide el tono (un espumante pide otra cosa que un tinto de cuerpo). Con plan
+ * elegido, manda el plan. Siempre devuelve algo: la música es una invitación, no un dato que pueda faltar.
+ */
+export const musicaDelVino = (wineType, structure = null, plan = null, hour = new Date().getHours()) => {
+  const planUsado = plan || planPorHora(hour);
+  const playlist = playlistFor(planUsado, wineType, hour, structure);
+  if (plan && FRASES_DE_PLAN[plan]) return { playlist, frase: FRASES_DE_PLAN[plan], plan };
+
+  const liviano = pesoDelVino(wineType, structure) === "liviano";
+  let frase;
+  if (wineType === "sparkling") frase = "Con burbujas, algo liviano y con un poco de vestido.";
+  else if (liviano) frase = "Un vino fresco pide algo suave de fondo.";
+  else if (hour >= 19 || hour < 5) {
+    // «Con cuerpo» también puede ser un blanco o un naranjo: sólo el tinto se llama tinto.
+    frase = `${wineType === "red" ? "Un tinto" : "Un vino"} con cuerpo se toma con calma: poné algo que acompañe sin tapar la charla.`;
+  } else frase = FRASES_DE_PLAN.copas;
+  return { playlist, frase, plan: planUsado };
+};
+
 /** El bloque fijo de "Deep Progressive" que pide Descubrí, aparte del algoritmo. */
 export const DEEP_PROGRESSIVE = PLAYLISTS.deepProgressive;
 

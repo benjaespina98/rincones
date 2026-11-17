@@ -18,6 +18,7 @@ import WineAbout from "../components/WineAbout";
 import WineOpinion from "../components/WineOpinion";
 import WineIdentity from "../components/WineIdentity";
 import WinePlan from "../components/WinePlan";
+import WineMusic from "../components/WineMusic";
 import WineDetailHero from "../components/WineDetailHero";
 import WineMoments from "../components/WineMoments";
 import WineDetailEditor from "../components/WineDetailEditor";
@@ -122,6 +123,8 @@ export default function WineDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Foto abierta a pantalla completa: la del vino o la de un momento.
   const [lightbox, setLightbox] = useState(null);
+  // El plan de la noche que se eligió más abajo: la música de «Para acompañar» lo sigue.
+  const [planElegido, setPlanElegido] = useState(null);
 
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -780,7 +783,10 @@ export default function WineDetailPage() {
               wine={wine}
             />
 
-            {/* ── QUÉ HACER CON ELLA: TEMPERATURA, MÚSICA Y UN PLATO ──────────
+            {/* ── QUÉ HACER CON ELLA: MÚSICA, TEMPERATURA Y UN PLATO ──────────
+                La música (`WineMusic`) va primero y a la vista: una frase y una playlist, sin elegir nada, y sigue al plan
+                que se elija en el bloque de abajo.
+
                 Pegado a la descripción, porque son la misma pregunta en dos
                 tiempos: qué es este vino y qué hacés con eso. Vivía cinco
                 bloques más abajo, del otro lado de tu puntuación, tus notas y
@@ -795,8 +801,9 @@ export default function WineDetailPage() {
                 Se muestra siempre, también sin stock: el plan es de la noche, no
                 del inventario. Una botella que se terminó es una que vas a
                 reponer, y saber qué cocinar con ella es parte de decidirlo. */}
+            <WineMusic wine={wine} info={aiInfo} plan={planElegido} />
             <div id="plan">
-              <WinePlan wine={wine} info={aiInfo} />
+              <WinePlan wine={wine} info={aiInfo} onPlanChange={setPlanElegido} />
             </div>
 
             {/* ── TU EXPERIENCIA ────────────────────────────────────────────
