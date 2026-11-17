@@ -72,3 +72,40 @@ describe("playlistUrl", () => {
     expect(url).toMatch(/^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+$/);
   });
 });
+
+import { musicaDelVino, youtubeUrl } from "../src/data/playlists";
+
+describe("musicaDelVino: una frase y una playlist, sin elegir nada", () => {
+  it("siempre devuelve frase y playlist, con o sin plan, con o sin ficha", () => {
+    for (const type of ["red", "white", "sparkling", "rosé", "unknown", undefined]) {
+      for (const plan of [null, "cena", "asado", "inventado"]) {
+        const m = musicaDelVino(type, null, plan, 21);
+        expect(m.frase, `${type}/${plan}`).toBeTruthy();
+        expect(m.playlist.id).toMatch(/^[A-Za-z0-9]+$/);
+      }
+    }
+  });
+
+  it("el plan elegido manda sobre la hora: la frase y la lista lo siguen", () => {
+    const asado = musicaDelVino("red", null, "asado", 21);
+    expect(asado.frase).toMatch(/asado/i);
+    expect(asado.playlist).toEqual(playlistFor("asado", "red", 21));
+  });
+
+  it("sin plan, el espumante y el tinto de cuerpo no reciben la misma frase", () => {
+    expect(musicaDelVino("sparkling", null, null, 21).frase).not.toBe(musicaDelVino("red", null, null, 21).frase);
+  });
+
+  it("la búsqueda de YouTube lleva el nombre de la playlist, bien codificado", () => {
+    const url = youtubeUrl({ name: "Jazz Vibes" });
+    expect(url).toBe("https://www.youtube.com/results?search_query=Jazz%20Vibes%20playlist");
+  });
+});
+
+describe("musicaDelVino: la frase no miente sobre el tipo de vino", () => {
+  it("un blanco o un naranjo con cuerpo no se llama tinto", () => {
+    const m = musicaDelVino("white", { body: 4 }, null, 22);
+    expect(m.frase).not.toMatch(/tinto/i);
+    expect(musicaDelVino("red", { body: 4 }, null, 22).frase).toMatch(/tinto/i);
+  });
+});

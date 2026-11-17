@@ -143,65 +143,6 @@
   animation: rincon-enter-down 200ms var(--ease-out);
 }
 
-/* ── Música ────────────────────────────────────────────────────────────────
-   Es un link a Spotify y se comporta como tal: no promete reproducir nada acá
-   adentro. Verde de Spotify sólo en el ícono — la tarjeta sigue siendo de la
-   app, no un banner de otra marca. */
-.wine-plan__music {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 13px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.wine-plan__music:active {
-  transform: scale(0.99);
-}
-
-.wine-plan__music-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  /* EXCEPCION: verde de Spotify. Es una marca de terceros — el color
-     identifica el servicio, asi que no sale de nuestra paleta ni la sigue si
-     Spotify lo cambia. Lo mismo el verde oscuro del texto, dos lineas abajo. */
-  background: #1db954;
-  color: #06210f;
-}
-
-.wine-plan__music-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.wine-plan__music-text strong {
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.wine-plan__music-text em {
-  font-style: normal;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-.wine-plan__music > .icon:last-child {
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-
 /* ── El botón de la receta ─────────────────────────────────────────────────
    Dice qué va a pasar y para qué plan ("Qué cocinar para un asado"), no
    "generar con IA": lo que importa es la cena, no de dónde sale. */
