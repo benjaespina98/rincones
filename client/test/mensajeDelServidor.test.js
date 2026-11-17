@@ -16,4 +16,10 @@ describe("mensajeDelServidor", () => {
     expect(mensajeDelServidor(err(400, { error: "   " }), "respaldo")).toBe("respaldo");
     expect(mensajeDelServidor(null, "respaldo")).toBe("respaldo");
   });
+
+  it("si vienen los dos textos gana message; si message no es texto, se usa error", () => {
+    expect(mensajeDelServidor(err(400, { message: "A", error: "B" }), "x")).toBe("A");
+    expect(mensajeDelServidor(err(400, { message: 5, error: "B" }), "x")).toBe("B");
+    expect(mensajeDelServidor(err(400, { message: 5 }), "respaldo")).toBe("respaldo");
+  });
 });

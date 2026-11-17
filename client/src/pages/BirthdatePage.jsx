@@ -38,7 +38,7 @@ export default function BirthdatePage() {
       await refreshUser();
       navigate("/bodega", { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.error || "No se pudo guardar. Probá de nuevo.";
+      const msg = err.response?.data?.message || err.response?.data?.error || "No se pudo guardar. Probá de nuevo.";
       setError(msg);
       showError(msg);
     } finally {

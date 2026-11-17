@@ -89,7 +89,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 13px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-accent);

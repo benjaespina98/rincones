@@ -2,7 +2,7 @@
 /**
  * Mide el lector de etiquetas con fotos reales, a tres resoluciones.
  *
- * ── ESTADO: ESCRITO Y SIN EJECUTAR ─────────────────────────────────────────────────────────────
+ * ── ESTADO: ESCRITO Y SIN EJECUTAR (también mide composition, aging y alcohol) ─────────────────────────────────────────────────────────────
  * Hace falta una carpeta con fotos reales de etiquetas, que no están en el repositorio. Cuando
  * haya, este script responde la pregunta que hoy está abierta: ¿2000 px / calidad 0,92 (lo que
  * manda el cliente) es el punto justo, o 1600 o 1280 leen igual y tardan menos?
@@ -33,7 +33,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const CAMPOS = ["winery", "line", "name", "varietal", "vintage", "region", "type"];
+// Los datos de elaboración (composition, aging, alcohol) sólo están en etiquetas que los traen: un vacío ahí puede ser
+// correcto. Se miden igual para ver cuántas veces los lee cuando sí están.
+const CAMPOS = ["winery", "line", "name", "varietal", "vintage", "region", "type", "composition", "aging", "alcohol"];
 const LADOS = (process.env.LADOS || "1280,1600,2000").split(",").map(Number).filter(Boolean);
 const CALIDAD = Number(process.env.CALIDAD || 92);
 const PAUSA_MS = Number(process.env.PAUSA_MS || 1500);
@@ -50,7 +52,7 @@ const cargarSharp = () => {
   }
 };
 
-const leido = (valor) => valor !== undefined && valor !== null && valor !== "" && valor !== "unknown";
+const leido = (valor) => valor !== undefined && valor !== null && valor !== "" && valor !== "unknown" && valor !== 0;
 
 const main = async () => {
   const carpeta = process.argv[2] || process.env.FOTOS_DIR;

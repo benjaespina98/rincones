@@ -18,6 +18,7 @@ const usersRoutes = require("./routes/users.routes");
 const analyticsRoutes = require("./routes/analytics.routes");
 const promotionsRoutes = require("./routes/promotions.routes");
 const errorHandler = require("./middleware/errorHandler");
+const { errorShape } = require("./middleware/errorShape");
 
 const app = express();
 
@@ -28,6 +29,8 @@ app.set("trust proxy", 1);
 
 // Security: HTTP Headers
 app.use(helmet());
+// Todos los errores de la API salen con `message` y `error` iguales (ver middleware/errorShape.js).
+app.use(errorShape);
 
 // Security: Rate limiting.
 // El límite general es amplio porque la app es una SPA que hace varias llamadas

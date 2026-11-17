@@ -956,3 +956,148 @@ button.admin-chip.is-active {
     grid-column: span 2;
   }
 }
+
+/* ══ TABLAS EN EL CELULAR: CADA FILA ES UNA TARJETA ═════════════════════════
+   Una tabla de seis columnas en 375 px obliga a deslizar de costado para ver el rol o las acciones. Debajo de 720 px
+   cada fila pasa a una tarjeta: el encabezado se esconde (queda para lectores de pantalla) y cada celda con
+   `data-label` dice qué es. Sin cambiar el marcado de escritorio. */
+@media (max-width: 719px) {
+  .admin-table-wrap {
+    border: 0;
+    background: none;
+    overflow: visible;
+  }
+
+  .admin-table,
+  .admin-table tbody {
+    display: block;
+    white-space: normal;
+  }
+
+  .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .admin-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    position: relative;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+
+  .admin-table tbody td {
+    display: flex;
+    min-width: 0;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    border: 0;
+    text-align: left;
+  }
+
+  /* Cada dato lleva su rótulo, chico y apagado, a la izquierda. */
+  .admin-table tbody td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Lo que identifica la fila ocupa el ancho entero y va arriba, sin rótulo. */
+  /* Lo que identifica la fila va primero, aunque en el marcado no sea la primera celda (Logs, Actividad). */
+  .admin-table tbody td.admin-table__id {
+    grid-column: 1 / -1;
+    display: block;
+    order: -1;
+    padding-bottom: 6px;
+  }
+
+  /* El checkbox de selección flota arriba a la derecha de la tarjeta, con área de toque de 44 px, y no ocupa una fila. */
+  .admin-table tbody td.admin-table__sel {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    order: -2;
+  }
+
+  .admin-table tbody td.admin-table__sel:empty {
+    display: none;
+  }
+
+  .admin-table tbody td.admin-table__id {
+    padding-right: 44px;
+  }
+
+  /* El separador de día es un rótulo, no otra tarjeta. */
+  .admin-table tbody tr.admin-table__day {
+    display: block;
+    padding: 6px 2px 0;
+    margin-bottom: 4px;
+    border: 0;
+    background: none;
+  }
+
+  .admin-table tbody td.admin-table__id::before,
+  .admin-table tbody td.admin-table__desc::before {
+    display: none;
+  }
+
+  .admin-table tbody td:not(.admin-table__id):not(.admin-table__sel):not(:last-child) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-table tbody td.admin-table__desc {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .admin-table tbody td.admin-table__num {
+    text-align: left;
+  }
+
+  /* Acciones al pie de la tarjeta, con áreas de toque de 44 px. */
+  .admin-table tbody td:last-child:not([data-label]) {
+    grid-column: 1 / -1;
+    padding-top: 8px;
+  }
+
+  .admin-table__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-table__actions .admin-btn {
+    min-height: 44px;
+  }
+
+  .admin-table tbody .admin-table__skel td {
+    display: block;
+  }
+
+  .admin-table tbody tr.admin-table__skel {
+    display: block;
+  }
+
+  .admin-table tbody .admin-table__skel td span {
+    display: block;
+    width: 100%;
+    min-height: 18px;
+  }
+}

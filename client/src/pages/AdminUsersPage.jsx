@@ -295,7 +295,7 @@ const AdminUsersPage = () => {
                     const selectable = !u.isSelf && !lastAdmin;
                     return (
                       <tr key={u._id} className={busy ? "is-busy" : ""}>
-                        <td>
+                        <td className="admin-table__sel">
                           {selectable && (
                             <label className="admin-checkbox">
                               <input
@@ -310,20 +310,20 @@ const AdminUsersPage = () => {
                             </label>
                           )}
                         </td>
-                        <td className="admin-table__id">
+                        <td className="admin-table__id" data-label="Usuario">
                           {displayName(u)}
                           {u.isSelf && <span className="admin-user__you">vos</span>}
                           {isTestAccount(u) && <span className="admin-user__test">prueba</span>}
                           <span className="admin-table__sub">{u.email}</span>
                         </td>
-                        <td>
+                        <td data-label="Rol">
                           <span className={`admin-role admin-role--${u.role || "user"}`}>
                             {u.role === "admin" ? "Admin" : "Usuario"}
                           </span>
                         </td>
-                        <td className="admin-table__num">{u.wineCount}</td>
-                        <td className="admin-table__num">{u.reviewCount}</td>
-                        <td>{formatDate(u.createdAt)}</td>
+                        <td className="admin-table__num" data-label="Vinos">{u.wineCount}</td>
+                        <td className="admin-table__num" data-label="Reseñas">{u.reviewCount}</td>
+                        <td data-label="Alta">{formatDate(u.createdAt)}</td>
                         <td>
                           <div className="admin-table__actions">
                             <button
