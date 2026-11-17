@@ -30,9 +30,26 @@ export const conviene = (wine, anioActual = new Date().getFullYear()) => {
   return !(Number.isFinite(cosecha) && cosecha > 0 && anioActual - cosecha > 12);
 };
 
-/** La línea para una tarjeta: «Servilo a 16-18 °C · airealo 30 min». Vacía si no hay nada que decir. */
+/**
+ * ¿Es un tinto con años encima (10 o más)? Ahí el problema no es que le falte aire sino el sedimento: se decanta
+ * despacio, de una sola vez, y se toma enseguida. Sin cosecha no se afirma nada.
+ */
+export const esTintoAnejo = (wine, anioActual = new Date().getFullYear()) => {
+  if (wine?.type !== "red") return false;
+  const cosecha = Number(wine.vintage);
+  return Number.isFinite(cosecha) && cosecha > 0 && anioActual - cosecha >= 10;
+};
+
+/**
+ * La línea para una tarjeta, según el vino:
+ *   · tinto tánico y joven → «Servilo a 16-18 °C · airealo 30 min»
+ *   · tinto con 10+ años   → «Servilo a 16-18 °C · decantalo con cuidado»
+ *   · el resto             → «Servilo a 8-10 °C»
+ * Vacía si no hay nada que decir.
+ */
 export const lineaDeServicio = (wine, anioActual) => {
   const temperatura = temperaturaDeServicio(wine);
   if (!temperatura) return "";
+  if (esTintoAnejo(wine, anioActual)) return `Servilo a ${temperatura} · decantalo con cuidado`;
   return conviene(wine, anioActual) ? `Servilo a ${temperatura} · airealo 30 min` : `Servilo a ${temperatura}`;
 };

@@ -7,7 +7,7 @@
   /* 40px y no --control-sm (34): un chip es algo que se toca, y los dos lugares
      que lo usan —la hoja de filtros y las fichas sobre la lista— ya habían
      subido a 40 por su cuenta. Se toca de 44, ver abajo. */
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   position: relative;
   border: 1px solid var(--border-base);

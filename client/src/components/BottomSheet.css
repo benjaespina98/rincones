@@ -124,8 +124,8 @@
   right: 10px;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: var(--radius-full);
   background: transparent;

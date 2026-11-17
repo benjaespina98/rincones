@@ -20,4 +20,14 @@ describe("servicio", () => {
     expect(lineaDeServicio({ type: "white", varietal: "Torrontés" }, 2026)).toBe("Servilo a 8-10 °C");
     expect(lineaDeServicio({ type: "unknown" }, 2026)).toBe("");
   });
+
+  it("un tinto con 10+ años se decanta con cuidado, no se airea", () => {
+    expect(lineaDeServicio({ type: "red", varietal: "Malbec", vintage: 2012 }, 2026)).toBe("Servilo a 16-18 °C · decantalo con cuidado");
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir", vintage: 2014 }, 2026)).toBe("Servilo a 16-18 °C · decantalo con cuidado");
+  });
+
+  it("sin cosecha no se afirma nada de decantar, y un blanco viejo no se decanta", () => {
+    expect(lineaDeServicio({ type: "red", varietal: "Pinot Noir" }, 2026)).toBe("Servilo a 16-18 °C");
+    expect(lineaDeServicio({ type: "white", varietal: "Chardonnay", vintage: 2010 }, 2026)).toBe("Servilo a 8-10 °C");
+  });
 });

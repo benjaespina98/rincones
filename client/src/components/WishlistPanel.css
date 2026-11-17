@@ -117,7 +117,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-card);
@@ -142,7 +142,7 @@
    que probarlo — y por eso puede ir en voz baja, que es lo que corresponde a
    la acción secundaria de la fila. */
 .wishlist-remove {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 10px;
   border: 0;
   background: none;

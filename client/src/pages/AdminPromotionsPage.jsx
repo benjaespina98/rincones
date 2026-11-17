@@ -177,7 +177,7 @@ const ventanaEnPalabras = (p) => {
 
 /** El mensaje de error que mandó el server, si es que mandó uno útil. */
 const mensajeDeError = (error, porDefecto) =>
-  error?.response?.data?.error || error?.response?.data?.message || porDefecto;
+  error?.response?.data?.message || error?.response?.data?.error || porDefecto;
 
 export default function AdminPromotionsPage() {
   const { showSuccess, showError } = useToast();

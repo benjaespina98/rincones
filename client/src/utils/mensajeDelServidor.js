@@ -9,6 +9,6 @@ export const mensajeDelServidor = (error, respaldo) => {
   const status = error?.response?.status;
   if (!status || status >= 500) return respaldo;
   const data = error.response.data;
-  const texto = data?.error || data?.message;
+  const texto = data?.message || data?.error;
   return typeof texto === "string" && texto.trim() ? texto.trim() : respaldo;
 };

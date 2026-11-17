@@ -70,7 +70,7 @@
 
 .open-sheet__preset {
   min-width: 44px;
-  min-height: 40px;
+  min-height: 44px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: var(--surface-2);
