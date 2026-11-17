@@ -2409,3 +2409,24 @@
   font-weight: 700;
   color: var(--accent-text);
 }
+
+/* ══ LAS PESTAÑAS QUEDAN A MANO ════════════════════════════════════════════
+   En el celular, al bajar por la lista, «En stock / Ya tomados / Favoritos» se iban con el scroll y para
+   cambiar de vista había que volver al principio. Ahora se quedan pegadas arriba de la pantalla (el scroller es
+   `.app-content`, y `sticky` se ancla a él). Van sobre un fondo sólido con la superficie encima: la lista pasa
+   por debajo sin transparentarse. Sólo en el celular; en escritorio comparten renglón con el buscador. */
+@media (max-width: 1023px) {
+  .segmented.bodega-vista {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-base);
+    /* Fondo sólido bajo la superficie: la lista pasa por debajo sin transparentarse. Sin bandas de color alrededor
+       (el fondo de la app es un degradé y una banda plana se vería como una franja). */
+    background: linear-gradient(var(--glass), var(--glass)), var(--bg);
+    min-height: 44px;
+  }
+
+  .segmented.bodega-vista .segmented__btn {
+    min-height: 44px;
+  }
+}

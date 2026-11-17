@@ -46,7 +46,7 @@ test("exportar y borrar miran el MISMO inventario de datos personales", () => {
    */
   const soloSeBorran = new Set(["refreshToken", "analyticsEvent"]);
   /** El precio pagado vive dentro del vino; `winePrice` es el histórico anónimo. */
-  const soloSeBorranTambien = new Set(["winePrice", "wineImage"]);
+  const soloSeBorranTambien = new Set(["winePrice", "wineImage", "communityWine", "errorLog"]);
 
   const faltanEnElExport = [...borrar].filter(
     (m) => !exportar.has(m) && !soloSeBorran.has(m) && !soloSeBorranTambien.has(m)

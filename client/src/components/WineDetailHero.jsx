@@ -26,6 +26,15 @@ import { cssUrl } from "../utils/image";
  * `data-wine-type`. Las dos cosas apuntan a lo mismo — que el encabezado sea de
  * ESTE vino y no de la app.
  */
+/**
+ * El crédito de la foto, sólo en el visor a pantalla completa. Las fotos que no subió quien tiene el vino (las del pool
+ * y las de la comunidad) son de las bodegas o de otras personas: se dice y se da un contacto para pedir que se retiren.
+ */
+const creditoDeFoto = (wine) =>
+  wine?.imageSource === "pool" || wine?.imageSource === "community"
+    ? "Foto de la bodega o de la comunidad. Para pedir que se retire: rincones.wines@gmail.com"
+    : "";
+
 export default function WineDetailHero({
   wine,
   /** Nodos para la esquina superior derecha: compartir, editar. */
@@ -66,7 +75,7 @@ export default function WineDetailHero({
         <button
           type="button"
           className="wine-detail-hero__placeholder wine-detail-hero__photo-btn"
-          onClick={() => onAmpliar({ src: wine.image, alt: nombre })}
+          onClick={() => onAmpliar({ src: wine.image, alt: nombre, caption: creditoDeFoto(wine) })}
           aria-label="Ampliar la foto del vino"
         >
           {foto}
