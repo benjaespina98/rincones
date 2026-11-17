@@ -13,6 +13,7 @@ const WineImage = require("../src/models/wineImage.model");
 const CommunityWine = require("../src/models/communityWine.model");
 const ErrorLog = require("../src/models/errorLog.model");
 const winePrices = require("../src/services/winePrices.service");
+const imageStorage = require("../src/services/imageStorage.service");
 const { deleteAccount } = require("../src/services/accountDeletion.service");
 
 const stubModels = (role, admins) => {
@@ -41,6 +42,13 @@ const stubModels = (role, admins) => {
   stub(winePrices, "retractAllFromUser", async (id) => calls.push(["WinePrice", id]));
   stub(WineImage, "updateMany", async (f) => calls.push(["WineImage", f]));
   stub(CommunityWine, "updateMany", async (f, u) => calls.push(["CommunityWine", f, u]));
+  // Imágenes: sin fotos propias en este escenario (el borrado de imágenes tiene sus tests más abajo).
+  const vacio = () => ({ select: () => ({ lean: async () => [] }) });
+  stub(Wine, "find", vacio);
+  stub(WineMoment, "find", vacio);
+  stub(WineImage, "find", vacio);
+  stub(CommunityWine, "find", vacio);
+  stub(imageStorage, "eliminarImagenes", async () => 0);
   const restore = () => originals.forEach(([m, n, f]) => { m[n] = f; });
   return { calls, restore };
 };
@@ -110,6 +118,79 @@ test("borrarDatosPropios pasa la sesión a cada borrado y, dentro de una transac
     assert.ok(llamadas.every((c) => c[2] === undefined));
   } finally {
     originales.forEach(([M, f]) => { M.deleteMany = f; });
+  }
+});
+
+const NUBE = "https://res.cloudinary.com/demo/image/upload/";
+
+test("publicIdDeUrl saca el id de una URL de Cloudinary propia y descarta las ajenas", () => {
+  const anterior = process.env.CLOUDINARY_URL;
+  process.env.CLOUDINARY_URL = "cloudinary://k:s@demo";
+  try {
+    assert.equal(imageStorage.publicIdDeUrl(`${NUBE}v123/rincones/wines/abc.jpg`), "rincones/wines/abc");
+    assert.equal(imageStorage.publicIdDeUrl(`${NUBE}f_auto,q_auto,w_800,c_limit/v9/rincones/moments/x.webp`), "rincones/moments/x");
+    assert.equal(imageStorage.publicIdDeUrl("https://res.cloudinary.com/otro/image/upload/v1/a/b.jpg"), "");
+    assert.equal(imageStorage.publicIdDeUrl("https://lh3.googleusercontent.com/foto"), "");
+    assert.equal(imageStorage.publicIdDeUrl(""), "");
+  } finally {
+    if (anterior === undefined) delete process.env.CLOUDINARY_URL;
+    else process.env.CLOUDINARY_URL = anterior;
+  }
+});
+
+test("la baja borra de Cloudinary las fotos propias, pero NO las que usa el pool o la comunidad", async () => {
+  const anterior = process.env.CLOUDINARY_URL;
+  process.env.CLOUDINARY_URL = "cloudinary://k:s@demo";
+  const { calls, restore } = stubModels("user", 1);
+  const propia = `${NUBE}v1/rincones/wines/propia.jpg`;
+  const delPool = `${NUBE}v1/rincones/wines/delpool.jpg`;
+  const momento = `${NUBE}v1/rincones/moments/m.jpg`;
+  const chain = (docs) => () => ({ select: () => ({ lean: async () => docs }) });
+  const borradas = [];
+  const prev = {
+    wineFind: Wine.find, momentFind: WineMoment.find, poolFind: WineImage.find, comunidadFind: CommunityWine.find, elim: imageStorage.eliminarImagenes,
+  };
+  // Antes de borrar: la persona tiene tres fotos. Después: el pool todavía usa una de ellas.
+  let yaBorrado = false;
+  Wine.find = (filtro) => ({ select: () => ({ lean: async () => (yaBorrado ? [] : [{ image: propia }, { image: delPool }]) }) });
+  WineMoment.find = (filtro) => ({ select: () => ({ lean: async () => (yaBorrado ? [] : [{ photos: [momento] }]) }) });
+  WineImage.find = chain([{ image: delPool }]);
+  CommunityWine.find = chain([]);
+  const deleteOne = User.deleteOne;
+  User.deleteOne = async (f) => { yaBorrado = true; calls.push(["User", f]); };
+  imageStorage.eliminarImagenes = async (urls) => { borradas.push(...urls); return urls.length; };
+  try {
+    const r = await deleteAccount("u1");
+    assert.equal(r.ok, true);
+    assert.deepEqual(borradas.sort(), [momento, propia].sort(), "se borran las propias y se respeta la que usa el pool");
+  } finally {
+    User.deleteOne = deleteOne;
+    Wine.find = prev.wineFind; WineMoment.find = prev.momentFind; WineImage.find = prev.poolFind; CommunityWine.find = prev.comunidadFind;
+    imageStorage.eliminarImagenes = prev.elim;
+    restore();
+    if (anterior === undefined) delete process.env.CLOUDINARY_URL;
+    else process.env.CLOUDINARY_URL = anterior;
+  }
+});
+
+test("un fallo al borrar las imágenes no deshace la baja", async () => {
+  const { restore } = stubModels("user", 1);
+  imageStorage.eliminarImagenes = async () => { throw new Error("Cloudinary caído"); };
+  const prevFind = Wine.find;
+  Wine.find = () => ({ select: () => ({ lean: async () => [{ image: "https://res.cloudinary.com/demo/image/upload/v1/x.jpg" }] }) });
+  const prevEnv = process.env.CLOUDINARY_URL;
+  process.env.CLOUDINARY_URL = "cloudinary://k:s@demo";
+  const log = console.error;
+  console.error = () => {};
+  try {
+    const r = await deleteAccount("u1");
+    assert.equal(r.ok, true);
+  } finally {
+    console.error = log;
+    Wine.find = prevFind;
+    restore();
+    if (prevEnv === undefined) delete process.env.CLOUDINARY_URL;
+    else process.env.CLOUDINARY_URL = prevEnv;
   }
 });
 
