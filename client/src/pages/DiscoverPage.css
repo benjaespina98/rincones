@@ -1259,15 +1259,11 @@
   padding-right: 14px;
 }
 
-/* ══ LA TARJETA, MÁS OSCURA: EL NEGRO DE LA FOTO YA NO CHOCA ═════════════════
-   Las fotos de bodega vienen sobre un negro casi puro y la tarjeta era un gris azulado más claro: la foto se leía como un
-   rectángulo pegado. Ahora la tarjeta es el mismo fondo de la app a la mitad de luz (queda en el negro azulado de la
-   propia foto) y el panel de la botella no pinta nada: botella y tarjeta son una sola superficie. */
-.spotlight {
-  background: linear-gradient(rgb(var(--ink-rgb) / 0.5), rgb(var(--ink-rgb) / 0.5)), var(--bg);
-}
-
+/* ══ LA TARJETA IGUAL QUE LAS DEMÁS; LA FOTO, EN UN ESCENARIO QUE SE DESVANECE ════════════════════════════
+   Oscurecer toda la tarjeta la dejaba distinta de las otras. Vuelve a ser la superficie de siempre y el negro de la foto
+   se resuelve adentro del panel de la botella: oscuro en el centro (donde está el negro de la foto, sin costura) y cada
+   vez más cerca del color de la tarjeta hacia los bordes, donde la foto además se desvanece (ver WinePhoto.css). */
 .spotlight__art {
-  background: transparent;
+  background: radial-gradient(closest-side at 50% 50%, rgb(var(--ink-rgb) / 0.6) 0%, rgb(var(--ink-rgb) / 0.4) 60%, rgb(var(--ink-rgb) / 0.12) 100%);
   border-color: transparent;
 }
