@@ -6,6 +6,7 @@ import { limpiarCacheDeDeseos } from "../hooks/useWishlist";
 import { limpiarCacheDeResenas } from "../services/reviewApi";
 import { precargarDestacados } from "../services/wineSearchApi";
 import { limpiarDatosLocales } from "../utils/limpiarDatosLocales";
+import { guardarUsuario, leerUsuarioGuardado, olvidarUsuario } from "../utils/usuarioGuardado";
 
 export const AuthContext = createContext(null);
 
@@ -87,7 +88,12 @@ const esFalloDeRed = (error) => {
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const AuthProvider = ({ children }) => {
-  const [sesion, setSesion] = useState({ estado: CARGANDO, user: null });
+  // Con un usuario conocido de la vez anterior (y su token) la app abre YA, sin esperar a /auth/me: se confirma por
+  // detrás (ver `hydrateUser`). Sin él, el arranque de siempre: logo hasta saber quién sos.
+  const [usuarioInicial] = useState(leerUsuarioGuardado);
+  const [sesion, setSesion] = useState(
+    usuarioInicial ? { estado: AUTENTICADO, user: usuarioInicial } : { estado: CARGANDO, user: null }
+  );
 
   // El contador de arriba. Va en un ref y no en el estado a propósito: no se
   // renderiza nada con esto, y hace falta leerlo con el valor del momento
@@ -109,16 +115,19 @@ export const AuthProvider = ({ children }) => {
 
   // Restaurar la sesión preguntándole al server quién es el dueño de las
   // credenciales que este navegador tenga (cookie de refresh o token guardado).
-  const hydrateUser = useCallback(async () => {
+  const hydrateUser = useCallback(async (opciones) => {
     const turno = tomarTurno();
+    // `silencioso`: el arranque con un usuario ya conocido. No se vuelve a mostrar el logo; se confirma por detrás.
+    // (Se pregunta por `=== true` porque `refreshUser` también se usa como onClick y recibe un evento.)
+    const silencioso = opciones?.silencioso === true;
     // `user` se conserva: una recarga con la sesión ya cargada no tiene por qué
     // parpadear a "nadie" mientras se confirma.
-    escribir(turno, (previo) => ({ ...previo, estado: CARGANDO }));
+    if (!silencioso) escribir(turno, (previo) => ({ ...previo, estado: CARGANDO }));
 
     for (let intento = 0; ; intento += 1) {
       try {
         const me = await getMe();
-        escribir(turno, { estado: AUTENTICADO, user: me });
+        if (escribir(turno, { estado: AUTENTICADO, user: me })) guardarUsuario(me);
         // Quien llama ("Ya lo confirmé") necesita saber qué dijo el server.
         return me;
       } catch (error) {
@@ -126,7 +135,7 @@ export const AuthProvider = ({ children }) => {
 
         if (!esFalloDeRed(error)) {
           // El server contestó que no hay sesión. Eso sí es definitivo.
-          escribir(turno, { estado: ANONIMO, user: null });
+          if (escribir(turno, { estado: ANONIMO, user: null })) olvidarUsuario();
           return;
         }
 
@@ -152,15 +161,15 @@ export const AuthProvider = ({ children }) => {
 
   // En el mount, restaurar sesión
   useEffect(() => {
-    hydrateUser();
-  }, [hydrateUser]);
+    hydrateUser({ silencioso: Boolean(usuarioInicial) });
+  }, [hydrateUser, usuarioInicial]);
 
   const login = useCallback(
     async (email, password) => {
       const turno = tomarTurno();
       try {
         const response = await loginRequest(email, password);
-        escribir(turno, { estado: AUTENTICADO, user: response.user });
+        if (escribir(turno, { estado: AUTENTICADO, user: response.user })) guardarUsuario(response.user);
         return response.user;
       } catch (error) {
         escribir(turno, { estado: ANONIMO, user: null });
@@ -176,7 +185,7 @@ export const AuthProvider = ({ children }) => {
   // gastaba una llamada de más y de paso una entrada en `loginLimiter`.
   const applySession = useCallback(
     (user) => {
-      escribir(tomarTurno(), { estado: AUTENTICADO, user });
+      if (escribir(tomarTurno(), { estado: AUTENTICADO, user })) guardarUsuario(user);
     },
     [tomarTurno, escribir]
   );

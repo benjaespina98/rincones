@@ -92,9 +92,45 @@ export const getAuthToken = () => {
   }
 };
 
+/**
+ * ¿El token de acceso guardado ya venció (o vence en segundos)?
+ *
+ * Se lee el `exp` del propio JWT, sin verificarlo (eso es cosa del server): sólo sirve para no mandar un pedido que ya
+ * se sabe que va a dar 401. Un token que no se puede leer cuenta como vigente: ahí manda el server, como siempre.
+ */
+export const tokenVencido = (token = getAuthToken(), ahora = Date.now()) => {
+  if (!token) return false;
+  try {
+    const carga = token.split(".")[1];
+    const json = atob(carga.replace(/-/g, "+").replace(/_/g, "/"));
+    const exp = Number(JSON.parse(json).exp);
+    return Number.isFinite(exp) && exp * 1000 - 5000 <= ahora;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * ¿Este pedido tiene que esperar a que se renueve la sesión antes de salir?
+ * Los de /auth/ no (login, registro, el propio refresh), salvo /auth/me, que usa el token como cualquier otro.
+ */
+const esperaRenovacion = (url = "") => !url.includes("/auth/") || url.includes("/auth/me");
+
 // Adjuntamos el token por header Authorization. Es la vía robusta: funciona en
 // Safari/iOS y entre dominios, donde la cookie de terceros se bloquea.
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
+  /**
+   * Al reabrir la app pasados los 15 minutos del token, cada pedido salía con el vencido, volvía con 401, esperaba la
+   * renovación y se repetía: tres viajes en fila antes de ver nada. Ahora, si ya se sabe que venció, se renueva ANTES
+   * (una sola vez, compartida entre todos los pedidos en vuelo) y el pedido sale con el token nuevo.
+   */
+  if (tokenVencido() && esperaRenovacion(config.url)) {
+    try {
+      await renovarSesion();
+    } catch {
+      // Si renovar no se pudo, el pedido sale igual: el 401 (o el corte de red) lo resuelve quien llama, como siempre.
+    }
+  }
   const token = getAuthToken();
   if (token) {
     config.headers = config.headers || {};
