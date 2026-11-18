@@ -11,6 +11,7 @@ export const CLAVES_POR_PERSONA = [
   "rincones_bodega_vista",
   "rincones_descubri_ultimo",
   "rincones_token",
+  "rincones_user",
 ];
 
 export const limpiarDatosLocales = () => {

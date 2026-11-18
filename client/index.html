@@ -11,10 +11,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+    <!-- La fuente se pide sin bloquear el primer pintado: con `rel="stylesheet"` el navegador no dibujaba nada hasta
+         que Google contestaba. Mientras llega se ve la fuente del sistema (display=swap). -->
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
+    <!-- Primer pintado propio: el fondo de la app y la marca, ANTES de que llegue el JavaScript. Sin esto la pantalla
+         quedaba en blanco hasta montar React. Es el mismo color que `theme-color` (los colores de la app viven en
+         index.css, que todavía no cargó). React reemplaza el contenido de #root al montar. -->
+    <style>
+      html, body { margin: 0; background: #14161f; }
+      #arranque { position: fixed; inset: 0; display: grid; place-items: center; color: #f4f5f9;
+        font: 700 2rem/1 ui-serif, Georgia, serif; letter-spacing: -0.02em; }
+    </style>
+    <!-- Despierta al server mientras baja el resto: en Vercel la función se apaga por inactividad y el arranque en frío
+         (levantar Node y conectar a la base) pasaba recién cuando la app pedía la sesión. Así ocurre en paralelo. -->
+    <script>
+      try { fetch("/api/health", { cache: "no-store" }).catch(function () {}); } catch (e) {}
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#14161f" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -44,7 +67,7 @@
     <title>Rincones</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div id="arranque">Rincones</div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
