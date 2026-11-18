@@ -129,3 +129,38 @@ describe("arranque instantáneo con el usuario de la vez anterior", () => {
     expect(localStorage.getItem("rincones_token")).toBeNull();
   });
 });
+
+describe("al confirmar una persona distinta de la guardada se limpia lo cacheado", () => {
+  test("/auth/me con otro id: se borran los datos locales de la anterior antes de mostrar nada", async () => {
+    setAuthToken("x.y.z");
+    guardarUsuario({ id: "A", email: "a@rincones.test" });
+    localStorage.setItem("rincones_bodega_vista", "probados");
+    authApi.getMe.mockResolvedValue({ id: "B", email: "b@rincones.test" });
+    montar();
+    await waitFor(() => expect(contexto.user.id).toBe("B"));
+    expect(localStorage.getItem("rincones_bodega_vista")).toBeNull();
+    setAuthToken(null);
+  });
+
+  test("con la misma persona no se borra nada", async () => {
+    setAuthToken("x.y.z");
+    guardarUsuario({ id: "A", email: "a@rincones.test" });
+    localStorage.setItem("rincones_bodega_vista", "probados");
+    authApi.getMe.mockResolvedValue({ id: "A", email: "a@rincones.test" });
+    montar();
+    await waitFor(() => expect(contexto.user.id).toBe("A"));
+    expect(localStorage.getItem("rincones_bodega_vista")).toBe("probados");
+    setAuthToken(null);
+  });
+
+  test("un login fallido olvida al usuario guardado", async () => {
+    guardarUsuario({ id: "A", email: "a@rincones.test" });
+    authApi.getMe.mockReturnValue(diferido().promesa);
+    authApi.login.mockRejectedValue(new Error("mal"));
+    montar();
+    await act(async () => {
+      await contexto.login("x@y.z", "mal").catch(() => {});
+    });
+    expect(localStorage.getItem(CLAVE_USUARIO)).toBeNull();
+  });
+});

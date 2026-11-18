@@ -1,4 +1,5 @@
 import { getAuthToken } from "../services/api";
+import { CLAVE_USUARIO } from "./claveUsuario";
 
 /**
  * El último usuario que abrió sesión en este navegador, para abrir la app al instante.
@@ -8,7 +9,7 @@ import { getAuthToken } from "../services/api";
  * va al login; si dice que sigue, se actualizan los datos. Es el mismo criterio que el token, que ya vive en este mismo
  * almacenamiento: sólo se usa si HAY token, y se borra al cerrar sesión (ver limpiarDatosLocales).
  */
-export const CLAVE_USUARIO = "rincones_user";
+export { CLAVE_USUARIO };
 
 export const leerUsuarioGuardado = () => {
   try {

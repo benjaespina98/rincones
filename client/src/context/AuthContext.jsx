@@ -91,6 +91,9 @@ export const AuthProvider = ({ children }) => {
   // Con un usuario conocido de la vez anterior (y su token) la app abre YA, sin esperar a /auth/me: se confirma por
   // detrás (ver `hydrateUser`). Sin él, el arranque de siempre: logo hasta saber quién sos.
   const [usuarioInicial] = useState(leerUsuarioGuardado);
+  // A quién pertenecen los datos cacheados en memoria y en el navegador. Si la sesión confirmada es de OTRA persona
+  // (se entró con otra cuenta en otra pestaña), se limpian antes de mostrar nada suyo.
+  const personaVista = useRef(usuarioInicial?.id || null);
   const [sesion, setSesion] = useState(
     usuarioInicial ? { estado: AUTENTICADO, user: usuarioInicial } : { estado: CARGANDO, user: null }
   );
@@ -127,6 +130,13 @@ export const AuthProvider = ({ children }) => {
     for (let intento = 0; ; intento += 1) {
       try {
         const me = await getMe();
+        if (personaVista.current && me?.id && personaVista.current !== me.id) {
+          limpiarCacheDeBodega();
+          limpiarCacheDeDeseos();
+          limpiarCacheDeResenas();
+          limpiarDatosLocales();
+        }
+        if (me?.id) personaVista.current = me.id;
         if (escribir(turno, { estado: AUTENTICADO, user: me })) guardarUsuario(me);
         // Quien llama ("Ya lo confirmé") necesita saber qué dijo el server.
         return me;
@@ -172,7 +182,7 @@ export const AuthProvider = ({ children }) => {
         if (escribir(turno, { estado: AUTENTICADO, user: response.user })) guardarUsuario(response.user);
         return response.user;
       } catch (error) {
-        escribir(turno, { estado: ANONIMO, user: null });
+        if (escribir(turno, { estado: ANONIMO, user: null })) olvidarUsuario();
         throw error;
       }
     },

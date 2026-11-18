@@ -1,5 +1,6 @@
 import axios from "axios";
 import { captureError } from "./errorMonitoring";
+import { CLAVE_USUARIO } from "../utils/claveUsuario";
 
 const devApiUrl = "http://localhost:4000/api";
 
@@ -127,8 +128,11 @@ api.interceptors.request.use(async (config) => {
   if (tokenVencido() && esperaRenovacion(config.url)) {
     try {
       await renovarSesion();
-    } catch {
-      // Si renovar no se pudo, el pedido sale igual: el 401 (o el corte de red) lo resuelve quien llama, como siempre.
+    } catch (error) {
+      // Si renovar no se pudo, el pedido sale igual y el 401 (o el corte de red) lo resuelve quien llama. Se anota el
+      // porqué para NO volver a renovar en la respuesta: dos esperas de hasta 25 s seguidas castigaban justo el
+      // arranque en frío.
+      config._falloDeRenovacion = error;
     }
   }
   const token = getAuthToken();
@@ -228,7 +232,15 @@ api.interceptors.response.use(
 
     // `_reintentado` evita el bucle: si la llamada ya se rehizo con un token
     // nuevo y vuelve a dar 401, el problema no es la expiración.
-    if (original && debeRenovarSesion({ status, url, yaReintentado: original._reintentado })) {
+    // La renovación ya se intentó (y falló) antes de salir el pedido: no se repite. Si falló por red o por el server, eso
+    // es lo que se informa (no «no hay sesión»); si el refresh contestó 401/403, la sesión terminó de verdad y se sigue.
+    const falloPrevio = original?._falloDeRenovacion;
+    if (falloPrevio && status === 401) {
+      const estadoRefresh = falloPrevio?.response?.status;
+      if (estadoRefresh === undefined || estadoRefresh >= 500) return Promise.reject(falloPrevio);
+    }
+
+    if (original && debeRenovarSesion({ status, url, yaReintentado: original._reintentado || Boolean(falloPrevio) })) {
       original._reintentado = true;
       try {
         const token = await renovarSesion();
@@ -257,6 +269,12 @@ api.interceptors.response.use(
     // negativa la maneja quien la llamó.
     if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
       setAuthToken(null);
+      try {
+        // El usuario guardado se va con el token: no queda dato personal de una sesión que ya no existe.
+        localStorage.removeItem(CLAVE_USUARIO);
+      } catch {
+        // Sin almacenamiento no hay nada que borrar.
+      }
       const onAuthScreen = AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
       if (!onAuthScreen) {
         window.location.assign("/login");
