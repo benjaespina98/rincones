@@ -230,6 +230,7 @@ npm run dev
 | `npm run build` | Compila el frontend para producción |
 | `npm test -w server` | Tests del backend |
 | `npm test -w client` | Tests del frontend |
+| `npm run og:image -w client` | Regenera la imagen de vista previa al compartir el link (`client/public/og-image.jpg`, 1200×630; usa Playwright) |
 
 ---
 
