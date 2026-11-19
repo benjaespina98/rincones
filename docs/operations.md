@@ -55,3 +55,7 @@ contraseña o token del body (ver `server/src/config/sentry.js` y
 
 El panel de administración también muestra un registro propio de errores
 (`GET /api/admin/error-logs`, con retención de 30 días).
+
+## Imagen de vista previa
+
+`npm run og:image -w client` regenera `client/public/og-image.jpg` (1200x630, la que se ve al compartir el enlace). Usa Playwright.
