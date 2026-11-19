@@ -37,5 +37,17 @@
     "jsdom": "^29.1.1",
     "vite": "^7.3.1",
     "vitest": "^4.1.6"
-  }
+  },
+  "description": "Rincones web app: React 19 and Vite.",
+  "author": {
+    "name": "Benjamín Espina",
+    "url": "https://benjaminespina.com"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjaespina98/rincones.git",
+    "directory": "client"
+  },
+  "homepage": "https://rincones.vercel.app"
 }
