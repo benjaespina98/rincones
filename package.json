@@ -1,15 +1,26 @@
 {
   "name": "rincones",
   "version": "1.0.0",
-  "description": "",
+  "description": "Personal wine cellar app with an AI sommelier (React, Express, MongoDB, Gemini).",
   "scripts": {
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w client"
   },
-  "keywords": [],
-  "author": "200ok.dev",
+  "keywords": [
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "pwa",
+    "gemini-api",
+    "wine"
+  ],
+  "author": {
+    "name": "Benjamín Espina",
+    "url": "https://benjaminespina.com"
+  },
   "license": "ISC",
   "private": true,
   "workspaces": [
@@ -18,5 +29,13 @@
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjaespina98/rincones.git"
+  },
+  "homepage": "https://rincones.vercel.app",
+  "bugs": {
+    "url": "https://github.com/benjaespina98/rincones/issues"
   }
 }

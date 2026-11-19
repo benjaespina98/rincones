@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Rincones API: Express 5 and Mongoose.",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
@@ -23,7 +23,10 @@
     "fotos:preparar": "node scripts/prepararFotos.js"
   },
   "keywords": [],
-  "author": "200ok.dev",
+  "author": {
+    "name": "Benjamín Espina",
+    "url": "https://benjaminespina.com"
+  },
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "^10.70.0",
@@ -45,5 +48,11 @@
   "devDependencies": {
     "@babel/parser": "^7.29.9",
     "nodemon": "^3.1.14"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjaespina98/rincones.git",
+    "directory": "server"
+  },
+  "homepage": "https://rincones.vercel.app"
 }
