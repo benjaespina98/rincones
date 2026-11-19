@@ -160,3 +160,8 @@ login.png
 # Playwright
 client/test-results/
 client/playwright-report/
+
+# Los ejemplos de entorno se versionan (sin valores reales).
+!.env.example
+!client/.env.example
+!server/.env.example
