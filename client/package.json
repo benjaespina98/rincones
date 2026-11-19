@@ -11,6 +11,7 @@
     "test": "vitest run",
     "check:tokens": "node scripts/check-tokens.cjs",
     "e2e": "playwright test",
+    "og:image": "node scripts/generar-og-image.mjs",
     "e2e:limpiar": "npm run e2e:limpiar -w server"
   },
   "dependencies": {

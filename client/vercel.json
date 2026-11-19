@@ -5,7 +5,7 @@
       "destination": "https://rincones-api.vercel.app/api/:path*"
     },
     {
-      "source": "/((?!assets/|sw\\.js).*)",
+      "source": "/((?!assets/|sw\\.js|og-image\\.).*)",
       "destination": "/index.html"
     }
   ],
@@ -28,7 +28,7 @@
       ]
     },
     {
-      "source": "/(favicon.svg|manifest.webmanifest|icon-maskable.svg|icon-192.png|icon-512.png|icon-maskable-192.png|icon-maskable-512.png|apple-touch-icon.png|og-image.png|vite.svg|200ok-logo.svg)",
+      "source": "/(favicon.svg|manifest.webmanifest|icon-maskable.svg|icon-192.png|icon-512.png|icon-maskable-192.png|icon-maskable-512.png|apple-touch-icon.png|og-image.jpg|vite.svg|200ok-logo.svg)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
@@ -41,7 +41,7 @@
       ]
     },
     {
-      "source": "/((?!assets/|api/|favicon\\.svg|vite\\.svg|og-image\\.png|manifest\\.webmanifest|icon-|apple-touch-icon|200ok-logo\\.svg).*)",
+      "source": "/((?!assets/|api/|favicon\\.svg|vite\\.svg|og-image\\.|manifest\\.webmanifest|icon-|apple-touch-icon|200ok-logo\\.svg).*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" }
       ]
