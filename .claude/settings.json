@@ -65,7 +65,11 @@
       "Edit(**/.claude/settings.json)",
       "Write(**/.claude/settings.json)",
       "Edit(**/.claude/hooks/**)",
-      "Write(**/.claude/hooks/**)"
+      "Write(**/.claude/hooks/**)",
+      "Edit(**/.claude/settings.local.json)",
+      "Write(**/.claude/settings.local.json)",
+      "Edit(**/.claude/skills/**/*.cjs)",
+      "Write(**/.claude/skills/**/*.cjs)"
     ],
     "deny": [
       "Read(**/.env)",
@@ -97,7 +101,14 @@
       "Bash(git log*--output*)",
       "Bash(git show*--output*)",
       "Write(**/.git/**)",
-      "Edit(**/.git/**)"
+      "Edit(**/.git/**)",
+      "Bash(grep*.env*)",
+      "Bash(head*.env*)",
+      "Bash(tail*.env*)",
+      "Bash(sed*.env*)",
+      "Bash(Select-String*.env*)",
+      "Bash(more*.env*)",
+      "Bash(gc *.env*)"
     ]
   }
 }
