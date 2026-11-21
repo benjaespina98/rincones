@@ -46,7 +46,7 @@
       "Bash(npm run lint*)",
       "Bash(npm run check:tokens*)",
       "Bash(npm run build*)",
-      "Bash(npm test*)",
+      "Bash(npm test *)",
       "Bash(node .claude/skills/levantar-local/verificar-entorno.cjs)",
       "Bash(git branch --list*)",
       "Bash(git branch --show-current)",
@@ -55,12 +55,17 @@
       "Bash(node .claude/hooks/probar-git-guard.js)",
       "Bash(node .claude/hooks/probar-hooks.cjs)",
       "Bash(npm run dev*)",
-      "Bash(PORT=4000 npm run dev*)"
+      "Bash(PORT=4000 npm run dev*)",
+      "Bash(npm test)"
     ],
     "ask": [
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(gh pr merge:*)"
+      "Bash(gh pr merge:*)",
+      "Edit(**/.claude/settings.json)",
+      "Write(**/.claude/settings.json)",
+      "Edit(**/.claude/hooks/**)",
+      "Write(**/.claude/hooks/**)"
     ],
     "deny": [
       "Read(**/.env)",
@@ -85,7 +90,14 @@
       "Bash(git reset*--hard*)",
       "Bash(cat*.env*)",
       "Bash(type*.env*)",
-      "Bash(Get-Content*.env*)"
+      "Bash(Get-Content*.env*)",
+      "Bash(git fetch*--upload-pack*)",
+      "Bash(git fetch*-u *)",
+      "Bash(git diff*--output*)",
+      "Bash(git log*--output*)",
+      "Bash(git show*--output*)",
+      "Write(**/.git/**)",
+      "Edit(**/.git/**)"
     ]
   }
 }
