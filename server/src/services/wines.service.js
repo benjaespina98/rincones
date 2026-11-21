@@ -1426,65 +1426,77 @@ async function countMoments(userId, id) {
   return WineMoment.countDocuments({ userId, wineId: id });
 }
 
+/**
+ * Lo que hay que hacer con cada vino ANTES de borrarlo, sea uno solo (`deleteWine`)
+ * o muchos (`bulkAction("delete")`): una sola implementación para que los dos
+ * caminos no se desfasen. Necesita de cada vino: _id, name, winery, varietal, type,
+ * image y purchase.price.
+ */
+async function prepararBorrado(userId, vinos) {
+  for (const wine of vinos) {
+    /**
+     * Los momentos NO se borran: son tu diario, no un detalle del inventario.
+     *
+     * Lo que sí hay que hacer es dejarlos legibles antes de perder el vino. Los
+     * momentos escritos desde que existe `wineSnapshot` ya lo traen; los
+     * anteriores no, y son justamente los que quedarían sin nombre. Se completan
+     * acá, que es el último instante en que todavía sabemos qué vino era.
+     */
+    await WineMoment.updateMany(
+      {
+        userId,
+        wineId: wine._id,
+        $or: [{ "wineSnapshot.name": { $in: [null, ""] } }, { wineSnapshot: { $exists: false } }],
+      },
+      {
+        $set: {
+          wineSnapshot: {
+            name: wine.name || "",
+            winery: wine.winery || "",
+            varietal: wine.varietal || "",
+            type: wine.type || "",
+            image: wine.image || "",
+          },
+        },
+      }
+    ).catch(() => {});
+
+    /**
+     * El catálogo público NO se toca acá, y es una decisión, no un olvido.
+     *
+     * Borrar un vino de tu bodega significa "ya no lo tengo", no "esto que cargué
+     * estaba mal". Son dos cosas distintas y sólo la segunda desmiente un dato: por
+     * eso `updateWine` sí retira la contribución vieja cuando corregís la identidad,
+     * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
+     * hayas terminado.
+     */
+
+    /**
+     * El PRECIO sí se retira, y no contradice lo de arriba.
+     *
+     * Son dos pools con dos preguntas distintas. El catálogo contesta "¿este vino
+     * existe?", y eso no deja de ser cierto porque te lo hayas tomado. El promedio
+     * contesta "¿cuánto lo paga la gente?", y ahí tu muestra es un dato tuyo
+     * pegado a un vino que ya no está en tu bodega: sin nada que la sostenga ni
+     * forma de corregirla, envejece sola dentro de un promedio que nadie puede
+     * arreglar. Se va con el vino.
+     */
+    if (wine.purchase?.price > 0) {
+      await winePrices.retract({
+        name: wine.name,
+        winery: wine.winery,
+        varietal: wine.varietal,
+        userId,
+      });
+    }
+  }
+}
+
 async function deleteWine(userId, id) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
 
-  /**
-   * Los momentos NO se borran: son tu diario, no un detalle del inventario.
-   *
-   * Lo que sí hay que hacer es dejarlos legibles antes de perder el vino. Los
-   * momentos escritos desde que existe `wineSnapshot` ya lo traen; los
-   * anteriores no, y son justamente los que quedarían sin nombre. Se completan
-   * acá, que es el último instante en que todavía sabemos qué vino era.
-   */
-  await WineMoment.updateMany(
-    {
-      userId,
-      wineId: wine._id,
-      $or: [{ "wineSnapshot.name": { $in: [null, ""] } }, { wineSnapshot: { $exists: false } }],
-    },
-    {
-      $set: {
-        wineSnapshot: {
-          name: wine.name || "",
-          winery: wine.winery || "",
-          varietal: wine.varietal || "",
-          type: wine.type || "",
-          image: wine.image || "",
-        },
-      },
-    }
-  ).catch(() => {});
-
-  /**
-   * El catálogo público NO se toca acá, y es una decisión, no un olvido.
-   *
-   * Borrar un vino de tu bodega significa "ya no lo tengo", no "esto que cargué
-   * estaba mal". Son dos cosas distintas y sólo la segunda desmiente un dato: por
-   * eso `updateWine` sí retira la contribución vieja cuando corregís la identidad,
-   * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
-   * hayas terminado.
-   */
-
-  /**
-   * El PRECIO sí se retira, y no contradice lo de arriba.
-   *
-   * Son dos pools con dos preguntas distintas. El catálogo contesta "¿este vino
-   * existe?", y eso no deja de ser cierto porque te lo hayas tomado. El promedio
-   * contesta "¿cuánto lo paga la gente?", y ahí tu muestra es un dato tuyo
-   * pegado a un vino que ya no está en tu bodega: sin nada que la sostenga ni
-   * forma de corregirla, envejece sola dentro de un promedio que nadie puede
-   * arreglar. Se va con el vino.
-   */
-  if (wine.purchase?.price > 0) {
-    await winePrices.retract({
-      name: wine.name,
-      winery: wine.winery,
-      varietal: wine.varietal,
-      userId,
-    });
-  }
+  await prepararBorrado(userId, [wine]);
 
   const user = await User.findById(userId);
   user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - 1);
@@ -1539,8 +1551,13 @@ async function bulkAction(userId, ids, action) {
   if (action === "delete") {
     // Se leen antes de borrar: hacen falta para las estadísticas del usuario y
     // para dejar en la auditoría qué era cada uno, que después no se puede saber.
-    const vinos = await Wine.find(filtro).select("_id name winery tasted").lean();
+    const vinos = await Wine.find(filtro)
+      .select("_id name winery varietal type image tasted purchase.price")
+      .lean();
     if (vinos.length === 0) return { affected: 0 };
+
+    // Lo mismo que hace deleteWine: momentos legibles y precio comunitario retirado.
+    await prepararBorrado(userId, vinos);
 
     const { deletedCount } = await Wine.deleteMany(filtro);
 

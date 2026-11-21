@@ -483,7 +483,8 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) 
      */
     // Con "otra opción" NO: la respuesta anterior, que era buena, no se pisa con una genérica. Ahí falla como siempre (503) y queda
     // lo que ya estaba. Y un fuera de tema legítimo sin texto se contesta como fuera de tema (ver `armarRespuesta`).
-    if (!resultado && regenerar) {
+    // Una respuesta rescatada de un corte (sin picks ni repreguntas) no reemplaza a la anterior buena.
+    if ((!resultado || resultado.parcial) && regenerar) {
       return enviar(503, { message: "No se pudo generar otra opción. Probá de nuevo." });
     }
     if (!resultado || (!resultado.offTopic && !String(resultado.answer || "").trim())) {
@@ -509,7 +510,8 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) 
         wines,
         wishes,
         question,
-        cacheKey: cacheable ? key : null,
+        // Una respuesta cortada no se cachea: se serviría a todos sin tarjetas ni repreguntas.
+        cacheKey: cacheable && !resultado.parcial ? key : null,
         reemplazaMensajeId,
       })
     );

@@ -21,6 +21,8 @@ export default function PageviewTracker() {
   useEffect(() => {
     // Sólo el path: los query params pueden traer datos que no hacen falta para
     // contar (y el server igual normaliza los ids del path).
+    // El panel de admin no es uso del producto: medirlo contamina las pantallas más vistas.
+    if (location.pathname === "/admin" || location.pathname.startsWith("/admin/")) return;
     trackPageview(location.pathname);
   }, [location.pathname]);
 

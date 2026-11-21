@@ -343,6 +343,28 @@ const limpiarLista = (valor, tope, largo) =>
  * Lanza si falla la llamada, para que el controlador decida qué mostrar.
  */
 /** Del JSON del modelo al resultado que usa el controlador; null si no hay respuesta. */
+/**
+ * De un corte del modelo (MAX_TOKENS o JSON inválido) con texto ya emitido, el resultado posible sin
+ * el resto (sin picks ni repreguntas). Si el campo "answer" quedó cerrado, se usa entero; si se cortó
+ * a la mitad, hasta la última oración completa. Con muy poco texto devuelve null (va el respaldo).
+ */
+const MIN_TEXTO_RESCATABLE = 40;
+const rescatarRespuestaParcial = (error) => {
+  if (!error?.parcial || !error.acumulado) return null;
+  const { texto, completa } = extraerRespuestaParcial(error.acumulado);
+  const limpio = String(texto || "").trim();
+  if (limpio.length < MIN_TEXTO_RESCATABLE) return null;
+  let answer = limpio;
+  if (!completa) {
+    const corte = Math.max(limpio.lastIndexOf("."), limpio.lastIndexOf("!"), limpio.lastIndexOf("?"));
+    if (corte < MIN_TEXTO_RESCATABLE) return null;
+    answer = limpio.slice(0, corte + 1);
+  }
+  const resultado = aResultado({ answer });
+  // Marca de corte: el controlador no la cachea para todos ni pisa con ella una respuesta anterior buena.
+  return resultado ? { ...resultado, parcial: true } : null;
+};
+
 const aResultado = (parsed) => {
   const answer = String(parsed?.answer || "").trim();
   if (!answer) return null;
@@ -427,28 +449,37 @@ const preguntarEnVivo = async ({
 }) => {
   if (!isGeminiConfigured()) return null;
 
-  const parsed = await streamJson({
-    parts: [
-      {
-        text: armarPrompt({
-          question,
-          history: recortarHistorial(history),
-          cellar: resumirBodega(wines),
-          taste: resumirGusto(preferences),
-          wishlist: resumirGuardados(wishes),
-          evitar,
-        }),
-      },
-    ],
-    schema: RESPONSE_SCHEMA,
-    timeoutMs: TIMEOUT_MS,
-    budgetMs: BUDGET_MS,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
-    temperature: evitar ? 0.85 : 0.45,
-    sinPensamiento: true,
-    signal,
-    onTexto: (acumulado) => onTexto?.(extraerRespuestaParcial(acumulado).texto),
-  });
+  let parsed;
+  try {
+    parsed = await streamJson({
+      parts: [
+        {
+          text: armarPrompt({
+            question,
+            history: recortarHistorial(history),
+            cellar: resumirBodega(wines),
+            taste: resumirGusto(preferences),
+            wishlist: resumirGuardados(wishes),
+            evitar,
+          }),
+        },
+      ],
+      schema: RESPONSE_SCHEMA,
+      timeoutMs: TIMEOUT_MS,
+      budgetMs: BUDGET_MS,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      temperature: evitar ? 0.85 : 0.45,
+      sinPensamiento: true,
+      signal,
+      onTexto: (acumulado) => onTexto?.(extraerRespuestaParcial(acumulado).texto),
+    });
+  } catch (error) {
+    // Si el modelo se cortó (tope de tokens, JSON a medio cerrar) pero la respuesta ya llegó a verse,
+    // se conserva lo que la persona leyó en vez de pisarlo con el texto de respaldo.
+    const rescatado = rescatarRespuestaParcial(error);
+    if (rescatado) return rescatado;
+    throw error;
+  }
 
   return aResultado(parsed);
 };
@@ -504,6 +535,7 @@ module.exports = {
   preguntarEnVivo,
   preguntarConFoto,
   aResultado,
+  rescatarRespuestaParcial,
   resumirBodega,
   resumirGuardados,
   resumirGusto,

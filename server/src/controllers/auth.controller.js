@@ -169,6 +169,9 @@ const me = async (req, res, next) => {
   }
 };
 
+/** Largo máximo de nombre y apellido (el mismo que el PUT de perfil). */
+const NOMBRE_MAX = 40;
+
 const register = async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -199,6 +202,18 @@ const register = async (req, res, next) => {
     if (firstName.length < 2) {
       return res.status(400).json({
         message: "El nombre debe tener al menos 2 caracteres",
+      });
+    }
+
+    // Tope igual al del PUT de perfil (users.routes.js): la API se puede llamar sin la pantalla.
+    if (firstName.length > NOMBRE_MAX) {
+      return res.status(400).json({
+        message: `El nombre es demasiado largo (máximo ${NOMBRE_MAX} caracteres)`,
+      });
+    }
+    if (typeof req.body.lastName === "string" && req.body.lastName.trim().length > NOMBRE_MAX) {
+      return res.status(400).json({
+        message: `El apellido es demasiado largo (máximo ${NOMBRE_MAX} caracteres)`,
       });
     }
 
@@ -561,7 +576,8 @@ const googleAuth = async (req, res, next) => {
       user = await User.create({
         email,
         googleId,
-        firstName: String(payload.given_name || payload.name || "").trim() || "Cuenta nueva",
+        // Google no pasa por el tope del registro: se recorta para no guardar un nombre kilométrico.
+        firstName: String(payload.given_name || payload.name || "").trim().slice(0, NOMBRE_MAX) || "Cuenta nueva",
         role: "user",
         emailVerified: true,
         avatarPhoto,

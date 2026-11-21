@@ -482,6 +482,12 @@ const conMock = async (objeto, clave, reemplazo, fn) => {
   }
 };
 
+// El borrado en lote ahora completa los momentos y retira precios: se anulan para los tests que no miran eso.
+const sinEfectos = (fn) =>
+  conMock(WineMoment, "updateMany", async () => ({}), () =>
+    conMock(winePrices, "retract", async () => {}, fn)
+  );
+
 const ID_1 = "507f1f77bcf86cd799439011";
 const ID_2 = "507f1f77bcf86cd799439012";
 
@@ -570,7 +576,7 @@ test("borrar en lote no toca vinos de otro y ajusta las estadísticas una sola v
       conMock(Wine, "deleteMany", async (filtro) => {
         filtroBorrado = filtro;
         return { deletedCount: 2 };
-      }, () => winesService.bulkAction("user-1", [ID_1, ID_2], "delete"))
+      }, () => sinEfectos(() => winesService.bulkAction("user-1", [ID_1, ID_2], "delete")))
     );
 
     assert.equal(r.affected, 2);
@@ -610,7 +616,7 @@ test("la auditoría del borrado en lote es un solo insertMany, con un documento 
         conMock(ChangeLog, "insertMany", async (docs) => {
           insertados = docs;
           return docs;
-        }, () => winesService.bulkAction("user-1", [ID_1, ID_2], "delete"))
+        }, () => sinEfectos(() => winesService.bulkAction("user-1", [ID_1, ID_2], "delete")))
       )
     );
 
@@ -638,12 +644,62 @@ test("si la auditoría del borrado en lote falla, el borrado ya hecho no se desh
     }), () =>
       conMock(Wine, "deleteMany", async () => ({ deletedCount: 1 }), () =>
         conMock(ChangeLog, "insertMany", async () => { throw new Error("caído"); }, () =>
-          winesService.bulkAction("user-1", [ID_1], "delete")
+          sinEfectos(() => winesService.bulkAction("user-1", [ID_1], "delete"))
         )
       )
     );
 
     assert.equal(r.affected, 1, "el borrado ya había pasado: no depende de que la auditoría escriba");
+  } finally {
+    restore(User, "findById", originalFindById);
+  }
+});
+
+test("borrar en lote completa wineSnapshot de los momentos y retira el precio comunitario, como deleteWine", async () => {
+  const user = { _id: "u1", email: "a@b.c", role: "user", stats: { winesCount: 5, tastedWines: 0 }, save: async () => {} };
+  const originalFindById = User.findById;
+  User.findById = async () => user;
+
+  const snapshots = [];
+  const retirados = [];
+  let seleccion = "";
+
+  try {
+    await conMock(Wine, "find", () => ({
+      select: (campos) => {
+        seleccion = campos;
+        return {
+          lean: async () => [
+            { _id: ID_1, name: "A", winery: "X", varietal: "Malbec", type: "tinto", image: "u.jpg", tasted: false, purchase: { price: 100 } },
+            { _id: ID_2, name: "B", winery: "Y", tasted: false },
+          ],
+        };
+      },
+    }), () =>
+      conMock(Wine, "deleteMany", async () => ({ deletedCount: 2 }), () =>
+        conMock(ChangeLog, "insertMany", async () => [], () =>
+          conMock(WineMoment, "updateMany", async (filtro, cambio) => {
+            snapshots.push({ filtro, cambio });
+            return {};
+          }, () =>
+            conMock(winePrices, "retract", async (datos) => { retirados.push(datos); }, () =>
+              winesService.bulkAction("user-1", [ID_1, ID_2], "delete")
+            )
+          )
+        )
+      )
+    );
+
+    assert.match(seleccion, /varietal/);
+    assert.match(seleccion, /purchase.price/);
+    assert.equal(snapshots.length, 2, "un update de momentos por vino");
+    assert.equal(snapshots[0].filtro.userId, "user-1");
+    assert.equal(snapshots[0].filtro.wineId, ID_1);
+    assert.deepEqual(snapshots[0].cambio.$set.wineSnapshot, {
+      name: "A", winery: "X", varietal: "Malbec", type: "tinto", image: "u.jpg",
+    });
+    assert.equal(retirados.length, 1, "sólo el vino con precio retira");
+    assert.deepEqual(retirados[0], { name: "A", winery: "X", varietal: "Malbec", userId: "user-1" });
   } finally {
     restore(User, "findById", originalFindById);
   }

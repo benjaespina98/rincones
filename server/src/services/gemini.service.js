@@ -438,6 +438,8 @@ const streamJson = async ({
       if (finishReason === "MAX_TOKENS") {
         lastError = new Error(`Gemini ${model} cortó la respuesta (MAX_TOKENS)`);
         lastError.parcial = true;
+        // Lo que llegó viaja con el error: quien llama puede rescatar el texto que ya se mostró.
+        lastError.acumulado = acumulado;
         throw lastError;
       }
 
@@ -446,6 +448,7 @@ const streamJson = async ({
       } catch {
         lastError = new Error(`Gemini ${model} devolvió JSON inválido`);
         lastError.parcial = true;
+        lastError.acumulado = acumulado;
         throw lastError;
       }
     } catch (error) {
@@ -453,6 +456,7 @@ const streamJson = async ({
       // Ya llegó algo y se lo mostramos a la persona: no se cambia de modelo a la mitad.
       if (acumulado || error?.parcial) {
         error.parcial = true;
+        if (acumulado && !error.acumulado) error.acumulado = acumulado;
         throw error;
       }
       // Cancelada por quien llamó: no tiene sentido seguir con otro modelo.

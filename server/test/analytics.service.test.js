@@ -110,3 +110,68 @@ test("la IP sale de req.ip, no de la cabecera x-forwarded-for que escribe el cli
   const b = identificar({ headers: { ...base, "x-forwarded-for": "8.8.8.8" }, ip: "200.1.2.3" });
   assert.equal(a.visitorHash, b.visitorHash, "falsear la cabecera no cambia quién es el visitante");
 });
+
+test("el token del informe no queda en el path: /informe/<token> agrupa como /informe/:token", () => {
+  const { normalizarPath } = analytics;
+  assert.equal(normalizarPath("/informe/AbC123-secretoLargo_xyz"), "/informe/:token");
+  assert.equal(normalizarPath("/informe/abc?x=1"), "/informe/:token");
+  assert.ok(!normalizarPath("/informe/SECRETO").includes("secreto"));
+});
+
+test("el path tiene largo máximo y charset acotado", () => {
+  const { normalizarPath } = analytics;
+  assert.equal(normalizarPath("/" + "a".repeat(500)), "/otro");
+  assert.equal(normalizarPath("/<script>alert(1)</script>"), "/otro");
+  assert.equal(normalizarPath("/a b"), "/otro");
+  assert.equal(normalizarPath("/vino/:id"), "/vino/:id");
+});
+
+test("el type es una forma estricta y corta", () => {
+  const { TIPO_VALIDO } = analytics;
+  for (const ok of ["pageview", "wine_added", "sommelier_ask", "cafecito_click"]) assert.ok(TIPO_VALIDO.test(ok), ok);
+  for (const mal of ["", "Pageview", "a.b", "a$b", "x".repeat(41), "a b", "$set", "1abc", "a:b"]) {
+    assert.ok(!TIPO_VALIDO.test(mal), mal);
+  }
+});
+
+test("el referrer que manda el client es lo que cuenta, y sólo como host", () => {
+  const { hostReferrer } = analytics;
+  assert.equal(hostReferrer("https://www.instagram.com/p/abc?x=1"), "www.instagram.com");
+  assert.equal(hostReferrer("javascript:alert(1)"), "");
+  assert.equal(hostReferrer("no es url"), "");
+});
+
+test("track cuenta el origen una vez por visita, no por evento del lote", () => {
+  const { armarIncrementos } = analytics;
+  const docs = [
+    { type: "pageview", path: "/", referrer: "www.instagram.com" },
+    { type: "wine_added", path: "/", referrer: "" },
+    { type: "pageview", path: "/bodega", referrer: "" },
+  ];
+  const inc = armarIncrementos({ documentos: docs, device: "mobile", existentes: {}, hora: 10 });
+  assert.equal(inc["byReferrer.www_instagram_com"], 1, "1, no documentos.length (3)");
+  assert.equal(inc.views, 2);
+  assert.equal(inc["byType.pageview"], 2);
+});
+
+test("los mapas del día tienen tope de claves: lo que pasa se junta en 'otro'", () => {
+  const { armarIncrementos, MAX_CLAVES_TYPE, MAX_CLAVES_PATH } = analytics;
+  const existentes = {
+    byType: Object.fromEntries(Array.from({ length: MAX_CLAVES_TYPE }, (_, i) => [`t${i}`, 1])),
+    byPath: Object.fromEntries(Array.from({ length: MAX_CLAVES_PATH }, (_, i) => [`/p${i}`, 1])),
+  };
+  const inc = armarIncrementos({
+    documentos: [
+      { type: "nuevo_tipo", path: "/nueva" },
+      { type: "pageview", path: "/nueva" },
+      { type: "t3", path: "" },
+    ],
+    device: "desktop",
+    existentes,
+    hora: 3,
+  });
+  assert.equal(inc["byType.otro"], 2);
+  assert.equal(inc["byType.t3"], 1, "una clave existente sigue sumando");
+  assert.equal(inc["byPath.otro"], 1);
+  assert.equal(inc["byType.nuevo_tipo"], undefined);
+});

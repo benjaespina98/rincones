@@ -111,13 +111,21 @@ const hostDe = (url = "") => {
  * visita y ninguna respondería nada. Además saca de la base identificadores que
  * no hacen falta para contar.
  */
+// Largo y charset de un path ya normalizado. Esta ruta es pública: sin tope, cualquiera
+// siembra claves arbitrarias en `byPath` y en los eventos crudos.
+const PATH_MAX = 120;
+const PATH_VALIDO = /^\/[a-z0-9/_:.~%-]*$/;
+
 const normalizarPath = (valor = "") => {
-  const limpio = String(valor || "/").split("?")[0].split("#")[0].trim() || "/";
-  return limpio
+  const limpio = String(valor || "/").split("?")[0].split("#")[0].trim().slice(0, 400) || "/";
+  const normal = limpio
+    // El token del informe es un secreto de portador: no puede quedar en la base.
+    .replace(/^\/informe\/[^/]+/i, "/informe/:token")
     .replace(/\/[0-9a-f]{24}(?=\/|$)/gi, "/:id") // ObjectId de Mongo
     .replace(/\/\d+(?=\/|$)/g, "/:id")
-    .slice(0, 200)
     .toLowerCase();
+  if (normal.length > PATH_MAX || !PATH_VALIDO.test(normal)) return "/otro";
+  return normal;
 };
 
 /**
@@ -158,11 +166,25 @@ const claveMapa = (valor) =>
 // Forma de un nombre de evento (pageview, wine_added, sommelier:ask...): letras, números y _ : . -.
 // No es una lista cerrada a propósito —el cliente suma eventos sin tocar el servidor—, pero
 // impide sembrar claves arbitrarias en los contadores.
-const TIPO_VALIDO = /^[a-z0-9][a-z0-9_:.-]{0,59}$/i;
+// El client sólo usa snake_case (pageview, wine_added, sommelier_ask...), así que la forma es
+// estricta: minúsculas, dígitos y _, hasta 40. Sin ":" ni "." que en una ruta de `$inc` molestan.
+const TIPO_VALIDO = /^[a-z][a-z0-9_]{0,39}$/;
+
+/** Tope de claves distintas por día en cada mapa: lo que pase se junta en "otro". */
+const MAX_CLAVES_TYPE = 60;
+const MAX_CLAVES_PATH = 150;
+const MAX_CLAVES_REFERRER = 100;
+
+/** Host válido de un referrer: sólo caracteres de hostname. */
+const HOST_VALIDO = /^[a-z0-9.-]+(:\d{1,5})?$/i;
+const hostReferrer = (url) => {
+  const host = hostDe(url).toLowerCase();
+  return HOST_VALIDO.test(host) ? host : "";
+};
 
 const track = async (req, eventos = []) => {
   const lote = (Array.isArray(eventos) ? eventos : [eventos])
-    .filter((e) => e && typeof e === "object" && TIPO_VALIDO.test(String(e.type || "").trim()))
+    .filter((e) => e && typeof e === "object" && typeof e.type === "string" && TIPO_VALIDO.test(e.type))
     .slice(0, MAX_EVENTS_POR_LOTE);
 
   if (lote.length === 0) return { accepted: 0 };
@@ -173,18 +195,28 @@ const track = async (req, eventos = []) => {
 
   const { visitorHash, sessionHash, device } = identificar(req);
   const day = hoy();
-  const referrer = hostDe(req.headers.referer || req.headers.referrer);
   const userId = req.user?.id || null;
+  // El header Referer de esta petición es el origen de la propia app, no de dónde llegó la
+  // persona: el referrer real lo manda el client (document.referrer) dentro del evento.
+  const propios = new Set(
+    [req.headers.host, hostDe(req.headers.origin), hostDe(req.headers.referer)]
+      .filter(Boolean)
+      .map((h) => String(h).toLowerCase())
+  );
+  const referrerDe = (e) => {
+    const host = e.type === "pageview" && typeof e.referrer === "string" ? hostReferrer(e.referrer) : "";
+    return host && !propios.has(host) ? host : "";
+  };
 
   const documentos = lote.map((e) => ({
-    type: String(e.type).trim().slice(0, 60),
+    type: e.type,
     path: normalizarPath(e.path),
     day,
     visitorHash,
     sessionHash,
     userId,
     device,
-    referrer,
+    referrer: referrerDe(e),
     // El meta se recorta a lo que quepa: es contexto, no un canal para subir
     // cosas. Se serializa y se corta antes de llegar a la base.
     meta: e.meta && typeof e.meta === "object" ? recortarMeta(e.meta) : undefined,
@@ -215,6 +247,45 @@ const recortarMeta = (meta) => {
 };
 
 /**
+ * Los `$inc` de un lote. Función pura para poder probar las reglas sin base:
+ *  - cada visita cuenta 1 (no el tamaño del lote);
+ *  - el origen (referrer) suma 1 por visita, la que lo trae;
+ *  - un mapa del día no pasa de N claves distintas: la clave nueva que lo exceda va a "otro".
+ */
+const armarIncrementos = ({ documentos, device, existentes = {}, hora }) => {
+  const inc = {};
+  const vistas = documentos.filter((d) => d.type === "pageview").length;
+  if (vistas > 0) {
+    inc.views = vistas;
+    if (device === "mobile" || device === "desktop") inc[device] = vistas;
+  }
+
+  // Claves ya presentes (o ya reservadas en este mismo lote) por mapa.
+  const claves = (campo) => new Set(Object.keys(existentes?.[campo] || {}));
+  const vistos = { byType: claves("byType"), byPath: claves("byPath"), byReferrer: claves("byReferrer") };
+  const topes = { byType: MAX_CLAVES_TYPE, byPath: MAX_CLAVES_PATH, byReferrer: MAX_CLAVES_REFERRER };
+  const sumar = (campo, valor) => {
+    let clave = claveMapa(valor);
+    if (!vistos[campo].has(clave)) {
+      if (vistos[campo].size >= topes[campo]) clave = "otro";
+      vistos[campo].add(clave);
+    }
+    const k = `${campo}.${clave}`;
+    inc[k] = (inc[k] || 0) + 1;
+  };
+
+  for (const d of documentos) {
+    sumar("byType", d.type);
+    if (d.type === "pageview" && d.path) sumar("byPath", d.path);
+    if (d.referrer) sumar("byReferrer", d.referrer);
+  }
+
+  // A qué hora, en el resumen que no caduca (los eventos crudos se borran a los 180 días).
+  inc[`byHour.${hora}`] = (inc[`byHour.${hora}`] || 0) + documentos.length;
+  return inc;
+};
+
+/**
  * Suma el lote al resumen del día.
  *
  * Lo que se cuenta en VISITAS (vistas, eventos por tipo, por pantalla) se suma
@@ -229,28 +300,11 @@ const recortarMeta = (meta) => {
  */
 const actualizarResumen = async ({ day, visitorHash, sessionHash, userId, device, documentos }) => {
   try {
-    const vistas = documentos.filter((d) => d.type === "pageview").length;
-
-    const inc = {};
-    if (vistas > 0) {
-      inc.views = vistas;
-      if (device === "mobile" || device === "desktop") inc[device] = vistas;
-    }
-    for (const d of documentos) {
-      const kt = `byType.${claveMapa(d.type)}`;
-      inc[kt] = (inc[kt] || 0) + 1;
-      if (d.type === "pageview" && d.path) {
-        const kp = `byPath.${claveMapa(d.path)}`;
-        inc[kp] = (inc[kp] || 0) + 1;
-      }
-    }
-
-    // De dónde llegó y a qué hora, en el resumen que no caduca. Antes los dos
-    // salían de los eventos crudos, que se borran a los 180 días: el panel
-    // contestaba "de nadie y de ninguna hora" en vez de "no tengo el dato".
-    const referrer = documentos[0]?.referrer;
-    if (referrer) inc[`byReferrer.${claveMapa(referrer)}`] = documentos.length;
-    inc[`byHour.${horaDe()}`] = (inc[`byHour.${horaDe()}`] || 0) + documentos.length;
+    // Para el tope de claves por día hay que saber cuáles ya existen.
+    const existentes = await AnalyticsDaily.findOne({ day })
+      .select("byType byPath byReferrer")
+      .lean();
+    const inc = armarIncrementos({ documentos, device, existentes, hora: horaDe() });
 
     const addToSet = { visitors: visitorHash, sessionHashes: sessionHash };
     if (userId) addToSet.loggedInVisitors = visitorHash;
@@ -400,6 +454,11 @@ module.exports = {
   getSummary,
   // Exportados para los tests: son las piezas con reglas propias.
   normalizarPath,
+  armarIncrementos,
+  TIPO_VALIDO,
+  hostReferrer,
+  MAX_CLAVES_TYPE,
+  MAX_CLAVES_PATH,
   identificar,
   hoy,
   horaDe,
