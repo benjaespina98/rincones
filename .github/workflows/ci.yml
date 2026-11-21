@@ -4,7 +4,7 @@
 # La regla del proyecto es "a main sólo si pasan todos los tests", y hasta acá
 # no había nada que la verificara: los únicos checks que aparecían en un PR
 # eran los deploys de Vercel, que confirman que el build COMPILA — no que los
-# 553 tests pasen. Un PR que rompiera la suite entera se veía igual de verde.
+# tests pasen. Un PR que rompiera la suite entera se veía igual de verde.
 #
 # ── POR QUÉ ES TAN CORTO ────────────────────────────────────────────────────
 # El repo es privado, así que los minutos de Actions se cobran por uso. De ahí

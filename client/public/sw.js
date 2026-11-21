@@ -52,6 +52,21 @@ const VERSION = "v1";
 const CACHE_ASSETS = `rincones-assets-${VERSION}`;
 const CACHE_DOC = `rincones-doc-${VERSION}`;
 
+/**
+ * Tope de entradas del caché de assets.
+ *
+ * Cada deploy cambia los hashes, y las versiones viejas nunca se pedían de nuevo
+ * pero tampoco se borraban: el caché crecía sin límite en el teléfono. `cache.keys()`
+ * devuelve en orden de inserción, así que recortar desde el principio saca lo más
+ * viejo. 80 alcanza de sobra para dos builds completos (un build son ~25-30 archivos
+ * entre chunks, CSS, fuentes y fotos) y la estrategia no cambia: si algo recortado se
+ * vuelve a pedir, cache-first lo trae de la red y lo guarda otra vez.
+ */
+const MAX_ASSETS = 80;
+
+const recortarAssets = (cache) =>
+  cache.keys().then((claves) => Promise.all(claves.slice(0, Math.max(0, claves.length - MAX_ASSETS)).map((k) => cache.delete(k))));
+
 /** Lo mínimo para que la app abra sin red. El resto se cachea al pedirse. */
 const BASE = ["/", "/manifest.webmanifest", "/favicon.svg"];
 
@@ -88,6 +103,8 @@ self.addEventListener("activate", (event) => {
             .map((n) => caches.delete(n))
         )
       )
+      .then(() => caches.open(CACHE_ASSETS))
+      .then(recortarAssets)
       .then(() => self.clients.claim())
   );
 });
@@ -132,7 +149,13 @@ self.addEventListener("fetch", (event) => {
             // el error pegado hasta la próxima versión del SW.
             if (respuesta.ok && respuesta.status === 200) {
               const copia = respuesta.clone();
-              caches.open(CACHE_ASSETS).then((c) => c.put(request, copia));
+              // `waitUntil`: sin él el navegador puede cerrar el SW antes de guardar/recortar.
+              event.waitUntil(
+                caches
+                  .open(CACHE_ASSETS)
+                  .then((c) => c.put(request, copia).then(() => recortarAssets(c)))
+                  .catch(() => undefined)
+              );
             }
             return respuesta;
           })

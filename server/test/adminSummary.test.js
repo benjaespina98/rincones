@@ -5,6 +5,12 @@ const User = require("../src/models/user.model");
 const Wine = require("../src/models/wine.model");
 const WineReview = require("../src/models/wineReview.model");
 const adminController = require("../src/controllers/admin.controller");
+const growthMetrics = require("../src/services/growthMetrics.service");
+
+// Las métricas de crecimiento tienen sus propios tests (growthMetrics.test.js); acá se simulan
+// para que el resumen no dependa de una base.
+const FORMA_GROWTH = { range: { days: 30 }, signups: { total: 0 } };
+growthMetrics.consultarCrecimiento = async () => FORMA_GROWTH;
 
 /**
  * El resumen del panel.
@@ -125,5 +131,51 @@ test("el rango tiene topes: ni cero horas ni un año", async () => {
     ChangeLog.countDocuments = originales.log;
     Wine.countDocuments = originales.wine;
     WineReview.countDocuments = originales.review;
+  }
+});
+
+test("el resumen suma `growth` sin tocar lo que ya traía, y pasa days/from/to", async () => {
+  const originales = {
+    user: User.countDocuments,
+    log: ChangeLog.countDocuments,
+    wine: Wine.countDocuments,
+    review: WineReview.countDocuments,
+    growth: growthMetrics.consultarCrecimiento,
+  };
+  User.countDocuments = async () => 1;
+  ChangeLog.countDocuments = async () => 0;
+  Wine.countDocuments = async () => 0;
+  WineReview.countDocuments = async () => 0;
+  let args;
+  growthMetrics.consultarCrecimiento = async (a) => { args = a; return FORMA_GROWTH; };
+  try {
+    const res = responder();
+    await adminController.getSummary({ query: { days: "14", from: "2026-03-01", to: "2026-03-14" } }, res, (e) => { throw e; });
+    assert.deepEqual(res.body.data.growth, FORMA_GROWTH);
+    assert.deepEqual(args, { days: "14", from: "2026-03-01", to: "2026-03-14" });
+    for (const clave of ["since", "hours", "users", "admins", "wines", "reviews", "activity"]) {
+      assert.ok(clave in res.body.data, `${clave} sigue en la respuesta`);
+    }
+
+    // `growth=0` lo omite sin consultarlo.
+    args = undefined;
+    const sin = responder();
+    await adminController.getSummary({ query: { growth: "0" } }, sin, (e) => { throw e; });
+    assert.equal(sin.body.data.growth, null);
+    assert.equal(args, undefined);
+
+    // Si falla, el resto llega igual con growth en null.
+    growthMetrics.consultarCrecimiento = async () => { throw new Error("se cayó"); };
+    const roto = responder();
+    await adminController.getSummary({ query: {} }, roto, (e) => { throw e; });
+    assert.equal(roto.statusCode, 200);
+    assert.equal(roto.body.data.growth, null);
+    assert.equal(roto.body.data.users, 1);
+  } finally {
+    User.countDocuments = originales.user;
+    ChangeLog.countDocuments = originales.log;
+    Wine.countDocuments = originales.wine;
+    WineReview.countDocuments = originales.review;
+    growthMetrics.consultarCrecimiento = originales.growth;
   }
 });

@@ -5,7 +5,10 @@ const WineMoment = require("../models/wineMoment.model");
 const WineReview = require("../models/wineReview.model");
 const winePrices = require("./winePrices.service");
 const WineImage = require("../models/wineImage.model");
+const mongoose = require("mongoose");
+const ChangeLog = require("../models/changeLog.model");
 const AnalyticsEvent = require("../models/analyticsEvent.model");
+const analytics = require("./analytics.service");
 const RefreshToken = require("../models/refreshToken.model");
 const SommelierConversation = require("../models/sommelierConversation.model");
 const CommunityWine = require("../models/communityWine.model");
@@ -84,8 +87,43 @@ const limpiarImagenes = async (imagenes) => {
  *
  * Es el único admin: no se puede dar de baja, para no dejar el panel sin dueño.
  */
+/**
+ * "juan.perez@gmail.com" -> "ju***@gmail.com": el registro de la baja no guarda el mail entero de quien pidió irse.
+ * Con una parte local corta ("a@x.com", "ab@x.com") no se muestra todo: siempre queda al menos un carácter oculto
+ * ("***@x.com", "a***@x.com"). Es idempotente: enmascarar algo ya enmascarado no revela ni cambia nada útil.
+ */
+const enmascararEmail = (email) => {
+  const [local = "", dominio = ""] = String(email || "").split("@");
+  if (!local) return "(sin email)";
+  const visibles = local.length <= 2 ? local.length - 1 : 2;
+  return `${local.slice(0, visibles)}***${dominio ? `@${dominio}` : ""}`;
+};
+
+/**
+ * Deja constancia de que una persona se dio de baja ella misma (`before.selfDelete: true`, para
+ * distinguirla de las bajas que hace un admin). Best-effort: la auditoría nunca frena la baja.
+ * El mail va enmascarado: quien pidió el borrado de sus datos no debería quedar identificable acá.
+ */
+const registrarBajaPropia = async (userId, user) => {
+  try {
+    const email = enmascararEmail(user?.email);
+    await ChangeLog.create({
+      entityType: "user",
+      // Ni el id de la cuenta ni un actor.userId: con cualquiera de los dos se podía unir este registro con
+      // lo que quedara de la persona. El `entityId` es obligatorio, así que lleva un id nuevo que no es de nadie.
+      entityId: new mongoose.Types.ObjectId(),
+      action: "delete",
+      actor: { email, role: user?.role || "user" },
+      before: { email, role: user?.role || "user", selfDelete: true },
+      after: null,
+    });
+  } catch {
+    // la auditoría nunca debe romper la baja
+  }
+};
+
 const deleteAccount = async (userId) => {
-  const user = await User.findById(userId).select("role");
+  const user = await User.findById(userId).select("role email");
   if (!user) return { ok: false, reason: "not_found" };
 
   if (user.role === "admin") {
@@ -102,8 +140,62 @@ const deleteAccount = async (userId) => {
   const imagenes = await imagenesPropias(userId);
   await Promise.all([borrarDatosPropios(userId), purgeUserLeftovers(userId)]);
   await User.deleteOne({ _id: userId });
+  await registrarBajaPropia(userId, user);
   await limpiarImagenes(imagenes);
   return { ok: true };
+};
+
+/**
+ * Analytics: eventos Y su rastro en el resumen diario (hashes y contadores), ver `analytics.olvidarUsuario`.
+ *
+ * TOLERANTE a propósito: si falla, la baja sigue. Lo que guarda analytics es anónimo (hashes con sal) o está
+ * acotado en el tiempo (los eventos caducan a los 180 días, los sets del día se vacían al cerrarlo), y bloquear
+ * el derecho a irse —o dejar una baja a medias: vinos ya borrados y la cuenta viva— por una falla de métricas es
+ * peor que ese resto. Como mínimo se desvincula el `userId` de los eventos (lo único que los une con la persona)
+ * y queda el log para repararlo.
+ */
+const olvidarAnalytics = async (userId) => {
+  try {
+    await analytics.olvidarUsuario(userId);
+  } catch (error) {
+    console.error("Baja de cuenta: no se pudo olvidar a la persona en analytics:", error?.message || error);
+    try {
+      await AnalyticsEvent.updateMany({ userId }, { $unset: { userId: 1 } });
+    } catch {
+      // Nada más que hacer: el TTL de los eventos termina el trabajo.
+    }
+  }
+};
+
+/**
+ * El registro de auditoría (`ChangeLog`) no caduca, y cada movimiento de vino guarda el mail completo y el id de
+ * quien lo hizo. Al darse de baja eso no puede quedar: se enmascara el mail y se desvincula el `userId`. Cubre
+ * también los registros que otros dejaron SOBRE la cuenta (cambio de rol, baja por un admin): mail enmascarado,
+ * sin `firstName` y con un `entityId` que ya no es el de la cuenta. Idempotente: lo ya procesado no vuelve a
+ * coincidir con los filtros, así que un reintento sólo completa lo que faltó. Lanza si la base falla.
+ */
+const anonimizarAuditoria = async (userId) => {
+  const emails = await ChangeLog.distinct("actor.email", { "actor.userId": userId });
+  for (const email of emails) {
+    await ChangeLog.updateMany(
+      { "actor.userId": userId, "actor.email": email },
+      { $set: { "actor.email": enmascararEmail(email) }, $unset: { "actor.userId": 1 } }
+    );
+  }
+  const sobreLaCuenta = await ChangeLog.find({ entityType: "user", entityId: userId }).select("before after").lean();
+  if (sobreLaCuenta.length === 0) return;
+  const idSuelto = new mongoose.Types.ObjectId();
+  for (const doc of sobreLaCuenta) {
+    const set = { entityId: idSuelto };
+    const unset = {};
+    if (doc.before?.email) set["before.email"] = enmascararEmail(doc.before.email);
+    if (doc.after?.targetEmail) set["after.targetEmail"] = enmascararEmail(doc.after.targetEmail);
+    if (doc.before && "firstName" in doc.before) unset["before.firstName"] = 1;
+    await ChangeLog.updateOne(
+      { _id: doc._id },
+      Object.keys(unset).length > 0 ? { $set: set, $unset: unset } : { $set: set }
+    );
+  }
 };
 
 /**
@@ -114,7 +206,8 @@ const deleteAccount = async (userId) => {
 const purgeUserLeftovers = async (userId) => {
   await Promise.all([
     RefreshToken.deleteMany({ userId }),
-    AnalyticsEvent.deleteMany({ userId }),
+    olvidarAnalytics(userId),
+    anonimizarAuditoria(userId),
     SommelierConversation.deleteMany({ userId }),
     winePrices.retractAllFromUser(userId),
     WineImage.updateMany({ contributedBy: userId }, { $unset: { contributedBy: 1 } }),
@@ -124,4 +217,4 @@ const purgeUserLeftovers = async (userId) => {
   ]);
 };
 
-module.exports = { deleteAccount, purgeUserLeftovers, borrarDatosPropios, imagenesPropias, urlsSinUso, limpiarImagenes };
+module.exports = { deleteAccount, enmascararEmail, anonimizarAuditoria, olvidarAnalytics, registrarBajaPropia, purgeUserLeftovers, borrarDatosPropios, imagenesPropias, urlsSinUso, limpiarImagenes };

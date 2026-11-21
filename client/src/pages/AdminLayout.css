@@ -607,7 +607,7 @@ button.admin-chip.is-active {
   margin: 0;
   color: var(--text-secondary);
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--glass);
 }
 
@@ -683,6 +683,10 @@ button.admin-chip.is-active {
 /* La columna que identifica la fila: es lo que se busca con la vista al
    recorrer, así que es la única con el color de texto pleno. */
 .admin-table__id {
+  min-width: 160px;
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-weight: 600;
 }
@@ -1022,6 +1026,7 @@ button.admin-chip.is-active {
     grid-column: 1 / -1;
     display: block;
     order: -1;
+    max-width: none;
     padding-bottom: 6px;
   }
 

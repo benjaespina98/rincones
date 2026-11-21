@@ -67,8 +67,22 @@ const oyentes = new Set();
  * ocho segundos y puede sobrevivirla): un setState sobre un componente desmontado
  * no hace nada, y el caché se quedaba con el valor viejo.
  */
+/**
+ * Cuántas escrituras se aplicaron desde que arrancó el módulo. Una carga que
+ * salió ANTES de una escritura y vuelve DESPUÉS trae la bodega de antes: si se
+ * aplicara tal cual, tocar «−» y ver volver la cantidad anterior. Cada carga
+ * anota el número con el que salió y se descarta si cambió.
+ */
+let escrituras = 0;
+
+/** Sólo para tests: el contador es del módulo y sobrevive entre casos. */
+export const reiniciarEscrituras = () => {
+  escrituras = 0;
+};
+
 const aplicarACache = (actualizar) => {
   if (cacheDeBodega === null) return false;
+  escrituras += 1;
   cacheDeBodega = actualizar(cacheDeBodega);
   oyentes.forEach((avisar) => avisar(cacheDeBodega));
   return true;
@@ -111,8 +125,21 @@ export const useWineCollection = () => {
     setError("");
 
     try {
-      const data = await getWines();
-      if (cargaActual.current !== carga) return;
+      // Si una escritura se aplicó mientras la lista viajaba, la respuesta es
+      // vieja: se pide de nuevo (con un tope, para no girar en falso).
+      let data;
+      let fresca = false;
+      for (let intento = 0; intento < 3 && !fresca; intento += 1) {
+        const antes = escrituras;
+        data = await getWines();
+        if (cargaActual.current !== carga) return;
+        fresca = escrituras === antes;
+      }
+      // Tres cargas seguidas quedaron viejas (escrituras continuas). Si ya hay
+      // caché, tiene las escrituras aplicadas: pisarlo con la respuesta vieja las
+      // desharía, así que se deja. Sin caché, lo último que llegó es mejor que
+      // una lista vacía que miente («no tenés vinos»).
+      if (!fresca && revalidando) return;
       cacheDeBodega = data;
       setWines(data);
     } catch (err) {
@@ -148,6 +175,7 @@ export const useWineCollection = () => {
     // Con caché, el cambio pasa por el módulo y llega a todas las listas montadas
     // (incluida ésta). Sin caché —todavía no cargó nada— queda el camino local.
     if (aplicarACache(actualizar)) return;
+    escrituras += 1;
     setWines((prev) => {
       const siguiente = actualizar(prev);
       cacheDeBodega = siguiente;
@@ -242,11 +270,26 @@ export const useWineCollection = () => {
    * reflejar un cambio que ya sabemos cuál es hace parpadear la pantalla entera.
    */
   const bulkAction = useCallback(async (ids, action) => {
-    const afectados = await bulkWines(ids, action);
-    const seleccion = new Set(ids.map(String));
+    const resultado = await bulkWines(ids, action);
+    // Sólo se tocan en pantalla los que el server procesó: tiene un tope por
+    // pedido, y quitar los que quedaron afuera mostraría borrado lo que sigue en la base.
+    const seleccion = new Set(resultado.ids);
+    // Para borrar, un vino pedido que el server no devuelve y tampoco omitió ya
+    // no existe (se borró desde otro dispositivo): también sale de la lista, o
+    // queda un fantasma en pantalla. Con `omitidos` no se puede saber cuáles
+    // fueron, así que ahí sólo se quitan los confirmados.
+    const inexistentes =
+      action === "delete" && !(resultado.omitidos > 0)
+        ? new Set(ids.map(String))
+        : new Set();
 
     aplicar((prev) => {
-      if (action === "delete") return prev.filter((w) => !seleccion.has(String(w._id)));
+      if (action === "delete") {
+        return prev.filter((w) => {
+          const id = String(w._id);
+          return !seleccion.has(id) && !inexistentes.has(id);
+        });
+      }
       const cambio = {
         tasted: { tasted: true },
         untasted: { tasted: false },
@@ -257,7 +300,7 @@ export const useWineCollection = () => {
       return prev.map((w) => (seleccion.has(String(w._id)) ? { ...w, ...cambio } : w));
     });
 
-    return afectados;
+    return resultado;
   }, [aplicar]);
 
   return {

@@ -62,6 +62,17 @@ const diasEntre = (desde, hasta) =>
  *    período —lo más reciente es lo que se estaba mirando— en vez de cortar por
  *    donde caiga.
  */
+/**
+ * Cuántos días se pidieron, siempre un entero entre 1 y `maxDias`. Lo que no es un número positivo (NaN, 0,
+ * negativos, texto) cae al valor por defecto; Infinity o un número enorme se recorta al techo. Sin esto,
+ * `days=Infinity` junto con un `to` válido armaba una fecha inválida y terminaba en 500.
+ */
+const diasPedidos = (days, porDefecto, maxDias) => {
+  const n = Number(days);
+  if (!(n > 0)) return porDefecto;
+  return Math.max(1, Math.min(Number.isFinite(n) ? Math.floor(n) : maxDias, maxDias));
+};
+
 const construirRango = ({ days, from, to, maxDias = 730, porDefecto = 30 } = {}) => {
   const hoyAr = diaDe();
 
@@ -75,9 +86,9 @@ const construirRango = ({ days, from, to, maxDias = 730, porDefecto = 30 } = {})
     hasta = hoyAr;
   } else if (esDiaValido(to)) {
     hasta = to;
-    desde = sumarDias(hasta, -(Number(days) > 0 ? Math.floor(Number(days)) : porDefecto) + 1);
+    desde = sumarDias(hasta, -diasPedidos(days, porDefecto, maxDias) + 1);
   } else {
-    const n = Number(days) > 0 ? Math.min(Math.floor(Number(days)), maxDias) : porDefecto;
+    const n = diasPedidos(days, porDefecto, maxDias);
     hasta = hoyAr;
     desde = sumarDias(hasta, -n + 1);
   }
@@ -94,4 +105,42 @@ const construirRango = ({ days, from, to, maxDias = 730, porDefecto = 30 } = {})
   return dias;
 };
 
-module.exports = { diaDe, esDiaValido, sumarDias, diasEntre, construirRango, OFFSET_AR_MINUTOS };
+/**
+ * El instante en que empieza y termina un día de calendario argentino, como `Date`.
+ * `fin` es el último milisegundo del día (23:59:59.999 hora de Argentina).
+ *
+ * Sirve para filtrar colecciones por `createdAt` con el MISMO corte de día que usan las
+ * métricas. `new Date("2026-03-05")` es medianoche UTC (21 h del 4 acá) y `setHours` usa la
+ * zona del proceso (UTC en Vercel): ninguno coincide con el calendario del panel.
+ */
+const limitesDelDia = (dia) => {
+  const [anio, mes, d] = String(dia).split("-").map(Number);
+  const inicio = new Date(Date.UTC(anio, mes - 1, d) - OFFSET_AR_MINUTOS * 60 * 1000);
+  return { inicio, fin: new Date(inicio.getTime() + 86400000 - 1) };
+};
+
+/**
+ * `{ $gte, $lte }` para un `createdAt` a partir de dos "YYYY-MM-DD" opcionales, en calendario
+ * argentino. Un valor inválido se ignora (como antes); si vienen dados vuelta se ordenan.
+ * Devuelve `null` si no queda ningún límite usable.
+ */
+const filtroDeFechas = ({ from, to } = {}) => {
+  let desde = esDiaValido(from) ? String(from).trim() : "";
+  let hasta = esDiaValido(to) ? String(to).trim() : "";
+  if (desde && hasta && desde > hasta) [desde, hasta] = [hasta, desde];
+  const filtro = {};
+  if (desde) filtro.$gte = limitesDelDia(desde).inicio;
+  if (hasta) filtro.$lte = limitesDelDia(hasta).fin;
+  return Object.keys(filtro).length > 0 ? filtro : null;
+};
+
+module.exports = {
+  diaDe,
+  esDiaValido,
+  sumarDias,
+  diasEntre,
+  construirRango,
+  limitesDelDia,
+  filtroDeFechas,
+  OFFSET_AR_MINUTOS,
+};

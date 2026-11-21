@@ -118,10 +118,10 @@ import "./SuggestionsPage.css";
    propósito: el campo es de un renglón y un texto de ayuda que no entra se corta. */
 const FRASES_DEL_CAMPO = [
   "Preguntame lo que quieras",
-  "Contame qué vas a comer hoy",
+  "¿Qué va con un asado?",
   "Preguntame qué abrir hoy",
   "Contame qué cocinás hoy",
-  "Malbec o Cabernet, ¿cuál va mejor?",
+  "¿Malbec o Cabernet?",
 ];
 
 let contador = 0;

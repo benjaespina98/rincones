@@ -160,6 +160,7 @@ app.use(cookieParser()); // Parsear cookies
 // Las rutas de cuenta no necesitan más que unos bytes: el tope grande es sólo
 // para las fotos, y acá se aplica antes de autenticar.
 app.use("/api/auth", express.json({ limit: "50kb" }));
+app.use("/api/analytics", express.json({ limit: "8kb" })); // público: un lote real pesa < 3 kB
 app.use(express.json({ limit: "12mb" }));
 
 app.get("/", (req, res) => {

@@ -326,8 +326,8 @@ export default function ScanWinePage() {
       }, deseoDeEsteAlta);
       // El vino salió de Guardados y entró a la bodega: dejarlo en las dos
       // listas sería decir a la vez "lo quiero probar" y "lo tengo". Si el
-      // borrado falla no se avisa: el alta —que es lo que se pidió— ya salió
-      // bien, y un error sobre una lista que quedó de más sólo confundiría.
+      // borrado falla se reintenta una vez; si vuelve a fallar se avisa, sin
+      // tapar que el alta —lo que se pidió— salió bien.
       if (review?.desdeGuardado) {
         if (creado && (review.deseoFavorito || review.deseoNotas)) {
           const cambios = {};
@@ -335,8 +335,21 @@ export default function ScanWinePage() {
           if (review.deseoNotas && !String(creado.notes || "").trim()) cambios.notes = review.deseoNotas;
           if (Object.keys(cambios).length > 0) await updateWine(creado._id, cambios).catch(() => {});
         }
-        await deleteWish(review.desdeGuardado).catch(() => {});
+        let quedoEnGuardados = false;
+        try {
+          await deleteWish(review.desdeGuardado);
+        } catch {
+          try {
+            await deleteWish(review.desdeGuardado);
+          } catch (err) {
+            // Ya borrado (404) no es un fallo: la lista quedó como se quería.
+            quedoEnGuardados = err?.response?.status !== 404;
+          }
+        }
         limpiarCacheDeDeseos();
+        if (quedoEnGuardados) {
+          showError("El vino ya está en tu bodega, pero no pudimos sacarlo de Guardados. Borralo de ahí a mano.");
+        }
       }
       // Lo que la etiqueta decía de la elaboración queda en las notas (sólo si no había nada escrito).
       if (creado && review?.ficha && !String(creado.notes || "").trim()) {

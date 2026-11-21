@@ -39,14 +39,13 @@
   padding: 0 var(--space-sm);
   color: var(--text-subtle);
   text-decoration: none;
-  /* Más tenue que el texto: la firma no tiene que ganarle a nada. Sube al pasar el mouse. */
-  opacity: 0.6;
-  transition: opacity var(--transition-fast);
+  /* Más tenue que el texto sin usar opacity (5,05:1 con --text-subtle). Sube al pasar el mouse. */
+  transition: color var(--transition-fast);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pie-app__credito:hover {
-    opacity: 0.95;
+    color: var(--text);
   }
 }
 

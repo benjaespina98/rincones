@@ -97,12 +97,36 @@ const logChange = async (actorUser, action, entityId, before, after) => {
   }
 };
 
+/**
+ * Suma o resta a los contadores del perfil (`stats.winesCount`, `stats.tastedWines`) de forma ATÓMICA.
+ * Antes era leer el usuario, sumar en memoria y `save()`: dos altas en paralelo leían el mismo valor y una pisaba
+ * a la otra (250 altas en lotes de 10 dejaron 0 en vez de 50). Acá el servidor aplica la suma sobre el valor que
+ * tiene en ese instante, y el piso en 0 evita contadores negativos. Mejor esfuerzo: es un número de comodidad (el
+ * perfil cuenta los vinos contándolos), no puede tirar abajo un alta que ya se guardó.
+ */
+const ajustarStats = async (userId, { winesCount = 0, tastedWines = 0 } = {}) => {
+  const etapa = {};
+  for (const [campo, delta] of Object.entries({ winesCount, tastedWines })) {
+    if (!delta) continue;
+    etapa[`stats.${campo}`] = { $max: [0, { $add: [{ $ifNull: [`$stats.${campo}`, 0] }, delta] }] };
+  }
+  if (Object.keys(etapa).length === 0) return;
+  try {
+    await User.updateOne({ _id: userId }, [{ $set: etapa }], { updatePipeline: true });
+  } catch (error) {
+    console.error("No se pudieron actualizar las estadísticas del perfil:", error?.message || error);
+  }
+};
+
 const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const parseQuantity = (value, fallback = 1) => {
   if (value === undefined || value === null || value === "") return fallback;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 };
+
+// Tope de stock: el mismo de un lote (utils/lots.js MAX_BOTELLAS_POR_LOTE).
+const MAX_STOCK = 100000;
 
 const toWineStatus = ({ tasted, quantity, status }) => {
   if (typeof status === "string" && status.trim()) return status.trim();
@@ -518,6 +542,12 @@ async function createWine(userId, payload) {
     },
   });
 
+  // La persona se busca ANTES de guardar: con un token vivo de una cuenta ya
+  // eliminada, `findById` da null y todo lo de después (stats, auditoría)
+  // reventaba con el vino YA guardado: un vino huérfano de un dueño que no existe.
+  const user = await User.findById(userId);
+  if (!user) throw Object.assign(new Error("Tu cuenta ya no existe."), { codigo: "CUENTA_INEXISTENTE" });
+
   const savedWine = await wine.save();
 
   // Si el usuario aportó una foto propia, la sumamos al pool compartido para
@@ -574,12 +604,9 @@ async function createWine(userId, payload) {
     void ensureDescription(savedWine).catch(() => {});
   }
 
-  const user = await User.findById(userId);
-  user.stats.winesCount = (user.stats.winesCount || 0) + 1;
   // `probado` y no `tasted`: el vino que cargaste como tomado afuera también
   // cuenta entre tus probados, que es exactamente lo que dice el perfil.
-  if (probado) user.stats.tastedWines = (user.stats.tastedWines || 0) + 1;
-  await user.save();
+  await ajustarStats(userId, { winesCount: 1, tastedWines: probado ? 1 : 0 });
 
   await logChange(user, "create", savedWine._id, null, { name: savedWine.name, winery: savedWine.winery });
 
@@ -649,18 +676,18 @@ async function updateWine(userId, id, payload) {
   if (favorite !== undefined) wine.favorite = favorite === true;
   // Editar la cantidad a mano fija un total, y los lotes se acomodan hacia
   // donde haga falta: si baja se descuenta FIFO (se vacía primero lo más viejo)
-  // y si sube, la diferencia entra como lote de hoy. Se resuelve acá y no en el
-  // hook del modelo porque acá todavía tenemos la cantidad ANTERIOR, que es la
-  // que le da su lote inicial a un vino cargado antes de que existieran.
-  if (quantity !== undefined) {
-    const nuevaCantidad = parseQuantity(quantity, wine.quantity);
-    wine.lots = reconcileLots(wine.lots, nuevaCantidad, {
-      createdAt: wine.createdAt,
-      currentQuantity: wine.quantity,
-    });
-    wine.quantity = availableFromLots(wine.lots);
-  }
-  if (status !== undefined) wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity, status });
+  // y si sube, la diferencia entra como lote de hoy.
+  //
+  // NO se hace sobre el documento: este update lee con `findOne` y escribe con
+  // `save()`, y entre una cosa y la otra puede entrar un `adjustStock` (el «−»
+  // de la fila). Si `quantity`/`lots` viajaran en el `save()`, la botella
+  // recién tomada «volvía». El total se fija al final con el mismo pipeline
+  // atómico del stock (`buildStockStages("set")`, que además normaliza los
+  // lotes de un vino anterior a que existieran y sostiene quantity = suma de
+  // remaining). Un valor inválido no se toca, y se acota como en lots.js.
+  const cantidadFijada =
+    quantity !== undefined && quantity !== null && quantity !== "" ? parseQuantity(quantity, null) : null;
+  if (status !== undefined) wine.status = toWineStatus({ tasted: wine.tasted, quantity: cantidadFijada ?? wine.quantity, status });
   if (lastConsumedAt !== undefined) wine.lastConsumedAt = lastConsumedAt ? new Date(lastConsumedAt) : null;
   if (consumptionCount !== undefined) wine.consumptionCount = parseQuantity(consumptionCount, wine.consumptionCount || 0);
 
@@ -733,7 +760,7 @@ async function updateWine(userId, id, payload) {
   // probado se quedaba para siempre en "stock" y las estadísticas del perfil lo
   // contaban del lado equivocado.
   if (status === undefined) {
-    wine.status = toWineStatus({ tasted: wine.tasted, quantity: wine.quantity });
+    wine.status = toWineStatus({ tasted: wine.tasted, quantity: cantidadFijada ?? wine.quantity });
   }
 
   /**
@@ -784,7 +811,24 @@ async function updateWine(userId, id, payload) {
   }
 
   wine.updatedAt = new Date();
-  const updatedWine = await wine.save();
+  // El hook de validación del modelo reescribe `lots`/`quantity` en memoria
+  // (los deriva si faltan, los normaliza). Se valida ACÁ, se descartan esos
+  // cambios y se guarda sin revalidar: `save()` sólo manda lo que se tocó, y
+  // el stock no se toca desde una lectura vieja.
+  await wine.validate();
+  for (const ruta of wine.modifiedPaths()) {
+    if (ruta === "quantity" || ruta === "lots" || ruta.startsWith("lots.")) wine.unmarkModified(ruta);
+  }
+  let updatedWine = await wine.save({ validateBeforeSave: false });
+
+  if (cantidadFijada !== null) {
+    const conStock = await Wine.findOneAndUpdate(
+      { _id: id, userId },
+      buildStockStages("set", { $literal: Math.min(cantidadFijada, MAX_STOCK) }),
+      { returnDocument: "after", updatePipeline: true }
+    );
+    if (conStock) updatedWine = conStock;
+  }
 
   if (cambioIdentidad) {
     if (!isCuratedWine(identidadPrevia)) {
@@ -938,10 +982,12 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
     // un dato inválido sería vaciar la cava por un error de tipeo.
     const parsed = parseInt(quantity, 10);
     if (Number.isFinite(parsed) && parsed >= 0) {
-      stages = buildStockStages("set", { $literal: parsed });
+      stages = buildStockStages("set", { $literal: Math.min(parsed, MAX_STOCK) });
     }
   } else {
-    const movimiento = Number.parseInt(delta, 10);
+    const movimientoBruto = Number.parseInt(delta, 10);
+    // Acotado como un lote: un delta absurdo no puede dejar un stock absurdo.
+    const movimiento = Number.isFinite(movimientoBruto) ? Math.sign(movimientoBruto) * Math.min(Math.abs(movimientoBruto), MAX_STOCK) : movimientoBruto;
     if (Number.isFinite(movimiento) && movimiento !== 0) {
       // Deshacer devuelve la botella a su lote; reponer abre uno nuevo. Es la
       // diferencia entre "me equivoqué" y "compré más", y se nota en la ficha.
@@ -966,7 +1012,7 @@ async function adjustStock(userId, id, { delta, quantity, markTasted, undoOpen, 
     // Abrir exige tener las botellas que se abren: con el cliente desactualizado (otro
     // dispositivo ya las tomó) `consume` recortaba en silencio, el contador sumaba igual y el
     // «Deshacer» devolvía más de lo que salió.
-    filtro.quantity = { $gte: Math.max(filtro.quantity?.$gte || 0, 1, Math.abs(Number.parseInt(delta, 10)) || 1) };
+    filtro.quantity = { $gte: Math.max(filtro.quantity?.$gte || 0, 1, Math.min(Math.abs(Number.parseInt(delta, 10)) || 1, MAX_STOCK)) };
     falla.push("No te quedan botellas para abrir.");
     stages = [
       {
@@ -1426,72 +1472,96 @@ async function countMoments(userId, id) {
   return WineMoment.countDocuments({ userId, wineId: id });
 }
 
+/**
+ * Lo que hay que hacer con cada vino ANTES de borrarlo, sea uno solo (`deleteWine`)
+ * o muchos (`bulkAction("delete")`): una sola implementación para que los dos
+ * caminos no se desfasen. Necesita de cada vino: _id, name, winery, varietal, type,
+ * image y purchase.price.
+ */
+async function prepararBorrado(userId, vinos) {
+  // Por tandas de PARALELO_BORRADO y no uno tras otro: con 200 vinos eran hasta
+  // 400 viajes en serie. Tandas y no todo junto para no abrir 200 consultas a
+  // la vez. Cada vino es independiente y retirar el mismo precio dos veces es
+  // idempotente, así que el resultado es el mismo.
+  for (let i = 0; i < vinos.length; i += PARALELO_BORRADO) {
+    await Promise.all(vinos.slice(i, i + PARALELO_BORRADO).map((wine) => prepararUnVino(userId, wine)));
+  }
+}
+
+const PARALELO_BORRADO = 10;
+
+async function prepararUnVino(userId, wine) {
+  {
+    /**
+     * Los momentos NO se borran: son tu diario, no un detalle del inventario.
+     *
+     * Lo que sí hay que hacer es dejarlos legibles antes de perder el vino. Los
+     * momentos escritos desde que existe `wineSnapshot` ya lo traen; los
+     * anteriores no, y son justamente los que quedarían sin nombre. Se completan
+     * acá, que es el último instante en que todavía sabemos qué vino era.
+     */
+    await WineMoment.updateMany(
+      {
+        userId,
+        wineId: wine._id,
+        $or: [{ "wineSnapshot.name": { $in: [null, ""] } }, { wineSnapshot: { $exists: false } }],
+      },
+      {
+        $set: {
+          wineSnapshot: {
+            name: wine.name || "",
+            winery: wine.winery || "",
+            varietal: wine.varietal || "",
+            type: wine.type || "",
+            image: wine.image || "",
+          },
+        },
+      }
+    ).catch(() => {});
+
+    /**
+     * El catálogo público NO se toca acá, y es una decisión, no un olvido.
+     *
+     * Borrar un vino de tu bodega significa "ya no lo tengo", no "esto que cargué
+     * estaba mal". Son dos cosas distintas y sólo la segunda desmiente un dato: por
+     * eso `updateWine` sí retira la contribución vieja cuando corregís la identidad,
+     * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
+     * hayas terminado.
+     */
+
+    /**
+     * El PRECIO sí se retira, y no contradice lo de arriba.
+     *
+     * Son dos pools con dos preguntas distintas. El catálogo contesta "¿este vino
+     * existe?", y eso no deja de ser cierto porque te lo hayas tomado. El promedio
+     * contesta "¿cuánto lo paga la gente?", y ahí tu muestra es un dato tuyo
+     * pegado a un vino que ya no está en tu bodega: sin nada que la sostenga ni
+     * forma de corregirla, envejece sola dentro de un promedio que nadie puede
+     * arreglar. Se va con el vino.
+     */
+    if (wine.purchase?.price > 0) {
+      await winePrices.retract({
+        name: wine.name,
+        winery: wine.winery,
+        varietal: wine.varietal,
+        userId,
+      });
+    }
+  }
+}
+
 async function deleteWine(userId, id) {
   const wine = await Wine.findOne({ _id: id, userId });
   if (!wine) return null;
 
-  /**
-   * Los momentos NO se borran: son tu diario, no un detalle del inventario.
-   *
-   * Lo que sí hay que hacer es dejarlos legibles antes de perder el vino. Los
-   * momentos escritos desde que existe `wineSnapshot` ya lo traen; los
-   * anteriores no, y son justamente los que quedarían sin nombre. Se completan
-   * acá, que es el último instante en que todavía sabemos qué vino era.
-   */
-  await WineMoment.updateMany(
-    {
-      userId,
-      wineId: wine._id,
-      $or: [{ "wineSnapshot.name": { $in: [null, ""] } }, { wineSnapshot: { $exists: false } }],
-    },
-    {
-      $set: {
-        wineSnapshot: {
-          name: wine.name || "",
-          winery: wine.winery || "",
-          varietal: wine.varietal || "",
-          type: wine.type || "",
-          image: wine.image || "",
-        },
-      },
-    }
-  ).catch(() => {});
-
-  /**
-   * El catálogo público NO se toca acá, y es una decisión, no un olvido.
-   *
-   * Borrar un vino de tu bodega significa "ya no lo tengo", no "esto que cargué
-   * estaba mal". Son dos cosas distintas y sólo la segunda desmiente un dato: por
-   * eso `updateWine` sí retira la contribución vieja cuando corregís la identidad,
-   * y esto no retira nada. Un vino que existe sigue existiendo aunque vos te lo
-   * hayas terminado.
-   */
-
-  /**
-   * El PRECIO sí se retira, y no contradice lo de arriba.
-   *
-   * Son dos pools con dos preguntas distintas. El catálogo contesta "¿este vino
-   * existe?", y eso no deja de ser cierto porque te lo hayas tomado. El promedio
-   * contesta "¿cuánto lo paga la gente?", y ahí tu muestra es un dato tuyo
-   * pegado a un vino que ya no está en tu bodega: sin nada que la sostenga ni
-   * forma de corregirla, envejece sola dentro de un promedio que nadie puede
-   * arreglar. Se va con el vino.
-   */
-  if (wine.purchase?.price > 0) {
-    await winePrices.retract({
-      name: wine.name,
-      winery: wine.winery,
-      varietal: wine.varietal,
-      userId,
-    });
-  }
+  await prepararBorrado(userId, [wine]);
 
   const user = await User.findById(userId);
-  user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - 1);
-  if (wine.tasted) user.stats.tastedWines = Math.max(0, (user.stats.tastedWines || 0) - 1);
-  await user.save();
-
-  await Wine.deleteOne({ _id: id, userId });
+  // Se descuenta SÓLO lo que el borrado borró de verdad: si otro dispositivo ya lo había sacado entre la lectura
+  // y acá, `deletedCount` es 0 y el contador no baja dos veces.
+  const { deletedCount } = (await Wine.deleteOne({ _id: id, userId })) || {};
+  if (!deletedCount) return null;
+  await ajustarStats(userId, { winesCount: -deletedCount, tastedWines: wine.tasted ? -1 : 0 });
   await logChange(user, "delete", wine._id, { name: wine.name, winery: wine.winery }, null);
   return true;
 }
@@ -1528,28 +1598,39 @@ const ACCIONES_EN_LOTE = {
  * alguien arma la petición a mano.
  */
 async function bulkAction(userId, ids, action) {
-  const limpios = [...new Set((Array.isArray(ids) ? ids : []).map(String))]
-    .filter((id) => mongoose.Types.ObjectId.isValid(id))
-    .slice(0, MAX_EN_LOTE);
+  const validos = [...new Set((Array.isArray(ids) ? ids : []).map(String))].filter((id) =>
+    mongoose.Types.ObjectId.isValid(id)
+  );
+  const limpios = validos.slice(0, MAX_EN_LOTE);
+  // Cuántos quedaron afuera por el tope: el cliente tiene que saber que NO se
+  // tocaron (y quitar de la pantalla sólo los de `ids`).
+  const omitidos = validos.length - limpios.length;
 
-  if (limpios.length === 0) return { affected: 0 };
+  if (limpios.length === 0) return { affected: 0, ids: [], ...(action === "delete" ? { inexistentes: [] } : {}), omitidos };
 
   const filtro = { _id: { $in: limpios }, userId };
 
   if (action === "delete") {
     // Se leen antes de borrar: hacen falta para las estadísticas del usuario y
     // para dejar en la auditoría qué era cada uno, que después no se puede saber.
-    const vinos = await Wine.find(filtro).select("_id name winery tasted").lean();
-    if (vinos.length === 0) return { affected: 0 };
+    const vinos = await Wine.find(filtro)
+      .select("_id name winery varietal type image tasted purchase.price")
+      .lean();
+    // Los pedidos que ya no existen (borrados en otro dispositivo) también vuelven: ver `inexistentes` abajo.
+    if (vinos.length === 0) return { affected: 0, ids: limpios, inexistentes: limpios, omitidos };
+
+    // Lo mismo que hace deleteWine: momentos legibles y precio comunitario retirado.
+    await prepararBorrado(userId, vinos);
 
     const { deletedCount } = await Wine.deleteMany(filtro);
 
+    // Lo descontado es lo que se borró de verdad (`deletedCount`), no lo que `find` había visto: si algo se
+    // borró en el medio, los probados no pueden pasar de eso.
+    const probados = Math.min(vinos.filter((w) => w.tasted).length, deletedCount);
+    await ajustarStats(userId, { winesCount: -deletedCount, tastedWines: -probados });
+
     const user = await User.findById(userId);
     if (user) {
-      const probados = vinos.filter((w) => w.tasted).length;
-      user.stats.winesCount = Math.max(0, (user.stats.winesCount || 0) - vinos.length);
-      user.stats.tastedWines = Math.max(0, (user.stats.tastedWines || 0) - probados);
-      await user.save();
       // Un `insertMany` y no un `logChange` por vino: hasta MAX_EN_LOTE (200)
       // vinos son hasta 200 viajes secuenciales a la base, uno esperando al
       // anterior, sólo para dejar el rastro de auditoría — el borrado en sí ya
@@ -1572,7 +1653,13 @@ async function bulkAction(userId, ids, action) {
         // la auditoría nunca debe romper la operación principal
       }
     }
-    return { affected: deletedCount };
+    // `ids` = lo que el cliente tiene que QUITAR de pantalla: los que se borraron ahora MÁS los pedidos que ya no
+    // existían (borrados desde otro dispositivo), que si no quedaban de fantasma en la lista. `inexistentes` es
+    // esa segunda parte sola, por si la UI quiere distinguirla. `affected` sigue siendo lo que se borró acá.
+    const borrados = vinos.map((w) => String(w._id));
+    const hallados = new Set(borrados);
+    const inexistentes = limpios.filter((id) => !hallados.has(id.toLowerCase()));
+    return { affected: deletedCount, ids: [...borrados, ...inexistentes], inexistentes, omitidos };
   }
 
   const update = ACCIONES_EN_LOTE[action];
@@ -1592,7 +1679,9 @@ async function bulkAction(userId, ids, action) {
     }
   }
 
-  return { affected: modifiedCount };
+  // `ids`: los que entraron en el lote (aunque alguno ya estuviera como se
+  // pedía y no cuente en `affected`).
+  return { affected: modifiedCount, ids: limpios, omitidos };
 }
 
 module.exports = {

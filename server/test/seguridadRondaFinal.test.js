@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const User = require("../src/models/user.model");
 const RefreshToken = require("../src/models/refreshToken.model");
 const AnalyticsEvent = require("../src/models/analyticsEvent.model");
@@ -7,6 +9,7 @@ const SommelierConversation = require("../src/models/sommelierConversation.model
 const WineImage = require("../src/models/wineImage.model");
 const CommunityWine = require("../src/models/communityWine.model");
 const ErrorLog = require("../src/models/errorLog.model");
+const ChangeLog = require("../src/models/changeLog.model");
 const winePrices = require("../src/services/winePrices.service");
 const accountDeletion = require("../src/services/accountDeletion.service");
 const imageStorage = require("../src/services/imageStorage.service");
@@ -46,12 +49,20 @@ test("el borrado desde admin limpia sesiones, charlas, analytics, precios y atri
   const llamadas = [];
   const restores = [
     stub(RefreshToken, "deleteMany", async (f) => llamadas.push(["RefreshToken", f])),
-    stub(AnalyticsEvent, "deleteMany", async (f) => llamadas.push(["AnalyticsEvent", f])),
+    // Analytics ya no es un `deleteMany` suelto: busca los eventos de la persona para sacar sus
+    // hashes del resumen diario (ver analytics.olvidarUsuario). Sin eventos propios no hay más que hacer.
+    stub(AnalyticsEvent, "find", (f) => {
+      llamadas.push(["AnalyticsEvent", f]);
+      return { select: () => ({ lean: async () => [] }) };
+    }),
     stub(SommelierConversation, "deleteMany", async (f) => llamadas.push(["SommelierConversation", f])),
     stub(winePrices, "retractAllFromUser", async (id) => llamadas.push(["WinePrice", id])),
     stub(WineImage, "updateMany", async (f, u) => llamadas.push(["WineImage", f, u])),
     stub(CommunityWine, "updateMany", async (f, u) => llamadas.push(["CommunityWine", f, u])),
     stub(ErrorLog, "deleteMany", async (f) => llamadas.push(["ErrorLog", f])),
+    // La auditoría se anonimiza (sin registros propios no hay nada que enmascarar).
+    stub(ChangeLog, "distinct", async () => []),
+    stub(ChangeLog, "find", () => ({ select: () => ({ lean: async () => [] }) })),
   ];
   try {
     await accountDeletion.purgeUserLeftovers("u7");

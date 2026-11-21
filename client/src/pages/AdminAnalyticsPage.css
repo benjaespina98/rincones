@@ -19,6 +19,9 @@
 
 .an__rangos {
   display: inline-flex;
+  /* En pantallas angostas los 7 controles no entran en una fila (558px): que bajen en vez de ensanchar la página. */
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: 6px;
   padding: 4px;
   border-radius: var(--radius-full);
@@ -393,4 +396,97 @@
 
 .an__rango--limpiar {
   border-style: solid;
+}
+
+/* ══ Crecimiento de cuentas ═════════════════════════════════════════════════
+   Mismas tarjetas y bloques que el tablero de uso; sólo se suman las barras
+   apiladas por día y el "sin datos" de los porcentajes sin base. */
+.an__growth {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.an__h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* "Sin datos" no es un cero: se lee más bajo y sin el peso de un número. */
+.an__card-n--none {
+  font-size: var(--text-xl);
+  color: var(--text-secondary);
+}
+
+.an-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 96px;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.an-bars__col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+}
+
+.an-bars__seg {
+  display: block;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Cuatro tonos de la misma familia: nunca es el color lo único que distingue,
+   la leyenda trae el nombre y el total en texto. */
+.an-tone--a { background: var(--accent); }
+.an-tone--b { background: var(--accent-soft); }
+.an-tone--c { background: var(--text-secondary); }
+.an-tone--d { background: var(--danger); }
+
+.an-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.an-legend strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.an-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: var(--radius-tag);
+}
+
+/* El panel usa controles de 34px a propósito (tablero con mouse); en táctil, 44. */
+@media (pointer: coarse) {
+  .an__rango,
+  .an__toggle-btn,
+  .an__fecha input {
+    min-height: var(--control-md);
+  }
+}
+
+.an__rango:focus-visible,
+.an__toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
 }

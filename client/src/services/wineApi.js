@@ -130,11 +130,18 @@ export const addWineMoment = async (id, payload) => {
  * Una acción sobre varios vinos, en una sola petición.
  *
  * `action`: "delete" | "tasted" | "untasted" | "favorite" | "unfavorite".
- * Devuelve cuántos cambiaron de verdad, que no siempre es cuántos se mandaron:
+ * Devuelve `{ affected, ids, omitidos }`. `affected` es cuántos cambiaron de verdad, que no siempre es cuántos se mandaron:
  * alguno pudo estar ya como se pedía, o haberse borrado en otra pestaña.
  */
 export const bulkWines = async (ids, action) => {
   const { data } = await api.post("/wines/bulk", { ids, action });
   invalidarDestacados();
-  return data.data?.affected ?? 0;
+  const r = data.data || {};
+  // `ids`: los que el server de verdad procesó (tiene un tope por pedido). Un
+  // server viejo no lo manda: ahí se asume que entraron todos.
+  return {
+    affected: r.affected ?? 0,
+    ids: Array.isArray(r.ids) ? r.ids.map(String) : ids.map(String),
+    omitidos: r.omitidos ?? 0,
+  };
 };

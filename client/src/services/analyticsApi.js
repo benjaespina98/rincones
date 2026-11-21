@@ -100,8 +100,36 @@ const encolar = (evento) => {
   if (!timer) timer = setTimeout(() => enviar(), INTERVALO_MS);
 };
 
+// De dónde llegó la persona se manda una sola vez por carga (sin storage): en una SPA el
+// referrer es el mismo toda la sesión, y repetirlo contaría el origen una vez por pantalla.
+let referrerEnviado = false;
+
+/** El origen externo de la visita, o "" si vino de la propia app o de ningún lado. */
+export const referrerExterno = () => {
+  if (typeof document === "undefined" || !document.referrer) return "";
+  try {
+    const url = new URL(document.referrer);
+    return url.origin === window.location.origin ? "" : url.origin;
+  } catch {
+    return "";
+  }
+};
+
+/** Sólo para los tests. */
+export const _reiniciarReferrer = () => {
+  referrerEnviado = false;
+};
+
 /** Una pantalla vista. `path` sale del router; el server le saca los ids. */
-export const trackPageview = (path) => encolar({ type: "pageview", path });
+export const trackPageview = (path) => {
+  const evento = { type: "pageview", path };
+  if (!referrerEnviado) {
+    referrerEnviado = true;
+    const referrer = referrerExterno();
+    if (referrer) evento.referrer = referrer;
+  }
+  encolar(evento);
+};
 
 /**
  * Cualquier otra cosa que valga la pena contar: un vino cargado, un destacado

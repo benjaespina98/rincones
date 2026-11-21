@@ -142,7 +142,7 @@
   min-height: 44px;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-base);
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   font: inherit;
   background: transparent;
   color: inherit;

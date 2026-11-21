@@ -80,7 +80,7 @@ test("un error de transacción tipo 'active transaction number' cae al borrado s
   });
 
   try {
-    const req = { params: { userId: "u2" }, user: { id: "admin1", email: "admin@rincones.app" } };
+    const req = { params: { userId: "64b7f0c2a1b2c3d4e5f60002" }, user: { id: "admin1", email: "admin@rincones.app" } };
     const res = responder();
     await adminController.deleteUser(req, res, (e) => { throw e; });
 
@@ -114,7 +114,7 @@ test("un error de transacción real (no de disponibilidad) sigue llegando como e
   });
 
   try {
-    const req = { params: { userId: "u3" }, user: { id: "admin1", email: "admin@rincones.app" } };
+    const req = { params: { userId: "64b7f0c2a1b2c3d4e5f60003" }, user: { id: "admin1", email: "admin@rincones.app" } };
     const res = responder();
     let propagado = false;
     await adminController.deleteUser(req, res, () => { propagado = true; });
@@ -122,5 +122,22 @@ test("un error de transacción real (no de disponibilidad) sigue llegando como e
   } finally {
     User.findById = original.findById;
     mongoose.startSession = original.startSession;
+  }
+});
+
+// Un :userId que no es un ObjectId daba CastError y terminaba en 500: es un pedido inválido (400).
+test("un userId mal formado da 400 en deleteUser y en updateUserRole, no 500", async () => {
+  for (const [handler, extra] of [
+    [adminController.deleteUser, {}],
+    [adminController.updateUserRole, { body: { role: "user" } }],
+  ]) {
+    const res = responder();
+    let siguio = false;
+    await handler({ params: { userId: "no-es-un-id" }, user: { id: "x" }, ...extra }, res, () => {
+      siguio = true;
+    });
+    assert.equal(siguio, false);
+    assert.equal(res.statusCode, 400);
+    assert.match(res.body.message, /inválido/);
   }
 });

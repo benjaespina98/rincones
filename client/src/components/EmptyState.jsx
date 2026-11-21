@@ -54,7 +54,7 @@ export default function EmptyState({
       {actionLabel && onAction && (
         <Button
           variant="primary"
-          size={compact ? "sm" : "md"}
+          size="md"
           onClick={onAction}
           className="empty-cta"
         >
@@ -62,10 +62,11 @@ export default function EmptyState({
         </Button>
       )}
       {secondaryLabel && onSecondary && (
-        /* Ghost y no primary: es la salida LATERAL. Dos botones con el mismo
+        /* Los dos en `md` (44 px): son el único toque de una pantalla vacía, no
+           una fila densa. Ghost y no primary: es la salida LATERAL. Dos botones con el mismo
            peso obligan a elegir entre dos cosas que no son equivalentes, y acá
            una es la que la pantalla propone y la otra la que quizá quería. */
-        <Button variant="ghost" size="sm" onClick={onSecondary} className="empty-alt">
+        <Button variant="ghost" size="md" onClick={onSecondary} className="empty-alt">
           {secondaryLabel}
         </Button>
       )}

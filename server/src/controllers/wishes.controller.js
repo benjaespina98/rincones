@@ -42,14 +42,4 @@ const remove = async (req, res) => {
   }
 };
 
-const convert = async (req, res) => {
-  try {
-    const wine = await wishesService.convertWishToWine(req.user.id, req.params.id, req.body);
-    if (!wine) return res.status(404).json({ success: false, error: "Vino no encontrado en la lista" });
-    return res.status(201).json({ success: true, data: wine });
-  } catch (error) {
-    return fail(res, error, req);
-  }
-};
-
-module.exports = { list, create, update, remove, convert };
+module.exports = { list, create, update, remove };

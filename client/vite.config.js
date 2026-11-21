@@ -46,6 +46,10 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./test/setup.js",
+    // Con 110 archivos en paralelo (o en el CI, con menos núcleos) los render pesados pasaban
+    // de los 5s por defecto y algún test caía por tiempo sin que hubiera un bug.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     exclude: ["**/node_modules/**", "e2e/**"],
   },
 });

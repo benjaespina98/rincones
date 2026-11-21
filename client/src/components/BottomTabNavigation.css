@@ -184,7 +184,7 @@
 }
 
 .tab-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -213,7 +213,7 @@
   }
 
   .tab-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
   }
 
   .tab-button.active {
@@ -358,7 +358,7 @@
   border-radius: var(--radius-full);
   border: 1px solid rgb(var(--paper-rgb) / 0.18);
   color: var(--paper);
-  font-size: 9px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   display: inline-flex;
   align-items: center;

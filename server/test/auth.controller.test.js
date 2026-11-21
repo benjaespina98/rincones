@@ -497,3 +497,23 @@ test("login con una cuenta sólo-Google también gasta bcrypt y nunca entra", as
   assert.equal(res.statusCode, 401);
   assert.equal(comparaciones, 1);
 });
+
+test("auth register rechaza nombre o apellido de más de 40 caracteres", async () => {
+  const originalFindOne = User.findOne;
+  User.findOne = async () => null;
+  const base = { email: "largo@example.com", password: "Secret123", birthDate: "1990-01-01" };
+
+  try {
+    for (const [extra, regex] of [
+      [{ firstName: "N".repeat(41) }, /nombre es demasiado largo.*40/],
+      [{ firstName: "Ana", lastName: "A".repeat(41) }, /apellido es demasiado largo.*40/],
+    ]) {
+      const res = createRes();
+      await authController.register({ body: { ...base, ...extra } }, res, (err) => { if (err) throw err; });
+      assert.equal(res.statusCode, 400);
+      assert.match(res.body.message, regex);
+    }
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});

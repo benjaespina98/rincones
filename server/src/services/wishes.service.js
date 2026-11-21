@@ -1,5 +1,4 @@
 const WineWish = require("../models/wineWish.model");
-const winesService = require("./wines.service");
 const { esImagenAceptada } = require("../utils/imagenAceptada");
 
 async function listWishes(userId) {
@@ -62,27 +61,4 @@ async function deleteWish(userId, id) {
   return true;
 }
 
-async function convertWishToWine(userId, id, purchaseData = {}) {
-  const wish = await WineWish.findOne({ _id: id, userId });
-  if (!wish) return null;
-
-  const wine = await winesService.createWine(userId, {
-    name: wish.name,
-    winery: wish.winery,
-    type: wish.type,
-    region: wish.region,
-    varietal: wish.varietal,
-    vintage: wish.vintage,
-    notes: wish.notes,
-    quantity: purchaseData.quantity || 1,
-    price: purchaseData.price,
-    store: purchaseData.store,
-    purchasedAt: purchaseData.purchasedAt,
-    currency: purchaseData.currency || "ARS",
-  });
-
-  await WineWish.deleteOne({ _id: id, userId });
-  return wine;
-}
-
-module.exports = { listWishes, createWish, updateWish, deleteWish, convertWishToWine };
+module.exports = { listWishes, createWish, updateWish, deleteWish };

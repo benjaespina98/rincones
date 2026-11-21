@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import { getAnalyticsSummary } from "../services/analyticsApi";
+import AdminGrowthSection from "./AdminGrowthSection";
 import "./AdminAnalyticsPage.css";
 
 /**
@@ -461,6 +462,11 @@ export default function AdminAnalyticsPage() {
         </>
       )}
 
+      {/* Crecimiento de cuentas: independiente del tablero de uso. Va fuera del
+          `sinDatos` porque se puede haber sumado gente sin que haya visitas
+          medidas, y pide su propio dato: si falla, lo de arriba sigue. */}
+      <AdminGrowthSection days={days} desde={desde} hasta={hasta} />
+
       {/* Cómo se cuenta cada número, dicho de frente y sin ocupar la pantalla.
           Un tablero que no explica su método invita a tomar decisiones sobre
           números que no significan lo que uno cree, y la pregunta "¿esto es
@@ -507,6 +513,44 @@ export default function AdminAnalyticsPage() {
             <dd>
               En hora de Argentina, sumando todos los días del período. Sirve para
               elegir cuándo publicar algo y cuándo no desplegar.
+            </dd>
+          </div>
+          <div>
+            <dt>Crecimiento: altas y porcentajes</dt>
+            <dd>
+              Cuentas creadas dentro del período, sin admins ni cuentas de prueba.
+              &quot;Google&quot; es toda cuenta con Google vinculado, aunque se haya creado con
+              contraseña. Cuando no hay base para el porcentaje (por ejemplo, ningún alta
+              cumplió todavía las 24 h) se muestra &quot;Sin datos&quot;, no 0 %.
+            </dd>
+          </div>
+          <div>
+            <dt>Cargaron un vino en 24 h / 7 días</dt>
+            <dd>
+              De las altas a las que ya les pasó ese plazo, cuántas cargaron al menos un
+              vino dentro de él.
+            </dd>
+          </div>
+          <div>
+            <dt>Activos hoy, en 7 y en 30 días</dt>
+            <dd>
+              Personas con sesión abierta que usaron la app, sin admins ni pruebas. Incluyen
+              hoy, y &quot;hoy&quot; es un día en curso, no uno cerrado. La frecuencia de uso es
+              activos de hoy sobre activos de 30 días.
+            </dd>
+          </div>
+          <div>
+            <dt>Botellas abiertas</dt>
+            <dd>
+              Cuenta las veces que se tocó &quot;abrir&quot;, no las botellas: una acción puede
+              abrir varias, y un bloqueador de rastreo hace que se cuenten de menos.
+            </dd>
+          </div>
+          <div>
+            <dt>Bajas</dt>
+            <dd>
+              Cuentas eliminadas, separadas entre las que se borró la propia persona y las
+              que dio de baja un admin. Las bajas de cuentas de prueba no se cuentan.
             </dd>
           </div>
         </dl>

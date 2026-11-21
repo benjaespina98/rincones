@@ -61,6 +61,12 @@ describe("búsqueda", () => {
     expect(pasaBusqueda(vino(), terminosDe("LUJAN"))).toBe(true);
   });
 
+  it("encuentra por la gama (line), igual que el server", () => {
+    const w = vino({ line: "Gran Reserva" });
+    expect(pasaBusqueda(w, terminosDe("gran reserva"))).toBe(true);
+    expect(pasaBusqueda(vino({ line: "" }), terminosDe("gran reserva"))).toBe(false);
+  });
+
   it("el haystack no explota con campos ausentes", () => {
     expect(() => haystackDe({})).not.toThrow();
   });

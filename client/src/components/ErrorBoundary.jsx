@@ -98,7 +98,7 @@ class ErrorBoundary extends React.Component {
                   textAlign: "left",
                   marginBottom: "var(--space-lg)",
                   padding: "var(--space-md)",
-                  background: "rgba(0,0,0,0.3)",
+                  background: "rgb(var(--ink-rgb) / 0.3)",
                   borderRadius: "var(--radius-md)",
                   fontSize: "0.85rem",
                 }}

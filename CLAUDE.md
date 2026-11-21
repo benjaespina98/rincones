@@ -22,9 +22,10 @@ npm test -w server              # node --test
 npm run build                   # vite build
 ```
 
-Referencia medida el 2026-11-07: **client 911**, **server 650**, tokens **155/155**,
+Referencia medida el 2026-11-21: **client 1016**, **server 843**, tokens **160/160**,
 lint limpio. Los conteos pueden subir, nunca bajar. Carga inicial: presupuesto
-~143 kB gzip (entry ≈74,9 + vendor ≈36,7 + CSS ≈11,8).
+~143 kB gzip (hoy ≈126: entry ≈19,8 + vendor ≈93,4 + CSS ≈12,6; `manualChunks`
+junta react, router y axios en `vendor`).
 
 ## Flujo de ramas
 
@@ -32,6 +33,12 @@ lint limpio. Los conteos pueden subir, nunca bajar. Carga inicial: presupuesto
 Nunca un PR de una rama de trabajo directo a `main`. La feature se borra
 **después** de mergear: `gh pr merge --delete-branch`. Nada llega a producción
 hasta el merge a `main`.
+
+**Por defecto se trabaja directo en `develop`** (el dueño trabaja solo): commits en
+`develop` y PR `develop` → `main`, en **dos tandas separadas**: `/deploy-develop`
+(sube `develop`) y, cuando el dueño lo pide aparte, `/deploy-main` (PR y merge con su
+confirmación). A `main` sólo se pasa con permiso explícito. `main` **no tiene
+protección de rama en GitHub** (verificado 2026-11-21): la única barrera son los hooks.
 
 ## Reglas duras
 
@@ -58,13 +65,17 @@ hasta el merge a `main`.
 | `diseno-y-a11y` | CSS, UI, tokens, íconos, accesibilidad, copy |
 | `gemini` | Sommelier, escáner de etiquetas, streaming, costos |
 | `mongo-y-migraciones` | Modelos, índices (trampa del TTL), scripts `migrate:*` |
+| `levantar-local`, `preparar-commit`, `deploy-develop`, `deploy-main`, `traer-cambios`, `quick-fix`, `new-feature`, `debug-api`, `documentacion` | Flujo diario sobre `develop` (manual de uso: `.claude/GUIA.md`). Los de commit y deploy sólo los dispara el usuario |
 | `publicar` | `/publicar` (feature → develop) y `/publicar main`: verificación + agentes obligatorios + CI. Sólo lo dispara el usuario |
 | `revisar`, `revisar-ui`, `revisar-negocio`, `revisar-seguridad`, `revisar-tests`, `revisar-ia`, `revisar-build`, `probar-app` | Comandos `/`: cada uno lanza a su agente sobre el diff (`/revisar` corre en paralelo los que aplican). Nombre de **acción** para el comando, de **persona** para el agente. Sólo los dispara el usuario |
 
 ## Agentes (`.claude/agents/`)
 
-Cada uno es un experto de sólo lectura (salvo Sherlock, que prueba la app).
-Devuelven hallazgos medidos, no opiniones.
+Cada uno es un experto de sólo lectura (salvo Sherlock, que prueba la app, y los
+constructores `einstein-backend`, `picasso-frontend` y `automata-devops`, que editan).
+Devuelven hallazgos medidos, no opiniones. `messi-lead` y `cyber-security` (sin Bash)
+revisan el diff que se les pasa en el prompt; los constructores y `preparar-commit`/
+`deploy-*` los usan en modo revisión cuando sólo hay que leer.
 
 | Agente | Experto en | Llamarlo para |
 |---|---|---|

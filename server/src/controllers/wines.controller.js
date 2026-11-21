@@ -54,6 +54,9 @@ const create = async (req, res) => {
     // cliente lo usa para decir "sumamos 1, ahora tenés 3" en vez de "agregado".
     return res.status(merged ? 200 : 201).json({ success: true, data: wine, merged, added });
   } catch (error) {
+    if (error?.codigo === "CUENTA_INEXISTENTE") {
+      return res.status(401).json({ success: false, error: error.message });
+    }
     return fail(res, error, req);
   }
 };
