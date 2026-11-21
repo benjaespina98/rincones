@@ -77,8 +77,11 @@ test("getErrorLogs arma el filtro de fecha con el día completo del 'hasta'", as
     assert.ok(filtroUsado.createdAt.$lte instanceof Date);
     // El "hasta" tiene que cubrir el día entero: medianoche sola dejaría
     // afuera todo lo que pasó esa misma tarde.
-    assert.equal(filtroUsado.createdAt.$lte.getHours(), 23);
-    assert.equal(filtroUsado.createdAt.$lte.getMinutes(), 59);
+    // El día se corta en calendario argentino (UTC-3), igual que las métricas: el 5/3 termina a las
+    // 23:59:59.999 de Argentina = 02:59:59.999 UTC del 6/3. Se compara en UTC para que el test no
+    // dependa de la zona horaria de la máquina (en el CI es UTC).
+    assert.equal(filtroUsado.createdAt.$lte.toISOString(), "2026-03-06T02:59:59.999Z");
+    assert.equal(filtroUsado.createdAt.$gte.toISOString(), "2026-03-01T03:00:00.000Z");
   } finally {
     ErrorLog.find = original.find;
     ErrorLog.countDocuments = original.count;
