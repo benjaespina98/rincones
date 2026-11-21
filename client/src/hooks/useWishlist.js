@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getWishes, createWish, updateWish, deleteWish, convertWishToWine } from "../services/wishApi";
+import { getWishes, createWish, updateWish, deleteWish } from "../services/wishApi";
 
 /**
  * ── LA LISTA QUE YA SE BAJÓ NO SE VUELVE A ESPERAR ──────────────────────────
@@ -26,7 +26,18 @@ export const limpiarCacheDeDeseos = () => {
   cacheDeDeseos = null;
 };
 
-export function useWishlist(onWineAdded) {
+/**
+ * Cuántas escrituras se aplicaron. Una carga que salió antes de una escritura y
+ * vuelve después trae la lista de antes: se descarta y se pide de nuevo.
+ */
+let escrituras = 0;
+
+/** Sólo para tests: el contador es del módulo y sobrevive entre casos. */
+export const reiniciarEscrituras = () => {
+  escrituras = 0;
+};
+
+export function useWishlist() {
   const [wishes, setWishes] = useState(() => cacheDeDeseos || []);
   const [loading, setLoading] = useState(cacheDeDeseos === null);
   // Distinguir "no tenés guardados" de "no pudimos cargarlos": mostrar el estado
@@ -39,7 +50,16 @@ export function useWishlist(onWineAdded) {
     try {
       if (!revalidando) setLoading(true);
       setError(null);
-      const data = await getWishes();
+      let data;
+      let fresca = false;
+      for (let intento = 0; intento < 3 && !fresca; intento += 1) {
+        const antes = escrituras;
+        data = await getWishes();
+        fresca = escrituras === antes;
+      }
+      // Tres cargas viejas seguidas: con caché (que ya tiene las escrituras) se
+      // lo deja; sin caché, lo último recibido es mejor que un vacío que miente.
+      if (!fresca && revalidando) return;
       cacheDeDeseos = data;
       setWishes(data);
     } catch {
@@ -59,6 +79,7 @@ export function useWishlist(onWineAdded) {
    * juntos, o al volver a entrar reaparece la versión vieja.
    */
   const aplicar = useCallback((actualizar) => {
+    escrituras += 1;
     setWishes((prev) => {
       const siguiente = actualizar(prev);
       cacheDeDeseos = siguiente;
@@ -83,12 +104,5 @@ export function useWishlist(onWineAdded) {
     return updated;
   }, [aplicar]);
 
-  const convertToWine = useCallback(async (id, purchaseData) => {
-    const wine = await convertWishToWine(id, purchaseData);
-    aplicar((prev) => prev.filter((w) => w._id !== id));
-    onWineAdded?.(wine);
-    return wine;
-  }, [aplicar, onWineAdded]);
-
-  return { wishes, loading, error, addWish, removeWish, toggleWishFavorite, convertToWine, reload: loadWishes };
+  return { wishes, loading, error, addWish, removeWish, toggleWishFavorite, reload: loadWishes };
 }

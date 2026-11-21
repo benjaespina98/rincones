@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const Wine = require("../src/models/wine.model");
 const WineMoment = require("../src/models/wineMoment.model");
 const WineWish = require("../src/models/wineWish.model");
@@ -23,6 +24,7 @@ const wishesService = require("../src/services/wishes.service");
  * stubea (ver la nota del mismo bloque en wines.service.test.js: sin esto cada llamada espera
  * el buffering de mongoose, ~10s).
  */
+User.updateOne = async () => ({}); // contadores del perfil (update atómico)
 ChangeLog.create = async () => ({});
 ChangeLog.insertMany = async () => [];
 WineMoment.updateMany = async () => ({ modifiedCount: 0 });

@@ -23,9 +23,3 @@ export const deleteWish = async (id) => {
   invalidarDestacados();
   return data;
 };
-
-export const convertWishToWine = async (id, purchaseData = {}) => {
-  const { data } = await api.patch(`/wishes/${id}/convert`, purchaseData);
-  invalidarDestacados();
-  return data.data;
-};

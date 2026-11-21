@@ -781,12 +781,26 @@ export default function BodyPage({ initialFilter = "instock" }) {
     if (ids.length === 0 || enLote) return;
     setEnLote(true);
     try {
-      const afectados = await bulkAction(ids, accion);
+      const { affected, ids: procesados, omitidos } = await bulkAction(ids, accion);
       // Se informa lo que CAMBIÓ, no lo que se mandó: si de diez seleccionados
       // seis ya estaban marcados, decir "10 marcados" es contarle al usuario un
       // trabajo que no se hizo.
-      showSuccess(ACCIONES_EN_LOTE[accion](afectados));
-      salirDeSeleccion();
+      // Si no se tocó ninguno por el tope, sólo corresponde el aviso de error: un
+      // "0 vinos marcados" de éxito al lado sería contradictorio.
+      if (!(affected === 0 && omitidos > 0)) showSuccess(ACCIONES_EN_LOTE[accion](affected));
+      if (omitidos > 0) {
+        // El server procesa un máximo por vez: los que quedaron afuera siguen
+        // seleccionados para repetir la acción, y se avisa.
+        const hechos = new Set(procesados);
+        setSeleccion(new Set(ids.filter((id) => !hechos.has(String(id)))));
+        showError(
+          omitidos === 1
+            ? "Quedó 1 vino sin tocar: eran demasiados de una vez. Seguí con el que sigue elegido."
+            : `Quedaron ${omitidos} vinos sin tocar: son demasiados de una vez. Seguí con los que siguen elegidos.`
+        );
+      } else {
+        salirDeSeleccion();
+      }
     } catch {
       showError("No se pudo aplicar el cambio");
     } finally {
@@ -807,7 +821,14 @@ export default function BodyPage({ initialFilter = "instock" }) {
     setPuntajeMin("all");
   };
 
+  // Qué filas tienen una petición en vuelo. Es un ref y no el estado: dos toques
+  // seguidos salen antes de que React repinte, y los dos verían la fila libre
+  // (dos botellas abiertas con un solo gesto). Bloquea por fila: otra fila sigue andando.
+  const enVueloRef = useRef(new Set());
+
   const withPendingAction = useCallback(async (id, action) => {
+    if (enVueloRef.current.has(id)) return;
+    enVueloRef.current.add(id);
     setPendingActionId(id);
     try {
       await action();
@@ -818,7 +839,8 @@ export default function BodyPage({ initialFilter = "instock" }) {
       showError(conflicto ? mensajeDelServidor(err, "Esto ya cambió") : "No se pudo completar la acción. Probá de nuevo.");
       if (conflicto) recargar();
     } finally {
-      setPendingActionId(null);
+      enVueloRef.current.delete(id);
+      setPendingActionId((actual) => (actual === id ? null : actual));
     }
   }, [showError, recargar]);
 

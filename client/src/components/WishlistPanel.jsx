@@ -6,6 +6,7 @@ import LoadingSkeleton from "./LoadingSkeleton";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
 import { useToast } from "../context/ToastContext";
+import { normalizeSearchText } from "../utils/text";
 import "./WishlistPanel.css";
 
 /**
@@ -49,10 +50,12 @@ export default function WishlistPanel({
   const buscando = terms.length > 0;
   const visible = buscando
     ? wishes.filter((w) => {
+        // Normalizado igual que los términos (sin acentos ni mayúsculas):
+        // «torrontes» tiene que encontrar «Torrontés».
         const heno = [w.name, w.winery, w.region, w.varietal, w.vintage]
           .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+          .map(normalizeSearchText)
+          .join(" ");
         return terms.every((t) => heno.includes(t));
       })
     : wishes;

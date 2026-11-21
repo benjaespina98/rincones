@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const Wine = require("../src/models/wine.model");
 const WineMoment = require("../src/models/wineMoment.model");
 const User = require("../src/models/user.model");
@@ -41,6 +42,7 @@ const stubEntorno = ({ wine = null, moments = [] } = {}) => {
   // La auditoría escribe en Mongo y su error se traga en un try/catch, así que
   // sin conexión no falla: ESPERA los diez segundos del buffering de mongoose.
   // Sin este stub, cada borrado le suma diez segundos a la suite por nada.
+  User.updateOne = async () => ({}); // contadores del perfil (update atómico)
   ChangeLog.create = async () => ({});
 
   const registro = { creados: [], updateMany: [], borrados: 0, retract: 0 };

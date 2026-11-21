@@ -43,6 +43,7 @@ export const terminosDe = (searchTerm) =>
 export const haystackDe = (wine) =>
   [
     wine.name,
+    wine.line,
     wine.region,
     wine.winery,
     wine.varietal,

@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const Wine = require("../src/models/wine.model");
 const WineMoment = require("../src/models/wineMoment.model");
 const ChangeLog = require("../src/models/changeLog.model");
@@ -32,6 +34,17 @@ const restore = (object, key, value) => {
  * de estas llamadas (para eso están communityWines.test.js y las pruebas de
  * wineIdentification.test.js, que sí las verifican).
  */
+// Los contadores del perfil se ajustan con un update atómico (pipeline): se anotan para poder mirarlos.
+const statsLlamadas = [];
+User.updateOne = async (filtro, pipeline, opts) => {
+  statsLlamadas.push({ filtro, pipeline, opts });
+  return { modifiedCount: 1 };
+};
+/** El delta que pidió la última llamada para `stats.<campo>` (0 si no lo tocó). */
+const deltaStats = (llamada, campo) =>
+  llamada?.pipeline?.[0]?.$set?.[`stats.${campo}`]?.$max?.[1]?.$add?.[1] ?? 0;
+const sumaStats = (campo) => statsLlamadas.reduce((n, l) => n + deltaStats(l, campo), 0);
+
 ChangeLog.create = async () => ({});
 ChangeLog.insertMany = async () => [];
 WineMoment.updateMany = async () => ({ modifiedCount: 0 });
@@ -49,6 +62,7 @@ test("wines service creates a wine and updates user stats", async () => {
 
   let savedUser = false;
   const user = { stats: { winesCount: 0, tastedWines: 0 }, save: async () => { savedUser = true; } };
+  statsLlamadas.length = 0;
 
   User.findById = async () => user;
   Wine.prototype.save = async function save() { return this; };
@@ -71,9 +85,12 @@ test("wines service creates a wine and updates user stats", async () => {
     assert.equal(merged, false, "un vino que no tenías no es una reposición");
     assert.equal(wine.name, "Malbec");
     assert.equal(wine.status, "tasted");
-    assert.equal(user.stats.winesCount, 1);
-    assert.equal(user.stats.tastedWines, 1);
-    assert.equal(savedUser, true);
+    // El contador se ajusta con un $inc atómico (pipeline), no leyendo y guardando el usuario.
+    assert.equal(statsLlamadas.length, 1);
+    assert.equal(statsLlamadas[0].opts.updatePipeline, true);
+    assert.equal(deltaStats(statsLlamadas[0], "winesCount"), 1);
+    assert.equal(deltaStats(statsLlamadas[0], "tastedWines"), 1);
+    assert.equal(savedUser, false, "ya no hay lectura-modificación-escritura del usuario");
   } finally {
     restore(Wine.prototype, "save", originalSave);
     restore(User, "findById", originalFindById);
@@ -86,14 +103,17 @@ test("wines service updates and removes wines", async () => {
   const originalSave = Wine.prototype.save;
   const originalFindById = User.findById;
   const originalDeleteOne = Wine.deleteOne;
+  const originalFindOneAndUpdate = Wine.findOneAndUpdate;
 
   const user = { stats: { winesCount: 1, tastedWines: 1 }, save: async () => {} };
+  statsLlamadas.length = 0;
   User.findById = async () => user;
   Wine.prototype.save = async function save() { return this; };
   Wine.deleteOne = async () => ({ deletedCount: 1 });
 
+  // `updateWine` valida el documento antes de guardar: el dueño tiene que ser un ObjectId real.
   const existingWine = new Wine({
-    userId: "user-1",
+    userId: new mongoose.Types.ObjectId(),
     name: "Cabernet",
     quantity: 3,
     tasted: true,
@@ -101,6 +121,8 @@ test("wines service updates and removes wines", async () => {
   });
   existingWine.save = async function save() { return this; };
   Wine.findOne = async () => existingWine;
+  // La cantidad se fija con el pipeline atómico (no con save()): se simula su resultado.
+  Wine.findOneAndUpdate = async () => Object.assign(existingWine, { quantity: 5 });
 
   try {
     const updatedWine = await winesService.updateWine("user-1", "wine-1", {
@@ -115,13 +137,15 @@ test("wines service updates and removes wines", async () => {
 
     const deleted = await winesService.deleteWine("user-1", "wine-1");
     assert.equal(deleted, true);
-    assert.equal(user.stats.winesCount, 0);
-    assert.equal(user.stats.tastedWines, 0);
+    assert.equal(sumaStats("winesCount"), -1);
+    assert.equal(sumaStats("tastedWines"), 0, "el updateWine previo lo dejó sin probar: no baja probados");
+    assert.equal(statsLlamadas.at(-1).opts.updatePipeline, true);
   } finally {
     restore(Wine, "findOne", originalFindOne);
     restore(Wine.prototype, "save", originalSave);
     restore(User, "findById", originalFindById);
     restore(Wine, "deleteOne", originalDeleteOne);
+    restore(Wine, "findOneAndUpdate", originalFindOneAndUpdate);
   }
 });
 
@@ -219,6 +243,7 @@ test("un vino NUEVO cargado como tomado afuera queda probado, con su fecha y sin
   const originalUserFindById = User.findById;
 
   const user = { stats: { winesCount: 0, tastedWines: 0 }, save: async () => {} };
+  statsLlamadas.length = 0;
   // No lo tenías: no hay reposición posible.
   Wine.find = () => ({ select: async () => [] });
   // El `save` de mentira NO corre los hooks del modelo, así que los lotes se
@@ -244,7 +269,7 @@ test("un vino NUEVO cargado como tomado afuera queda probado, con su fecha y sin
       0,
       "sin compra no hay lote: nunca estuvo en tu cava"
     );
-    assert.equal(user.stats.tastedWines, 1, "y suma a tus probados del perfil");
+    assert.equal(sumaStats("tastedWines"), 1, "y suma a tus probados del perfil");
   } finally {
     restore(Wine, "find", originalFind);
     restore(Wine.prototype, "save", originalSave);
@@ -365,7 +390,7 @@ test("marcar 'probado' NO mueve el stock: es un dato del historial", async () =>
   Wine.updateOne = async () => { tocoElStock = true; return { matchedCount: 1 }; };
   Wine.findOneAndUpdate = async () => { tocoElStock = true; return null; };
 
-  const vino = new Wine({ userId: "user-1", name: "Saint Felicien", quantity: 2, tasted: false });
+  const vino = new Wine({ userId: new mongoose.Types.ObjectId(), name: "Saint Felicien", quantity: 2, tasted: false });
   vino.save = async function save() { return this; };
   Wine.findOne = async () => vino;
 
@@ -561,6 +586,7 @@ test("borrar en lote no toca vinos de otro y ajusta las estadísticas una sola v
   const user = { stats: { winesCount: 10, tastedWines: 4 }, save: async () => {} };
   const originalFindById = User.findById;
   User.findById = async () => user;
+  statsLlamadas.length = 0;
 
   let filtroBorrado = null;
 
@@ -581,8 +607,9 @@ test("borrar en lote no toca vinos de otro y ajusta las estadísticas una sola v
 
     assert.equal(r.affected, 2);
     assert.equal(filtroBorrado.userId, "user-1");
-    assert.equal(user.stats.winesCount, 8, "bajan los dos");
-    assert.equal(user.stats.tastedWines, 3, "sólo baja el que estaba probado");
+    assert.equal(sumaStats("winesCount"), -2, "bajan los dos");
+    assert.equal(sumaStats("tastedWines"), -1, "sólo baja el que estaba probado");
+    assert.deepEqual(r.inexistentes, []);
   } finally {
     restore(User, "findById", originalFindById);
   }
@@ -861,4 +888,94 @@ test("la búsqueda acota el largo (100) y los términos (8): una consulta enorme
   }
   assert.ok(filtro.$and.length <= 8);
   assert.ok(filtro.$and.length >= 1);
+});
+
+// ── Contadores atómicos, deletedCount y fantasmas del lote ──────────────────────────────────────
+
+test("el descuento del borrado usa deletedCount: si otro dispositivo ya lo borró, no baja nada y devuelve null", async () => {
+  const o = { findOne: Wine.findOne, deleteOne: Wine.deleteOne, findById: User.findById };
+  statsLlamadas.length = 0;
+  Wine.findOne = async () => ({ _id: "w1", name: "A", winery: "B", tasted: true });
+  Wine.deleteOne = async () => ({ deletedCount: 0 });
+  User.findById = async () => ({ _id: "u1", email: "a@b.c", role: "user" });
+  WineMoment.updateMany = async () => ({});
+  try {
+    assert.equal(await winesService.deleteWine("user-1", "w1"), null);
+    assert.equal(statsLlamadas.length, 0);
+  } finally {
+    Wine.findOne = o.findOne;
+    Wine.deleteOne = o.deleteOne;
+    User.findById = o.findById;
+  }
+});
+
+test("250 altas en paralelo no pierden contadores: cada una pide un +1 atómico (nada de leer y guardar)", async () => {
+  const o = { find: Wine.find, save: Wine.prototype.save, findById: User.findById };
+  statsLlamadas.length = 0;
+  let guardados = 0;
+  Wine.find = () => ({ select: async () => [] });
+  Wine.prototype.save = async function save() { return this; };
+  User.findById = async () => ({ _id: "u1", email: "a@b.c", role: "user", stats: {}, save: async () => { guardados += 1; } });
+  try {
+    await Promise.all(
+      Array.from({ length: 250 }, (_, i) => winesService.createWine("user-1", { name: "Vino " + i, winery: "W" + i, quantity: 1 }))
+    );
+    assert.equal(sumaStats("winesCount"), 250);
+    assert.equal(guardados, 0);
+    assert.ok(statsLlamadas.every((l) => l.opts.updatePipeline === true));
+    assert.ok(statsLlamadas.every((l) => String(l.filtro._id) === "user-1"));
+  } finally {
+    Wine.find = o.find;
+    Wine.prototype.save = o.save;
+    User.findById = o.findById;
+  }
+});
+
+test("si el ajuste de contadores falla, el alta ya guardada no se rompe", async () => {
+  const o = { find: Wine.find, save: Wine.prototype.save, findById: User.findById, updateOne: User.updateOne, error: console.error };
+  Wine.find = () => ({ select: async () => [] });
+  Wine.prototype.save = async function save() { return this; };
+  User.findById = async () => ({ _id: "u1", email: "a@b.c", role: "user", stats: {}, save: async () => {} });
+  User.updateOne = async () => { throw new Error("base caída"); };
+  console.error = () => {};
+  try {
+    const r = await winesService.createWine("user-1", { name: "Resiste", winery: "W", quantity: 1 });
+    assert.equal(r.merged, false);
+  } finally {
+    Wine.find = o.find;
+    Wine.prototype.save = o.save;
+    User.findById = o.findById;
+    User.updateOne = o.updateOne;
+    console.error = o.error;
+  }
+});
+
+test("bulk delete: los ids pedidos que ya no existen vuelven en `ids` y en `inexistentes` (no quedan fantasmas en la UI)", async () => {
+  statsLlamadas.length = 0;
+  const original = User.findById;
+  User.findById = async () => ({ _id: "u1", email: "a@b.c", role: "user" });
+  try {
+    const r = await conMock(Wine, "find", () => ({
+      select: () => ({ lean: async () => [{ _id: ID_1, name: "A", winery: "X", tasted: false }] }),
+    }), () =>
+      conMock(Wine, "deleteMany", async () => ({ deletedCount: 1 }), () =>
+        sinEfectos(() => winesService.bulkAction("user-1", [ID_1, ID_2.toUpperCase(), ID_2], "delete"))
+      )
+    );
+    assert.equal(r.affected, 1);
+    assert.deepEqual(r.inexistentes, [ID_2.toUpperCase(), ID_2]);
+    assert.deepEqual(r.ids, [ID_1, ID_2.toUpperCase(), ID_2]);
+    assert.equal(sumaStats("winesCount"), -1, "sólo baja lo que se borró de verdad");
+  } finally {
+    User.findById = original;
+  }
+});
+
+test("bulk delete: si ninguno existe, todos vuelven como inexistentes y no se toca nada", async () => {
+  statsLlamadas.length = 0;
+  const r = await conMock(Wine, "find", () => ({ select: () => ({ lean: async () => [] }) }), () =>
+    winesService.bulkAction("user-1", [ID_1, ID_2], "delete")
+  );
+  assert.deepEqual(r, { affected: 0, ids: [ID_1, ID_2], inexistentes: [ID_1, ID_2], omitidos: 0 });
+  assert.equal(statsLlamadas.length, 0);
 });

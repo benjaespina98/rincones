@@ -1,6 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
+const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const jwt = require("jsonwebtoken");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "secreto-de-test";
@@ -219,6 +221,8 @@ test("createWine: respeta una fecha de alta pasada (Deshacer), ignora la futura 
   ChangeLog.create = async () => ({});
   User.findOne = vacia;
   User.findById = vacia;
+  const origUpdateOne = User.updateOne;
+  User.updateOne = async () => ({}); // contadores del perfil (update atómico)
   wineImages.getImage = async () => "";
   communityWines.contribute = async () => {};
   descripcion.ensureDescription = async () => {};
@@ -250,6 +254,7 @@ test("createWine: respeta una fecha de alta pasada (Deshacer), ignora la futura 
     ChangeLog.create = origLogCreate;
     User.findOne = origUserFindOne;
     User.findById = origUserFindById;
+    User.updateOne = origUpdateOne;
     wineImages.getImage = origImg;
     communityWines.contribute = origCom;
     descripcion.ensureDescription = origDesc;
@@ -299,6 +304,8 @@ test("createWine con restauraDe re-vincula los momentos del diario del vino borr
   communityWines.contribute = async () => {};
   descripcion.ensureDescription = async () => {};
   ChangeLog.create = async () => ({});
+  const origUpdateOne2 = User.updateOne;
+  User.updateOne = async () => ({}); // contadores del perfil (update atómico)
   User.findById = () => {
     const q = Promise.resolve({ _id: ID, stats: {}, save: async () => {} });
     q.select = () => q;
@@ -327,6 +334,7 @@ test("createWine con restauraDe re-vincula los momentos del diario del vino borr
     communityWines.contribute = orig.com;
     descripcion.ensureDescription = orig.desc;
     User.findById = orig.uf;
+    User.updateOne = origUpdateOne2;
     ChangeLog.create = orig.log;
   }
 });

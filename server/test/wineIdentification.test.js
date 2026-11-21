@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const Wine = require("../src/models/wine.model");
 const User = require("../src/models/user.model");
 const ChangeLog = require("../src/models/changeLog.model");
@@ -78,6 +79,7 @@ const stubEntorno = (wineExistente = null) => {
   winePrices.contribute = async () => {};
   imageStorage.store = async (v) => v;
   wineDescription.ensureDescription = async () => {};
+  User.updateOne = async () => ({}); // contadores del perfil (update atómico)
   ChangeLog.create = async () => ({});
 
   return {

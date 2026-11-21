@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // sin base: lo no stubeado falla en el acto en vez de esperar 10 s
 const Wine = require("../src/models/wine.model");
 const WineMoment = require("../src/models/wineMoment.model");
 const ChangeLog = require("../src/models/changeLog.model");
@@ -17,6 +18,7 @@ const winesService = require("../src/services/wines.service");
  * `type: "click"` (el evento del toque, colado por un `onClick={fn}`) y nadie podía agregar
  * un vino a mano. El cliente ya se arregló; esto fija la defensa del server.
  */
+User.updateOne = async () => ({}); // contadores del perfil (update atómico)
 ChangeLog.create = async () => ({});
 ChangeLog.insertMany = async () => [];
 WineMoment.updateMany = async () => ({ modifiedCount: 0 });

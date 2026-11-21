@@ -37,7 +37,6 @@ describe("cualquier cambio de la bodega o los deseos tira el set guardado de la 
     ["una acción en lote", () => wineApi.bulkWines(["1"], "tasted")],
     ["guardar un deseo", () => wishApi.createWish({ name: "x" })],
     ["borrar un deseo", () => wishApi.deleteWish("1")],
-    ["pasar un deseo a la bodega", () => wishApi.convertWishToWine("1")],
   ])("%s", async (_, accion) => {
     expect(hay()).toBe(true);
     await accion();
