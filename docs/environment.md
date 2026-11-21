@@ -40,6 +40,12 @@ Dos cosas a tener presentes:
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | No | Envío de mails |
 | `GOOGLE_CLIENT_ID` | No | "Continuar con Google" (mismo valor que `VITE_GOOGLE_CLIENT_ID`) |
 | `ANALYTICS_SALT` | No | Sal del hash de visitantes |
+| `ANALYTICS_EXCLUIR_ADMINS` | No | Por defecto las cuentas admin no cuentan en las métricas; `0` o `false` las vuelve a medir |
+| `ANALYTICS_EXCLUIR_DOMINIOS` | No | Dominios de email de cuentas de prueba que no cuentan (por defecto `example.test`) |
+| `ANALYTICS_MAX_VISITANTES_DIA` / `ANALYTICS_MAX_SESIONES_DIA` | No | Tope de visitantes (5000) y sesiones (20000) nuevos por día: pasado el tope no se suman más |
+| `ANALYTICS_RESERVA_LOGUEADOS_DIA` | No | Cupo extra (5000) para eventos con sesión abierta: no los desplaza el tope de anónimos |
+| `ANALYTICS_MAX_NUEVOS_POR_IP_DIA` | No | Visitantes nuevos que una misma IP puede sumar por día (20), contado en memoria por instancia |
+| `ANALYTICS_LIMITE_IP` | No | Pedidos a `/api/analytics/collect` por IP cada 5 minutos (por defecto 100) |
 | `COOKIE_DOMAIN` / `COOKIE_SAMESITE` | No | Sólo con frontend y backend en subdominios de un dominio propio |
 | `SENTRY_DSN` / `SENTRY_RELEASE` | No | Monitoreo de errores |
 

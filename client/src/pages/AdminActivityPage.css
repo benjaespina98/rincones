@@ -1,0 +1,19 @@
+/* Actividad: ajustes propios de esta pantalla sobre AdminLayout.css. */
+
+/* Rol de quien actuó, al lado del mail. Sólo se rotula al usuario común: los
+   registros sin rol cuentan como admin y repetir "admin" en cada fila es ruido. */
+.admin-actor-role {
+  color: var(--text-secondary);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+/* El panel usa controles de 34px a propósito (tablero de trabajo con mouse);
+   en pantallas táctiles los filtros suben al target de 44px. */
+@media (pointer: coarse) {
+  .admin-filters .admin-chip,
+  .admin-filters .admin-date-input,
+  .admin-filters .admin-activity__actor .dropdown__trigger {
+    min-height: var(--control-md);
+  }
+}

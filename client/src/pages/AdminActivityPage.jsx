@@ -5,6 +5,7 @@ import ErrorState from "../components/ErrorState";
 import AdminPager from "../components/AdminPager";
 import Dropdown from "../components/Dropdown";
 import Icon from "../components/Icon";
+import "./AdminActivityPage.css";
 
 const ACTION_LABELS = { create: "Creado", update: "Actualizado", delete: "Eliminado" };
 
@@ -64,6 +65,14 @@ const FILTROS_ACCION = [
   { value: "delete", label: "Bajas" },
 ];
 
+const FILTROS_ROL = [
+  { value: "", label: "Todos" },
+  { value: "admin", label: "Admins" },
+  { value: "user", label: "Usuarios" },
+];
+
+const ROL_LABELS = { admin: "admin", user: "usuario" };
+
 const POR_PAGINA = 30;
 
 const hora = (d) =>
@@ -111,21 +120,36 @@ const AdminActivityPage = () => {
   // ahora exigía scrollear página por página buscándola a mano.
   const [actor, setActor] = useState("");
   const [actors, setActors] = useState([]);
+  // "Quién" no es sólo admins: el actor es quien edita, y una persona común
+  // editando lo suyo también queda en el registro. El rol los separa.
+  const [actorRole, setActorRole] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Se pide una sola vez: la lista de admins no cambia mientras se filtra.
+  // La lista de autores se pide de nuevo al cambiar el rol, para que el
+  // desplegable no ofrezca a alguien que el filtro de rol dejaría en cero.
   useEffect(() => {
-    getChangeLogActors().then(setActors).catch(() => setActors([]));
-  }, []);
+    let active = true;
+    getChangeLogActors({ role: actorRole })
+      .then(({ emails, details }) => {
+        if (!active) return;
+        // `details` trae el rol de cada uno; si el server viejo no lo manda,
+        // se cae a la lista de mails sin rol.
+        setActors(details.length ? details : emails.map((email) => ({ email, role: "" })));
+      })
+      .catch(() => active && setActors([]));
+    return () => {
+      active = false;
+    };
+  }, [actorRole]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await getChangeLogs({ page, limit: POR_PAGINA, entityType, action, q: query, actor, from, to });
+      const res = await getChangeLogs({ page, limit: POR_PAGINA, entityType, action, q: query, actor, from, to, actorRole });
       setLogs(res.data || []);
       setPagination(res.pagination || { page: 1, pages: 1, total: 0 });
     } catch {
@@ -133,7 +157,7 @@ const AdminActivityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, entityType, action, query, actor, from, to]);
+  }, [page, entityType, action, query, actor, actorRole, from, to]);
 
   // Mismo debounce que Usuarios: escribir "fulano@" no dispara una consulta
   // por letra.
@@ -155,13 +179,14 @@ const AdminActivityPage = () => {
     return grupos;
   }, [logs]);
 
-  const hayFiltros = Boolean(query || entityType || action || actor || from || to);
+  const hayFiltros = Boolean(query || entityType || action || actor || actorRole || from || to);
 
   const limpiarFiltros = () => {
     setQuery("");
     setEntityType("");
     setAction("");
     setActor("");
+    setActorRole("");
     setFrom("");
     setTo("");
     setPage(1);
@@ -183,7 +208,7 @@ const AdminActivityPage = () => {
           type="search"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-          placeholder="Buscar por admin, vino, mail…"
+          placeholder="Buscar por quién, vino, mail…"
           aria-label="Buscar en el registro"
         />
       </div>
@@ -222,19 +247,37 @@ const AdminActivityPage = () => {
           ))}
         </div>
 
-        {/* Quién y cuándo: los dos filtros que faltaban. "Admin" es un
-            desplegable (no chips) porque la lista crece con cada admin nuevo
-            — una fila de chips que no entra en un renglón deja de ser un
-            filtro rápido. El rango de fechas son dos campos nativos: no hace
-            falta un calendario propio para elegir "desde" y "hasta". */}
-        <div className="admin-filter-group" role="group" aria-label="Filtrar por admin">
-          <span className="admin-filter-group__label">Admin</span>
+        {/* Quién y cuándo. "Quién" son dos filtros: el rol (chips, son tres) y
+            la persona (desplegable, porque la lista crece con cada cuenta —una
+            fila de chips que no entra en un renglón deja de ser un filtro
+            rápido—). Antes se llamaba "Admin" y listaba también a usuarios
+            comunes, que figuran como autores de lo que editan. El rango de
+            fechas son dos campos nativos: no hace falta un calendario propio. */}
+        <div className="admin-filter-group" role="group" aria-label="Filtrar por rol de quien actuó">
+          <span className="admin-filter-group__label">Quién</span>
+          {FILTROS_ROL.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={`admin-chip ${actorRole === f.value ? "is-active" : ""}`}
+              aria-pressed={actorRole === f.value}
+              onClick={() => { setActorRole(f.value); setActor(""); setPage(1); }}
+            >
+              {f.label}
+            </button>
+          ))}
           <Dropdown
             className="admin-activity__actor"
             value={actor}
             onChange={(v) => { setActor(v); setPage(1); }}
-            options={[{ value: "", label: "Todos" }, ...actors.map((a) => ({ value: a, label: a }))]}
-            ariaLabel="Filtrar por admin"
+            options={[
+              { value: "", label: "Todas las personas" },
+              ...actors.map((a) => ({
+                value: a.email,
+                label: !actorRole && ROL_LABELS[a.role] ? `${a.email} · ${ROL_LABELS[a.role]}` : a.email,
+              })),
+            ]}
+            ariaLabel="Filtrar por persona"
           />
         </div>
 
@@ -285,7 +328,7 @@ const AdminActivityPage = () => {
                 <th scope="col">Acción</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Qué</th>
-                <th scope="col">Admin</th>
+                <th scope="col">Quién</th>
               </tr>
             </thead>
             <tbody>
@@ -313,7 +356,10 @@ const AdminActivityPage = () => {
                           </td>
                           <td data-label="Tipo">{ENTITY_LABELS[log.entityType] || log.entityType}</td>
                           <td className="admin-table__desc admin-table__id" data-label="Qué">{describirLog(log)}</td>
-                          <td data-label="Admin">{log.actor?.email || "Sin dato"}</td>
+                          <td data-label="Quién">
+                            {log.actor?.email || "Sin dato"}
+                            {log.actor?.role === "user" && <span className="admin-actor-role"> · usuario</span>}
+                          </td>
                         </tr>
                       ))}
                     </Fragment>

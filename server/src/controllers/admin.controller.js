@@ -10,7 +10,10 @@ const catalogService = require("../services/catalog.service");
 const accountDeletion = require("../services/accountDeletion.service");
 const wineImages = require("../services/wineImages.service");
 const imageStorage = require("../services/imageStorage.service");
+const growthMetrics = require("../services/growthMetrics.service");
 const { CATALOG, fold } = require("../data/argentineWines");
+const { filtroDeFechas } = require("../utils/dateRange");
+const { leerPaginacion } = require("../utils/paginacion");
 
 // Registra una acción de admin sobre OTRA cuenta. Best-effort, igual que la
 // auditoría de reseñas: la moderación (acá, la gestión de usuarios) nunca
@@ -23,13 +26,20 @@ const logAdminAction = async ({ entityType, entityId, action, actor, before, aft
   }
 };
 
+/**
+ * Qué se guarda de la cuenta afectada en el registro de auditoría: el mail ENMASCARADO y nunca el nombre.
+ * El registro no caduca, y quien pide irse (o a quien se le da de baja) no puede quedar ahí con nombre y mail.
+ */
+const cuentaParaAuditoria = (user) => ({
+  email: accountDeletion.enmascararEmail(user.email),
+  role: user.role,
+});
+
 const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getChangeLogs = async (req, res, next) => {
   try {
-    const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(Number(req.query.limit || 30), 100);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = leerPaginacion(req.query, { porDefecto: 30, maximo: 100 });
 
     const entityType = String(req.query.entityType || "").trim();
     const action = String(req.query.action || "").trim();
@@ -37,6 +47,7 @@ const getChangeLogs = async (req, res, next) => {
     const actor = String(req.query.actor || "").trim();
     const from = String(req.query.from || "").trim();
     const to = String(req.query.to || "").trim();
+    const actorRole = String(req.query.actorRole || "").trim();
 
     const filter = {};
     if (entityType) filter.entityType = entityType;
@@ -47,25 +58,18 @@ const getChangeLogs = async (req, res, next) => {
     // `getChangeLogActors`).
     if (actor) filter["actor.email"] = actor;
     // Rango de fechas: "¿qué pasó esta semana?" es una pregunta tan real como
-    // "¿qué pasó con este vino?", y hasta ahora sólo se podía contestar
-    // scrolleando página por página. `to` incluye el día entero (23:59:59.999),
-    // no sólo la medianoche, porque un date picker entrega "2026-03-05" y
-    // alguien que filtra "hasta hoy" espera ver los movimientos de hoy mismo.
-    if (from || to) {
-      filter.createdAt = {};
-      if (from) {
-        const desde = new Date(from);
-        if (!Number.isNaN(desde.getTime())) filter.createdAt.$gte = desde;
-      }
-      if (to) {
-        const hasta = new Date(to);
-        if (!Number.isNaN(hasta.getTime())) {
-          hasta.setHours(23, 59, 59, 999);
-          filter.createdAt.$lte = hasta;
-        }
-      }
-      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
-    }
+    // "¿qué pasó con este vino?". Los días se interpretan en calendario argentino (el mismo
+    // corte que las métricas, ver utils/dateRange) y `to` incluye el día entero hasta las
+    // 23:59:59.999. Un valor que no sea un "YYYY-MM-DD" real se ignora.
+    const rangoFechas = filtroDeFechas({ from, to });
+    if (rangoFechas) filter.createdAt = rangoFechas;
+
+    // Quién actuó: un admin o una persona común editando lo suyo. El registro mezcla las dos
+    // cosas (cada alta, edición o baja de vino queda con su autor), así que la pantalla necesita
+    // poder separarlas. Los registros sin rol (viejos) cuentan como admin, que era lo único que
+    // se auditaba antes.
+    if (actorRole === "user") filter["actor.role"] = "user";
+    else if (actorRole === "admin") filter["actor.role"] = { $ne: "user" };
 
     // Con tres chips (tipo, acción) se podía mirar el registro, pero no
     // BUSCAR en él — y el uso real de una auditoría es puntual: "¿quién le
@@ -85,6 +89,13 @@ const getChangeLogs = async (req, res, next) => {
         { "before.email": rx },
         { "before.wine": rx },
       ];
+      // Los mails de las cuentas afectadas se guardan ENMASCARADOS ("ju***@gmail.com"): buscar el mail entero
+      // ("juan.perez@gmail.com") ya no coincidiría con el regex. Se busca también su forma enmascarada, que es
+      // lo que hay guardado, y el dominio suelto ("@gmail.com") sigue encontrando por el regex de arriba.
+      if (q.includes("@")) {
+        const enmascarado = accountDeletion.enmascararEmail(q);
+        filter.$or.push({ "after.targetEmail": enmascarado }, { "before.email": enmascarado });
+      }
     }
 
     // Antes esto sólo tenía `limit`: cualquier movimiento más allá de los
@@ -107,10 +118,23 @@ const getChangeLogs = async (req, res, next) => {
 // Quiénes aparecen como actor en el registro, para el filtro "Admin" — una
 // lista de mails para elegir, no un campo de texto libre que exige saber de
 // memoria quién hizo qué.
+//
+// `data` sigue siendo la lista de mails (contrato de siempre). `details` suma el rol con el que
+// actuó cada uno la última vez, y `?role=admin|user` filtra la lista: la columna "Admin" del
+// registro listaba también a usuarios comunes (el actor es quien edita, sea quien sea).
 const getChangeLogActors = async (req, res, next) => {
   try {
-    const actors = await ChangeLog.distinct("actor.email");
-    return res.status(200).json({ data: actors.filter(Boolean).sort() });
+    const role = String(req.query.role || "").trim();
+    const filas = await ChangeLog.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$actor.email", role: { $first: "$actor.role" } } },
+    ]);
+    const details = filas
+      .filter((f) => f._id)
+      .map((f) => ({ email: f._id, role: f.role === "user" ? "user" : "admin" }))
+      .filter((f) => !["admin", "user"].includes(role) || f.role === role)
+      .sort((a, b) => a.email.localeCompare(b.email));
+    return res.status(200).json({ data: details.map((d) => d.email), details });
   } catch (error) {
     return next(error);
   }
@@ -126,9 +150,7 @@ const getChangeLogActors = async (req, res, next) => {
  */
 const getErrorLogs = async (req, res, next) => {
   try {
-    const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(Number(req.query.limit || 30), 100);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = leerPaginacion(req.query, { porDefecto: 30, maximo: 100 });
 
     const q = String(req.query.q || "").trim();
     const from = String(req.query.from || "").trim();
@@ -139,21 +161,8 @@ const getErrorLogs = async (req, res, next) => {
       const rx = new RegExp(escapeRegex(q), "i");
       filter.$or = [{ message: rx }, { route: rx }];
     }
-    if (from || to) {
-      filter.createdAt = {};
-      if (from) {
-        const desde = new Date(from);
-        if (!Number.isNaN(desde.getTime())) filter.createdAt.$gte = desde;
-      }
-      if (to) {
-        const hasta = new Date(to);
-        if (!Number.isNaN(hasta.getTime())) {
-          hasta.setHours(23, 59, 59, 999);
-          filter.createdAt.$lte = hasta;
-        }
-      }
-      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
-    }
+    const rangoFechas = filtroDeFechas({ from, to });
+    if (rangoFechas) filter.createdAt = rangoFechas;
 
     const [logs, total] = await Promise.all([
       ErrorLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -193,6 +202,16 @@ const getSummary = async (req, res, next) => {
     const desde = new Date(Date.now() - horas * 60 * 60 * 1000);
     const enRango = { createdAt: { $gte: desde } };
 
+    // Crecimiento y activación (ver growthMetrics.service), en paralelo con lo de abajo. Si falla,
+    // el resto del resumen sigue llegando y `growth` va en null: un número nuevo no puede tirar el
+    // panel entero. `?growth=0` lo omite. Acepta `days`, `from` y `to` (calendario argentino).
+    const growthPendiente =
+      String(req.query.growth) === "0"
+        ? Promise.resolve(null)
+        : growthMetrics
+            .consultarCrecimiento({ days: req.query.days, from: req.query.from, to: req.query.to })
+            .catch(() => null);
+
     // En paralelo: son consultas independientes sobre índices distintos y en
     // serie el panel tardaría la suma de todas.
     const [usuarios, admins, movimientos, creaciones, ediciones, borrados, vinos, resenas] =
@@ -216,6 +235,7 @@ const getSummary = async (req, res, next) => {
         wines: vinos,
         reviews: resenas,
         activity: { total: movimientos, create: creaciones, update: ediciones, delete: borrados },
+        growth: await growthPendiente,
       },
     });
   } catch (error) {
@@ -226,9 +246,7 @@ const getSummary = async (req, res, next) => {
 // Listar usuarios con búsqueda y conteo de actividad (solo para admins).
 const getUsers = async (req, res, next) => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Math.min(Number(req.query.limit || 20), 100);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = leerPaginacion(req.query, { porDefecto: 20, maximo: 100 });
     const q = String(req.query.q || "").trim();
     const role = String(req.query.role || "").trim();
 
@@ -316,6 +334,11 @@ const updateUserRole = async (req, res, next) => {
       return res.status(400).json({ message: "role debe ser 'user' o 'admin'" });
     }
 
+    // Un id mal formado daba CastError → 500; es un pedido inválido, no una falla del server.
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ message: "userId inválido" });
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -351,7 +374,7 @@ const updateUserRole = async (req, res, next) => {
       action: "update",
       actor: { userId: req.user.id, email: req.user.email, role: "admin" },
       before: { role: previousRole },
-      after: { role: user.role, targetEmail: user.email },
+      after: { role: user.role, targetEmail: accountDeletion.enmascararEmail(user.email) },
     });
 
     return res.status(200).json({
@@ -368,6 +391,9 @@ const updateUserRole = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ message: "userId inválido" });
+    }
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
@@ -446,10 +472,11 @@ const deleteUser = async (req, res, next) => {
 
     await logAdminAction({
       entityType: "user",
-      entityId: user._id,
+      // Un id nuevo, no el de la cuenta borrada: el registro no caduca y con el id se unía con lo que quedara.
+      entityId: new mongoose.Types.ObjectId(),
       action: "delete",
       actor: { userId: req.user.id, email: req.user.email, role: "admin" },
-      before: { email: user.email, role: user.role, firstName: user.firstName },
+      before: cuentaParaAuditoria(user),
       after: null,
     });
 
@@ -469,16 +496,26 @@ const deleteUser = async (req, res, next) => {
  */
 const bulkDeleteUsers = async (req, res, next) => {
   try {
-    const ids = Array.isArray(req.body.ids) ? req.body.ids.filter(Boolean) : [];
-    if (ids.length === 0) {
+    // Sólo strings con forma de ObjectId, y sin repetidos: un objeto ({ $ne: null }) o un id basura no llega a
+    // `findById` (mismo criterio que `deleteUser`). Los inválidos se informan como fallidos, no se pierden.
+    const crudos = Array.isArray(req.body?.ids) ? req.body.ids.filter(Boolean) : [];
+    const ids = [];
+    const invalidos = [];
+    for (const id of new Set(crudos.filter((x) => typeof x === "string"))) {
+      if (mongoose.isValidObjectId(id)) ids.push(id);
+      else invalidos.push(id);
+    }
+    const noStrings = crudos.length - crudos.filter((x) => typeof x === "string").length;
+    if (ids.length === 0 && invalidos.length === 0 && noStrings === 0) {
       return res.status(400).json({ message: "No se recibió ningún usuario para eliminar" });
     }
-    if (ids.length > 100) {
+    if (crudos.length > 100) {
       return res.status(400).json({ message: "Máximo 100 usuarios por lote" });
     }
 
     const deleted = [];
-    const failed = [];
+    const failed = invalidos.map((userId) => ({ userId: userId.slice(0, 40), reason: "Id inválido" }));
+    if (noStrings > 0) failed.push({ userId: null, reason: `${noStrings} elemento(s) que no son un id` });
 
     for (const userId of ids) {
       try {
@@ -507,10 +544,10 @@ const bulkDeleteUsers = async (req, res, next) => {
 
         await logAdminAction({
           entityType: "user",
-          entityId: user._id,
+          entityId: new mongoose.Types.ObjectId(),
           action: "delete",
           actor: { userId: req.user.id, email: req.user.email, role: "admin" },
-          before: { email: user.email, role: user.role, firstName: user.firstName },
+          before: cuentaParaAuditoria(user),
           after: null,
         });
 
@@ -521,7 +558,7 @@ const bulkDeleteUsers = async (req, res, next) => {
     }
 
     return res.status(200).json({
-      message: `${deleted.length} de ${ids.length} cuentas eliminadas`,
+      message: `${deleted.length} de ${crudos.length} cuentas eliminadas`,
       data: { deleted, failed },
     });
   } catch (error) {
@@ -535,9 +572,7 @@ const bulkDeleteUsers = async (req, res, next) => {
 
 const getReviews = async (req, res, next) => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Math.min(Number(req.query.limit || 20), 100);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = leerPaginacion(req.query, { porDefecto: 20, maximo: 100 });
     const q = String(req.query.q || "").trim();
     // Filtro por puntaje: el uso real de moderación es "mostrame las de 1-2
     // estrellas primero", no revisar todo en orden cronológico.

@@ -20,21 +20,21 @@ const mongoose = require("mongoose");
  * hay tarea nocturna que pueda quedar sin correr, y el panel lee números ya
  * calculados en vez de recorrer la colección de eventos.
  *
- * ── LÍMITE CONOCIDO DE LOS SETS ─────────────────────────────────────────────
+ * ── CICLO DE VIDA DE LOS SETS (PRIVACIDAD Y TAMAÑO) ─────────────────────────
  * `visitors`, `sessionHashes` y `loggedInVisitors` guardan un hash por visitante
- * del día y crecen mientras el día dure. NO se recortan: hoy no hay ninguna tarea
- * que lo haga, y decir lo contrario sería describir algo que no existe.
+ * del día y sólo hacen falta mientras el día está abierto (para no contar dos
+ * veces a la misma persona). Cuando el día queda atrás (anterior a ayer) se
+ * CIERRAN: los sets se vacían, `closed` pasa a true y quedan los contadores, que
+ * es lo único que se lee a largo plazo. Así un hash no vive más de ~2 días acá.
+ * El cierre es oportunista (lo dispara el primer evento del día en cada
+ * instancia): no hay tarea nocturna que pueda quedar sin correr.
  *
- * Con el tráfico de una app personal esto es irrelevante (32 caracteres por
- * visitante: mil visitantes son ~32 KB). Empieza a molestar en el orden de las
- * decenas de miles de visitantes por día, porque `$addToSet` recorre el array
- * entero en cada evento y el documento tiene un techo de 16 MB.
+ * Si alguien borra su cuenta, `analytics.service.olvidarUsuario` saca sus hashes
+ * de los sets (días abiertos) o descuenta de los contadores (días cerrados), para
+ * que ni el total ni la serie diaria lo recuerden.
  *
- * El día que ese volumen sea un problema real, el reemplazo es un HyperLogLog
- * (cuenta únicos en un espacio fijo, con ~2% de error) o vaciar los sets al
- * cerrar el día y quedarse con los contadores, que es lo único que se lee a
- * largo plazo. Anotado en el PR como deuda; hasta entonces, esto es más simple y
- * exacto.
+ * Tope por día: ver `LIMITE_VISITANTES_DIA` en analytics.service (al pasarse deja
+ * de agregar visitantes nuevos).
  */
 const analyticsDailySchema = new mongoose.Schema(
   {
@@ -87,6 +87,11 @@ const analyticsDailySchema = new mongoose.Schema(
       type: [String],
       default: [],
       select: false,
+    },
+    // true cuando el día se cerró y los sets de arriba se vaciaron a propósito.
+    closed: {
+      type: Boolean,
+      default: false,
     },
     mobile: {
       type: Number,

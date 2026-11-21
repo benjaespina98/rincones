@@ -10,15 +10,22 @@ const router = Router();
  *
  * El general de la app (600 cada 15 minutos) lo comparten todas las rutas, y
  * medir no puede comerse la cuota de las cosas que el usuario necesita. Al mismo
- * tiempo tiene que ser generoso: detrás de un NAT o de una red de oficina hay
- * mucha gente con la misma IP, y cortarles el conteo sesgaría justo el número que
- * se quiere mirar.
+ * tiempo tiene que dejar pasar el uso real: el client junta los eventos y manda
+ * un lote cada 4 s como máximo (~75 pedidos por 5 min en el peor caso continuo; una
+ * sesión normal manda bastante menos), y detrás de un NAT hay varias personas con
+ * la misma IP. Por eso 100 por 5 min (antes 300, que dejaba a un script sembrar
+ * ~86 mil lotes por IP y por día). Se puede mover con ANALYTICS_LIMITE_IP.
  *
  * `skip` con éxito no aplica: acá todo responde 204, así que no habría límite.
  */
+const limiteIp = () => {
+  const n = Math.floor(Number(process.env.ANALYTICS_LIMITE_IP));
+  return Number.isFinite(n) && n > 0 ? n : 100;
+};
+
 const ingestaLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 300,
+  max: limiteIp, // v6: acepta número o función (se evalúa por pedido)
   standardHeaders: true,
   legacyHeaders: false,
   // Pasado el límite se descarta en silencio: un 429 en la consola del visitante

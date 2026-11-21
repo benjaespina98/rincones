@@ -12,11 +12,16 @@ import "./AdminUsersPage.css";
 const SORT_OPTIONS = [
   { value: "createdAt:desc", label: "Alta: más nuevos" },
   { value: "createdAt:asc", label: "Alta: más viejos" },
-  { value: "wineCount:desc", label: "Más vinos" },
-  { value: "wineCount:asc", label: "Menos vinos" },
-  { value: "reviewCount:desc", label: "Más reseñas" },
-  { value: "reviewCount:asc", label: "Menos reseñas" },
+  // Los conteos (vinos, reseñas) los ordena el server en memoria SOBRE LA PÁGINA
+  // VISIBLE, no sobre todas las cuentas: el rótulo lo dice para no prometer un
+  // ranking global ("quién tiene más vinos") que esta pantalla no puede dar.
+  { value: "wineCount:desc", label: "Más vinos (esta página)" },
+  { value: "wineCount:asc", label: "Menos vinos (esta página)" },
+  { value: "reviewCount:desc", label: "Más reseñas (esta página)" },
+  { value: "reviewCount:asc", label: "Menos reseñas (esta página)" },
 ];
+
+const ordenaSoloPagina = (key) => /^(wineCount|reviewCount):/.test(key);
 
 /**
  * Gestión de usuarios y roles.
@@ -203,6 +208,12 @@ const AdminUsersPage = () => {
           options={SORT_OPTIONS}
           ariaLabel="Ordenar por"
         />
+        {ordenaSoloPagina(sortKey) && (
+          <p className="admin-users__sort-hint" role="note">
+            Ordena sólo las cuentas de esta página, no todas. Para ver quién tiene
+            más en total, no alcanza con esta lista.
+          </p>
+        )}
       </div>
 
       {/* La barra de lote aparece SÓLO con algo seleccionado.

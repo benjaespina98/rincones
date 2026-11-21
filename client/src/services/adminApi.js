@@ -11,6 +11,18 @@ export const getAdminSummary = async (hours = 24) => {
   return data.data;
 };
 
+/**
+ * El crecimiento de la base de cuentas (`growth` del resumen). `rango` es
+ * `{ days }` o `{ from, to }`, igual que el tablero de uso. Devuelve `null` si el
+ * server lo omitió o falló su cálculo (el resto del resumen llega igual): quien
+ * lo dibuja tiene que tratar `null` como "no disponible", no como ceros.
+ */
+export const getAdminGrowth = async (rango = { days: 30 }) => {
+  // hours=1: lo único que interesa acá es `growth`; la actividad se pide mínima.
+  const { data } = await api.get("/admin/summary", { params: { hours: 1, ...rango } });
+  return data?.data?.growth ?? null;
+};
+
 export const getChangeLogs = async ({
   page = 1,
   limit = 30,
@@ -20,18 +32,20 @@ export const getChangeLogs = async ({
   actor = "",
   from = "",
   to = "",
+  actorRole = "",
 } = {}) => {
   const { data } = await api.get("/admin/logs", {
-    params: { page, limit, entityType, action, q, actor, from, to },
+    params: { page, limit, entityType, action, q, actor, from, to, actorRole },
   });
   return data;
 };
 
-// Los admins que aparecen como autor de algún movimiento, para el filtro
-// "Admin" — una lista para elegir, no un mail que hay que escribir de memoria.
-export const getChangeLogActors = async () => {
-  const { data } = await api.get("/admin/logs/actors");
-  return data.data || [];
+// Quienes aparecen como autor de algún movimiento, para el filtro "Quién" — una
+// lista para elegir, no un mail que hay que escribir de memoria. `role` ("admin" |
+// "user") acota la lista. Devuelve `{ emails, details: [{ email, role }] }`.
+export const getChangeLogActors = async ({ role = "" } = {}) => {
+  const { data } = await api.get("/admin/logs/actors", { params: { role } });
+  return { emails: data.data || [], details: data.details || [] };
 };
 
 // Los fallos del servidor (ver errorLog.service.js) — distinto de

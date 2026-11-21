@@ -170,7 +170,9 @@ test("los mapas del día tienen tope de claves: lo que pasa se junta en 'otro'",
     existentes,
     hora: 3,
   });
-  assert.equal(inc["byType.otro"], 2);
+  // "pageview" es un tipo legítimo conocido: no se desplaza a "otro" aunque el mapa esté lleno.
+  assert.equal(inc["byType.otro"], 1);
+  assert.equal(inc["byType.pageview"], 1);
   assert.equal(inc["byType.t3"], 1, "una clave existente sigue sumando");
   assert.equal(inc["byPath.otro"], 1);
   assert.equal(inc["byType.nuevo_tipo"], undefined);
