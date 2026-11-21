@@ -226,6 +226,9 @@
   --type-unknown: #b9a9e8;
   --type-unknown-rgb: 185 169 232;
   --type-unknown-deep: #5a4a86;
+  /* Para gráficos: los *-deep dan 1,31:1 y 1,70:1 contra la barra (WCAG 1.4.11 pide 3:1). */
+  --type-red-chart: #d9506b;
+  --type-unknown-chart: #9a82da;
 
   /* El tipo por defecto, para lo que todavía no declaró ninguno. */
   --type-accent: var(--type-unknown);

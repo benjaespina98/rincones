@@ -381,7 +381,7 @@
      entrada y tiene que leerse como el que se toca. El violeta va del claro al
      de marca en diagonal — el mismo sentido que el halo de la tarjeta, así que
      la luz de todo el bloque parece venir del mismo lado. */
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent-fill);
   color: var(--paper);
   font-size: var(--text-md);
   font-weight: 700;
@@ -390,7 +390,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .spotlight__add:hover:not(:disabled) { background: var(--accent-light); }
+  .spotlight__add:hover:not(:disabled) { background: var(--accent-fill-hover); }
 }
 .spotlight__add.is-added {
   background: rgb(var(--success-rgb) / 0.18);
@@ -1209,7 +1209,7 @@
 
 .spotlight__actions .spotlight__add,
 .spotlight__actions .spotlight__surprise {
-  min-height: 40px;
+  min-height: var(--control-md);
   padding-top: 0;
   padding-bottom: 0;
   white-space: nowrap;

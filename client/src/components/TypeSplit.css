@@ -9,6 +9,7 @@
    100, muestra un reparto—. */
 .type-split__bar {
   display: flex;
+  gap: 2px;
   height: 16px;
   border-radius: var(--radius-full);
   overflow: hidden;
