@@ -554,7 +554,8 @@
 .suggestion-card:focus-visible {
   border-color: var(--accent-light);
   box-shadow: var(--shadow-md);
-  outline: none;
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
 }
 
 .suggestion-card:active {

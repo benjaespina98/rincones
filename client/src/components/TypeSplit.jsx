@@ -11,12 +11,12 @@ import "./TypeSplit.css";
 
 // El color del vino, no un color de marca: se reconoce sin leer la etiqueta.
 const TYPE_COLORS = {
-  red: "#7a1024",
-  white: "#e8d99a",
-  "rosé": "#e79ab0",
-  sparkling: "#f2d675",
-  fortified: "#9a5a2a",
-  unknown: "#4a4f66",
+  red: "var(--type-red-deep)",
+  white: "var(--type-white)",
+  "rosé": "var(--type-rose)",
+  sparkling: "var(--type-sparkling)",
+  fortified: "var(--type-fortified)",
+  unknown: "var(--type-unknown-deep)",
 };
 
 export default function TypeSplit({ counts = [], total = 0 }) {

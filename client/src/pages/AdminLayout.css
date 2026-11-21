@@ -607,7 +607,7 @@ button.admin-chip.is-active {
   margin: 0;
   color: var(--text-secondary);
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--glass);
 }
 
