@@ -63,7 +63,7 @@
 }
 
 .profile-kicker {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -103,6 +103,13 @@
   margin: 0;
   font-size: 13px;
   opacity: 0.95;
+}
+
+/* Un email largo no tiene espacios donde cortar: que se parta donde haga falta
+   en vez de salirse de la tarjeta. Sin tope de renglones: es un dato de la cuenta y la
+   persona tiene que poder leerlo entero. */
+.profile-info p.profile-email {
+  overflow-wrap: anywhere;
 }
 
 .profile-age {
@@ -164,7 +171,7 @@
   background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 14px 10px;
+  padding: 14px 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -181,6 +188,16 @@
   color: var(--text);
 }
 
+/* "Sin dato" es texto, no una cifra: a 26px serif pesaba más que un número. */
+.stat-card .value.is-empty {
+  font-family: var(--font-family-base);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
 /* La referencia que vuelve legible al número: chica, en gris, y sin competir
    con la cifra. Es la diferencia entre "4" y "4 · 50% de tu colección". */
 .stat-card__hint {
@@ -191,10 +208,11 @@
 }
 
 .stat-card .label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  /* 12px con 0.06em partía "YA TOMADOS" en dos renglones a 375px. */
+  letter-spacing: 0.02em;
   color: var(--text-secondary);
 }
 

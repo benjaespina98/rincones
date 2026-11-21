@@ -62,6 +62,8 @@
   font-size: var(--text-md);
   color: var(--text-secondary);
   line-height: 1.4;
+  /* El email va en un <strong> sin espacios: un email largo no puede ensanchar la tarjeta. */
+  overflow-wrap: anywhere;
 }
 
 .auth-form {

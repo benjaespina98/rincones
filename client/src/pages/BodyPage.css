@@ -2026,7 +2026,7 @@
 .wine-row__stepper-n::after {
   content: "";
   position: absolute;
-  inset: -6px 0;
+  inset: -6px -6px; /* 32 + 12 = 44 en los dos ejes; se solapa con los + y - vecinos */
 }
 
 .wine-row__stepper-n:active:not(:disabled) {

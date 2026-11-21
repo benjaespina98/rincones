@@ -226,7 +226,10 @@ export default function ProfilePage() {
               <Icon name="cake" size={14} /> {age} años
             </span>
           )}
-          <p className="profile-email">{user?.email}</p>
+          <p className="profile-email">
+            {/* <wbr> tras la arroba: si hay que partir, que sea ahí y no a mitad del usuario. */}
+            {(user?.email || "").split("@").flatMap((parte, i) => (i === 0 ? [parte] : ["@", <wbr key="w" />, parte]))}
+          </p>
           {(profileData.city || profileData.country) && (
             <p className="profile-location">
               <Icon name="map-pin" size={13} /> {[profileData.city, profileData.country].filter(Boolean).join(", ")}
@@ -298,7 +301,7 @@ export default function ProfilePage() {
           )}
         </div>
         <div className="stat-card">
-          <div className={`value ${statsLoading ? "is-loading" : ""}`}>
+          <div className={`value ${statsLoading ? "is-loading" : !wineStats?.avgRating ? "is-empty" : ""}`}>
             {statsLoading ? "" : wineStats?.avgRating ? <Contador valor={wineStats.avgRating} decimales={1} /> : "Sin dato"}
           </div>
           <div className="label">Puntuación</div>

@@ -625,7 +625,7 @@ export default function ScanReview({
                     max={field === "vintage" ? new Date().getFullYear() + 1 : undefined}
                     value={valueOf(field)}
                     onChange={(e) => setField(field, e.target.value)}
-                    placeholder={field === NAME_FIELD ? "Lo que dice grande en la etiqueta" : FIELD_LABELS[field]}
+                    placeholder={field === NAME_FIELD ? "Lo que dice grande" : FIELD_LABELS[field]}
                     maxLength={field === "vintage" ? undefined : 120}
                     list={dl?.id}
                     disabled={saving}

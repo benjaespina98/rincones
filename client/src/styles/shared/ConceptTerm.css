@@ -48,10 +48,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.05em;
-  height: 1.05em;
-  max-width: 14px;
-  max-height: 14px;
+  width: 16px;
+  height: 16px;
   margin-left: 4px;
   border: 1px solid var(--accent-soft);
   border-radius: 50%;
@@ -59,7 +57,7 @@
   /* Sin heredar: estos rótulos suelen venir en mayúsculas y con tracking, y una
      "I" con espaciado adentro de un círculo de 13px es una mancha. */
   font-family: var(--font-family-sans, inherit);
-  font-size: 0.68em;
+  font-size: var(--text-2xs);
   font-weight: 700;
   font-style: normal;
   line-height: 1;
@@ -96,7 +94,7 @@
 .concept-term::after {
   content: "";
   position: absolute;
-  inset: -10px -6px;
+  inset: -15px -8px;
 }
 
 /* ── La hoja ──────────────────────────────────────────────────────────────

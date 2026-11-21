@@ -58,7 +58,7 @@ describe("Cargar a mano manda un tipo del vocabulario", () => {
     montar();
     fireEvent.click(screen.getByRole("button", { name: /cargar a mano/i }));
     const nombre = await waitFor(() => {
-      const el = screen.queryByPlaceholderText("Lo que dice grande en la etiqueta");
+      const el = screen.queryByPlaceholderText("Lo que dice grande");
       expect(el).not.toBeNull();
       return el;
     });

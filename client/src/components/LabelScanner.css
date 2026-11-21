@@ -368,7 +368,8 @@
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 600;
-  padding: 4px;
+  min-height: 44px;
+  padding: 4px 12px;
   cursor: pointer;
 }
 

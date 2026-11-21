@@ -487,6 +487,7 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
+  position: relative;
   width: 40px;
   height: 40px;
   border: 0;
@@ -495,6 +496,13 @@
   color: var(--paper);
   cursor: pointer;
   transition: background var(--transition-fast);
+}
+
+/* Área de toque de 44 px sin agrandar el círculo (la cápsula de 50 px no lo admite). */
+.somm__enviar::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
 }
 
 .somm__enviar:disabled {
