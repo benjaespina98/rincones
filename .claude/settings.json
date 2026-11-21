@@ -2,11 +2,20 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-bash.cjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.js\""
           }
         ]
       }
@@ -21,6 +30,62 @@
           }
         ]
       }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git fetch*)",
+      "Bash(git rev-parse*)",
+      "Bash(git rev-list*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run check:tokens*)",
+      "Bash(npm run build*)",
+      "Bash(npm test*)",
+      "Bash(node .claude/skills/levantar-local/verificar-entorno.cjs)",
+      "Bash(git branch --list*)",
+      "Bash(git branch --show-current)",
+      "Bash(git branch -a*)",
+      "Bash(git branch -vv*)",
+      "Bash(node .claude/hooks/probar-git-guard.js)",
+      "Bash(node .claude/hooks/probar-hooks.cjs)",
+      "Bash(npm run dev*)",
+      "Bash(PORT=4000 npm run dev*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Read(**/server/scripts/backups/**)",
+      "Edit(**/server/scripts/backups/**)",
+      "Write(**/server/scripts/backups/**)",
+      "Bash(git push*--force*)",
+      "Bash(git push*--delete*)",
+      "Bash(git push*main*)",
+      "Bash(git push*master*)",
+      "Bash(git commit*--no-verify*)",
+      "Bash(git commit*--amend*)",
+      "Bash(git diff*--no-index*)",
+      "Bash(git branch*-D*)",
+      "Bash(git branch*--delete*)",
+      "Bash(git branch*-f *)",
+      "Bash(git reset*--hard*)",
+      "Bash(cat*.env*)",
+      "Bash(type*.env*)",
+      "Bash(Get-Content*.env*)"
     ]
   }
 }

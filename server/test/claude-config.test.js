@@ -51,7 +51,10 @@ test("los comandos que lanzan agentes sólo los dispara el usuario", () => {
   }
 });
 
-test("cada agente tiene name == nombre de archivo, description y tools de sólo lectura salvo sherlock", () => {
+// Agentes que por diseño editan: sherlock prueba la app y los tres del estándar construyen.
+const CON_ESCRITURA = new Set(["sherlock", "einstein-backend", "picasso-frontend", "automata-devops"]);
+
+test("cada agente tiene name == nombre de archivo, description y tools de sólo lectura salvo los que construyen", () => {
   const dir = path.join(RAIZ, "agents");
   const archivos = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
   assert.ok(archivos.length >= 7);
@@ -60,7 +63,7 @@ test("cada agente tiene name == nombre de archivo, description y tools de sólo 
     assert.ok(fm, `${f}: sin frontmatter`);
     assert.equal(fm.name, f.replace(/\.md$/, ""));
     assert.ok(fm.description && fm.description.length > 20, `${f}: description`);
-    if (fm.name !== "sherlock") {
+    if (!CON_ESCRITURA.has(fm.name)) {
       assert.ok(fm.tools, `${f}: debe declarar tools`);
       assert.doesNotMatch(fm.tools, /\b(Edit|Write|NotebookEdit)\b/, `${f}: un agente de revisión no debe poder escribir`);
     }
