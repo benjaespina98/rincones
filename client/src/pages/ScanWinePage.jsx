@@ -167,7 +167,7 @@ export default function ScanWinePage() {
     // buscarlo a "En stock", que es el único lugar donde no está.
     const mensaje =
       payload.quantity === 0
-        ? `"${created.name}" anotado como ya tomado`
+        ? `Guardaste "${created.name}"`
         : `"${created.name}" agregado a tu bodega`;
 
     // El servidor reconoce un vino que ya tenías (`merged`) y le suma las botellas en vez de crear
@@ -178,7 +178,9 @@ export default function ScanWinePage() {
       addToast(
         n > 0
           ? `Ya tenías "${created.name}": sumamos ${n === 1 ? "1 botella" : `${n} botellas`}`
-          : `Ya tenías "${created.name}": quedó como estaba`,
+          : payload.quantity === 0
+            ? `Ya tenías "${created.name}": sumamos que lo tomaste`
+            : `Ya tenías "${created.name}": quedó como estaba`,
         "success",
         6000
       );
@@ -308,10 +310,9 @@ export default function ScanWinePage() {
     });
 
   const handleConfirmReview = async (draft) => {
-    // El nombre ya no cae a la bodega, así que acá el vacío es real y hay que
-    // pedirlo: sin línea ni nombre propio no sabemos cómo se llama la botella.
+    // La revisión ya completa el nombre con la bodega o la uva: vacío significa que no hay ningún dato.
     if (!draft.name?.trim()) {
-      showError("Escribí la línea o el nombre del vino");
+      showError("Poné al menos el nombre o la bodega");
       return;
     }
     try {

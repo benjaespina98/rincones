@@ -249,3 +249,13 @@ test("a mano y sin bodega: entra igual, pero no publica", () => {
   });
   assert.equal(verdict, "unverified");
 });
+
+test("un nombre de relleno (la bodega o la uva) se reconoce como provisorio", () => {
+  const { esNombreProvisorio } = require("../src/data/wineValidation");
+  assert.equal(esNombreProvisorio({ name: "Salentein", winery: "Salentein" }), true);
+  assert.equal(esNombreProvisorio({ name: "Malbec", varietal: "Malbec" }), true);
+  // Con la línea leída, o con un nombre propio, identifica una botella.
+  assert.equal(esNombreProvisorio({ name: "Pispi", line: "Pispi", winery: "Pispi" }), false);
+  assert.equal(esNombreProvisorio({ name: "Numina", winery: "Salentein" }), false);
+  assert.equal(esNombreProvisorio({ name: "Malbec", winery: "Salentein", varietal: "Malbec" }), false);
+});

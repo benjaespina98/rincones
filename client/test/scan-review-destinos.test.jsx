@@ -11,7 +11,7 @@ import ScanReview from "../src/components/ScanReview";
  * contrario de lo que se viene a hacer.
  *
  * Las otras tres salidas siguen estando, pero son chicas y no son el camino por defecto:
- *   · bajar las botellas a cero → "lo probé y no es mío" (un restaurante, lo de alguien);
+ *   · "Ya lo tomé"              → "lo probé y no es mío" (un restaurante, lo de alguien);
  *   · "Solo consultar"          → ver la información sin guardar nada;
  *   · "Quiero probarlo"         → a la lista de deseos.
  */
@@ -52,9 +52,9 @@ describe("el destino por defecto es TU BODEGA", () => {
     expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
   });
 
-  it("con botellas no hay aviso: entra con stock, que es lo esperado", () => {
+  it("arranca en «Lo tengo»", () => {
     montar();
-    expect(screen.queryByText(/queda en «ya tomados»/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Lo tengo" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("los atajos de media docena y de una caja suman botellas", () => {
@@ -67,25 +67,35 @@ describe("el destino por defecto es TU BODEGA", () => {
   });
 });
 
-describe("bajar las botellas a cero: lo probé y no es mío", () => {
-  it("la nota dice que queda en Ya tomados, sin sumar stock", () => {
+describe("«Ya lo tomé»: lo probé y no es mío", () => {
+  const tomado = () => fireEvent.click(screen.getByRole("button", { name: "Ya lo tomé" }));
+
+  it("esconde el contador de botellas, sin notas explicativas", () => {
     montar();
-    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
-    expect(screen.getByText(/queda en «ya tomados», no suma stock/i)).toBeInTheDocument();
+    tomado();
+    expect(screen.queryByRole("button", { name: /una botella/i })).toBeNull();
+    expect(screen.queryByText(/no suma stock/i)).toBeNull();
   });
 
   it("guarda con cero botellas", () => {
     const { onConfirm } = montar();
-    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
+    tomado();
     fireEvent.click(principal());
     expect(onConfirm.mock.calls[0][0].quantity).toBe(0);
   });
 
-  it("no baja de cero", () => {
+  it("teniéndola, el contador no baja de una", () => {
     montar();
-    const menos = screen.getByRole("button", { name: /una botella menos/i });
-    fireEvent.click(menos);
-    expect(menos).toBeDisabled();
+    expect(screen.getByRole("button", { name: /una botella menos/i })).toBeDisabled();
+  });
+
+  it("volver a «Lo tengo» recupera la cantidad elegida", () => {
+    const { onConfirm } = montar();
+    fireEvent.click(screen.getByRole("button", { name: "6" }));
+    tomado();
+    fireEvent.click(screen.getByRole("button", { name: "Lo tengo" }));
+    fireEvent.click(principal());
+    expect(onConfirm.mock.calls[0][0].quantity).toBe(6);
   });
 });
 

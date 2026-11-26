@@ -487,7 +487,7 @@ export default function WineDetailPage() {
       // Igual que al borrar desde la lista: unos segundos para arrepentirse.
       const toastId = addToast(
         `"${wineDisplayName(borrado)}" eliminado de ${nuncaEstuvoEnTuCava(borrado) ? "tus ya tomados" : "tu bodega"}`,
-        "warning",
+        "success",
         8000,
         {
           label: "Deshacer",
@@ -656,9 +656,7 @@ export default function WineDetailPage() {
                 <div className="wine-welcome__head">
                   <span className="wine-welcome__title">
                     <Icon name="sparkle" size={14} />{" "}
-                    {/* Lo que acaba de pasar, dicho como pasó: un vino tomado
-                        afuera no entró a la bodega, entró al historial. */}
-                    {noEsTuyo ? "Anotado como ya tomado" : "Ya está en tu bodega"}
+                    ¿Sabías que?
                   </span>
                   <button
                     type="button"
@@ -749,7 +747,7 @@ export default function WineDetailPage() {
 
             {!noEsTuyo && (
               <div className="wine-detail-stock-notes">
-                {wine.tasted && <span className="wine-detail-tomado">{resumenTomado(wine)}</span>}
+                {wine.tasted && Number(wine.consumptionCount) >= 2 && <span className="wine-detail-tomado">{resumenTomado(wine)}</span>}
                 {Number(wine.quantity) > 0 && (
                   <button
                     type="button"
@@ -757,7 +755,7 @@ export default function WineDetailPage() {
                     disabled={pending}
                     onClick={() => handleAdjustQuantity(-1)}
                   >
-                    Quitar una sin tomarla (la regalé o me equivoqué)
+                    Quitar una sin tomarla
                   </button>
                 )}
               </div>

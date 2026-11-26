@@ -54,6 +54,19 @@ describe("resumenTomado", () => {
   });
 });
 
+describe("resumenTomado de un vino cargado ya tomado", () => {
+  const ahora = new Date("2026-11-26T12:00:00Z");
+  const base = { tasted: true, consumptionCount: 1, lastConsumedAt: ahora.toISOString(), quantity: 0, lots: [] };
+
+  it("no afirma «hoy»: la fecha es la de la carga, no la de la copa", () => {
+    expect(resumenTomado(base, ahora)).toBe("Tomado");
+  });
+
+  it("si estuvo en tu bodega, la fecha es de verdad y se dice", () => {
+    expect(resumenTomado({ ...base, lots: [{ quantity: 1, remaining: 0 }] }, ahora)).toBe("Tomado · hoy");
+  });
+});
+
 describe("vecesTomado", () => {
   it("ignora valores que no son un número positivo", () => {
     for (const v of [undefined, null, "x", -2, 0, NaN]) expect(vecesTomado({ consumptionCount: v })).toBe(0);

@@ -1096,7 +1096,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
       pendingDeleteToastRef.current = "";
     }
 
-    const toastId = addToast(`"${wineDisplayName(wineToDelete)}" eliminado`, "warning", 8000, {
+    const toastId = addToast(`"${wineDisplayName(wineToDelete)}" eliminado`, "success", 8000, {
       label: "Deshacer",
       onClick: () => restoreDeletedWine(wineToDelete, toastId),
     });
@@ -1691,7 +1691,7 @@ export default function BodyPage({ initialFilter = "instock" }) {
         // Qué se va y qué se queda, en ese orden. La versión anterior sólo decía
         // lo primero, y la duda que dejaba —"¿pierdo lo que escribí?"— es
         // justamente la que frena a alguien en una acción que es reversible.
-        message={`Se quita "${wines.find((wine) => wine._id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Los momentos que hayas escrito quedan en tu diario, y el vino sigue existiendo en el catálogo de Rincones. Podés deshacer por unos segundos.`}
+        message={`Se quita "${wines.find((wine) => wine._id === showDeleteConfirm)?.name || "este vino"}" de tu bodega. Tus momentos quedan en el diario.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous

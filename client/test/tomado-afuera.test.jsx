@@ -7,15 +7,10 @@ import { nuncaEstuvoEnTuCava } from "../src/utils/cellarTime";
 /**
  * ── LA BOTELLA QUE NUNCA FUE TUYA ───────────────────────────────────────────
  *
- * Son dos cargas distintas: "compré este vino" y "lo tomé en un restaurante y me
- * lo quiero acordar". La app las distinguía por dentro —stock y probado son ejes
- * independientes— pero no por fuera: había que elegir con un botón chico entre
- * "la tengo yo" y "la tomé afuera" ANTES de poder decir cuántas botellas, un
- * paso de más para lo mismo que el número ya iba a contestar. Ahora es un único
- * contador que arranca en cero: el cero ES "la tomé afuera", no un caso aparte.
+ * Son dos cargas distintas: comprar un vino, o haberlo tomado afuera. Se elige entre "Lo tengo" y "Ya lo tomé", a la vista.
  *
- * Estos tests fijan las dos mitades del arreglo: que el número por defecto no
- * afirme una tenencia que no existió, y que después nada la afirme tampoco.
+ * Estos tests fijan las dos mitades: que el valor por defecto no afirme otra cosa que lo habitual,
+ * y que después nada afirme una tenencia ni una fecha que no existieron.
  */
 
 afterEach(cleanup);
@@ -36,8 +31,7 @@ const LECTURA = {
 };
 
 describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
-  // Arranca en UNA botella: casi todo el mundo escanea para guardar en su bodega. Lo
-  // tomado afuera (un restaurante, la casa de alguien) es bajar el contador a cero.
+  // Arranca en UNA botella: casi todo el mundo escanea para guardar en su bodega.
   it("por defecto arranca en una: se guarda con stock", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
@@ -46,25 +40,13 @@ describe("al cargar: ¿es tuya o la tomaste afuera?", () => {
     expect(onConfirm.mock.calls[0][0].quantity).toBe(1);
   });
 
-  it("bajar el contador a cero lo anota como ya tomado, sin botellas", () => {
+  it("«Ya lo tomé» lo guarda sin botellas, con el mismo botón Guardar", () => {
     const onConfirm = vi.fn();
     render(<ScanReview reading={LECTURA} onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
-
-    // El botón es siempre "Guardar": la consecuencia de ese cero se lee en la nota de abajo del
-    // contador (ver el test siguiente), no en el nombre del botón.
-    const guardar = screen.getByRole("button", { name: /^guardar$/i });
-    fireEvent.click(guardar);
+    fireEvent.click(screen.getByRole("button", { name: "Ya lo tomé" }));
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
     expect(onConfirm.mock.calls[0][0].quantity).toBe(0);
-  });
-
-  it("la nota de abajo del contador aparece sólo en cero", () => {
-    render(<ScanReview reading={LECTURA} onConfirm={vi.fn()} />);
-    expect(screen.queryByText(/queda en «ya tomados»/i)).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /una botella menos/i }));
-    expect(screen.getByText(/queda en «ya tomados»/i)).toBeInTheDocument();
   });
 });
 
@@ -103,6 +85,8 @@ describe("después: qué se puede afirmar sobre esa botella", () => {
 
     expect(screen.queryByText(/en tu bodega desde/i)).toBeNull();
     expect(screen.getByText(/lo tomaste afuera/i)).toBeInTheDocument();
+    // Sin fecha: la única disponible es la de la carga, que puede ser semanas posterior.
+    expect(document.querySelector(".wine-id__since strong")).toBeNull();
   });
 
   it("y sobre uno que se te terminó habla en pasado", () => {

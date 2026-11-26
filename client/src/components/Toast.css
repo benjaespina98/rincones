@@ -1,48 +1,54 @@
 .toast-container {
   position: fixed;
-  top: calc(76px + var(--topbar-safe-top));
-  right: 16px;
-  left: 16px;
+  /* Abajo, sobre la barra de pestañas y el botón de escanear: donde está el pulgar. */
+  bottom: calc(var(--nav-height) + var(--nav-safe-bottom) + var(--toast-offset, 28px));
+  right: 12px;
+  left: 12px;
   z-index: var(--z-toast);
   pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  max-width: 400px;
+  max-width: 420px;
+  margin-inline: auto;
+}
 
-  @media (max-width: 640px) {
-    max-width: calc(100vw - 32px);
-  }
+/* Las pantallas con pie propio (guardar, escribir, selección) suben el aviso para que no lo tape. */
+:root:has(.scan-review__bar) {
+  --toast-offset: 84px;
+}
+
+:root:has(.somm__pie) {
+  --toast-offset: 140px;
+}
+
+:root:has(.bodega-barra) {
+  --toast-offset: 76px;
 }
 
 .toast {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  border-radius: var(--radius-lg);
+  min-height: 52px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-card);
   background: var(--surface-float);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--accent-light);
   box-shadow: var(--shadow-lg);
   pointer-events: all;
-  animation: slideIn 300ms var(--ease-out);
-  transform-origin: top right;
+  animation: slideIn 220ms var(--ease-out);
 }
-
-.toast--success { border-left-color: var(--success-text); }
-.toast--error { border-left-color: var(--danger); }
-.toast--warning { border-left-color: var(--gold); }
-.toast--info { border-left-color: var(--accent-light); }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(100%) scale(0.9);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -53,23 +59,17 @@
 @keyframes slideOut {
   from {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateX(100%) scale(0.9);
+    transform: translateY(12px);
   }
 }
 
 .toast__icon {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
   flex-shrink: 0;
-  font-weight: 700;
-  font-size: var(--text-2xl);
 }
 
 .toast--success .toast__icon {
@@ -89,28 +89,31 @@
 }
 
 .toast__message {
-  flex: 1;
-  font-size: var(--text-lg);
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: var(--text-md);
   font-weight: 500;
   color: var(--text);
-  line-height: 1.4;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-/* Las dos acciones se apilan: en 360px, una al lado de la otra dejaría el
-   mensaje en dos renglones y las pastillas partidas al medio. */
+/* Las acciones van en fila, a la derecha; si no entran, bajan de renglón en vez de exprimir el mensaje. */
 .toast__actions {
-  display: grid;
-  gap: 5px;
+  display: flex;
+  gap: var(--space-sm);
+  margin-left: auto;
   flex-shrink: 0;
 }
 
 .toast__action {
-  border: 1px solid rgb(var(--accent-light-rgb) / 0.45);
-  background: rgb(var(--accent-rgb) / 0.16);
-  color: var(--text);
-  border-radius: var(--radius-full);
-  padding: 0.28rem 0.6rem;
-  font-size: var(--text-sm);
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  padding: 0 0.5rem;
+  font-size: var(--text-md);
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -118,8 +121,6 @@
 
 /* La segunda repara algo (deshacer): no compite con la que propone seguir. */
 .toast__action--secondary {
-  border-color: transparent;
-  background: none;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -157,40 +158,13 @@
   }
 }
 
-@media (max-width: 640px) {
-  .toast {
-    gap: var(--space-sm);
-    padding: var(--space-md);
-  }
-
-  .toast__message {
-    font-size: var(--text-md);
-  }
-
-  .toast__close {
-    width: 24px;
-    height: 24px;
-  }
-
-  .toast__action {
-    font-size: var(--text-2xs);
-    padding: 0.24rem 0.45rem;
-  }
-}
-
-/* Área táctil de 44px sin agrandar lo que se ve: el botón es chico a propósito, el toque no. */
-.toast__action,
+/* Área táctil de la "×" sin agrandar lo que se ve. Las acciones ya miden 44px: sin zonas que se pisen. */
 .toast__close {
   position: relative;
 }
 
-.toast__action::after,
 .toast__close::after {
   content: "";
   position: absolute;
-  inset: -10px -6px;
-}
-
-.toast__close::after {
   inset: -10px;
 }

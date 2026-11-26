@@ -157,39 +157,18 @@
   justify-content: space-between;
 }
 
-.scan-review__nota {
-  margin: -6px 2px 0;
-  font-size: var(--text-meta);
-  color: var(--text-secondary);
+/* ── "Lo tengo" / "Ya lo tomé": las dos del mismo ancho ────────────────────── */
+.scan-review__destino .segmented__btn {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
 }
 
 /* ── Avisos: una línea, sin párrafos ───────────────────────────────────────── */
-.scan-review__aviso {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 0;
-  font-size: var(--text-meta);
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
 
-.scan-review__aviso svg {
-  flex: none;
-  margin-top: 2px;
-}
 
-.scan-review__aviso strong {
-  color: var(--text);
-}
 
-.scan-review__aviso--ok {
-  color: var(--text-secondary);
-}
 
-.scan-review__aviso--revisar {
-  color: var(--accent-soft);
-}
 
 /* ── "¿Es este vino?" ───────────────────────────────────────────────────────────
    La pregunta cuando la app tiene un candidato pero no certeza. Contestarla resuelve la pantalla:
@@ -260,27 +239,6 @@
   font-size: var(--text-meta);
   line-height: 1.4;
   color: var(--text-secondary);
-}
-
-.scan-review__confirm-same {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--line-accent);
-  background: transparent;
-  color: var(--accent-soft);
-  font-size: var(--text-meta);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.scan-review__confirm-same:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* ── Salidas en voz baja ───────────────────────────────────────────────────────── */

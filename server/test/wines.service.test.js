@@ -979,3 +979,32 @@ test("bulk delete: si ninguno existe, todos vuelven como inexistentes y no se to
   assert.deepEqual(r, { affected: 0, ids: [ID_1, ID_2], inexistentes: [ID_1, ID_2], omitidos: 0 });
   assert.equal(statsLlamadas.length, 0);
 });
+
+test("dos botellas con nombre de relleno no se funden ni miran la bodega guardada", async () => {
+  const originalSave = Wine.prototype.save;
+  const originalFind = Wine.find;
+  const originalFindById = User.findById;
+  const originalConfiable = wineImages.getImageConfiable;
+  let consultas = 0;
+  let fotosPedidas = 0;
+  Wine.find = () => { consultas += 1; return { select: async () => [] }; };
+  wineImages.getImageConfiable = async () => { fotosPedidas += 1; return "ajena"; };
+  User.findById = async () => ({ stats: {}, save: async () => {} });
+  Wine.prototype.save = async function save() { return this; };
+  try {
+    const { merged, wine } = await winesService.createWine("507f1f77bcf86cd799439011", {
+      name: "Salentein",
+      winery: "Salentein",
+      varietal: "Malbec",
+    });
+    assert.equal(merged, false);
+    assert.equal(consultas, 0);
+    assert.equal(fotosPedidas, 0);
+    assert.notEqual(wine.image, "ajena");
+  } finally {
+    restore(Wine.prototype, "save", originalSave);
+    restore(Wine, "find", originalFind);
+    restore(User, "findById", originalFindById);
+    restore(wineImages, "getImageConfiable", originalConfiable);
+  }
+});

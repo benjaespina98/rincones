@@ -41,17 +41,10 @@ const FECHA_LARGA = { day: "2-digit", month: "short", year: "numeric" };
 function tenencia(wine) {
   const comprado = wine.purchase?.purchasedAt;
 
-  // Nunca entró a tu cava. La fecha que tenemos es la del día que lo anotaste,
-  // no la de la copa: se dice así, en vez de disfrazarla de "lo tomaste el".
+  // Nunca entró a tu cava. Sin fecha: la única que hay es la del día en que lo anotaste,
+  // que puede ser semanas después de la copa.
   if (nuncaEstuvoEnTuCava(wine)) {
-    const cuando = wine.lastConsumedAt || wine.createdAt;
-    const fecha = cuando ? new Date(cuando) : null;
-    if (!fecha || Number.isNaN(fecha.getTime())) return null;
-    return {
-      rotulo: "Lo tomaste afuera. Anotado el",
-      fecha: fecha.toLocaleDateString("es-AR", FECHA_LARGA),
-      hace: "",
-    };
+    return wine.tasted ? { rotulo: "Lo tomaste afuera", fecha: "", hace: "" } : null;
   }
 
   const desde = comprado || enCavaDesde(wine);
@@ -202,7 +195,7 @@ export default function WineIdentity({ wine, onEdit }) {
         <p className="wine-id__since">
           <Icon name="calendar" size={13} />
           <span>
-            {tengo.rotulo} <strong>{tengo.fecha}</strong>
+            {tengo.rotulo} {tengo.fecha && <strong>{tengo.fecha}</strong>}
           </span>
           {tengo.hace && <span className="wine-id__since-ago">hace {tengo.hace}</span>}
         </p>

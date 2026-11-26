@@ -56,6 +56,8 @@ const { isGeminiConfigured } = require("./gemini.service");
  * fruta madura, madera bien puesta y bastante cuerpo"), y el resto conserva el
  * mismo detalle. La información no cambió; cambió quién parece estar hablando.
  */
+const { esNombreProvisorio } = require("../data/wineValidation");
+
 const DESCRIBE_VERSION = "v3";
 
 const describeKey = (name, winery, varietal = "") =>
@@ -68,6 +70,8 @@ const describeKey = (name, winery, varietal = "") =>
  */
 const ensureDescription = async (wine) => {
   if (!wine?.name) return null;
+  // Un nombre de relleno comparte clave con otros vinos: no se siembra la caché de todos con él.
+  if (esNombreProvisorio(wine)) return null;
   if (!isGeminiConfigured()) return null;
 
   const key = describeKey(wine.name, wine.winery, wine.varietal);

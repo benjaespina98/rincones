@@ -91,7 +91,7 @@ export default function WishlistPanel({
       return;
     }
 
-    const toastId = addToast(`"${wish.name}" quitado de tu lista`, "warning", 8000, {
+    const toastId = addToast(`"${wish.name}" quitado de tu lista`, "success", 8000, {
       label: "Deshacer",
       onClick: async () => {
         removeToast(toastId);

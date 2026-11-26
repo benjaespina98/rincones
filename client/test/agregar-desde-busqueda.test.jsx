@@ -60,9 +60,9 @@ describe("AddToCellarSheet", () => {
   it("'lo tomé afuera' confirma con cero botellas", () => {
     const onConfirm = vi.fn();
     render(<AddToCellarSheet wine={VINO} onConfirm={onConfirm} onCancel={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /lo tomé afuera/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Ya lo tomé" }));
     expect(screen.queryByRole("button", { name: "Una botella más" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Anotarlo como ya tomado" }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(onConfirm).toHaveBeenCalledWith(0);
   });
 
