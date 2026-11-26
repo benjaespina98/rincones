@@ -573,6 +573,8 @@ Sigue sin verificar: iPhone real (la pulsación larga y el callout de iOS, que s
 - **El nombre nunca se le pide a la persona:** sin nombre legible se usa la bodega, y sin bodega la uva. Se sacó la
   confirmación «se llama igual que la bodega». Esos nombres de relleno (`esNombreProvisorio` en el servidor) no se
   funden con otro vino ni comparten foto, precio o ficha. Costo aceptado: reescanear la misma botella crea otra fila.
+- Ajuste tras la revisión: un vino cuyo nombre la persona ya confirmó no cuenta como relleno (se sigue fundiendo);
+  el relleno no suma foto al catálogo comunitario y en Guardados se distingue además por la uva.
 - **El nombre se puede editar:** al tocarlo, el campo muestra lo escrito (componerlo recortaba el espacio final).
 - **«Lo tengo / Ya lo tomé»** reemplaza al contador en cero, en la revisión y en el alta desde la búsqueda. Lo cargado
   ya tomado no muestra fecha: la única disponible es la de la carga.

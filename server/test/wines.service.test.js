@@ -987,7 +987,7 @@ test("dos botellas con nombre de relleno no se funden ni miran la bodega guardad
   const originalConfiable = wineImages.getImageConfiable;
   let consultas = 0;
   let fotosPedidas = 0;
-  Wine.find = () => { consultas += 1; return { select: async () => [] }; };
+  Wine.find = () => ({ select: async () => [{ _id: "x", name: "Salentein", winery: "Salentein", varietal: "Malbec" }] });
   wineImages.getImageConfiable = async () => { fotosPedidas += 1; return "ajena"; };
   User.findById = async () => ({ stats: {}, save: async () => {} });
   Wine.prototype.save = async function save() { return this; };
@@ -998,7 +998,6 @@ test("dos botellas con nombre de relleno no se funden ni miran la bodega guardad
       varietal: "Malbec",
     });
     assert.equal(merged, false);
-    assert.equal(consultas, 0);
     assert.equal(fotosPedidas, 0);
     assert.notEqual(wine.image, "ajena");
   } finally {
@@ -1006,5 +1005,38 @@ test("dos botellas con nombre de relleno no se funden ni miran la bodega guardad
     restore(Wine, "find", originalFind);
     restore(User, "findById", originalFindById);
     restore(wineImages, "getImageConfiable", originalConfiable);
+  }
+});
+
+test("un nombre de relleno sí se suma a un vino cuyo nombre la persona ya confirmó", async () => {
+  const originales = [Wine.find, Wine.findOneAndUpdate];
+  const confirmado = { _id: "c1", name: "Pispi", winery: "Pispi", varietal: "Malbec", identification: { sameNameConfirmed: true } };
+  Wine.find = () => ({ select: async () => [confirmado] });
+  Wine.findOneAndUpdate = async () => ({ ...confirmado, quantity: 2 });
+  try {
+    const { merged } = await winesService.createWine("507f1f77bcf86cd799439011", { name: "Pispi", winery: "Pispi", varietal: "Malbec" });
+    assert.equal(merged, true);
+  } finally {
+    [Wine.find, Wine.findOneAndUpdate] = originales;
+  }
+});
+
+test("un nombre de relleno no aporta foto, precio ni catálogo compartido", async () => {
+  const originales = [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, communityWines.contribute, wineImages.getImageConfiable];
+  const aportes = [];
+  Wine.find = () => ({ select: async () => [] });
+  Wine.prototype.save = async function save() { return this; };
+  User.findById = async () => ({ stats: {}, save: async () => {} });
+  wineImages.getImageConfiable = async () => "";
+  wineImages.contribute = async () => { aportes.push("foto"); };
+  winePrices.contribute = async () => { aportes.push("precio"); };
+  communityWines.contribute = async () => { aportes.push("catalogo"); };
+  try {
+    await winesService.createWine("507f1f77bcf86cd799439011", {
+      name: "Zorzal Chico", winery: "Zorzal Chico", varietal: "Malbec", price: 5000, image: "data:image/png;base64,iVBORw0KGgo=",
+    });
+    assert.deepEqual(aportes, []);
+  } finally {
+    [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, communityWines.contribute, wineImages.getImageConfiable] = originales;
   }
 });

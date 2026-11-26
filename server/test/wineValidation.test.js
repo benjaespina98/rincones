@@ -259,3 +259,8 @@ test("un nombre de relleno (la bodega o la uva) se reconoce como provisorio", ()
   assert.equal(esNombreProvisorio({ name: "Numina", winery: "Salentein" }), false);
   assert.equal(esNombreProvisorio({ name: "Malbec", winery: "Salentein", varietal: "Malbec" }), false);
 });
+
+test("un nombre confirmado por la persona no es de relleno", () => {
+  const { esNombreProvisorio } = require("../src/data/wineValidation");
+  assert.equal(esNombreProvisorio({ name: "Pispi", winery: "Pispi", identification: { sameNameConfirmed: true } }), false);
+});
