@@ -218,6 +218,21 @@ function nombreIgualALaBodegaEsLegitimo(nombre) {
 }
 
 /**
+ * ¿El "nombre" es sólo un relleno? Cuando de la etiqueta no se leyó cómo se llama el vino, se guarda
+ * con su bodega (o, sin bodega, con la uva). Sirve para tenerlo, pero no identifica una botella: dos
+ * etiquetas distintas quedan igual, así que no se funden ni comparten foto, precio o ficha.
+ */
+function esNombreProvisorio({ name, line, winery, varietal, sameNameConfirmed, identification } = {}) {
+  // Si la persona ya confirmó que el vino se llama así, es su nombre y no un relleno.
+  if (sameNameConfirmed === true || identification?.sameNameConfirmed === true) return false;
+  const nombre = fold(String(name || "").trim());
+  if (!nombre || String(line || "").trim()) return false;
+  const bodega = fold(String(winery || "").trim());
+  if (bodega) return nombre === bodega && !nombreIgualALaBodegaEsLegitimo(nombre);
+  return nombre === fold(String(varietal || "").trim());
+}
+
+/**
  * Qué se puede hacer con esta identificación.
  *
  *   "trusted"    → entra a la bodega y PUEDE aportar al catálogo público.
@@ -296,4 +311,5 @@ module.exports = {
   // puede publicarse. Se exporta en vez de duplicar la lista: la fuente de verdad
   // es el catálogo curado, y así sigue siendo una sola.
   nombreIgualALaBodegaEsLegitimo,
+  esNombreProvisorio,
 };

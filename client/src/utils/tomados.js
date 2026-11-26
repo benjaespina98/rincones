@@ -12,6 +12,8 @@
  * que los cambia.
  */
 
+import { nuncaEstuvoEnTuCava } from "./cellarTime";
+
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** "hoy", "ayer", "hace 3 días", "hace 2 meses", "hace 1 año". */
@@ -42,7 +44,9 @@ export const resumenTomado = (wine, ahora = new Date()) => {
   if (!wine?.tasted) return "";
   const n = vecesTomado(wine);
   const veces = n >= 2 ? `Tomado ${n} veces` : "Tomado";
-  const cuando = haceCuanto(wine.lastConsumedAt, ahora);
+  // Lo que cargaste ya tomado no tiene fecha de la copa, sólo la de la carga: no se afirma "hoy".
+  const sinFecha = n < 2 && wine.quantity === 0 && nuncaEstuvoEnTuCava(wine);
+  const cuando = sinFecha ? "" : haceCuanto(wine.lastConsumedAt, ahora);
   return cuando ? `${veces} · ${cuando}` : veces;
 };
 

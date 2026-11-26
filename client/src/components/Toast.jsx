@@ -12,8 +12,10 @@ const TYPE_ICONS = {
 const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
 
+  const [pausado, setPausado] = useState(false);
+
   useEffect(() => {
-    if (duration === 0) return;
+    if (duration === 0 || pausado) return;
 
     const timer = setTimeout(() => {
       setIsClosing(true);
@@ -21,7 +23,7 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration, onClose, pausado]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -37,6 +39,10 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
       className={`toast toast--${type} ${isClosing ? "toast--closing" : ""}`}
       role={isError ? "alert" : undefined}
       aria-live={isError ? "assertive" : undefined}
+      onPointerEnter={() => setPausado(true)}
+      onPointerLeave={() => setPausado(false)}
+      onFocus={() => setPausado(true)}
+      onBlur={() => setPausado(false)}
     >
       <div className="toast__icon" aria-hidden="true"><Icon name={TYPE_ICONS[type] || "info"} size={18} /></div>
       <div className="toast__message">{message}</div>
@@ -62,6 +68,8 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
           )}
         </div>
       )}
+      {/* Con una acción el aviso se va solo: una "×" al lado de "Deshacer" competía con él. */}
+      {!action?.label && (
       <button
         className="toast__close"
         type="button"
@@ -70,6 +78,7 @@ const Toast = ({ message, type = "info", duration = 3000, action, onClose }) => 
       >
         <Icon name="x" size={15} />
       </button>
+      )}
     </div>
   );
 };

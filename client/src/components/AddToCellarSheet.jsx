@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import Portal from "./Portal";
 import Icon from "./Icon";
+import Segmented from "./Segmented";
 import { useSheet } from "../hooks/useSheet";
 import { wineDisplayName } from "../utils/wineIdentity";
 import "./OpenBottleSheet.css";
+import "./ScanReview.css";
 
 /**
  * "Agregar a tu bodega" un vino que encontraste buscando, sin sacar ninguna foto.
  *
- * Una sola pregunta: cuántas botellas tenés. Con "lo tomé afuera" el vino entra sin stock y ya
- * probado (es lo que pasa con una copa en un restaurante). Comparte aspecto con las hojas de
+ * La misma elección que al escanear: "Lo tengo" (con cuántas botellas) o "Ya lo tomé" (sin stock
+ * y probado, como una copa en un restaurante). Comparte aspecto con las hojas de
  * abrir y sumar botellas: la app se detiene a preguntar antes de tocar tus datos.
  */
 const ATAJOS = [1, 3, 6, 12];
@@ -30,7 +32,7 @@ export default function AddToCellarSheet({ wine, saving = false, onConfirm, onCa
   const etiqueta = saving
     ? "Agregando…"
     : afuera
-      ? "Anotarlo como ya tomado"
+      ? "Guardar"
       : cantidad === 1
         ? "Agregar una botella"
         : `Agregar ${cantidad} botellas`;
@@ -51,6 +53,17 @@ export default function AddToCellarSheet({ wine, saving = false, onConfirm, onCa
             Agregar a tu bodega
           </h2>
           <p className="open-sheet__wine">{wineDisplayName(wine)}</p>
+
+          <Segmented
+            className="scan-review__destino"
+            ariaLabel="¿La tenés o ya la tomaste?"
+            value={afuera ? "tomado" : "tengo"}
+            onChange={(v) => setAfuera(v === "tomado")}
+            options={[
+              { id: "tengo", label: "Lo tengo" },
+              { id: "tomado", label: "Ya lo tomé" },
+            ]}
+          />
 
           {!afuera && (
             <>
@@ -95,21 +108,6 @@ export default function AddToCellarSheet({ wine, saving = false, onConfirm, onCa
             </>
           )}
 
-          <ul className="open-sheet__effects">
-            <li>
-              <Icon name={afuera ? "check" : "bottle"} size={14} />
-              <span>
-                {afuera
-                  ? "Queda en tu historial como ya tomado, sin botellas"
-                  : `Entra a tu bodega con ${cantidad === 1 ? "1 botella" : `${cantidad} botellas`}`}
-              </span>
-            </li>
-            <li>
-              <Icon name="pencil" size={14} />
-              <span>Después podés completar la cosecha y lo que quieras desde su ficha</span>
-            </li>
-          </ul>
-
           <div className="open-sheet__actions">
             <button
               ref={confirmRef}
@@ -119,15 +117,6 @@ export default function AddToCellarSheet({ wine, saving = false, onConfirm, onCa
               disabled={saving}
             >
               {etiqueta}
-            </button>
-            <button
-              type="button"
-              className="open-sheet__alt"
-              onClick={() => setAfuera((v) => !v)}
-              disabled={saving}
-              aria-pressed={afuera}
-            >
-              {afuera ? "Sí tengo botellas" : "No tengo botellas: lo tomé afuera"}
             </button>
             <button type="button" className="open-sheet__cancel" onClick={onCancel} disabled={saving}>
               Cancelar

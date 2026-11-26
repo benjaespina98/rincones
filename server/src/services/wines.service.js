@@ -20,7 +20,7 @@ const { identityKey } = require("../data/wineIdentity");
  */
 const TIPOS_DE_VINO = Wine.schema.path("type").enumValues;
 const tipoValido = (tipo, porDefecto = "unknown") => (TIPOS_DE_VINO.includes(tipo) ? tipo : porDefecto);
-const { canonicalVarietal, checkCoherence, identificationVerdict } = require("../data/wineValidation");
+const { canonicalVarietal, checkCoherence, identificationVerdict, esNombreProvisorio } = require("../data/wineValidation");
 const { buildStockStages, reconcileLots, availableFromLots, lotesParaRestaurar } = require("../utils/lots");
 
 /**
@@ -266,6 +266,9 @@ async function getWineById(userId, id) {
  * sin cosecha cargada matchea con otro sin cosecha, no con cualquiera.
  */
 async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
+  // Un nombre de relleno (la bodega o la uva) no identifica una botella: fundir dos así mezclaría vinos
+  // distintos. Sólo puede sumarse a un vino cuyo nombre la persona ya confirmó como verdadero.
+  const entradaProvisoria = esNombreProvisorio({ name, winery, line, varietal });
   const target = identityKey({ name, winery, line, varietal });
   if (!target.core) return null;
 
@@ -297,7 +300,7 @@ async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
   // `vintage: null` en Mongo matchea tanto el guardado como null como el campo
   // ausente, que son los dos estados de un vino sin cosecha.
   const candidatos = await Wine.find({ userId, vintage: year })
-    .select("name winery line varietal vintage quantity");
+    .select("name winery line varietal vintage quantity identification");
 
   // La cosecha se vuelve a verificar acá aunque la consulta ya la filtró. Son
   // dos líneas y hacen que la función sea correcta por sí sola: si mañana la
@@ -305,6 +308,8 @@ async function findSameWine(userId, { name, winery, line, varietal, vintage }) {
   // camino.
   return (
     candidatos.find((w) => {
+      if (entradaProvisoria && w.identification?.sameNameConfirmed !== true) return false;
+      if (esNombreProvisorio(w)) return false;
       const k = identityKey(w);
       if (k.core !== target.core) return false;
       if (k.varietal !== target.varietal) return false;
@@ -447,9 +452,15 @@ async function createWine(userId, payload) {
   // queda el base64 tal cual. Así el vino y el pool comparten la misma referencia.
   // Si el pool tiene la foto de producto de este vino (bien puntuada), esa gana sobre la que sacó quien lo cargó:
   // la etiqueta fotografiada se ve mal en una tarjeta, la botella real se ve bien en todas.
-  const fotoDelPool = await wineImages.getImageConfiable(name, winery, varietal);
+  // Con un nombre de relleno, la clave compartida (nombre+uva+bodega) es la de muchos vinos distintos:
+  // no se lee ni se aporta foto, precio o ficha.
+  const provisorio = esNombreProvisorio({
+    name, line, winery, varietal,
+    sameNameConfirmed: payload.identification?.sameNameConfirmed === true,
+  });
+  const fotoDelPool = provisorio ? "" : await wineImages.getImageConfiable(name, winery, varietal);
   const providedImage = rawProvided && !fotoDelPool ? await imageStorage.store(rawProvided) : "";
-  const resolvedImage = fotoDelPool || providedImage || (await wineImages.getImage(name, winery, varietal));
+  const resolvedImage = fotoDelPool || providedImage || (provisorio ? "" : await wineImages.getImage(name, winery, varietal));
 
   // La uva pasa por el vocabulario también acá. El escaneo ya la corrige al
   // leerla, pero por este camino entra además la carga a mano y la edición, que
@@ -552,14 +563,14 @@ async function createWine(userId, payload) {
 
   // Si el usuario aportó una foto propia, la sumamos al pool compartido para
   // que aparezca cuando otro busque/cargue el mismo vino.
-  if (providedImage) {
+  if (providedImage && !provisorio) {
     await wineImages.contribute({ name, winery, varietal, image: providedImage, userId });
   }
 
   // Si registró lo que pagó, alimenta el precio comunitario (promedio).
   // Va con el `userId` para que el aporte tenga dueño: así se corrige al editar
   // y se retira al borrar, en vez de quedarse en el promedio para siempre.
-  if (savedWine.purchase?.price > 0) {
+  if (savedWine.purchase?.price > 0 && !provisorio) {
     await winePrices.contribute({
       name, winery, varietal,
       price: savedWine.purchase.price,
@@ -576,7 +587,7 @@ async function createWine(userId, payload) {
   // persona llegue a lo mismo por su cuenta. El vino entra a TU bodega en los
   // tres casos — lo que se demora es hacerlo público, no tenerlo.
   // Lo que vino de la búsqueda ya ES el catálogo (o salió de él): no se vuelve a aportar.
-  if (!isCuratedWine(savedWine) && identificacion.matchedFrom !== ORIGEN_BUSQUEDA) {
+  if (!provisorio && !isCuratedWine(savedWine) && identificacion.matchedFrom !== ORIGEN_BUSQUEDA) {
     await communityWines.contribute(
       {
         name: savedWine.name,
@@ -842,7 +853,8 @@ async function updateWine(userId, id, payload) {
           region: updatedWine.region,
           varietal: updatedWine.varietal,
           type: updatedWine.type,
-          image: updatedWine.image,
+          // La foto de un nombre de relleno no completa la ficha pública de otro vino.
+          image: esNombreProvisorio(updatedWine) ? "" : updatedWine.image,
         },
         // Una corrección a mano vale como lectura confiable, salvo que lo que
         // quedó siga sin cerrar (sin nombre, nombre igual a la bodega): ahí no
@@ -860,7 +872,7 @@ async function updateWine(userId, id, payload) {
   // La foto nueva alimenta el banco compartido, igual que en el alta: es el
   // camino por el que el banco se llena con el uso, porque editar es cuando la
   // gente arregla lo que el escaneo no capturó.
-  if (fotoNueva) {
+  if (fotoNueva && !esNombreProvisorio(updatedWine)) {
     await wineImages.contribute({
       name: updatedWine.name,
       winery: updatedWine.winery,
@@ -897,7 +909,7 @@ async function updateWine(userId, id, payload) {
     });
   }
 
-  if (updatedWine.purchase?.price > 0) {
+  if (updatedWine.purchase?.price > 0 && !esNombreProvisorio(updatedWine)) {
     if (price !== undefined || cambioIdentidad) {
       await winePrices.contribute({
         name: updatedWine.name,

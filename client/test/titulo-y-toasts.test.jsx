@@ -44,3 +44,17 @@ describe("duración de los avisos", () => {
     expect(visto).toContain(1500);
   });
 });
+
+describe("el aviso con acción", () => {
+  it("no muestra la × al lado de «Deshacer», y sin acción sí", async () => {
+    const { default: Toast } = await import("../src/components/Toast");
+    const { render: pintar, screen: pantalla, cleanup: limpiar } = await import("@testing-library/react");
+    limpiar();
+    pintar(<Toast message="Vino eliminado" action={{ label: "Deshacer", onClick: () => {} }} />);
+    expect(pantalla.queryByRole("button", { name: /cerrar notificación/i })).toBeNull();
+    limpiar();
+    pintar(<Toast message="Listo" />);
+    expect(pantalla.getByRole("button", { name: /cerrar notificación/i })).toBeTruthy();
+    limpiar();
+  });
+});

@@ -567,3 +567,16 @@ Sigue sin verificar: iPhone real (la pulsación larga y el callout de iOS, que s
 - **Recomendar por líneas:** el perfil ahora conoce los productores y las líneas que tomás y el escalón en el que te movés (`puntosDeGama`: accesible 1, media 2, media-alta 2,5 —Piattelli, Luigi Bosca, DV Catena…—, alta 3). Con ≥3 vinos y un escalón ≥2,2 no se recomiendan líneas de entrada (un Portillo), se resta por cada punto por debajo, y se suma el productor que ya tomás. Quien toma vinos de entrada sigue recibiendo vinos de entrada.
 - **Variedad:** cada razón tiene 2-4 formas de decirse, elegidas por vino+día (estables dentro del día) y siempre con el mismo dato verdadero; el saludo de la home también rota por día.
 - **Sommelier:** prompt con el tono de Descubrí (cálido, en primera persona, sin muletilla fija), regla de líneas y productor en el contexto de la bodega; si el modelo falla o no responde se contesta con un respaldo local (algo de lo que puntuaste o una uva que casi nunca falla) en vez de un error, salvo con "otra opción" (ahí queda la respuesta anterior); lo fuera de tema ("generame un prompt") recibe una frase amable distinta según la pregunta.
+
+## Escaneo sin carga manual, «Ya lo tomé» y avisos (2026-11-26)
+
+- **El nombre nunca se le pide a la persona:** sin nombre legible se usa la bodega, y sin bodega la uva. Se sacó la
+  confirmación «se llama igual que la bodega». Esos nombres de relleno (`esNombreProvisorio` en el servidor) no se
+  funden con otro vino ni comparten foto, precio o ficha. Costo aceptado: reescanear la misma botella crea otra fila.
+- Ajuste tras la revisión: un vino cuyo nombre la persona ya confirmó no cuenta como relleno (se sigue fundiendo);
+  el relleno no suma foto al catálogo comunitario y en Guardados se distingue además por la uva.
+- **El nombre se puede editar:** al tocarlo, el campo muestra lo escrito (componerlo recortaba el espacio final).
+- **«Lo tengo / Ya lo tomé»** reemplaza al contador en cero, en la revisión y en el alta desde la búsqueda. Lo cargado
+  ya tomado no muestra fecha: la única disponible es la de la carga.
+- **Aviso:** abajo, sin borde de color; sube sobre los pies propios (`--toast-offset`) y se pausa con foco o puntero.
+- Sin verificar: etiquetas y cámara reales, latencia del escaneo, iPhone.
