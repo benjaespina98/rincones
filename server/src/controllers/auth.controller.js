@@ -33,7 +33,7 @@ const getJwtSecret = () => {
  * nada" en medio del uso normal. Las cuatro respuestas de auth (login,
  * register, refresh, reset-password) tienen que decir lo mismo que `/me`.
  */
-const buildAuthResponse = (user, token) => ({
+const buildAuthResponse = (user) => ({
   data: {
     user: {
       id: String(user._id),
@@ -57,10 +57,10 @@ const buildAuthResponse = (user, token) => ({
       // vez de asumir 18+ o inventar una fecha.
       hasBirthDate: Boolean(user.birthDate),
     },
-    // El token también se devuelve en el body para que el cliente lo guarde y
-    // lo mande por header Authorization (imprescindible en Safari/iOS, donde la
-    // cookie cross-dominio se bloquea). La cookie httpOnly se mantiene como respaldo.
-    token,
+    // El token NO va en el body: vive sólo en la cookie httpOnly, fuera del alcance de cualquier script.
+    // El cliente recibe nada más cuánto dura, para renovar antes de mandar un pedido que ya daría 401.
+    // Va como duración y no como hora: el reloj del dispositivo puede estar corrido.
+    duraMs: sessions.ACCESS_MS,
   },
 });
 
@@ -134,9 +134,9 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const token = await startSession(res, user, req);
+    await startSession(res, user, req);
 
-    return res.status(200).json(buildAuthResponse(user, token));
+    return res.status(200).json(buildAuthResponse(user));
   } catch (error) {
     return next(error);
   }
@@ -255,11 +255,10 @@ const register = async (req, res, next) => {
     // dejar a la persona esperando un mail que nunca salió.
     const mailResult = await sendVerificationEmail(user, verificationToken);
 
-    // Generar token
-    const token = await startSession(res, user, req);
+    await startSession(res, user, req);
 
     return res.status(201).json({
-      ...buildAuthResponse(user, token),
+      ...buildAuthResponse(user),
       mail: { sent: mailResult.sent, verifyUrl: mailResult.verifyUrl },
     });
   } catch (error) {
@@ -303,11 +302,10 @@ const refresh = async (req, res, next) => {
       return res.status(401).json({ message: "Sesión expirada" });
     }
 
-    const token = sessions.signAccessToken(user);
-    setAuthCookie(res, token);
+    setAuthCookie(res, sessions.signAccessToken(user));
     setRefreshCookie(res, rotado.token, rotado.expiresAt);
 
-    return res.status(200).json(buildAuthResponse(user, token));
+    return res.status(200).json(buildAuthResponse(user));
   } catch (error) {
     return next(error);
   }
@@ -425,9 +423,9 @@ const resetPassword = async (req, res, next) => {
     // adentro con la contraseña vieja ya cambiada.
     await sessions.revokeAllForUser(user._id);
 
-    const jwtToken = await startSession(res, user, req);
+    await startSession(res, user, req);
 
-    return res.status(200).json(buildAuthResponse(user, jwtToken));
+    return res.status(200).json(buildAuthResponse(user));
   } catch (error) {
     return next(error);
   }
@@ -616,8 +614,8 @@ const googleAuth = async (req, res, next) => {
       if (revocarSesiones) await sessions.revokeAllForUser(user._id);
     }
 
-    const token = await startSession(res, user, req);
-    return res.status(200).json(buildAuthResponse(user, token));
+    await startSession(res, user, req);
+    return res.status(200).json(buildAuthResponse(user));
   } catch (error) {
     return next(error);
   }

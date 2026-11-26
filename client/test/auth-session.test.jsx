@@ -39,6 +39,7 @@ const montar = () => render(<AuthProvider><Espia /></AuthProvider>);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear(); // un usuario guardado por el test anterior saltearía el «cargando»
   ultimoContexto = null;
 });
 

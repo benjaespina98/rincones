@@ -20,7 +20,7 @@ const CommunityWine = require("../src/models/communityWine.model");
  * y es la que desloguea a quien se equivoca de contraseña al eliminar su cuenta.
  */
 const ID = "000000000000000000000001";
-const token = (sub = ID) => jwt.sign({ sub, email: "qa@example.com", role: "user" }, process.env.JWT_SECRET, { expiresIn: "5m" });
+const token = (sub = ID) => jwt.sign({ sub, email: "qa@example.com", role: "user", ver: true, adu: true }, process.env.JWT_SECRET, { expiresIn: "5m" });
 
 const pedir = (metodo, path, body, sub) =>
   new Promise((resolve, reject) => {

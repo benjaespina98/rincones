@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const RefreshToken = require("../models/refreshToken.model");
+const { calculateAge, MIN_AGE } = require("../utils/age");
 
 /**
  * Sesiones: un token de acceso corto + un refresh largo y revocable.
@@ -15,6 +16,7 @@ const RefreshToken = require("../models/refreshToken.model");
  */
 
 const ACCESS_TTL = "15m";
+const ACCESS_MS = 15 * 60 * 1000;
 const REFRESH_DAYS = 30;
 
 const getJwtSecret = () => {
@@ -29,7 +31,14 @@ const getJwtSecret = () => {
 
 const signAccessToken = (user) =>
   jwt.sign(
-    { sub: String(user._id), role: user.role, email: user.email },
+    {
+      sub: String(user._id),
+      role: user.role,
+      email: user.email,
+      // Para que requireCuentaCompleta no consulte la base en cada pedido.
+      ver: Boolean(user.emailVerified),
+      adu: (calculateAge(user.birthDate) ?? 0) >= MIN_AGE,
+    },
     getJwtSecret(),
     { expiresIn: ACCESS_TTL }
   );
@@ -200,7 +209,7 @@ const getAuthCookieOptions = () => {
 const setAuthCookie = (res, token) => {
   res.cookie("authToken", token, {
     ...getAuthCookieOptions(),
-    maxAge: 15 * 60 * 1000, // igual que la vida del token de acceso
+    maxAge: ACCESS_MS, // igual que la vida del token de acceso
   });
 };
 
@@ -237,6 +246,7 @@ const startSession = async (res, user, req) => {
 
 module.exports = {
   ACCESS_TTL,
+  ACCESS_MS,
   setAuthCookie,
   setRefreshCookie,
   clearAuthCookies,

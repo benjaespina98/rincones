@@ -95,7 +95,8 @@ test("auth login sets cookie and returns token", async () => {
     const guardado = sesiones.guardados[0];
     assert.match(guardado.tokenHash, /^[a-f0-9]{64}$/);
     assert.notEqual(guardado.tokenHash, refreshCookie.value);
-    assert.ok(typeof res.body.data.token === "string" && res.body.data.token.length > 0);
+    assert.equal(res.body.data.token, undefined);
+    assert.equal(res.body.data.duraMs, 15 * 60 * 1000);
     assert.deepEqual(res.body.data.user, {
       id: "user-1",
       email: "admin@example.com",
@@ -155,7 +156,8 @@ test("auth register sets cookie and returns token", async () => {
 
     assert.equal(res.statusCode, 201);
     assert.deepEqual(res.cookies.map((c) => c.name), ["authToken", "refreshToken"]);
-    assert.ok(typeof res.body.data.token === "string" && res.body.data.token.length > 0);
+    assert.equal(res.body.data.token, undefined);
+    assert.ok(res.body.data.duraMs > 0);
     assert.deepEqual(res.body.data.user, {
       id: "user-2",
       email: "new@example.com",

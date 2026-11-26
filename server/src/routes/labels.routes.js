@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const multer = require("multer");
 const labelsController = require("../controllers/labels.controller");
-const { authenticate } = require("../middleware/auth.middleware");
+const { authenticate, requireCuentaCompleta } = require("../middleware/auth.middleware");
 const { aiLimiter, aiDailyLimiter } = require("../middleware/aiLimiter");
 
 const router = Router();
@@ -24,6 +24,6 @@ const upload = multer({
 // cualquiera con la URL podía consumir el presupuesto del proyecto sin tener
 // cuenta. El cliente ya mandaba el token, así que nada iba a fallar: no se iba
 // a notar hasta ver la factura.
-router.post("/analyze", authenticate, aiLimiter, aiDailyLimiter, upload.single("file"), labelsController.analyzeLabel);
+router.post("/analyze", authenticate, requireCuentaCompleta, aiLimiter, aiDailyLimiter, upload.single("file"), labelsController.analyzeLabel);
 
 module.exports = router;

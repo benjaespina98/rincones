@@ -1,4 +1,5 @@
 import api from "./api";
+import { turnoParaServidor } from "../utils/turnosSommelier";
 
 /**
  * La guía de vino.
@@ -48,7 +49,7 @@ export const preguntarAlSommelier = async (
     "/sommelier/ask",
     {
       question,
-      history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
+      history: history.slice(-TURNOS * 2).map(turnoParaServidor),
       /* El id de la charla, para que esta pregunta se agregue a la que ya venía
          en vez de abrir una nueva. Nulo en la primera: lo crea el server y lo
          devuelve acá abajo. */
@@ -114,7 +115,7 @@ export const preguntarConFoto = async (
   if (conversationId) form.append("conversationId", conversationId);
   form.append(
     "history",
-    JSON.stringify(history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })))
+    JSON.stringify(history.slice(-TURNOS * 2).map(turnoParaServidor))
   );
 
   const { data } = await api.post("/sommelier/photo", form, { timeout: FOTO_TIMEOUT_MS });

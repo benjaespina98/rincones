@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
+const { calculateAge, MIN_AGE } = require("../utils/age");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -33,6 +34,7 @@ const authenticate = (req, res, next) => {
       email: payload.email,
       role: payload.role,
     };
+    req.cuentaCompleta = payload.ver === true && payload.adu === true;
     return next();
   } catch {
     return res.status(401).json({ message: "Token invalido o expirado" });
@@ -108,7 +110,38 @@ const requireAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Exige email confirmado y mayoría de edad declarada. El gate del cliente (AppGate) es sólo comodidad:
+ * la regla vale acá. Va siempre DESPUÉS de `authenticate`.
+ *
+ * El token trae los dos datos y así no cuesta una consulta. Si alguno falta se mira la base, para que
+ * confirmar el email o cargar la fecha valga al instante y no a los 15 minutos.
+ */
+const requireCuentaCompleta = async (req, res, next) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: "Token requerido" });
+    if (req.cuentaCompleta) return next();
+
+    const user = await User.findById(req.user.id).select("emailVerified birthDate").lean();
+    if (!user) return res.status(401).json({ message: "La cuenta ya no existe" });
+
+    if (!user.emailVerified) {
+      return res.status(403).json({ message: "Confirmá tu email para usar Rincones", code: "EMAIL_SIN_VERIFICAR" });
+    }
+    const edad = calculateAge(user.birthDate);
+    if (edad === null || edad < MIN_AGE) {
+      return res
+        .status(403)
+        .json({ message: "Necesitamos tu fecha de nacimiento (tenés que ser mayor de 18)", code: "FALTA_MAYORIA_DE_EDAD" });
+    }
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
+  requireCuentaCompleta,
   authenticate,
   optionalAuth,
   requireAdmin,

@@ -48,6 +48,7 @@ Dos cosas a tener presentes:
 | `ANALYTICS_LIMITE_IP` | No | Pedidos a `/api/analytics/collect` por IP cada 5 minutos (por defecto 100) |
 | `COOKIE_DOMAIN` / `COOKIE_SAMESITE` | No | Sólo con frontend y backend en subdominios de un dominio propio |
 | `SENTRY_DSN` / `SENTRY_RELEASE` | No | Monitoreo de errores |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | No | Contadores de rate limiting compartidos entre instancias. Sin ellas, en memoria |
 
 Las variables opcionales degradan sin romper la app (ver
 [architecture.md](architecture.md)).

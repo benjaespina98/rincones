@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { authenticate } = require("../middleware/auth.middleware");
+const { authenticate, requireCuentaCompleta } = require("../middleware/auth.middleware");
 const { aiLimiter, sommelierDailyLimiter } = require("../middleware/aiLimiter");
 const sommelierController = require("../controllers/sommelier.controller");
 const historyController = require("../controllers/sommelierHistory.controller");
@@ -24,7 +24,7 @@ const router = Router();
  */
 router.post(
   "/ask",
-  authenticate,
+  authenticate, requireCuentaCompleta,
   sommelierDailyLimiter,
   aiLimiter,
   sommelierController.ask
@@ -36,7 +36,7 @@ router.post(
  */
 router.post(
   "/ask-stream",
-  authenticate,
+  authenticate, requireCuentaCompleta,
   sommelierDailyLimiter,
   aiLimiter,
   sommelierController.askStream
@@ -64,13 +64,13 @@ router.post("/photo", authenticate, (req, res) =>
  * `userId`: ver el comentario de arriba de sommelierHistory.controller.js sobre
  * por qué no alcanza con buscar por id.
  */
-router.get("/conversations", authenticate, historyController.list);
-router.get("/conversations/:id", authenticate, historyController.getOne);
-router.delete("/conversations/:id", authenticate, historyController.remove);
+router.get("/conversations", authenticate, requireCuentaCompleta, historyController.list);
+router.get("/conversations/:id", authenticate, requireCuentaCompleta, historyController.getOne);
+router.delete("/conversations/:id", authenticate, requireCuentaCompleta, historyController.remove);
 // El pulgar sobre una respuesta (se apunta al mensaje por id; ver el controlador).
-router.patch("/conversations/:id/feedback", authenticate, historyController.feedback);
+router.patch("/conversations/:id/feedback", authenticate, requireCuentaCompleta, historyController.feedback);
 // Sin id: todo el historial de quien pide. Se declara aparte de `/:id` a propósito,
 // con otro nombre de handler, para que nunca se confunda con borrar una.
-router.delete("/conversations", authenticate, historyController.removeAll);
+router.delete("/conversations", authenticate, requireCuentaCompleta, historyController.removeAll);
 
 module.exports = router;

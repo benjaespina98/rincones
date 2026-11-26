@@ -1,4 +1,5 @@
-import api, { getAuthToken } from "./api";
+import api, { CABECERA_PROPIA } from "./api";
+import { turnoParaServidor } from "../utils/turnosSommelier";
 
 /**
  * La respuesta del Sommelier escribiéndose, como en los chats de IA.
@@ -99,7 +100,6 @@ export const preguntarEnVivo = async (
     throw new SinStreaming("no-soportado");
   }
 
-  const token = getAuthToken();
   let respuesta;
   try {
     respuesta = await fetch(`${api.defaults.baseURL}/sommelier/ask-stream`, {
@@ -108,11 +108,11 @@ export const preguntarEnVivo = async (
       signal,
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...CABECERA_PROPIA,
       },
       body: JSON.stringify({
         question,
-        history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
+        history: history.slice(-TURNOS * 2).map(turnoParaServidor),
         conversationId,
       }),
     });

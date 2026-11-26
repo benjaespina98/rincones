@@ -34,6 +34,7 @@ import { preguntarEnVivo, SinStreaming } from "../services/sommelierStream";
 import { usePlaceholderRotativo } from "../hooks/usePlaceholderRotativo";
 import { leerSesion, guardarSesion } from "../utils/sesionSommelier";
 import { irHasta } from "../utils/scroll";
+import { vinosMostrados } from "../utils/turnosSommelier";
 import StarRating from "../components/StarRating";
 import WinePhoto from "../components/WinePhoto";
 import WineMeta from "../components/WineMeta";
@@ -425,7 +426,12 @@ export default function SuggestionsPage() {
       const base = iReemplazo > 0 ? mensajes.slice(0, iReemplazo - 1) : mensajes;
       const previos = base
         .filter((m) => !m.error)
-        .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }));
+        .map((m) => {
+          // Las tarjetas viajan con el turno: «¿cómo lo tomo?» se refiere a ellas, y el texto a veces no las nombra.
+          const vinos = m.role === "user" ? [] : vinosMostrados(m);
+          const turno = { role: m.role === "user" ? "user" : "assistant", text: m.text };
+          return vinos.length ? { ...turno, wines: vinos } : turno;
+        });
 
       if (regenerar) {
         // La respuesta vieja queda a la vista, atenuada, hasta que llegue la nueva.

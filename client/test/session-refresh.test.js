@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import api, { debeRenovarSesion, resolverBaseUrl, setAuthToken } from "../src/services/api";
+import api, { debeRenovarSesion, resolverBaseUrl, guardarExpiracion } from "../src/services/api";
 
 /**
  * Contra dónde salen las llamadas en producción.
@@ -11,7 +11,7 @@ import api, { debeRenovarSesion, resolverBaseUrl, setAuthToken } from "../src/se
  * en la Public Suffix List, así que ese host y el del front son dos SITIOS
  * distintos y las cookies de sesión pasaban a ser de terceros — bloqueadas en
  * Safari, en incógnito y bajo las restricciones nuevas de Chrome. El login
- * andaba igual (el token de acceso va por header, desde localStorage) y recién
+ * andaba igual (entonces el token de acceso iba por header) y recién
  * al vencer, 15 minutos después, el refresh se quedaba sin cookie y te sacaba.
  *
  * La condición vieja miraba si la URL configurada "parecía local". Eso no es lo
@@ -133,7 +133,7 @@ describe("debeRenovarSesion", () => {
 describe("interceptor de refresh: qué error se propaga si el refresh no contesta", () => {
   afterEach(() => {
     api.defaults.adapter = undefined;
-    setAuthToken(null);
+    guardarExpiracion(null);
   });
 
   const responderCon = (respuestas) => async (config) => {
@@ -151,7 +151,7 @@ describe("interceptor de refresh: qué error se propaga si el refresh no contest
   };
 
   it("el refresh sin respuesta (red/timeout) propaga SU error, no el 401 de /auth/me", async () => {
-    setAuthToken("token-vencido");
+    guardarExpiracion(null);
     api.defaults.adapter = responderCon([
       { status: 401 }, // GET /auth/me
       { errorMessage: "timeout of 25000ms exceeded" }, // POST /auth/refresh: sin respuesta
@@ -167,7 +167,7 @@ describe("interceptor de refresh: qué error se propaga si el refresh no contest
   });
 
   it("si el refresh SÍ contesta 401, ese es el error que se propaga (sesión terminada de verdad)", async () => {
-    setAuthToken("token-vencido");
+    guardarExpiracion(null);
     api.defaults.adapter = responderCon([
       { status: 401 }, // GET /auth/me
       { status: 401 }, // POST /auth/refresh: la sesión terminó de verdad

@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const api = vi.hoisted(() => ({ defaults: { baseURL: "/api" } }));
-const token = vi.hoisted(() => ({ valor: "tok123" }));
-vi.mock("../src/services/api", () => ({ default: api, getAuthToken: () => token.valor }));
+vi.mock("../src/services/api", () => ({ default: api, CABECERA_PROPIA: { "X-Requested-With": "rincones" } }));
 
 import { preguntarEnVivo, leerEventos, SinStreaming } from "../src/services/sommelierStream";
 
@@ -47,7 +46,6 @@ const FINAL = { status: 200, data: { answer: "Un Malbec." }, conversationId: "c1
 
 let fetchMock;
 beforeEach(() => {
-  token.valor = "tok123";
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -88,7 +86,7 @@ describe("leerEventos", () => {
 });
 
 describe("preguntarEnVivo", () => {
-  it("pide el endpoint de streaming con el token, la pregunta y el historial recortado", async () => {
+  it("pide el endpoint de streaming con las cookies, la pregunta y el historial recortado", async () => {
     fetchMock.mockResolvedValue(respuestaSSE([ev("final", FINAL)]));
     const largo = Array.from({ length: 10 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", text: `m${i}`, id: i }));
     await preguntarEnVivo("¿Qué tomo?", largo, "conv9");
@@ -96,19 +94,14 @@ describe("preguntarEnVivo", () => {
     const [url, opciones] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/sommelier/ask-stream");
     expect(opciones.method).toBe("POST");
-    expect(opciones.headers.Authorization).toBe("Bearer tok123");
+    expect(opciones.credentials).toBe("include");
+    expect(opciones.headers["X-Requested-With"]).toBe("rincones");
+    expect(opciones.headers.Authorization).toBeUndefined();
     const cuerpo = JSON.parse(opciones.body);
     expect(cuerpo.question).toBe("¿Qué tomo?");
     expect(cuerpo.conversationId).toBe("conv9");
     expect(cuerpo.history).toHaveLength(6);
     expect(Object.keys(cuerpo.history[0]).sort()).toEqual(["role", "text"]);
-  });
-
-  it("sin token no manda Authorization", async () => {
-    token.valor = null;
-    fetchMock.mockResolvedValue(respuestaSSE([ev("final", FINAL)]));
-    await preguntarEnVivo("¿Qué tomo?");
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
   it("entrega los pedazos por onTexto y devuelve la respuesta completa normalizada", async () => {

@@ -21,7 +21,7 @@
  */
 
 const METODOS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
-const CABECERAS = ["Content-Type", "Authorization"];
+const CABECERAS = ["Content-Type", "Authorization", "X-Requested-With"];
 
 const parseAllowedOrigins = () => {
   const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")

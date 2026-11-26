@@ -164,7 +164,10 @@ export const AuthProvider = ({ children }) => {
   }, [tomarTurno, escribir]);
 
   // Con la sesión abierta, la recomendación de Descubrí se pide ya: es lo más lento de la home.
-  const idDeLaSesion = sesion.estado === AUTENTICADO ? sesion.user?.id : "";
+  const idDeLaSesion =
+    sesion.estado === AUTENTICADO && sesion.user?.emailVerified !== false && sesion.user?.hasBirthDate !== false
+      ? sesion.user?.id
+      : "";
   useEffect(() => {
     if (idDeLaSesion) precargarDestacados(idDeLaSesion);
   }, [idDeLaSesion]);
