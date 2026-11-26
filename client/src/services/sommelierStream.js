@@ -1,4 +1,5 @@
 import api, { getAuthToken } from "./api";
+import { turnoParaServidor } from "../utils/turnosSommelier";
 
 /**
  * La respuesta del Sommelier escribiéndose, como en los chats de IA.
@@ -112,7 +113,7 @@ export const preguntarEnVivo = async (
       },
       body: JSON.stringify({
         question,
-        history: history.slice(-TURNOS * 2).map((m) => ({ role: m.role, text: m.text })),
+        history: history.slice(-TURNOS * 2).map(turnoParaServidor),
         conversationId,
       }),
     });

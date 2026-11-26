@@ -378,14 +378,21 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Arriba hay aire de más a propósito: es donde el degradado todavía deja pasar la conversación, y ahí van las
-     repreguntas. Sin él, las pastillas flotaban encima de la tarjeta de abajo. */
-  padding: 26px var(--page-pad-x) 14px;
-  /* Difuminado y no un bloque opaco: la conversación tiene que verse pasar por
-     abajo, que es lo que dice que hay más contenido arriba. */
-  background: linear-gradient(180deg, rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.86) 26%, rgb(var(--bg-rgb) / 0.97) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: 8px var(--page-pad-x) 12px;
+  /* Fondo liso y nada de desenfoque: el degradado alto con blur tapaba una franja de la charla que no se
+     podía leer. La señal de «hay más arriba» es un fundido corto (`::before`). */
+  background: var(--app-bg-bottom);
+}
+
+.somm__pie::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 12px;
+  background: linear-gradient(180deg, rgb(var(--app-bg-bottom-rgb) / 0), var(--app-bg-bottom));
+  pointer-events: none;
 }
 
 /* La pastilla chica: la usa la tira del arranque (ver `.somm__rail` arriba).

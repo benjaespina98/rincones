@@ -295,6 +295,14 @@ const armarPrompt = ({
       .map((m) => `${m.role === "user" ? "Persona" : "Vos"}: ${limpiarDato(m.text, LARGO_MENSAJE_VIEJO)}`)
       .join("\n");
     partes.push(`LO QUE VENÍAN HABLANDO\n${charla}`);
+
+    const mostrados = vinosDeLaCharla(history);
+    if (mostrados.length) {
+      const lineas = mostrados.map((v) => `- ${[v.name, v.winery, v.varietal, v.type].filter(Boolean).join(" · ")}`);
+      partes.push(
+        `VINOS QUE LE MOSTRASTE EN TU ÚLTIMA RESPUESTA CON TARJETAS\n${lineas.join("\n")}\nSi la pregunta dice «lo», «ese», «este» o no nombra ningún vino pero sigue la charla (cómo servirlo, a qué temperatura, si airearlo, con qué comerlo), se refiere a éstos (si hay varios, al primero salvo que aclare). Podés nombrarlos aunque no te pase «SU BODEGA»; no afirmes que le quedan botellas.`
+      );
+    }
   }
 
   /* LA FOTO. El texto que aparezca ESCRITO en la imagen (una carta, un cartel, una
@@ -328,8 +336,39 @@ const recortarHistorial = (history) => {
   if (!Array.isArray(history)) return [];
   return history
     .filter((m) => m && typeof m.text === "string" && m.text.trim())
-    .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", text: m.text.trim() }))
-    .slice(-TURNOS_DE_HISTORIAL * 2);
+    .slice(-TURNOS_DE_HISTORIAL * 2)
+    .map((m) => {
+      const turno = { role: m.role === "assistant" ? "assistant" : "user", text: m.text.trim() };
+      const vinos = turno.role === "assistant" ? recortarVinosMostrados(m.wines) : [];
+      return vinos.length ? { ...turno, wines: vinos } : turno;
+    });
+};
+
+/** Cuántos vinos mostrados en tarjetas se recuerdan por respuesta. */
+const VINOS_POR_TURNO = 3;
+
+/**
+ * Las tarjetas que acompañaron una respuesta. Sin esto, «¿cómo lo tomo?» no tiene a qué referirse: el
+ * texto de la respuesta muchas veces no nombra el vino, lo muestra la tarjeta de abajo. Viene del cliente:
+ * sólo cadenas cortas y saneadas.
+ */
+const recortarVinosMostrados = (vinos) =>
+  (Array.isArray(vinos) ? vinos : [])
+    .slice(0, VINOS_POR_TURNO * 2)
+    .map((v) => {
+      if (!v || typeof v.name !== "string" || !v.name.trim()) return null;
+      const dato = (valor, largo) => (typeof valor === "string" ? limpiarDato(valor.slice(0, largo * 4), largo) : "");
+      return { name: dato(v.name, 80), winery: dato(v.winery, 40), varietal: dato(v.varietal, 40), type: dato(v.type, 20) };
+    })
+    .filter((v) => v && v.name)
+    .slice(0, VINOS_POR_TURNO);
+
+/** Los vinos de la última respuesta que mostró alguno: son a los que se refiere «lo», «ese», «el primero». */
+const vinosDeLaCharla = (history = []) => {
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    if (history[i]?.wines?.length) return history[i].wines;
+  }
+  return [];
 };
 
 const limpiarLista = (valor, tope, largo) =>
@@ -540,6 +579,7 @@ module.exports = {
   resumirGuardados,
   resumirGusto,
   recortarHistorial,
+  vinosDeLaCharla,
   armarPrompt,
   MAX_OUTPUT_TOKENS,
   TURNOS_DE_HISTORIAL,

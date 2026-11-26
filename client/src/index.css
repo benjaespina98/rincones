@@ -43,9 +43,12 @@
      a propósito, porque tiene que tapar lo de atrás.
 
      Si mañana cambia el fondo, se cambia acá y en ningún otro lado. */
+  /* El color con el que termina el fondo abajo: lo usan las barras fijas del pie para no marcar un borde. */
+  --app-bg-bottom: #12141c;
+  --app-bg-bottom-rgb: 18 20 28;
   --app-bg:
     radial-gradient(120% 55% at 92% -6%, rgb(var(--accent-strong-rgb) / 0.11), transparent 62%),
-    linear-gradient(180deg, #161923 0%, #14161f 55%, #12141c 100%);
+    linear-gradient(180deg, #161923 0%, #14161f 55%, var(--app-bg-bottom) 100%);
 
   /* Accent Colors */
   --accent: #7e59c9;

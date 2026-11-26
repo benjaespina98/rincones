@@ -45,10 +45,68 @@ const sugerenciaPara = (pregunta) => {
 const REPREGUNTAS = ["¿Qué abro hoy?", "¿Con qué lo acompaño?", "Malbec vs Cabernet"];
 
 /**
+ * ¿Pregunta cómo servirlo? Temperatura, aireado, decantado. Con palabras enteras: «reserva», «Buenos
+ * Aires» o «¿qué me servís con asado?» no son preguntas de servicio.
+ */
+const PREGUNTA_DE_SERVICIO =
+  /\b(temperatura|airear\w*|aireal[oa]|aireado|aireacion|aire[oa]|decant\w*|respir\w*|enfri\w*|servirl[oa]|servil[oa]|se sirve|(lo|la) (sirvo|servis|sirve))\b|\bcomo\b.{0,30}\b(tomarl[oa]|se toma|(lo|la) tomo)\b/;
+
+/** Cómo servir según el tipo (mismas temperaturas que la tarjeta: client/src/utils/servicio.js). */
+const SERVICIO_POR_TIPO = {
+  red: "a 16-18 °C. Si es joven, abrilo unos 30 minutos antes para que respire",
+  white: "bien fresco, a 8-10 °C, sin airear",
+  "rosé": "fresco, a 8-10 °C, sin airear",
+  sparkling: "bien frío, a 6-8 °C, sin agitarlo ni airearlo",
+  fortified: "apenas fresco, a 12-14 °C, en copa chica",
+};
+
+/** El tipo guardado manda; la uva sólo decide si falta. Sin pistas no se afirma nada (`null`). */
+const tipoDeContexto = (vino) => {
+  const tipo = sinTildes(vino?.type);
+  if (tipo === "rose") return "rosé";
+  if (Object.hasOwn(SERVICIO_POR_TIPO, tipo)) return tipo;
+  const uva = sinTildes(vino?.varietal);
+  if (/espumant|brut|champ/.test(uva)) return "sparkling";
+  if (/rosad|rose/.test(uva)) return "rosé";
+  if (/oporto|jerez|generoso/.test(uva)) return "fortified";
+  if (/blanc|chardonnay|torrontes|semillon|viognier|riesling|chenin|pinot gri/.test(uva)) return "white";
+  if (/malbec|cabernet|merlot|syrah|bonarda|tannat|pinot noir|tempranillo|sangiovese|petit verdot/.test(uva)) return "red";
+  return null;
+};
+
+/** Uvas y estilos que, si aparecen en la pregunta, dicen de qué vino se está preguntando. */
+const OTROS_VINOS = /\b(malbec|cabernet|merlot|syrah|bonarda|tannat|pinot|tempranillo|sangiovese|chardonnay|torrontes|sauvignon|semillon|viognier|riesling|chenin|tinto|blanco|rosado|espumante|champagne)\b/g;
+const NOMBRE_DEL_TIPO = { red: "tinto", white: "blanco", "rosé": "rosado", sparkling: "espumante champagne" };
+
+/** ¿La pregunta nombra una uva o estilo que no es el del vino de la charla? */
+const nombraOtroVino = (pregunta, vino, tipo) => {
+  const propio = sinTildes(`${vino.name} ${vino.varietal || ""} ${NOMBRE_DEL_TIPO[tipo] || ""}`);
+  return (pregunta.match(OTROS_VINOS) || []).some((palabra) => !propio.includes(palabra));
+};
+
+/** Si se pregunta cómo servir un vino del que se venía hablando, se contesta sin el modelo. */
+const respuestaDeServicio = (question, contexto) => {
+  const vino = contexto?.[0];
+  const pregunta = sinTildes(question);
+  if (!vino?.name || !PREGUNTA_DE_SERVICIO.test(pregunta)) return null;
+  const tipo = tipoDeContexto(vino);
+  if (!tipo || nombraOtroVino(pregunta, vino, tipo)) return null;
+  return {
+    answer: `El ${vino.name} servilo ${SERVICIO_POR_TIPO[tipo]}.`,
+    picks: [],
+    followups: ["¿Con qué lo acompaño?", "¿Cuánto lo guardo?"],
+  };
+};
+
+/**
  * @param {{question?: string, wines?: Array<{name?: string, quantity?: number, rating?: number}>}} entrada
  * @returns {{answer: string, picks: string[], followups: string[]}} la misma forma que devuelve el modelo.
  */
-const respuestaDeRespaldo = ({ question = "", wines = [] } = {}) => {
+const respuestaDeRespaldo = ({ question = "", wines = [], contexto = [] } = {}) => {
+  // Primero lo que venían hablando: a «¿a qué temperatura lo tomo?» no se le contesta con otra botella.
+  const deServicio = respuestaDeServicio(question, contexto);
+  if (deServicio) return deServicio;
+
   // Lo mejor de lo que tiene en casa: con stock, y lo mejor puntuado primero.
   const enCasa = [...wines]
     .filter((w) => w?.name && Number(w.quantity) > 0)

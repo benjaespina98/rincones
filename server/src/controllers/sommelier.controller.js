@@ -491,7 +491,7 @@ const resolverPregunta = async (req, { enviar, llamarModelo, next, cancelada }) 
       return enviar(200, {
         ...(await armarRespuesta({
           req,
-          resultado: respuestaDeRespaldo({ question, wines }),
+          resultado: respuestaDeRespaldo({ question, wines, contexto: sommelier.vinosDeLaCharla(history) }),
           wines,
           wishes,
           question,
