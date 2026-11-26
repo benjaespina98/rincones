@@ -21,9 +21,16 @@ const plano = (t) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/** ¿Estos dos son el mismo vino (misma bodega y mismo nombre, sin mirar tildes ni mayúsculas)? */
-export const esElMismoVino = (a, b) =>
-  Boolean(plano(a?.name)) && plano(a?.name) === plano(b?.name) && plano(a?.winery) === plano(b?.winery);
+/**
+ * ¿Estos dos son el mismo vino? Misma bodega y mismo nombre, sin mirar tildes ni mayúsculas, y sin uvas que se
+ * contradigan: el Malbec y el Cabernet de "Finca Humanao" son dos. Si a uno le falta la uva, no contradice.
+ */
+export const esElMismoVino = (a, b) => {
+  if (!plano(a?.name) || plano(a?.name) !== plano(b?.name) || plano(a?.winery) !== plano(b?.winery)) return false;
+  const uvaA = plano(a?.varietal);
+  const uvaB = plano(b?.varietal);
+  return !uvaA || !uvaB || uvaA === uvaB;
+};
 
 export const catalogWineToPayload = (wine, quantity = 1) => {
   const cantidad = Math.max(0, Math.min(999, Number.parseInt(quantity, 10) || 0));
