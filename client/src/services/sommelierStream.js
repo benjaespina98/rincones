@@ -1,4 +1,4 @@
-import api, { getAuthToken } from "./api";
+import api, { CABECERA_PROPIA } from "./api";
 import { turnoParaServidor } from "../utils/turnosSommelier";
 
 /**
@@ -100,7 +100,6 @@ export const preguntarEnVivo = async (
     throw new SinStreaming("no-soportado");
   }
 
-  const token = getAuthToken();
   let respuesta;
   try {
     respuesta = await fetch(`${api.defaults.baseURL}/sommelier/ask-stream`, {
@@ -109,7 +108,7 @@ export const preguntarEnVivo = async (
       signal,
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...CABECERA_PROPIA,
       },
       body: JSON.stringify({
         question,

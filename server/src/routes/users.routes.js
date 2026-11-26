@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate } = require("../middleware/auth.middleware");
+const { authenticate, requireCuentaCompleta } = require("../middleware/auth.middleware");
 const User = require("../models/user.model");
 const Wine = require("../models/wine.model");
 const { calculateAge, validateBirthDate } = require("../utils/age");
@@ -313,7 +313,7 @@ router.put("/password", authenticate, passwordLimiter, async (req, res) => {
  * existiendo y actualizándose, pero ya no lo lee nadie: dejó de ser una
  * respuesta y pasó a ser lo que era, un caché.
  */
-router.get("/stats", authenticate, async (req, res) => {
+router.get("/stats", authenticate, requireCuentaCompleta, async (req, res) => {
   try {
     const resumen = await winesService.getStatsSummary(req.user.id);
     res.json({
@@ -330,7 +330,7 @@ router.get("/stats", authenticate, async (req, res) => {
 });
 
 // GET /api/users/:id/wine-stats - Estadísticas derivadas de la colección de vinos del usuario
-router.get("/:id/wine-stats", authenticate, async (req, res) => {
+router.get("/:id/wine-stats", authenticate, requireCuentaCompleta, async (req, res) => {
   try {
     const targetUserId = req.params.id;
 

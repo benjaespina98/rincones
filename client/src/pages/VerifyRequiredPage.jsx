@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { resendVerification } from "../services/authApi";
 import { useToast } from "../context/ToastContext";
@@ -51,6 +52,9 @@ export default function VerifyRequiredPage() {
       setChecking(false);
     }
   };
+
+  // Ruta de tránsito fuera de AppGate: si ya está confirmado, hay que salir desde acá.
+  if (user?.emailVerified) return <Navigate to="/" replace />;
 
   return (
     <div className="auth-screen">

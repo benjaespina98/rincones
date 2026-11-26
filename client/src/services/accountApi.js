@@ -22,10 +22,8 @@ export const eliminarCuenta = async ({ confirmEmail, password }) => {
  * Descarga el archivo con todo lo cargado.
  *
  * ── POR QUÉ NO ES UN <a href> Y LISTO ───────────────────────────────────────
- * Porque el endpoint pide el token en la cabecera `Authorization`, y un enlace
- * del navegador no manda cabeceras. Habría que o pasar el token por la URL —que
- * queda en el historial, en los logs del servidor y en el Referer— o abrir el
- * endpoint sin autenticar, que es peor todavía.
+ * Porque si la sesión de acceso venció, un enlace del navegador mostraría el
+ * 401 en crudo: no sabe renovarla y reintentar.
  *
  * Así que se baja con la misma instancia de axios que el resto de la app, y el
  * archivo se arma en memoria. El `revokeObjectURL` no es prolijidad: sin él, el

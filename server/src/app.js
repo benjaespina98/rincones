@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { claveIpEmail } = require("./utils/rateKey");
+const { almacenCompartido } = require("./middleware/almacenRateLimit");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 
@@ -18,6 +19,7 @@ const usersRoutes = require("./routes/users.routes");
 const analyticsRoutes = require("./routes/analytics.routes");
 const promotionsRoutes = require("./routes/promotions.routes");
 const errorHandler = require("./middleware/errorHandler");
+const { protegerCsrf } = require("./middleware/csrf");
 const { errorShape } = require("./middleware/errorShape");
 
 const app = express();
@@ -57,6 +59,7 @@ const limiter = rateLimit({
 
 // Aplicar rate limiting más estricto a login
 const loginLimiter = rateLimit({
+  store: almacenCompartido("login"),
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 intentos de login
   message: "Demasiados intentos de login, intenta en 15 minutos",
@@ -68,6 +71,7 @@ const loginLimiter = rateLimit({
 
 // Rate limiter específico para forgot-password (proteger abuso)
 const forgotLimiter = rateLimit({
+  store: almacenCompartido("olvido"),
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 5, // máximo 5 solicitudes por IP por hora
   message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
@@ -79,6 +83,7 @@ const forgotLimiter = rateLimit({
 // El segundo freno: sólo por IP y más laxo. Con IP+email solos, una IP podría probar
 // 5 contraseñas contra cada cuenta de una lista; esto acota el barrido total.
 const loginIpLimiter = rateLimit({
+  store: almacenCompartido("login-ip"),
   windowMs: 15 * 60 * 1000,
   max: 30,
   message: "Demasiados intentos de login, intenta en 15 minutos",
@@ -87,6 +92,7 @@ const loginIpLimiter = rateLimit({
   legacyHeaders: false,
 });
 const forgotIpLimiter = rateLimit({
+  store: almacenCompartido("olvido-ip"),
   windowMs: 60 * 60 * 1000,
   max: 20,
   message: "Demasiadas solicitudes de restablecimiento, intenta más tarde",
@@ -96,6 +102,7 @@ const forgotIpLimiter = rateLimit({
 
 // Exportar los datos propios: ver dónde se monta, más abajo, para el porqué.
 const exportLimiter = rateLimit({
+  store: almacenCompartido("export"),
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 10,
   message: "Esperá un rato antes de volver a descargar tus datos",
@@ -108,6 +115,7 @@ const exportLimiter = rateLimit({
 // (probar emails, saturar el envío de verificación), así que le pusimos el
 // suyo — generoso para una persona real, no para un loop.
 const registerLimiter = rateLimit({
+  store: almacenCompartido("registro"),
   windowMs: 60 * 60 * 1000, // 1 hora
   // 20 por IP y hora en producción. La suite E2E registra una cuenta por prueba desde una sola IP y supera ese
   // tope: su servidor lo sube con REGISTER_RATE_LIMIT (nunca se define en producción).
@@ -120,6 +128,7 @@ const registerLimiter = rateLimit({
 // Reenvío de verificación: mismo criterio que forgotLimiter (protege el envío
 // de mails, no la creación de cuentas).
 const resendVerificationLimiter = rateLimit({
+  store: almacenCompartido("reenvio"),
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 5,
   message: "Demasiados reenvíos, intenta más tarde",
@@ -136,6 +145,7 @@ const resendVerificationLimiter = rateLimit({
 // mensaje ambiguo que un ataque de contraseñas — más generoso, pero no
 // abierto del todo.
 const googleAuthLimiter = rateLimit({
+  store: almacenCompartido("google"),
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 20,
   message: "Demasiados intentos, intenta en unos minutos",
@@ -157,6 +167,7 @@ app.options(/.*/, cors(corsOptions));
 app.use(limiter);
 
 app.use(cookieParser()); // Parsear cookies
+app.use(protegerCsrf);
 // Las rutas de cuenta no necesitan más que unos bytes: el tope grande es sólo
 // para las fotos, y acá se aplica antes de autenticar.
 app.use("/api/auth", express.json({ limit: "50kb" }));

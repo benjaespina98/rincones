@@ -70,7 +70,7 @@ test("refresh: la rotación buena entrega token de acceso, y el refresh nuevo S�
   const { res, error } = await conRotacion({ rotado: { userId: "u1", token: "refresh-nuevo", expiresAt: expira }, usuario });
   assert.equal(error, null);
   assert.equal(res.statusCode, 200);
-  assert.ok(res.cuerpo.data?.token, "el token de acceso va en el body");
+  assert.equal(res.cuerpo.data?.token, undefined, "el token de acceso va sólo en cookie");
   assert.ok(!JSON.stringify(res.cuerpo).includes("refresh-nuevo"), "el refresh nunca va en el body");
   const refrescoCookie = res.cookies.find((c) => c.n === "refreshToken");
   assert.equal(refrescoCookie.v, "refresh-nuevo");

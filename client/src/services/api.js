@@ -28,8 +28,8 @@ const configuredApiUrl = normalizeApiUrl(import.meta.env.VITE_API_URL);
  * cookies de terceros. Safari/iOS las bloquea siempre; Chrome en incógnito y
  * bajo las restricciones nuevas; Firefox las aisla por sitio.
  *
- * Y el síntoma es exactamente el que se reportó, porque el token de acceso NO
- * viaja en cookie sino en el header `Authorization` desde localStorage:
+ * Y el síntoma es exactamente el que se reportó, porque entonces el token de
+ * acceso no viajaba en cookie sino en el header, desde localStorage:
  *
  *   entrás           → anda, el token nuevo está en localStorage
  *   15 minutos       → el token vence
@@ -68,44 +68,43 @@ const baseURL = resolverBaseUrl({
   produccion: import.meta.env.PROD,
 });
 
+/** La cabecera que el server exige para escribir usando las cookies (protección CSRF). */
+export const CABECERA_PROPIA = { "X-Requested-With": "rincones" };
+
 const api = axios.create({
   baseURL,
   timeout: 12000,
-  withCredentials: true, // Cookie httpOnly como respaldo donde el navegador la permita
+  withCredentials: true, // La sesión viaja sólo en cookies httpOnly
+  headers: { ...CABECERA_PROPIA },
 });
 
-const TOKEN_KEY = "rincones_token";
-
-export const setAuthToken = (token) => {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // localStorage no disponible (modo privado, etc.): seguimos con la cookie.
-  }
-};
-
-export const getAuthToken = () => {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-};
-
 /**
- * ¿El token de acceso guardado ya venció (o vence en segundos)?
- *
- * Se lee el `exp` del propio JWT, sin verificarlo (eso es cosa del server): sólo sirve para no mandar un pedido que ya
- * se sabe que va a dar 401. Un token que no se puede leer cuenta como vigente: ahí manda el server, como siempre.
+ * La sesión vive en cookies httpOnly que ningún script puede leer. Acá sólo se guarda CUÁNDO vence la
+ * de acceso (no es secreto), para renovarla antes de mandar un pedido que ya daría 401.
  */
-export const tokenVencido = (token = getAuthToken(), ahora = Date.now()) => {
-  if (!token) return false;
+export const CLAVE_EXPIRA = "rincones_expira";
+
+export const guardarExpiracion = (expiraEn) => {
   try {
-    const carga = token.split(".")[1];
-    const json = atob(carga.replace(/-/g, "+").replace(/_/g, "/"));
-    const exp = Number(JSON.parse(json).exp);
-    return Number.isFinite(exp) && exp * 1000 - 5000 <= ahora;
+    if (expiraEn) localStorage.setItem(CLAVE_EXPIRA, String(expiraEn));
+    else localStorage.removeItem(CLAVE_EXPIRA);
+  } catch {
+    // Sin almacenamiento la app anda igual: renueva recién con el 401.
+  }
+};
+
+// El token que guardaban las versiones anteriores ya no se usa: se borra.
+try {
+  localStorage.removeItem("rincones_token");
+} catch {
+  // Nada que borrar.
+}
+
+/** ¿La sesión de acceso ya venció (o vence en segundos)? Sin dato no se asume nada: manda el server. */
+export const sesionVencida = (ahora = Date.now()) => {
+  try {
+    const expira = Number(localStorage.getItem(CLAVE_EXPIRA));
+    return expira > 0 && expira - 5000 <= ahora;
   } catch {
     return false;
   }
@@ -117,15 +116,13 @@ export const tokenVencido = (token = getAuthToken(), ahora = Date.now()) => {
  */
 const esperaRenovacion = (url = "") => !url.includes("/auth/") || url.includes("/auth/me");
 
-// Adjuntamos el token por header Authorization. Es la vía robusta: funciona en
-// Safari/iOS y entre dominios, donde la cookie de terceros se bloquea.
 api.interceptors.request.use(async (config) => {
   /**
    * Al reabrir la app pasados los 15 minutos del token, cada pedido salía con el vencido, volvía con 401, esperaba la
    * renovación y se repetía: tres viajes en fila antes de ver nada. Ahora, si ya se sabe que venció, se renueva ANTES
    * (una sola vez, compartida entre todos los pedidos en vuelo) y el pedido sale con el token nuevo.
    */
-  if (tokenVencido() && esperaRenovacion(config.url)) {
+  if (sesionVencida() && esperaRenovacion(config.url)) {
     try {
       await renovarSesion();
     } catch (error) {
@@ -134,11 +131,6 @@ api.interceptors.request.use(async (config) => {
       // arranque en frío.
       config._falloDeRenovacion = error;
     }
-  }
-  const token = getAuthToken();
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -201,10 +193,12 @@ const renovarSesion = async () => {
   if (!renovacionEnCurso) {
     renovacionEnCurso = api
       .post("/auth/refresh", null, { timeout: REFRESH_TIMEOUT_MS })
-      .then((res) => {
-        const token = res?.data?.data?.token;
-        if (token) setAuthToken(token);
-        return token;
+      .then(() => true)
+      .catch((error) => {
+        // El server contestó que no hay sesión: no tiene sentido volver a intentarlo en cada pedido.
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) guardarExpiracion(null);
+        throw error;
       })
       .finally(() => {
         renovacionEnCurso = null;
@@ -214,7 +208,12 @@ const renovarSesion = async () => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Login, registro, Google, reset y refresh avisan cuánto dura la sesión que acaban de abrir.
+    const duraMs = response?.data?.data?.duraMs;
+    if (duraMs) guardarExpiracion(Date.now() + duraMs);
+    return response;
+  },
   async (error) => {
     const status = error?.response?.status;
     const original = error?.config;
@@ -243,8 +242,8 @@ api.interceptors.response.use(
     if (original && debeRenovarSesion({ status, url, yaReintentado: original._reintentado || Boolean(falloPrevio) })) {
       original._reintentado = true;
       try {
-        const token = await renovarSesion();
-        if (token) return api(original);
+        await renovarSesion();
+        return api(original);
       } catch (refreshError) {
         const refreshStatus = refreshError?.response?.status;
         // El refresh mismo no pudo contestar (timeout, sin red, arranque en frío
@@ -268,9 +267,9 @@ api.interceptors.response.use(
     // es la consulta con la que la app averigua si hay sesión, y su respuesta
     // negativa la maneja quien la llamó.
     if (status === 401 && !isMeCheck && !isAuthCall && typeof window !== "undefined") {
-      setAuthToken(null);
+      guardarExpiracion(null);
       try {
-        // El usuario guardado se va con el token: no queda dato personal de una sesión que ya no existe.
+        // El usuario guardado se va con la sesión: no queda dato personal de una sesión que ya no existe.
         localStorage.removeItem(CLAVE_USUARIO);
       } catch {
         // Sin almacenamiento no hay nada que borrar.

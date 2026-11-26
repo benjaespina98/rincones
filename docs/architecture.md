@@ -91,8 +91,13 @@ vuelve a costar una llamada. Los endpoints de IA tienen límite por minuto y por
 día.
 
 **Sesión.** Access token JWT de 15 minutos y refresh token rotativo de 30 días en
-cookie `httpOnly` (`server/src/services/session.service.js`). Un interceptor de
-Axios detecta el 401, renueva con la cookie y reintenta la petición original.
+cookies `httpOnly` y `SameSite=Lax` (`server/src/services/session.service.js`); ningún
+token queda al alcance de un script. Un interceptor de Axios renueva antes del
+vencimiento o ante un 401 y reintenta. CSRF: cabecera propia más CORS
+(`server/src/middleware/csrf.js`).
+
+**Límites de uso.** Los de cuentas, mails e IA cuentan en Redis (Upstash, por REST) si
+está configurado, y en memoria si no o si Redis no contesta. El general queda en memoria.
 
 **Analítica propia en vez de Google Analytics.** Los bloqueadores tapan los
 servicios de terceros por defecto, así que el número que más importa, cuánta gente

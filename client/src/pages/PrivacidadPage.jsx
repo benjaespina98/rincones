@@ -89,14 +89,14 @@ export default function PrivacidadPage() {
 
       <h2>Cookies</h2>
       <p>
-        Usamos una sola, y es técnica: mantiene tu sesión abierta para que no tengas que
-        escribir la contraseña cada vez. No podemos leerla desde el navegador ni se comparte con
+        Usamos sólo las técnicas de sesión: mantienen tu sesión abierta para que no tengas que
+        escribir la contraseña cada vez. No se pueden leer desde el navegador ni se comparten con
         nadie. No usamos cookies de publicidad ni de seguimiento, y por eso no vas a ver un
         cartel pidiéndote permiso.
       </p>
 
       <h2>Con quién compartimos</h2>
-      <p>Con tres servicios, cada uno para una cosa puntual:</p>
+      <p>Con cuatro servicios, cada uno para una cosa puntual:</p>
       <ul>
         <li>
           <strong>Google (Gemini)</strong>: procesa las fotos de etiquetas que escaneás, las fotos de
@@ -110,6 +110,10 @@ export default function PrivacidadPage() {
         <li>
           <strong>Sentry</strong>: recibe los errores de la app para poder arreglarlos. Antes
           de salir se limpian las contraseñas, los tokens y las cabeceras de autenticación.
+        </li>
+        <li>
+          <strong>Upstash</strong>: cuenta los intentos para frenar abusos. Recibe sólo un código
+          derivado de tu IP, tu email o tu cuenta, que se borra solo en un día como mucho.
         </li>
       </ul>
       <p>

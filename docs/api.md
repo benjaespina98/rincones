@@ -1,8 +1,17 @@
 # API REST
 
-Base: `/api`. Todas las rutas requieren autenticación (cookie de sesión o header
-`Authorization: Bearer <token>`) salvo las marcadas como públicas. La lista sale de
+Base: `/api`. Todas las rutas requieren autenticación (cookie de sesión; el server
+también acepta `Authorization: Bearer`) salvo las marcadas como públicas. La lista sale de
 `server/src/routes/`; ante una duda, ese código manda.
+
+- **Cuenta completa.** Vinos, deseos, catálogo, etiquetas, Sommelier y estadísticas de
+  usuario exigen además email confirmado y fecha de nacimiento de mayor de 18. Si falta,
+  `403` con `code` `EMAIL_SIN_VERIFICAR` o `FALTA_MAYORIA_DE_EDAD`.
+- **CSRF.** Todo pedido que escriba usando las cookies debe traer
+  `X-Requested-With: rincones` (`403`, `code` `CSRF`). Quedan afuera
+  `/analytics/collect` y `/promotions/events`.
+- **Sesión.** Las respuestas de autenticación no traen el token: vienen las cookies y
+  `duraMs`, lo que dura la de acceso en milisegundos.
 
 ## Salud
 

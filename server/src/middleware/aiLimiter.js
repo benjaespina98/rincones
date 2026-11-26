@@ -1,4 +1,5 @@
 const rateLimit = require("express-rate-limit");
+const { almacenCompartido } = require("./almacenRateLimit");
 
 /**
  * Límite para los endpoints que llaman a Gemini.
@@ -26,6 +27,7 @@ const rateLimit = require("express-rate-limit");
  * falló". Con `handler` la respuesta es JSON, como el resto de la API.
  */
 const aiLimiter = rateLimit({
+  store: almacenCompartido("ia-hora"),
   windowMs: 60 * 60 * 1000,
   max: 60,
   keyGenerator: (req) => req.user?.id || req.ip,
@@ -55,6 +57,7 @@ const aiLimiter = rateLimit({
  * exige sesión, y detrás de un NAT hay muchas personas compartiendo IP.
  */
 const sommelierDailyLimiter = rateLimit({
+  store: almacenCompartido("sommelier-dia"),
   windowMs: 24 * 60 * 60 * 1000,
   max: 40,
   keyGenerator: (req) => req.user?.id || req.ip,
@@ -77,6 +80,7 @@ const sommelierDailyLimiter = rateLimit({
  * seguir cargando vinos a mano; sólo se corta lo que gasta Gemini.
  */
 const aiDailyLimiter = rateLimit({
+  store: almacenCompartido("ia-dia"),
   windowMs: 24 * 60 * 60 * 1000,
   max: 150,
   keyGenerator: (req) => req.user?.id || req.ip,
@@ -100,6 +104,7 @@ const aiDailyLimiter = rateLimit({
  * una persona que se confunde y nada para un bucle.
  */
 const passwordLimiter = rateLimit({
+  store: almacenCompartido("password"),
   windowMs: 15 * 60 * 1000,
   max: 10,
   keyGenerator: (req) => req.user?.id || req.ip,

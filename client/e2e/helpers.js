@@ -19,7 +19,12 @@ export async function crearUsuario(_request, etiqueta) {
       data: { email, password, firstName: `E2E${etiqueta}`, birthDate: "1990-05-05" },
     });
     const cuerpo = await r.json();
-    return { email, password, token: cuerpo.data.token, id: cuerpo.data.user.id };
+    // El token ya no viene en el body: sale de la cookie de sesión. Como Bearer, la API lo sigue aceptando.
+    const cookie = r.headersArray().find((h) => h.name.toLowerCase() === "set-cookie" && h.value.startsWith("authToken="));
+    const token = cookie.value.slice("authToken=".length).split(";")[0];
+    // La API exige email confirmado para usar el producto.
+    verificarEmail(email);
+    return { email, password, token, id: cuerpo.data.user.id };
   } finally {
     await contexto.dispose();
   }
@@ -32,10 +37,9 @@ export function verificarEmail(email) {
   execFileSync("node", ["scripts/verificarE2E.js", email], { cwd: "../server", stdio: "pipe" });
 }
 
-/** Cuenta descartable lista para usar la app: email verificado y onboarding hecho. */
+/** Cuenta descartable lista para usar la app, además con el onboarding hecho. */
 export async function crearUsuarioListo(request, etiqueta) {
   const u = await crearUsuario(request, etiqueta);
-  verificarEmail(u.email);
   await request.put(`${API}/users/profile`, { ...con(u.token), data: { onboarded: true } });
   return u;
 }
