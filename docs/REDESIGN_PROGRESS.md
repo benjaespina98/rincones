@@ -580,3 +580,8 @@ Sigue sin verificar: iPhone real (la pulsación larga y el callout de iOS, que s
   ya tomado no muestra fecha: la única disponible es la de la carga.
 - **Aviso:** abajo, sin borde de color; sube sobre los pies propios (`--toast-offset`) y se pausa con foco o puntero.
 - Sin verificar: etiquetas y cámara reales, latencia del escaneo, iPhone.
+
+**Corrección (2026-11-26, pedida por el dueño):** que el vino se llame como su bodega es normal. Se funde, comparte
+foto, precio y ficha como cualquier otro; sólo la uva sin bodega cuenta como relleno. Al catálogo público sigue sin
+publicarse salvo que el curado lo conozca. Costo aceptado: dos botellas distintas de la misma bodega, uva y año con el
+nombre sin leer se suman en una.

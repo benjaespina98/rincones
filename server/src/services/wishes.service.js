@@ -1,6 +1,5 @@
 const WineWish = require("../models/wineWish.model");
 const { esImagenAceptada } = require("../utils/imagenAceptada");
-const { esNombreProvisorio } = require("../data/wineValidation");
 
 const igualSinMayusculas = (texto) => new RegExp(`^${texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
 
@@ -17,12 +16,10 @@ async function createWish(userId, payload) {
 
   // Evitar duplicados: si ya está guardado el mismo vino, actualizamos datos que
   // falten (foto, favorito) en vez de crear otra fila.
-  // Con un nombre de relleno, nombre y bodega no alcanzan: "Salentein" Malbec y "Salentein" Cabernet son dos.
+  // Cuando el vino se llama como su bodega, nombre y bodega no alcanzan: el Malbec y el Cabernet son dos.
   const cleanVarietal = typeof varietal === "string" ? varietal.trim() : "";
   const filtro = { userId, name: igualSinMayusculas(cleanName), winery: igualSinMayusculas(cleanWinery) };
-  if (esNombreProvisorio({ name: cleanName, winery: cleanWinery, varietal: cleanVarietal })) {
-    filtro.varietal = igualSinMayusculas(cleanVarietal);
-  }
+  if (cleanName.toLowerCase() === cleanWinery.toLowerCase()) filtro.varietal = igualSinMayusculas(cleanVarietal);
   const existing = await WineWish.findOne(filtro);
   if (existing) {
     if (cleanImage && !existing.image) existing.image = cleanImage;
