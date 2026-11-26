@@ -218,17 +218,13 @@ function nombreIgualALaBodegaEsLegitimo(nombre) {
 }
 
 /**
- * ¿El "nombre" es sólo un relleno? Cuando de la etiqueta no se leyó cómo se llama el vino, se guarda
- * con su bodega (o, sin bodega, con la uva). Sirve para tenerlo, pero no identifica una botella: dos
- * etiquetas distintas quedan igual, así que no se funden ni comparten foto, precio o ficha.
+ * ¿El "nombre" es sólo la uva, sin bodega? "Malbec" a secas no identifica ninguna botella: no comparte foto,
+ * precio ni ficha. Llamarse como la bodega, en cambio, es un nombre real y muy común (Norton, Durigutti,
+ * Finca Humanao): se trata como cualquier otro.
  */
-function esNombreProvisorio({ name, line, winery, varietal, sameNameConfirmed, identification } = {}) {
-  // Si la persona ya confirmó que el vino se llama así, es su nombre y no un relleno.
-  if (sameNameConfirmed === true || identification?.sameNameConfirmed === true) return false;
+function esNombreProvisorio({ name, line, winery, varietal } = {}) {
   const nombre = fold(String(name || "").trim());
-  if (!nombre || String(line || "").trim()) return false;
-  const bodega = fold(String(winery || "").trim());
-  if (bodega) return nombre === bodega && !nombreIgualALaBodegaEsLegitimo(nombre);
+  if (!nombre || String(line || "").trim() || String(winery || "").trim()) return false;
   return nombre === fold(String(varietal || "").trim());
 }
 

@@ -16,7 +16,7 @@ const filtroDe = async (payload) => {
   }
 };
 
-test("con nombre de relleno, los guardados se distinguen por la uva", async () => {
+test("si el vino se llama como su bodega, los guardados se distinguen por la uva", async () => {
   const filtro = await filtroDe({ name: "Salentein", winery: "Salentein", varietal: "Malbec" });
   assert.ok(filtro.varietal.test("malbec"));
   assert.equal(filtro.varietal.test("Cabernet"), false);

@@ -980,63 +980,55 @@ test("bulk delete: si ninguno existe, todos vuelven como inexistentes y no se to
   assert.equal(statsLlamadas.length, 0);
 });
 
-test("dos botellas con nombre de relleno no se funden ni miran la bodega guardada", async () => {
-  const originalSave = Wine.prototype.save;
-  const originalFind = Wine.find;
-  const originalFindById = User.findById;
-  const originalConfiable = wineImages.getImageConfiable;
-  let consultas = 0;
-  let fotosPedidas = 0;
-  Wine.find = () => ({ select: async () => [{ _id: "x", name: "Salentein", winery: "Salentein", varietal: "Malbec" }] });
-  wineImages.getImageConfiable = async () => { fotosPedidas += 1; return "ajena"; };
-  User.findById = async () => ({ stats: {}, save: async () => {} });
-  Wine.prototype.save = async function save() { return this; };
-  try {
-    const { merged, wine } = await winesService.createWine("507f1f77bcf86cd799439011", {
-      name: "Salentein",
-      winery: "Salentein",
-      varietal: "Malbec",
-    });
-    assert.equal(merged, false);
-    assert.equal(fotosPedidas, 0);
-    assert.notEqual(wine.image, "ajena");
-  } finally {
-    restore(Wine.prototype, "save", originalSave);
-    restore(Wine, "find", originalFind);
-    restore(User, "findById", originalFindById);
-    restore(wineImages, "getImageConfiable", originalConfiable);
-  }
-});
-
-test("un nombre de relleno sí se suma a un vino cuyo nombre la persona ya confirmó", async () => {
+test("un vino que se llama como su bodega se suma al que ya tenías", async () => {
   const originales = [Wine.find, Wine.findOneAndUpdate];
-  const confirmado = { _id: "c1", name: "Pispi", winery: "Pispi", varietal: "Malbec", identification: { sameNameConfirmed: true } };
-  Wine.find = () => ({ select: async () => [confirmado] });
-  Wine.findOneAndUpdate = async () => ({ ...confirmado, quantity: 2 });
+  const mio = { _id: "c1", name: "Finca Humanao", winery: "Finca Humanao", varietal: "Malbec" };
+  Wine.find = () => ({ select: async () => [mio] });
+  Wine.findOneAndUpdate = async () => ({ ...mio, quantity: 2 });
   try {
-    const { merged } = await winesService.createWine("507f1f77bcf86cd799439011", { name: "Pispi", winery: "Pispi", varietal: "Malbec" });
+    const { merged } = await winesService.createWine("507f1f77bcf86cd799439011", {
+      name: "Finca Humanao", winery: "Finca Humanao", varietal: "Malbec",
+    });
     assert.equal(merged, true);
   } finally {
     [Wine.find, Wine.findOneAndUpdate] = originales;
   }
 });
 
-test("un nombre de relleno no aporta foto, precio ni catálogo compartido", async () => {
-  const originales = [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, communityWines.contribute, wineImages.getImageConfiable];
+test("la uva sola como nombre no aporta foto ni precio compartido", async () => {
+  const originales = [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, wineImages.getImageConfiable];
   const aportes = [];
+  let fotosPedidas = 0;
   Wine.find = () => ({ select: async () => [] });
   Wine.prototype.save = async function save() { return this; };
   User.findById = async () => ({ stats: {}, save: async () => {} });
-  wineImages.getImageConfiable = async () => "";
+  wineImages.getImageConfiable = async () => { fotosPedidas += 1; return "ajena"; };
   wineImages.contribute = async () => { aportes.push("foto"); };
   winePrices.contribute = async () => { aportes.push("precio"); };
-  communityWines.contribute = async () => { aportes.push("catalogo"); };
   try {
     await winesService.createWine("507f1f77bcf86cd799439011", {
-      name: "Zorzal Chico", winery: "Zorzal Chico", varietal: "Malbec", price: 5000, image: "data:image/png;base64,iVBORw0KGgo=",
+      name: "Malbec", varietal: "Malbec", price: 5000, image: "data:image/png;base64,iVBORw0KGgo=",
     });
     assert.deepEqual(aportes, []);
+    assert.equal(fotosPedidas, 0);
   } finally {
-    [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, communityWines.contribute, wineImages.getImageConfiable] = originales;
+    [Wine.find, Wine.prototype.save, User.findById, wineImages.contribute, winePrices.contribute, wineImages.getImageConfiable] = originales;
   }
 });
+
+for (const [caso, otro] of [["otra uva", { varietal: "Cabernet Sauvignon" }], ["otra cosecha", { vintage: 2019 }]]) {
+  test(`llamarse como la bodega no funde dos botellas de ${caso}`, async () => {
+    const originales = [Wine.find, Wine.prototype.save, User.findById];
+    Wine.find = () => ({ select: async () => [{ _id: "c1", name: "Finca Humanao", winery: "Finca Humanao", varietal: "Malbec" }] });
+    Wine.prototype.save = async function save() { return this; };
+    User.findById = async () => ({ stats: {}, save: async () => {} });
+    try {
+      const { merged } = await winesService.createWine("507f1f77bcf86cd799439011", {
+        name: "Finca Humanao", winery: "Finca Humanao", varietal: "Malbec", ...otro,
+      });
+      assert.equal(merged, false);
+    } finally {
+      [Wine.find, Wine.prototype.save, User.findById] = originales;
+    }
+  });
+}
